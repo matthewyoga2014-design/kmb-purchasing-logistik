@@ -1,7 +1,7 @@
 const seed=[{no:"101",tgl:"01/09/2026",month:"September 2026",site:"KTA - TRA",dept:"Plant",pic:"Ersa",approval:"APPROVAL",priority:"HIGH",barang:"Kunci ring pas ukurang 10",part:"101",spec:"Merk Tekiro",qty:10,satuan:"PCS",ket:"Stok",po:"101",vendor:"A",harga:1000,ketVendor:"Pengiriman 10 hari",kirim:"05/09/2026",doNo:"10111",jenis:"GENUINE",qtyKirim:8,terima:"15/09/2026",qtyTerima:8,inventory:"16/09/2026",proses:"INVENTORY",status:"CLOSE",aging:15,due:"SELESAI",vendors:[["A",1000,"Pengiriman 10 hari"],["B",1500,"pengiriman 8 hari"],["C",2500,"pengiriman 2 hari"]]}];
 let data=JSON.parse(localStorage.getItem("kmb_pr")||"null")||seed;
 const defaultMaster={sites:["KTA - TRA","SLR - Rekondisi","SLR - Maintenance","WS Legok"],satuan:["PCS","SET","UNIT","BOX","LOT","KG","LITER","Meter"],priority:["HIGH","NORMAL","LOW"],approval:["APPROVAL","REJECT"],jenis:["GENUINE","OEM","AFTERMARKET / KW"],status:["OPEN","CLOSE","REJECT"]};
-let master=JSON.parse(localStorage.getItem("kmb_master")||"null")||defaultMaster;let page="dashboard";
+let master;try{master=JSON.parse(localStorage.getItem("kmb_master")||"null")||{}}catch(e){master={}};for(const k of Object.keys(defaultMaster)){if(!Array.isArray(master[k]))master[k]=[...defaultMaster[k]]}let page="dashboard";
 const $=s=>document.querySelector(s), esc=s=>String(s??"").replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[m]));
 function save(){localStorage.setItem("kmb_pr",JSON.stringify(data))}
 function saveMaster(){localStorage.setItem("kmb_master",JSON.stringify(master));refreshSiteFilter()}
