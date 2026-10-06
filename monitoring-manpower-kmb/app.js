@@ -266,7 +266,7 @@ function renderMP(){
     let cells=fields.map(f=>'<td>'+esc(r[f]||"-")+'</td>').join("");
     let actions='<button class="btn" onclick="openMpForm(\''+mpMode+'\','+r.__i+')">Edit</button>';
     if(mpMode==="active")actions+=' <button class="btn yellow" onclick="openMpForm(\'active\','+r.__i+')">Pindah Site</button> <button class="btn danger" onclick="openExitForm('+r.__i+')">MP OUT</button>';
-    else actions+=' <button class="btn danger" onclick="removeMpRow(\'out\','+r.__i+')">Hapus</button>';
+    else actions+=' <button class="btn yellow" onclick="restoreFromOut('+r.__i+')">Kembalikan ke MP Aktif</button> <button class="btn danger" onclick="removeMpRow(\'out\','+r.__i+')">Hapus</button>';
     return '<tr>'+cells+'<td class="action-cell">'+actions+'</td></tr>';
   }).join("");
   document.getElementById("mpTable").innerHTML='<div class="table-wrap"><table class="table mp-table"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';
@@ -306,6 +306,37 @@ function openExitForm(index){
   document.getElementById("modal").classList.add("show");
 }
 function removeMpRow(mode,index){if(confirm("Hapus data manpower ini?")){(mode==="active"?data.mpActive:data.mpOut).splice(index,1);saveData();renderMP()}}
+function restoreFromOut(index){
+  const rec=data.mpOut[index];if(!rec)return;
+  const name=rec.Nama||"data ini";
+  if(data.mpActive.some(x=>sameName(x.Nama,rec.Nama))){
+    alert(name+" sudah ada di MP Aktif. Data MP OUT tidak dipindahkan untuk mencegah duplikasi.");return;
+  }
+  const placement=rec["Tempat Bekerja"]||"",site=siteKeyFromPlacement(placement);
+  const siteLabel=site?(data.siteLabels[site]||site):(placement||"site belum terdeteksi");
+  if(!confirm("Kembalikan "+name+" dari MP OUT ke MP Aktif?\n\nPenempatan: "+siteLabel+"\nPosisi: "+(rec.Jabatan||"-")+"\n\nJika posisi jobsite sebelumnya masih Vacant, posisi tersebut akan diisi kembali otomatis."))return;
+  const active={};MP_SCHEMA_ACTIVE.forEach(f=>active[f]=rec[f]||"");
+  if(!active["No."])active["No."]=String(data.mpActive.length+1);
+  data.mpActive.push(active);
+
+  if(site&&data.sites[site]){
+    const rows=data.sites[site];
+    let target=rows.find(r=>isVacantName(r.Nama)&&normText(r.Keterangan).toLowerCase().includes(normText(rec.Nama).toLowerCase()));
+    if(!target)target=rows.find(r=>isVacantName(r.Nama)&&canonicalJob(r.Jabatan)===canonicalJob(rec.Jabatan));
+    if(target){
+      target.Nama=rec.Nama;
+      target.Jabatan=target.Jabatan||rec.Jabatan;
+      target.Keterangan="Dikembalikan dari MP OUT";
+      if(target["Keterangan PTK"]==="TIDAK ADA PENGAJUAN"&&!target.Judul)target["Keterangan PTK"]="TIDAK ADA PENGAJUAN";
+    }else if(!rows.some(r=>sameName(r.Nama,rec.Nama))){
+      rows.push({No:String(rows.length+1),Nama:rec.Nama,Jabatan:rec.Jabatan||"",Keterangan:"Dikembalikan dari MP OUT",PIC:"PT. KMB",Judul:"","Awal Rekrutmen":"","Psikologi Test":"","Interview User":"","Offering Latter":"","MCU":"","FU MCU":"","On Site":"","Induksi":"","Due Date":"","Status":"","Tanggal Close":"","Keterangan PTK":"TIDAK ADA PENGAJUAN","Lama Closing (Hari)":"","Open Index":""});
+    }
+  }
+
+  data.mpOut.splice(index,1);
+  saveData();makeSiteViews();renderMP();renderDashboard();
+  alert(name+" berhasil dikembalikan ke MP Aktif"+(site?" dan penempatan "+siteLabel+" sudah disinkronkan.":". Penempatan jobsite belum terdeteksi, silakan cek kolom Tempat Bekerja."));
+}
 function vacateForExit(rec,date,reason){
   const name=rec.Nama,site=siteKeyFromPlacement(rec["Tempat Bekerja"]);
   if(site&&data.sites[site]){
