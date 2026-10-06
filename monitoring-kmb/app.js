@@ -1,22 +1,47 @@
 const INITIAL=window.KMB_DATA||{sites:{},siteLabels:{},units:[],mpActive:[],mpOut:[]};
 const KEY="kmb_monitoring_web_v1";
 const OWNER_EMAIL="matthewyoga2014@gmail.com";
-function isEditorMode(){return new URLSearchParams(window.location.search).get("mode")==="editor"}
+function accessMode(){return new URLSearchParams(window.location.search).get("mode")||"owner"}
+function isEditorMode(){return accessMode()==="editor"}
+function isViewerMode(){return accessMode()==="viewer"}
+function isRestrictedMode(){return isEditorMode()||isViewerMode()}
 function ownerOnly(){
-  if(!isEditorMode())return true;
-  alert("Mode Editor hanya untuk mengisi data operasional. Pengaturan hanya dapat diakses Pemilik / Administrator.");
+  if(!isRestrictedMode())return true;
+  alert("Pengaturan hanya dapat diakses Pemilik / Administrator.");
   goDashboard();
+  return false;
+}
+function editOnly(){
+  if(!isViewerMode())return true;
+  alert("Mode Pelihat hanya dapat melihat data.");
   return false;
 }
 function applyAccessMode(){
   const settingsNav=document.querySelector('.nav[data-view="settings"]');
-  if(settingsNav)settingsNav.style.display=isEditorMode()?"none":"";
+  if(settingsNav)settingsNav.style.display=isRestrictedMode()?"none":"";
   document.body.classList.toggle("editor-mode",isEditorMode());
+  document.body.classList.toggle("viewer-mode",isViewerMode());
   const title=document.querySelector(".app-name");
-  if(title&&isEditorMode())title.textContent="Monitoring Manpower KMB • MODE EDITOR";
+  if(title)title.textContent="Monitoring Manpower KMB"+(isEditorMode()?" • MODE EDITOR":isViewerMode()?" • MODE PELIHAT":"");
+  applyReadOnlyUI();
+}
+function applyReadOnlyUI(){
+  if(!isViewerMode())return;
+  const selectors=[
+    "#addMP","#exportMP","#exportUnits","#mpFullBtn",
+    ".action-cell .btn","button[data-add]","button[data-export]",
+    "button[onclick*='openSiteForm']","button[onclick*='removeSiteRow']",
+    "button[onclick*='openUnitForm']","button[onclick*='addUnitSection']","button[onclick*='deleteUnit']",
+    "button[onclick*='openMpForm']","button[onclick*='openExitForm']","button[onclick*='restoreFromOut']",
+    "label.btn"
+  ];
+  selectors.forEach(sel=>document.querySelectorAll(sel).forEach(el=>{el.style.display="none"}));
+  document.querySelectorAll('input[type="file"]').forEach(el=>el.disabled=true);
 }
 
+
 const EDITOR_KEY="kmb_editors";
+const VIEWER_KEY="kmb_viewers";
 const SOURCE_SYNC_KEY="kmb_excel_sync_monitoring6_v1";
 let data=loadData(),editState=null,mpMode="active",mpFullView=false,recruitRoleFilter="";
 
@@ -355,7 +380,7 @@ function fieldHtml(f,row,type="site"){
   const dateFields=["Akhir Kontrak","Tanggal Masuk","Tanggal Keluar","Tgl/Lahir","Tanggal Lahir (1)","Tanggal Lahir (2)","Tanggal Lahir (3)","Tanggal Lahir (4)","Due Date","Tanggal Close","Awal Rekrutmen","Psikologi Test","Interview User","MCU","FU MCU","On Site","Induksi"];
   return '<div class="field '+(SENSITIVE_FIELDS.has(f)?"sensitive ":"")+(empty?"empty-field":"")+'"><label>'+f+(SENSITIVE_FIELDS.has(f)?' <span title="Data sensitif">🔒</span>':'')+'</label><input type="'+(dateFields.includes(f)?"date":"text")+'" data-f="'+f+'" value="'+esc(row[f]||"")+'" placeholder="Belum terisi di Excel">'+hint+'</div>';
 }
-function openSiteForm(key,index){
+function openSiteForm(key,index){if(!editOnly())return;
   editState={type:"site",key,index,old:index===null?null:clone(data.sites[key][index])};const row=index===null?{}:data.sites[key][index];
   document.getElementById("modalTitle").textContent=(index===null?"Tambah Data - ":"Edit Data - ")+(data.siteLabels[key]||key);
   document.getElementById("formFields").innerHTML=SITE_FIELDS.map(f=>fieldHtml(f,row,"site")).join("");
@@ -366,7 +391,7 @@ function syncActivePlacementFromSite(name,key){
   const emp=(data.mpActive||[]).find(r=>sameName(r.Nama,name));
   if(emp)emp["Tempat Bekerja"]=placementFromSiteKey(key);
 }
-function saveModal(){
+function saveModal(){if(!editOnly())return;
   if(!editState)return;let row={};document.querySelectorAll("#formFields [data-f]").forEach(el=>row[el.dataset.f]=el.value);
   if(editState.type==="site"){
     computePTK(row);
@@ -406,7 +431,7 @@ function saveModal(){
   }
 }
 function closeModal(){document.getElementById("modal").classList.remove("show");editState=null}
-function removeSiteRow(key,index){
+function removeSiteRow(key,index){if(!editOnly())return;
   const row=data.sites?.[key]?.[index];if(!row)return;
   if(!isVacantName(row.Nama)){alert("Manpower aktif tidak dihapus sebagai posisi. Gunakan tombol MP OUT.");return}
   if(!confirm("Hapus posisi kebutuhan "+(row.Jabatan||"ini")+"?\n\nPlanning manpower akan berkurang 1. Data posisi masuk Data Terhapus dan tetap dapat dipulihkan."))return;
@@ -439,7 +464,7 @@ function renderUnits(){
     return '<div class="card unit-block"><div class="section-head"><div><span class="eyebrow">UNIT SECTION</span><h3>'+esc(sec.name)+'</h3></div><div class="toolbar"><span class="unit-total-pill">'+unitSectionCount(sec)+' unit</span><button class="btn yellow" onclick="openUnitForm('+sectionIndex+',null)">+ Tambah Unit</button><button class="btn danger" onclick="deleteUnitSection('+sectionIndex+')">Hapus Section</button></div></div><div class="table-wrap"><table class="table"><thead><tr>'+safeHeads.map(h=>'<th>'+esc(h)+'</th>').join("")+'<th>Aksi</th></tr></thead><tbody>'+body+'</tbody></table></div></div>';
   }).join("");
 }
-function openUnitForm(sectionIndex,rowIndex){
+function openUnitForm(sectionIndex,rowIndex){if(!editOnly())return;
   const sec=data.units?.[sectionIndex];if(!sec)return;
   const heads=[...new Set((sec.rows||[]).flatMap(r=>Object.keys(r).filter(k=>k!=="__i")))];
   const fields=heads.length?heads:["No.","Category","Code Unit SAP","Manufacturer","Model","Serial Number","Remark"];
@@ -449,18 +474,18 @@ function openUnitForm(sectionIndex,rowIndex){
   document.getElementById("formFields").innerHTML=fields.map(f=>fieldHtml(f,row||{},"unit")).join("");
   document.getElementById("modal").classList.add("show");
 }
-function addUnitSection(){
+function addUnitSection(){if(!editOnly())return;
   let name=prompt("Nama jobsite / section populasi unit:");if(!name)return;name=name.trim();if(!name)return;
   if((data.units||[]).some(s=>normText(s.name).toLowerCase()===name.toLowerCase())){alert("Section unit tersebut sudah ada.");return}
   data.units=data.units||[];data.units.push({name,rows:[]});saveData();renderUnits();
 }
-function deleteUnitRow(sectionIndex,rowIndex){
+function deleteUnitRow(sectionIndex,rowIndex){if(!editOnly())return;
   const sec=data.units?.[sectionIndex],row=sec?.rows?.[rowIndex];if(!sec||!row)return;
   if(!confirm("Hapus unit ini dari "+sec.name+"?\n\nData akan masuk Data Terhapus dan masih dapat dipulihkan."))return;
   data.deletedKMB=data.deletedKMB||[];data.deletedKMB.unshift({type:"unit",sectionIndex,sectionName:sec.name,rowIndex,row:clone(row),deletedAt:new Date().toISOString()});
   sec.rows.splice(rowIndex,1);saveData();renderUnits();
 }
-function deleteUnitSection(sectionIndex){
+function deleteUnitSection(sectionIndex){if(!editOnly())return;
   const sec=data.units?.[sectionIndex];if(!sec)return;
   if(unitSectionCount(sec)>0){alert("Section masih memiliki data unit. Hapus atau pindahkan unit terlebih dahulu.");return}
   if(!confirm("Hapus section "+sec.name+"?"))return;
@@ -468,7 +493,7 @@ function deleteUnitSection(sectionIndex){
   data.units.splice(sectionIndex,1);saveData();renderUnits();
 }
 
-function setMPMode(mode){mpMode=mode;document.querySelectorAll(".mp-tab").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));renderMP()}
+function setMPMode(mode){mpMode=mode;document.querySelectorAll(".mp-tab").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));renderMP();applyReadOnlyUI()}
 function toggleMPFull(){mpFullView=!mpFullView;document.getElementById("mpFullBtn").textContent=mpFullView?"Tampilan Ringkas":"Semua Kolom";renderMP()}
 function renderMP(){
   normalizeAllMP();ensureRuntimeData();renumberAll();
@@ -492,7 +517,7 @@ function renderMP(){
 function hasFullMPData(row){
   return !!(normText(row?.["NIK KTP"])||normText(row?.["Nomor HP"])||normText(row?.["No Rekening"])||normText(row?.["Nomor BPJS Kesehatan"])||normText(row?.["Alamat Lengkap"]));
 }
-function openMpForm(mode,index){
+function openMpForm(mode,index){if(!editOnly())return;
   editState={type:"mp",mode,index};const arr=mode==="active"?data.mpActive:data.mpOut,row=index===null?{}:arr[index],fs=mode==="active"?MP_SCHEMA_ACTIVE:MP_SCHEMA_OUT;
   document.getElementById("modalTitle").textContent=(index===null?"Tambah ":"Edit ")+(mode==="active"?"MP Aktif":"MP OUT");
   let source="";
@@ -515,7 +540,7 @@ function fillFromActive(idx){
   if(idx==="")return;const src=data.mpActive[Number(idx)];if(!src)return;
   for(const f of MP_SCHEMA_OUT){const el=document.querySelector('#formFields [data-f="'+CSS.escape(f)+'"]');if(el)el.value=f==="Tanggal Keluar"?todayISO():(src[f]||"")}
 }
-function openExitForm(index){
+function openExitForm(index){if(!editOnly())return;
   const src=data.mpActive[index];if(!src)return;
   editState={type:"exit",mode:"out",index:null,sourceIndex:index};
   const row={...normalizedMP(src),"Tanggal Keluar":todayISO(),"Alasan":""};
@@ -523,14 +548,14 @@ function openExitForm(index){
   document.getElementById("formFields").innerHTML='<div class="notice" style="grid-column:1/-1"><b>Sinkron otomatis:</b> saat disimpan, data akan masuk ke MP OUT, dihapus dari MP Aktif, dan posisi lama di jobsite menjadi Vacant.</div>'+MP_SCHEMA_OUT.map(f=>fieldHtml(f,row,"mp")).join("");
   document.getElementById("modal").classList.add("show");
 }
-function removeMpRow(mode,index){
+function removeMpRow(mode,index){if(!editOnly())return;
   const arr=mode==="active"?data.mpActive:data.mpOut,rec=arr[index];if(!rec)return;
   const label=mode==="out"?"Hapus record "+(rec.Nama||"ini")+" dari MP OUT?":"Hapus data manpower ini?";
   if(!confirm(label+"\n\nData akan masuk Data Terhapus dan dapat dipulihkan."))return;
   data.deletedKMB=data.deletedKMB||[];data.deletedKMB.unshift({type:"mp",mode,index,siteKey:mpGroupKey(rec),localNo:Number(rec["No."])||1,row:clone(rec),deletedAt:new Date().toISOString()});
   arr.splice(index,1);saveData();renderMP();
 }
-function restoreFromOut(index){
+function restoreFromOut(index){if(!editOnly())return;
   const rec=data.mpOut[index];if(!rec)return;
   const name=rec.Nama||"data ini";
   if(data.mpActive.some(x=>sameName(x.Nama,rec.Nama))){alert(name+" sudah ada di MP Aktif. Data MP OUT tidak dipindahkan untuk mencegah duplikasi.");return}
@@ -713,18 +738,49 @@ function restoreDeletedKMB(index){if(!ownerOnly())return;
 function permanentDeleteKMB(index){if(!ownerOnly())return;const item=(data.deletedKMB||[])[index];if(!item)return;if(!confirm("Hapus permanen data ini? Tindakan ini tidak dapat dibatalkan."))return;data.deletedKMB.splice(index,1);saveData();renderSettings()}
 function restoreLastDeletedKMB(){if(!ownerOnly())return;if(!(data.deletedKMB||[]).length){alert("Tidak ada data terhapus.");return}restoreDeletedKMB(0)}
 function getEditors(){try{const a=JSON.parse(localStorage.getItem(EDITOR_KEY)||"[]");return Array.isArray(a)?a:[]}catch(e){return []}}
-function addEditor(){if(!ownerOnly())return;let e=prompt("Masukkan email Editor (Input Data):");if(!e)return;e=e.trim().toLowerCase();if(!e.includes("@")||!e.includes(".")){alert("Format email tidak valid.");return}const a=getEditors();if(e===OWNER_EMAIL||a.includes(e)){alert("Email sudah terdaftar.");return}a.push(e);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
+function addEditor(){if(!ownerOnly())return;let e=prompt("Masukkan email Editor (Input Data):");if(!e)return;e=e.trim().toLowerCase();if(!e.includes("@")||!e.includes(".")){alert("Format email tidak valid.");return}const a=getEditors(),vs=getViewers();if(e===OWNER_EMAIL||a.includes(e)||vs.includes(e)){alert("Email sudah terdaftar.");return}a.push(e);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
 function removeEditor(i){if(!ownerOnly())return;const a=getEditors();if(!a[i])return;if(!confirm("Hapus Editor "+a[i]+"?"))return;a.splice(i,1);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
+function getViewers(){try{const a=JSON.parse(localStorage.getItem(VIEWER_KEY)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
+function addViewer(){if(!ownerOnly())return;let e=prompt("Masukkan email Pelihat / Viewer:");if(!e)return;e=e.trim().toLowerCase();if(!e.includes("@")||!e.includes(".")){alert("Format email tidak valid.");return}const a=getViewers(),eds=getEditors();if(e===OWNER_EMAIL||a.includes(e)||eds.includes(e)){alert("Email sudah terdaftar.");return}a.push(e);localStorage.setItem(VIEWER_KEY,JSON.stringify(a));renderSettings()}
+function removeViewer(i){if(!ownerOnly())return;const a=getViewers();if(!a[i])return;if(!confirm("Hapus Pelihat "+a[i]+"?"))return;a.splice(i,1);localStorage.setItem(VIEWER_KEY,JSON.stringify(a));renderSettings()}
+
 function renderSettings(){
-  const host=document.getElementById("settingsContent");if(!host)return;if(isEditorMode()){host.innerHTML='<div class="card"><div class="empty">Pengaturan hanya dapat diakses Pemilik / Administrator.</div></div>';return}const editors=getEditors();
-  host.innerHTML='<div class="grid2"><div class="card"><div class="section-head"><h3>Pemilik & Akses</h3></div><div class="statusline"><span>Pemilik / Administrator</span><b>'+esc(OWNER_EMAIL)+'</b></div><div class="statusline"><span>Hosting</span><b>GitHub Pages</b></div><div class="statusline"><span>Nama Sistem</span><b>Monitoring Manpower KMB</b></div><div class="statusline"><span>Hak Editor</span><b>Input Data Operasional (Tanpa Pengaturan)</b></div><div class="notice" style="margin-top:12px">Nomor jobsite dan manpower diatur otomatis. MP Aktif dan MP OUT dikelompokkan per jobsite.</div></div><div class="card"><div class="section-head"><div><h3>Editor</h3><p class="section-sub">Daftar editor yang sama dengan web KTA - TRA.</p></div><button class="btn yellow" onclick="addEditor()">+ Tambah Editor</button></div>'+(editors.length?editors.map((e,i)=>'<div class="statusline"><span>'+esc(e)+'</span><span><b>INPUT DATA</b> <button class="btn danger" onclick="removeEditor('+i+')">Hapus</button></span></div>').join(""):'<div class="empty">Belum ada Editor Input Data di browser ini.</div>')+'</div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Download Excel</h3></div><button class="btn primary" onclick="downloadExcel()">Download Monitoring Manpower KMB.xlsx</button></div><div class="card"><div class="section-head"><h3>Import Data Lengkap dari Excel</h3></div><label class="btn yellow">Import Excel Monitoring Manpower KMB<input type="file" accept=".xlsx,.xls" hidden onchange="importOriginalExcel(this)"></label></div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Backup Data Web</h3></div><div class="toolbar"><button class="btn" onclick="backup()">Download Backup JSON</button><label class="btn">Import Backup<input type="file" accept=".json" hidden onchange="importBackup(this)"></label></div></div><div class="card"><div class="section-head"><h3>Reset</h3></div><button class="btn danger" onclick="resetAll()">Reset ke Data Awal</button></div></div><div style="height:16px"></div><div class="card"><div class="section-head"><div><h3>Data Terhapus</h3><p class="section-sub">Data jobsite, MP Aktif, atau MP OUT yang salah hapus dapat dipulihkan.</p></div><span class="pill">'+((data.deletedKMB||[]).length)+' data</span></div><div class="toolbar" style="margin-bottom:8px"><button class="btn yellow" onclick="restoreLastDeletedKMB()">Kembalikan Terakhir Dihapus</button></div>'+renderDeletedKMB()+'</div>';
+  const host=document.getElementById("settingsContent");if(!host)return;
+  if(isRestrictedMode()){host.innerHTML='<div class="card"><div class="empty">Pengaturan hanya dapat diakses Pemilik / Administrator.</div></div>';return}
+  const editors=getEditors(),viewers=getViewers();
+  host.innerHTML=
+  '<div class="grid2">'+
+    '<div class="card"><div class="section-head"><h3>Pemilik & Akses</h3></div>'+
+      '<div class="statusline"><span>Pemilik / Administrator</span><b>'+esc(OWNER_EMAIL)+'</b></div>'+
+      '<div class="statusline"><span>Hosting</span><b>GitHub Pages</b></div>'+
+      '<div class="statusline"><span>Nama Sistem</span><b>Monitoring Manpower KMB</b></div>'+
+      '<div class="statusline"><span>Hak Editor</span><b>Input/Edit Data Operasional (Tanpa Pengaturan)</b></div>'+
+      '<div class="statusline"><span>Hak Pelihat</span><b>View Only</b></div>'+
+      '<div class="notice" style="margin-top:12px">Nomor jobsite dan manpower diatur otomatis. MP Aktif dan MP OUT dikelompokkan per jobsite.</div></div>'+
+    '<div class="card"><div class="section-head"><div><h3>Editor</h3><p class="section-sub">Bisa mengisi dan mengubah data operasional, tanpa akses Pengaturan.</p></div><button class="btn yellow" onclick="addEditor()">+ Tambah Editor</button></div>'+
+      (editors.length?editors.map((e,i)=>'<div class="statusline"><span>'+esc(e)+'</span><span><b>INPUT DATA</b> <button class="btn danger" onclick="removeEditor('+i+')">Hapus</button></span></div>').join(""):'<div class="empty">Belum ada Editor.</div>')+
+    '</div>'+
+  '</div>'+
+  '<div style="height:16px"></div>'+
+  '<div class="card"><div class="section-head"><div><h3>Pelihat / Viewer</h3><p class="section-sub">Hanya dapat melihat Dashboard dan data. Tidak dapat mengubah data atau Pengaturan.</p></div><button class="btn yellow" onclick="addViewer()">+ Tambah Pelihat</button></div>'+
+    (viewers.length?viewers.map((e,i)=>'<div class="statusline"><span>'+esc(e)+'</span><span><b>VIEW ONLY</b> <button class="btn danger" onclick="removeViewer('+i+')">Hapus</button></span></div>').join(""):'<div class="empty">Belum ada Pelihat / Viewer.</div>')+
+  '</div>'+
+  '<div style="height:16px"></div>'+
+  '<div class="grid2"><div class="card"><div class="section-head"><h3>Download Excel</h3></div><button class="btn primary" onclick="downloadExcel()">Download Monitoring Manpower KMB.xlsx</button></div>'+
+  '<div class="card"><div class="section-head"><h3>Import Data Lengkap dari Excel</h3></div><label class="btn yellow">Import Excel Monitoring Manpower KMB<input type="file" accept=".xlsx,.xls" hidden onchange="importOriginalExcel(this)"></label></div></div>'+
+  '<div style="height:16px"></div>'+
+  '<div class="grid2"><div class="card"><div class="section-head"><h3>Backup Data Web</h3></div><div class="toolbar"><button class="btn" onclick="backup()">Download Backup JSON</button><label class="btn">Import Backup<input type="file" accept=".json" hidden onchange="importBackup(this)"></label></div></div>'+
+  '<div class="card"><div class="section-head"><h3>Reset</h3></div><button class="btn danger" onclick="resetAll()">Reset ke Data Awal</button></div></div>'+
+  '<div style="height:16px"></div>'+
+  '<div class="card"><div class="section-head"><div><h3>Data Terhapus</h3><p class="section-sub">Data jobsite, MP Aktif, atau MP OUT yang salah hapus dapat dipulihkan.</p></div><span class="pill">'+((data.deletedKMB||[]).length)+' data</span></div><div class="toolbar" style="margin-bottom:8px"><button class="btn yellow" onclick="restoreLastDeletedKMB()">Kembalikan Terakhir Dihapus</button></div>'+renderDeletedKMB()+'</div>';
 }
+
 function goDashboard(){
   recruitRoleFilter="";
   showView("dashboard");
 }
 function showView(name){
-  if(name==="settings"&&isEditorMode()){alert("Pengaturan hanya dapat diakses Pemilik / Administrator.");name="dashboard"}
+  if(name==="settings"&&isRestrictedMode()){alert("Pengaturan hanya dapat diakses Pemilik / Administrator.");name="dashboard"}
   const target=document.getElementById(name)?name:"dashboard";
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
   const el=document.getElementById(target);if(el)el.classList.add("active");
@@ -736,6 +792,7 @@ function showView(name){
   if(target==="units")renderUnits();
   if(target==="mp")renderMP();
   if(target==="settings")renderSettings();
+  applyReadOnlyUI();
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
