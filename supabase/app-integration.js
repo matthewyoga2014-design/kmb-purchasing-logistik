@@ -4,7 +4,11 @@
   const isKta=location.pathname.includes("monitoring-kta-tra");
   const appId=isKta?"kta-tra":"kmb";
   const localStateKey=isKta?"kta_tra_monitoring_v1":"kmb_monitoring_web_v1";
+  const migrationBackupKey=localStateKey+"_precloud_backup";
   const hadLocalBeforeCloud=!!localStorage.getItem(localStateKey);
+  if(hadLocalBeforeCloud&&!localStorage.getItem(migrationBackupKey)){
+    try{localStorage.setItem(migrationBackupKey,localStorage.getItem(localStateKey))}catch(e){}
+  }
   let cloudRole="viewer", cloudUser=null, cloudEditors=[], cloudUnsub=null, applyingRemote=false;
 
   window.accessMode=function(){return cloudRole||"viewer"};
@@ -186,13 +190,35 @@
       const row=await window.KMBCloud.loadState();
       const initialSeed=row?.updated_by==="initial-seed";
       if(hasRemoteData(row)){
-        if(initialSeed&&hadLocalBeforeCloud&&window.KMBCloud.isOwner?.()){
-          await window.KMBCloud.saveState(data);
-        }else if(!(initialSeed&&hadLocalBeforeCloud&&cloudRole==="viewer")){
+        if(initialSeed&&window.KMBCloud.isOwner?.()){
+          const backupRaw=localStorage.getItem(migrationBackupKey);
+          if(backupRaw){
+            try{
+              const backupData=JSON.parse(backupRaw);
+              await window.KMBCloud.saveState(backupData);
+              persistRemoteLocally(backupData);
+              localStorage.removeItem(migrationBackupKey);
+            }catch(e){
+              await window.KMBCloud.saveState(data);
+            }
+          }else{
+            await window.KMBCloud.saveState(data);
+          }
+        }else{
           persistRemoteLocally(row.data);
         }
       }else if(window.KMBCloud.isOwner?.()){
-        await window.KMBCloud.saveState(data);
+        const backupRaw=localStorage.getItem(migrationBackupKey);
+        if(backupRaw){
+          try{
+            const backupData=JSON.parse(backupRaw);
+            await window.KMBCloud.saveState(backupData);
+            persistRemoteLocally(backupData);
+            localStorage.removeItem(migrationBackupKey);
+          }catch(e){await window.KMBCloud.saveState(data)}
+        }else{
+          await window.KMBCloud.saveState(data);
+        }
       }
     }catch(e){console.error("Cloud load failed",e)}
     renderAll();
