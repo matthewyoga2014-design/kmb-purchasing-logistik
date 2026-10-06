@@ -47,12 +47,15 @@ function candidateStatusFromText(s){
 }
 function seedCandidatesFromText(r){
   const txt=norm(r?.Keterangan);if(!txt||/^MP OUT\s*-/i.test(txt))return [];
-  return txt.split(/\n+/).map(x=>norm(x)).filter(Boolean).map(line=>{
+  const list=txt.split(/\n+/).map(x=>norm(x)).filter(Boolean).map(line=>{
     const parts=line.split(/\s+-\s*/);
     const name=norm(parts.shift()),note=norm(parts.join(" - "));
     if(!name||name.length<2)return null;
     return {"Nama Kandidat":name,"Tanggal Lamaran":"","Sumber":"","Psikologi Test":"","Interview User":"","Offering Latter":"","MCU":"","FU MCU":"","On Site":"","Induksi":"","Status Kandidat":candidateStatusFromText(note),"Keterangan":note};
   }).filter(Boolean);
+  const target=list.find(x=>!["Tidak Lolos","Menolak","No Response"].includes(x["Status Kandidat"]))||list[0];
+  if(target)["Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi"].forEach(k=>target[k]=r?.[k]||"");
+  return list;
 }
 function ensureCandidateData(d){
   if(!d.candidates||typeof d.candidates!=="object"||Array.isArray(d.candidates))d.candidates={};
@@ -146,7 +149,7 @@ function renderDashboard(){
   document.getElementById("kActual").textContent=m.actual;
   document.getElementById("kVacant").textContent=m.vacant;
   document.getElementById("kPct").textContent=m.pct+"%";
-  document.getElementById("vacantTotal").textContent=m.vacant+" vacant";
+  document.getElementById("vacantTotal").textContent=m.vacant+" vacant • "+allCandidateRows().length+" kandidat";
   document.getElementById("statusCards").innerHTML=[["Open",m.open],["Continue",m.cont],["Close",m.close]].map(x=>'<div class="mini"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join("");
   document.getElementById("dueCards").innerHTML=[["Hampir Jatuh Tempo",m.near],["Jatuh Tempo",m.overdue],["Selesai",m.done]].map(x=>'<div class="mini"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join("");
   renderVacancyResume();renderRecruitment();renderUnits();
@@ -171,7 +174,7 @@ function focusRole(role){recruitRole=role;renderRecruitment();document.getElemen
 function clearRole(){recruitRole="";renderRecruitment()}
 function renderRecruitment(){
   const rows=data.mpp.map((r,i)=>({...r,__i:i})).filter(r=>norm(r.Status).toLowerCase()==="open"&&(!recruitRole||jobKey(r.Jabatan)===recruitRole));
-  document.getElementById("recruitCount").textContent=rows.length+" OPEN";
+  document.getElementById("recruitCount").textContent=rows.length+" OPEN • "+rows.reduce((s,r)=>s+getCandidates(r).length,0)+" KANDIDAT";
   const fb=document.getElementById("recruitFilterBadge");
   if(recruitRole){fb.style.display="inline-flex";fb.innerHTML=esc(jobLabel(recruitRole))+' <button onclick="clearRole()">×</button>'}else fb.style.display="none";
   document.getElementById("recruitBody").innerHTML=rows.length?rows.map(r=>{
