@@ -3,6 +3,7 @@ const BASE={
   mpActive:window.KTA_TRA_MP_ACTIVE||[],
   mpOut:window.KTA_TRA_MP_OUT||[],
   units:window.KTA_TRA_UNITS||[],
+  candidates:{},
   sourceFile:"Monitoring KTA - TRA(7).xlsx"
 };
 const STORAGE_KEY="kta_tra_monitoring_v1";
@@ -12,8 +13,9 @@ let data=loadData(), editState=null, mpMode="active", mpFull=false, recruitRole=
 
 const MPP_FIELDS=["No","Nama","Jabatan","Keterangan","PIC","PTK","Tanggal Pengajuan PTK","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi","Due Date","Status","Tanggal Close","Keterangan PTK","Lama Closing (Hari)"];
 const MP_ACTIVE_SCHEMA=["No.","NIP (KARYAWAN)","NIK KTP","NO.KK","Nama","NO. NPWP","Nomor HP","Whatsapp","Jabatan","Departemen","Level","Status Kontrak PKWT/PKWTT/Harian Lepas","Akhir Kontrak","POH","Sisa Hari","Reminder","Tanggal Masuk","Masa Kerja","Jenis Kelamin","Agama","Tempat Lahir","Tgl/Lahir","Umur","Pendidikan Terakhir","Alamat Domisili","Alamat Lengkap","Keterangan","Tempat Bekerja","SITE","No Rekening","Nama Bank","Nama Pemilik Rekening","Nomor BPJS Kesehatan","Nomor BPJS Ketenagakerjaan","Nama Ibu","Pendidikan Terakhir Ibu","Pekerjaan Ibu","Nama Ayah","Pendidikan Terakhir Ayah","Pekerjaan Ayah","Saudara Kandung (1)","Jenis Kelamin (1)","Tanggal Lahir (1)","Saudara Kandung (2)","Jenis Kelamin (2)","Tanggal Lahir (2)","Saudara Kandung (3)","Jenis Kelamin (3)","Tanggal Lahir (3)","Saudara Kandung (4)","Jenis Kelamin (4)","Tanggal Lahir (4)","Nama Emergency","Hubungan","Nomor Telepon","Whatsapp Emergency","STATUS","BLOK KAMAR"];
-const MP_OUT_SCHEMA=MP_ACTIVE_SCHEMA.slice(0,-1).concat(["Tanggal Keluar"]);
+const MP_OUT_SCHEMA=MP_ACTIVE_SCHEMA.slice(0,-1).concat(["Tanggal Keluar","Tanggal Lamaran"]);
 const MP_SUMMARY=["No.","Nama","Jabatan","Departemen","Level","Status Kontrak PKWT/PKWTT/Harian Lepas","Akhir Kontrak","POH","Sisa Hari","Tanggal Masuk","Masa Kerja","Keterangan","SITE","STATUS"];
+const CANDIDATE_FIELDS=["Nama Kandidat","Tanggal Lamaran","Sumber","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi","Status Kandidat","Keterangan"];
 const DATE_FIELDS=new Set(["Tanggal Pengajuan PTK","Psikologi Test","Interview User","Offering Latter","MCU","On Site","Induksi","Due Date","Tanggal Close","Akhir Kontrak","Reminder","Tanggal Masuk","Tgl/Lahir","Tanggal Lahir (1)","Tanggal Lahir (2)","Tanggal Lahir (3)","Tanggal Lahir (4)","Tanggal Keluar"]);
 
 function clone(v){return JSON.parse(JSON.stringify(v))}
@@ -33,6 +35,62 @@ function jobLabel(v){
   if(k==="middle mekanik")return "Middle Mekanik";
   return norm(v)||"Belum ditentukan";
 }
+function vacancyKey(r){return "MPP-"+norm(r?.No)}
+function candidateStatusFromText(s){
+  s=norm(s).toLowerCase();
+  if(/tidak lolos|gagal/.test(s))return "Tidak Lolos";
+  if(/menolak/.test(s))return "Menolak";
+  if(/tidak ada respon|no response/.test(s))return "No Response";
+  if(/hold/.test(s))return "Hold";
+  if(/hired|diterima/.test(s))return "Hired";
+  return "Aktif";
+}
+function seedCandidatesFromText(r){
+  const txt=norm(r?.Keterangan);if(!txt||/^MP OUT\s*-/i.test(txt))return [];
+  return txt.split(/\n+/).map(x=>norm(x)).filter(Boolean).map(line=>{
+    const parts=line.split(/\s+-\s*/);
+    const name=norm(parts.shift()),note=norm(parts.join(" - "));
+    if(!name||name.length<2)return null;
+    return {"Nama Kandidat":name,"Tanggal Lamaran":"","Sumber":"","Psikologi Test":"","Interview User":"","Offering Latter":"","MCU":"","FU MCU":"","On Site":"","Induksi":"","Status Kandidat":candidateStatusFromText(note),"Keterangan":note};
+  }).filter(Boolean);
+}
+function ensureCandidateData(d){
+  if(!d.candidates||typeof d.candidates!=="object"||Array.isArray(d.candidates))d.candidates={};
+  (d.mpp||[]).forEach(r=>{
+    if(!isVacant(r.Nama))return;
+    const key=vacancyKey(r);
+    if(!Array.isArray(d.candidates[key])||!d.candidates[key].length){
+      const seeded=seedCandidatesFromText(r);
+      if(seeded.length)d.candidates[key]=seeded;
+    }
+  });
+  return d;
+}
+function getCandidates(r){return (data.candidates&&Array.isArray(data.candidates[vacancyKey(r)]))?data.candidates[vacancyKey(r)]:[]}
+function candidateProgress(c){
+  if(norm(c?.["Status Kandidat"]).toLowerCase()==="hired")return {p:100,label:"HIRED"};
+  return progress(c||{});
+}
+function bestCandidateProgress(r){
+  const list=getCandidates(r);
+  if(!list.length)return progress(r);
+  return list.map(candidateProgress).sort((a,b)=>b.p-a.p)[0]||progress(r);
+}
+function candidateBreakdown(r){
+  const list=getCandidates(r),bd={};
+  list.forEach(c=>{const p=candidateProgress(c);bd[p.label]=(bd[p.label]||0)+1});
+  return bd;
+}
+function allCandidateRows(){
+  const out=[];
+  (data.mpp||[]).forEach((r,mi)=>{
+    getCandidates(r).forEach((cand,ci)=>{
+      const p=candidateProgress(cand);
+      out.push({"No MPP":r.No,"Jabatan":r.Jabatan,"PTK":r.PTK,"Status PTK":r.Status,"Due Date":r["Due Date"],...cand,"Progress Terakhir":p.label,"Progress %":p.p,"MPP Index":mi+1,"Kandidat Ke":ci+1});
+    });
+  });
+  return out;
+}
 function loadData(){
   try{
     const raw=localStorage.getItem(STORAGE_KEY);
@@ -44,6 +102,7 @@ function loadData(){
     d.sourceFile=d.sourceFile||BASE.sourceFile;
     d.mpActive=d.mpActive.map(r=>normalizeMP(r,false));
     d.mpOut=d.mpOut.map(r=>normalizeMP(r,true));
+    ensureCandidateData(d);
     return d;
   }catch(e){return clone(BASE)}
 }
@@ -94,30 +153,32 @@ function renderDashboard(){
 }
 function renderVacancyResume(){
   const groups={};
-  data.mpp.forEach(r=>{
+  data.mpp.forEach((r,i)=>{
     if(!isVacant(r.Nama))return;
-    const key=jobKey(r.Jabatan)||"belum",p=progress(r);
-    if(!groups[key])groups[key]={label:jobLabel(r.Jabatan),items:[]};
-    groups[key].items.push({r,p});
+    const key=jobKey(r.Jabatan)||"belum",p=bestCandidateProgress(r),cands=getCandidates(r);
+    if(!groups[key])groups[key]={label:jobLabel(r.Jabatan),items:[],candidateCount:0};
+    groups[key].items.push({r,p,i});
+    groups[key].candidateCount+=cands.length;
   });
   const arr=Object.values(groups).sort((a,b)=>b.items.length-a.items.length||a.label.localeCompare(b.label));
   document.getElementById("vacancyResume").innerHTML=arr.length?arr.map(g=>{
     const best=g.items.slice().sort((a,b)=>b.p.p-a.p.p)[0],bd={};
-    g.items.forEach(x=>bd[x.p.label]=(bd[x.p.label]||0)+1);
-    return '<button class="resume-card" onclick="focusRole(decodeURIComponent(\''+encodeURIComponent(jobKey(g.label))+'\'))"><div><span class="resume-count">'+g.items.length+'</span><b>'+esc(g.label)+'</b></div><div class="resume-best">Progress tertinggi: <b>'+esc(best.p.label)+' ('+best.p.p+'%)</b></div><div class="resume-breakdown">'+esc(Object.entries(bd).map(x=>x[1]+'× '+x[0]).join(" • "))+'</div><div class="resume-link">Lihat detail →</div></button>'
+    g.items.forEach(x=>{const cb=candidateBreakdown(x.r);if(Object.keys(cb).length)Object.entries(cb).forEach(([k,v])=>bd[k]=(bd[k]||0)+v);else bd[x.p.label]=(bd[x.p.label]||0)+1});
+    return '<button class="resume-card" onclick="focusRole(decodeURIComponent(\''+encodeURIComponent(jobKey(g.label))+'\'))"><div><span class="resume-count">'+g.items.length+'</span><b>'+esc(g.label)+'</b></div><div class="candidate-total">'+g.candidateCount+' kandidat untuk '+g.items.length+' vacant</div><div class="resume-best">Progress kandidat tertinggi: <b>'+esc(best.p.label)+' ('+best.p.p+'%)</b></div><div class="resume-breakdown">'+esc(Object.entries(bd).map(x=>x[1]+'× '+x[0]).join(" • ")||"Belum ada kandidat")+'</div><div class="resume-link">Lihat detail →</div></button>'
   }).join(""):'<div class="empty">Tidak ada vacant</div>';
 }
 function focusRole(role){recruitRole=role;renderRecruitment();document.getElementById("recruitmentCard").scrollIntoView({behavior:"smooth",block:"start"})}
 function clearRole(){recruitRole="";renderRecruitment()}
 function renderRecruitment(){
-  const rows=data.mpp.filter(r=>norm(r.Status).toLowerCase()==="open"&&(!recruitRole||jobKey(r.Jabatan)===recruitRole));
+  const rows=data.mpp.map((r,i)=>({...r,__i:i})).filter(r=>norm(r.Status).toLowerCase()==="open"&&(!recruitRole||jobKey(r.Jabatan)===recruitRole));
   document.getElementById("recruitCount").textContent=rows.length+" OPEN";
   const fb=document.getElementById("recruitFilterBadge");
   if(recruitRole){fb.style.display="inline-flex";fb.innerHTML=esc(jobLabel(recruitRole))+' <button onclick="clearRole()">×</button>'}else fb.style.display="none";
   document.getElementById("recruitBody").innerHTML=rows.length?rows.map(r=>{
-    const p=progress(r),d=daysLeft(r["Due Date"]),dc=d<0?"overdue":d<=7?"warning":"";
-    return '<tr><td><b>'+esc(r.Jabatan)+'</b></td><td>'+fmtDate(r["Tanggal Pengajuan PTK"])+'</td><td>'+fmtDate(r["Due Date"])+'</td><td><span class="days '+dc+'">'+(d===""?"-":d)+'</span></td><td>'+badge(r.Status)+'</td><td><b>'+esc(p.label)+'</b></td><td><div style="display:flex;align-items:center;gap:8px"><div class="progress recruit-progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b></div></td><td>'+esc(r.Keterangan||"-")+'</td></tr>'
-  }).join(""):'<tr><td colspan="8" class="empty">Tidak ada PTK Open untuk filter ini.</td></tr>';
+    const p=bestCandidateProgress(r),d=daysLeft(r["Due Date"]),dc=d<0?"overdue":d<=7?"warning":"",list=getCandidates(r);
+    const preview=list.slice(0,3).map(c=>{const cp=candidateProgress(c);return '<div class="candidate-preview"><b>'+esc(c["Nama Kandidat"]||"-")+'</b><span>'+esc(cp.label)+' '+cp.p+'%</span></div>'}).join("");
+    return '<tr><td><b>'+esc(r.Jabatan)+'</b></td><td>'+fmtDate(r["Tanggal Pengajuan PTK"])+'</td><td>'+fmtDate(r["Due Date"])+'</td><td><span class="days '+dc+'">'+(d===""?"-":d)+'</span></td><td>'+badge(r.Status)+'</td><td><b>'+esc(p.label)+'</b></td><td><div style="display:flex;align-items:center;gap:8px"><div class="progress recruit-progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b></div></td><td><button class="btn candidate-btn" onclick="openCandidateList('+r.__i+')">'+list.length+' Kandidat</button>'+preview+(list.length>3?'<small>+'+(list.length-3)+' kandidat lainnya</small>':'')+'</td><td>'+esc(r.Keterangan||"-")+'</td></tr>'
+  }).join(""):'<tr><td colspan="9" class="empty">Tidak ada PTK Open untuk filter ini.</td></tr>';
 }
 function renderUnits(){
   const total=(data.units||[]).reduce((s,r)=>s+(Number(r.Jumlah)||0),0);
@@ -127,9 +188,13 @@ function renderUnits(){
 function renderMPP(){
   const q=norm(document.getElementById("mppSearch")?.value).toLowerCase(),st=norm(document.getElementById("mppStatus")?.value),m=metrics();
   document.getElementById("mppStats").innerHTML='<div class="stats"><div class="mini"><b>'+m.planning+'</b><span>Planning</span></div><div class="mini"><b>'+m.actual+'</b><span>Actual</span></div><div class="mini"><b>'+m.vacant+'</b><span>Vacant</span></div><div class="mini"><b>'+m.open+'</b><span>Open</span></div><div class="mini"><b>'+m.close+'</b><span>Close</span></div></div>';
-  const rows=data.mpp.map((r,i)=>({...r,__i:i})).filter(r=>(!q||JSON.stringify(r).toLowerCase().includes(q))&&(!st||r.Status===st));
-  const body=rows.map(r=>{const p=progress(r);return '<tr><td>'+esc(r.No)+'</td><td><b>'+esc(r.Nama)+'</b></td><td>'+esc(r.Jabatan)+'</td><td>'+esc(r.Keterangan||"-")+'</td><td>'+esc(r.PTK||"-")+'</td><td>'+badge(r.Status)+'</td><td><div style="display:flex;align-items:center;gap:7px"><div class="progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b></div><small>'+esc(p.label)+'</small></td><td>'+fmtDate(r["Due Date"])+'</td><td>'+badge(r["Keterangan PTK"])+'</td><td class="action-cell"><button class="btn" onclick="openMPPForm('+r.__i+')">Edit</button> <button class="btn danger" onclick="deleteMPP('+r.__i+')">Hapus</button></td></tr>'}).join("");
-  document.getElementById("mppTable").innerHTML='<div class="table-wrap"><table class="table"><thead><tr><th>No</th><th>Nama</th><th>Jabatan</th><th>Keterangan</th><th>PTK</th><th>Status</th><th>Progress</th><th>Due Date</th><th>Ket. PTK</th><th>Aksi</th></tr></thead><tbody>'+body+'</tbody></table></div>';
+  const rows=data.mpp.map((r,i)=>({...r,__i:i})).filter(r=>(!q||JSON.stringify(r).toLowerCase().includes(q)||JSON.stringify(getCandidates(r)).toLowerCase().includes(q))&&(!st||r.Status===st));
+  const body=rows.map(r=>{
+    const p=isVacant(r.Nama)?bestCandidateProgress(r):progress(r),list=getCandidates(r);
+    const cand=isVacant(r.Nama)?'<button class="btn candidate-btn" onclick="openCandidateList('+r.__i+')">'+list.length+' Kandidat</button>':'<span class="badge neutral">-</span>';
+    return '<tr><td>'+esc(r.No)+'</td><td><b>'+esc(r.Nama)+'</b></td><td>'+esc(r.Jabatan)+'</td><td>'+cand+'</td><td>'+esc(r.Keterangan||"-")+'</td><td>'+esc(r.PTK||"-")+'</td><td>'+badge(r.Status)+'</td><td><div style="display:flex;align-items:center;gap:7px"><div class="progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b></div><small>'+esc(p.label)+'</small></td><td>'+fmtDate(r["Due Date"])+'</td><td>'+badge(r["Keterangan PTK"])+'</td><td class="action-cell"><button class="btn" onclick="openMPPForm('+r.__i+')">Edit</button> '+(isVacant(r.Nama)?'<button class="btn yellow" onclick="openCandidateList('+r.__i+')">Kandidat</button> ':'')+'<button class="btn danger" onclick="deleteMPP('+r.__i+')">Hapus</button></td></tr>'
+  }).join("");
+  document.getElementById("mppTable").innerHTML='<div class="table-wrap"><table class="table"><thead><tr><th>No</th><th>Nama</th><th>Jabatan</th><th>Kandidat</th><th>Keterangan</th><th>PTK</th><th>Status</th><th>Progress</th><th>Due Date</th><th>Ket. PTK</th><th>Aksi</th></tr></thead><tbody>'+body+'</tbody></table></div>';
 }
 function computeMPP(r){
   if(!norm(r.PTK)||!norm(r["Tanggal Pengajuan PTK"])){r["Keterangan PTK"]="TIDAK ADA PENGAJUAN";r["Lama Closing (Hari)"]="";return}
@@ -143,12 +208,48 @@ function fieldHTML(f,row,type){
   return '<div class="field '+(empty?"empty-field":"")+'"><label>'+esc(f)+'</label><input type="'+(DATE_FIELDS.has(f)?"date":"text")+'" data-f="'+esc(f)+'" value="'+esc(val)+'" placeholder="'+(empty?"Belum terisi di Excel":"")+'">'+(empty?'<small class="empty-hint">Belum terisi di Excel</small>':'')+'</div>';
 }
 function openMPPForm(index=null){
+  setModalSave(true);
   editState={type:"mpp",index};const row=index===null?{}:data.mpp[index];
   document.getElementById("modalTitle").textContent=index===null?"Tambah MPP KTA - TRA":"Edit MPP KTA - TRA";
   document.getElementById("formFields").innerHTML=MPP_FIELDS.map(f=>fieldHTML(f,row,"mpp")).join("");
   document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
 }
 function deleteMPP(index){if(confirm("Hapus data MPP ini?")){data.mpp.splice(index,1);saveData();renderMPP()}}
+function setModalSave(show,label="Simpan Perubahan"){
+  const b=document.getElementById("saveModal");if(!b)return;b.style.display=show?"":"none";b.textContent=label;
+}
+function openCandidateList(mppIndex){
+  const r=data.mpp[mppIndex];if(!r)return;
+  if(!isVacant(r.Nama)){alert("Kandidat hanya dikelola untuk posisi Vacant.");return}
+  const list=getCandidates(r),best=bestCandidateProgress(r);
+  editState={type:"candidate-list",mppIndex};
+  document.getElementById("modalTitle").textContent="Kandidat — "+r.Jabatan+" (Vacant #"+r.No+")";
+  setModalSave(false);
+  document.getElementById("formFields").innerHTML='<div class="candidate-manager"><div class="candidate-manager-head"><div><b>'+list.length+' kandidat</b><span>Progress tertinggi '+esc(best.label)+' ('+best.p+'%)</span></div><button class="btn yellow" onclick="openCandidateForm('+mppIndex+',null)">+ Tambah Kandidat</button></div>'+(list.length?list.map((cand,ci)=>{
+    const p=candidateProgress(cand);
+    return '<div class="candidate-card"><div class="candidate-card-main"><div class="candidate-name">'+esc(cand["Nama Kandidat"]||"-")+'</div><div class="candidate-meta">'+badge(cand["Status Kandidat"]||"Aktif")+' <span>'+esc(cand.Sumber||"Sumber belum diisi")+'</span></div><div class="candidate-progress"><div class="progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b><span>'+esc(p.label)+'</span></div><div class="candidate-note">'+esc(cand.Keterangan||"")+'</div></div><div class="candidate-actions"><button class="btn" onclick="openCandidateForm('+mppIndex+','+ci+')">Edit</button><button class="btn danger" onclick="deleteCandidate('+mppIndex+','+ci+')">Hapus</button></div></div>'
+  }).join(""):'<div class="empty">Belum ada kandidat. Klik “Tambah Kandidat”.</div>')+'</div>';
+  document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
+}
+function candidateFieldHTML(f,row){
+  const val=row?.[f]??"";
+  if(f==="Status Kandidat")return '<div class="field"><label>Status Kandidat</label><select data-f="Status Kandidat">'+["Aktif","Hold","Tidak Lolos","Menolak","No Response","Hired","Cancel"].map(x=>'<option '+(val===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
+  if(f==="Keterangan")return '<div class="field"><label>Keterangan</label><textarea data-f="Keterangan">'+esc(val)+'</textarea></div>';
+  return '<div class="field"><label>'+esc(f)+'</label><input type="'+(DATE_FIELDS.has(f)?"date":"text")+'" data-f="'+esc(f)+'" value="'+esc(val)+'"></div>';
+}
+function openCandidateForm(mppIndex,candidateIndex=null){
+  const r=data.mpp[mppIndex];if(!r)return;const list=getCandidates(r),row=candidateIndex===null?{"Status Kandidat":"Aktif"}:(list[candidateIndex]||{});
+  editState={type:"candidate",mppIndex,candidateIndex};
+  document.getElementById("modalTitle").textContent=(candidateIndex===null?"Tambah":"Edit")+" Kandidat — "+r.Jabatan;
+  setModalSave(true,candidateIndex===null?"Tambah Kandidat":"Simpan Kandidat");
+  document.getElementById("formFields").innerHTML='<div class="candidate-back"><button class="btn" type="button" onclick="openCandidateList('+mppIndex+')">← Daftar Kandidat</button><span>Vacant #'+esc(r.No)+' • '+esc(r.PTK||"PTK belum diisi")+'</span></div>'+CANDIDATE_FIELDS.map(f=>candidateFieldHTML(f,row)).join("");
+  document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
+}
+function deleteCandidate(mppIndex,candidateIndex){
+  const r=data.mpp[mppIndex],list=getCandidates(r),cand=list[candidateIndex];if(!cand)return;
+  if(!confirm("Hapus kandidat "+(cand["Nama Kandidat"]||"ini")+"?"))return;
+  list.splice(candidateIndex,1);data.candidates[vacancyKey(r)]=list;saveData();renderMPP();openCandidateList(mppIndex);
+}
 function setMPMode(mode){mpMode=mode;document.querySelectorAll(".mp-tab").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));renderMP()}
 function toggleMPFull(){mpFull=!mpFull;document.getElementById("mpFullBtn").textContent=mpFull?"Tampilan Ringkas":"Semua Kolom";renderMP()}
 function renderMP(){
@@ -165,6 +266,7 @@ function renderMP(){
   document.getElementById("mpTable").innerHTML='<div class="table-wrap"><table class="table"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';
 }
 function openMPForm(mode,index=null){
+  setModalSave(true);
   editState={type:"mp",mode,index};const arr=mode==="active"?data.mpActive:data.mpOut,row=index===null?{}:arr[index],schema=mode==="active"?MP_ACTIVE_SCHEMA:MP_OUT_SCHEMA;
   document.getElementById("modalTitle").textContent=(index===null?"Tambah ":"Edit ")+(mode==="active"?"MP Aktif":"MP Out");
   let top="";
@@ -176,6 +278,7 @@ function openMPForm(mode,index=null){
 }
 function fillFromActive(idx){if(idx==="")return;const src=data.mpActive[Number(idx)];MP_OUT_SCHEMA.forEach(f=>{const el=document.querySelector('#formFields [data-f="'+CSS.escape(f)+'"]');if(el)el.value=f==="Tanggal Keluar"?todayISO():(src[f]||"")})}
 function openExit(index){
+  setModalSave(true);
   const src=data.mpActive[index];editState={type:"exit",sourceIndex:index};
   const row={...normalizeMP(src,true),"Tanggal Keluar":todayISO()};
   document.getElementById("modalTitle").textContent="Pindahkan ke MP Out — "+src.Nama;
@@ -187,13 +290,20 @@ function vacateMPP(rec){
   const row=data.mpp.find(r=>sameName(r.Nama,rec.Nama));
   if(row){row.Nama="Vacant";row.Keterangan="MP OUT - "+rec.Nama;row.PIC=row.PIC||"";if(!row.PTK){row.Status="";row["Keterangan PTK"]="TIDAK ADA PENGAJUAN"}}
 }
-function closeModal(){document.getElementById("modal").classList.remove("show");editState=null}
+function closeModal(){document.getElementById("modal").classList.remove("show");setModalSave(true);editState=null}
 function saveModal(){
   if(!editState)return;const vals={};document.querySelectorAll("#formFields [data-f]").forEach(el=>vals[el.dataset.f]=el.value);
   if(editState.type==="mpp"){
     if(!vals.No)vals.No=String(Math.max(0,...data.mpp.map(r=>Number(r.No)||0))+1);computeMPP(vals);
     if(editState.index===null)data.mpp.push(vals);else data.mpp[editState.index]={...data.mpp[editState.index],...vals};
     saveData();renderMPP();closeModal();return;
+  }
+  if(editState.type==="candidate"){
+    const r=data.mpp[editState.mppIndex],key=vacancyKey(r),list=getCandidates(r),clean={};
+    CANDIDATE_FIELDS.forEach(f=>clean[f]=vals[f]||"");
+    if(!norm(clean["Nama Kandidat"])){alert("Nama kandidat wajib diisi.");return}
+    if(editState.candidateIndex===null)list.push(clean);else list[editState.candidateIndex]={...list[editState.candidateIndex],...clean};
+    data.candidates[key]=list;saveData();renderMPP();openCandidateList(editState.mppIndex);return;
   }
   if(editState.type==="mp"){
     const arr=editState.mode==="active"?data.mpActive:data.mpOut,schema=editState.mode==="active"?MP_ACTIVE_SCHEMA:MP_OUT_SCHEMA,clean={};schema.forEach(f=>clean[f]=vals[f]||"");
@@ -234,7 +344,7 @@ function syncExcel(input){
       };
       const mpp=readMPP(),active=readMP("MP Aktif",false),out=readMP("MP Out",true),units=readUnits();
       if(!mpp.length)throw new Error("Data MPP tidak terbaca.");
-      data.mpp=mpp;data.mpActive=active;data.mpOut=out;data.units=units;data.sourceFile=file.name;
+      data.mpp=mpp;data.mpActive=active;data.mpOut=out;data.units=units;data.sourceFile=file.name;ensureCandidateData(data);
       saveData();renderMPP();renderMP();renderDashboard();alert("Sinkronisasi selesai: "+mpp.length+" planning, "+active.length+" MP Aktif, "+out.length+" MP Out.");
     }catch(err){alert("Sinkronisasi gagal: "+err.message)}
   };
@@ -244,7 +354,7 @@ function csv(rows){if(!rows.length)return "";const heads=[...new Set(rows.flatMa
 function download(content,name,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([content],{type:type||"text/csv;charset=utf-8"}));a.download=name;document.body.appendChild(a);a.click();a.remove()}
 function exportRows(rows,name){download(csv(rows),name)}
 function buildDashboardAOA(){
-  const m=metrics(),aoa=[["MONITORING MANPOWER KTA - TRA"],[],["KONDISI MANPOWER"],["Planning","Actual","Vacant","% Actual"],[m.planning,m.actual,m.vacant,m.pct/100],[],["STATUS PTK","Jumlah"],["Open",m.open],["Continue",m.cont],["Close",m.close],[],["DUE DATE","Jumlah"],["Hampir Jatuh Tempo",m.near],["Jatuh Tempo",m.overdue],["Selesai",m.done],[],["RESUME UNIT","Jumlah"]];
+  const m=metrics(),candidateTotal=allCandidateRows().length,aoa=[["MONITORING MANPOWER KTA - TRA"],[],["KONDISI MANPOWER"],["Planning","Actual","Vacant","% Actual","Total Kandidat Vacant"],[m.planning,m.actual,m.vacant,m.pct/100,candidateTotal],[],["STATUS PTK","Jumlah"],["Open",m.open],["Continue",m.cont],["Close",m.close],[],["DUE DATE","Jumlah"],["Hampir Jatuh Tempo",m.near],["Jatuh Tempo",m.overdue],["Selesai",m.done],[],["RESUME UNIT","Jumlah"]];
   data.units.forEach(r=>aoa.push([r["Jenis Unit"],r.Jumlah]));return aoa;
 }
 function downloadExcel(){
@@ -254,11 +364,13 @@ function downloadExcel(){
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data.mpp,{header:MPP_FIELDS}),"MPP KTA-TRA");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data.mpActive,{header:MP_ACTIVE_SCHEMA}),"MP Aktif");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data.mpOut,{header:MP_OUT_SCHEMA}),"MP Out");
+  const candRows=allCandidateRows();
+  XLSX.utils.book_append_sheet(wb,candRows.length?XLSX.utils.json_to_sheet(candRows):XLSX.utils.aoa_to_sheet([["No MPP","Jabatan","Nama Kandidat","Status Kandidat","Progress Terakhir","Progress %"]]),"KANDIDAT VACANT");
   XLSX.writeFile(wb,"Monitoring_Manpower_KTA-TRA_"+todayISO()+".xlsx");
 }
 function backup(){download(JSON.stringify(data,null,2),"Monitoring_Manpower_KTA-TRA_Backup.json","application/json")}
-function importBackup(input){const f=input.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const v=JSON.parse(rd.result);if(!v.mpp)throw new Error();data=v;data.mpActive=(data.mpActive||[]).map(r=>normalizeMP(r,false));data.mpOut=(data.mpOut||[]).map(r=>normalizeMP(r,true));saveData();renderMPP();renderMP();renderDashboard();alert("Backup berhasil dimuat.")}catch(e){alert("Backup tidak valid.")}};rd.readAsText(f);input.value=""}
-function resetAll(){if(confirm("Kembalikan ke data awal Monitoring KTA - TRA(7)?")){data=clone(BASE);data.mpActive=data.mpActive.map(r=>normalizeMP(r,false));data.mpOut=data.mpOut.map(r=>normalizeMP(r,true));localStorage.removeItem(STORAGE_KEY);saveData();renderMPP();renderMP();renderDashboard()}}
+function importBackup(input){const f=input.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const v=JSON.parse(rd.result);if(!v.mpp)throw new Error();data=v;data.mpActive=(data.mpActive||[]).map(r=>normalizeMP(r,false));data.mpOut=(data.mpOut||[]).map(r=>normalizeMP(r,true));ensureCandidateData(data);saveData();renderMPP();renderMP();renderDashboard();alert("Backup berhasil dimuat.")}catch(e){alert("Backup tidak valid.")}};rd.readAsText(f);input.value=""}
+function resetAll(){if(confirm("Kembalikan ke data awal Monitoring KTA - TRA(7)?")){data=clone(BASE);data.mpActive=data.mpActive.map(r=>normalizeMP(r,false));data.mpOut=data.mpOut.map(r=>normalizeMP(r,true));ensureCandidateData(data);localStorage.removeItem(STORAGE_KEY);saveData();renderMPP();renderMP();renderDashboard()}}
 function getEditors(){try{const a=JSON.parse(localStorage.getItem(EDITOR_KEY)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
 function addEditor(){let e=prompt("Masukkan email Editor KTA - TRA:");if(!e)return;e=e.trim().toLowerCase();if(!e.includes("@")){alert("Email tidak valid.");return}const a=getEditors();if(e===OWNER_EMAIL||a.includes(e)){alert("Email sudah terdaftar.");return}a.push(e);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
 function removeEditor(i){const a=getEditors();if(!a[i])return;if(!confirm("Hapus Editor "+a[i]+"?"))return;a.splice(i,1);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
