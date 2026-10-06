@@ -146,3 +146,11 @@ body{background:linear-gradient(180deg,#eef0f7 0,#f7f8fc 240px,#f7f8fc 100%);col
 .compact-empty{padding:18px!important;grid-column:1/-1}
 @media(max-width:1100px){.dashboard-side-stack{grid-template-columns:1fr 1fr;grid-template-rows:auto}.dashboard-summary-grid{grid-template-columns:1fr!important}}
 @media(max-width:760px){.dashboard-side-stack{grid-template-columns:1fr}.dashboard-unit-grid{grid-template-columns:1fr}.ptk-status-grid{grid-template-columns:1fr 1fr!important}}
+
+/* Dashboard interactive navigation */
+.dashboard-click,.dashboard-link-card,.dashboard-row-link{cursor:pointer}
+.dashboard-click{transition:transform .16s ease,box-shadow .16s ease}
+.dashboard-click:hover{transform:translateY(-3px);box-shadow:0 20px 38px rgba(52,35,91,.16)}
+.dashboard-link-card{border:0;text-align:left;width:100%}
+.dashboard-row-link:hover td{background:#f5f1ff!important}
+.chart-card canvas{cursor:pointer}
