@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#6d28d9">
 <title>Monitoring Manpower KTA - TRA</title>
-<link rel="stylesheet" href="styles.css?v=21">
+<link rel="stylesheet" href="styles.css?v=22">
 </head>
 <body>
 <div class="app">
@@ -27,7 +27,7 @@
     <button class="btn hamb" id="menuBtn">☰</button>
     <div><div class="app-name">Monitoring Manpower KTA - TRA</div><h1 id="topTitle">Monitoring Manpower KTA - TRA</h1></div>
   </div>
-  <div class="top-actions"><button class="btn back-dashboard-btn" id="backDashboard" onclick="goDashboard()" style="display:none">← Kembali ke Dashboard</button><button class="btn" onclick="window.print()">Print</button></div>
+  <div class="top-actions"><span class="access-badge role-viewer" id="accessBadge">Pelihat</span><span class="auth-who" id="authWho"></span><button class="btn auth-btn" id="authBtn" onclick="openAuthModal()">Masuk untuk Edit</button><button class="btn back-dashboard-btn" id="backDashboard" onclick="goDashboard()" style="display:none">← Kembali ke Dashboard</button><button class="btn" onclick="window.print()">Print</button></div>
 </header>
 
 <div class="content">
@@ -154,6 +154,20 @@
   </div>
 </div>
 
+
+<div class="modal" id="authModal">
+  <div class="modal-card auth-card">
+    <div class="modal-head"><h3>Masuk Pemilik / Editor</h3><button class="btn" id="closeAuthModal">✕</button></div>
+    <div class="auth-copy">Pelihat dapat membuka web tanpa login. Pemilik dan Editor masuk menggunakan link yang dikirim ke email.</div>
+    <div class="formgrid">
+      <div class="field"><label>Email</label><input id="authEmail" type="email" autocomplete="email" placeholder="nama@email.com"></div>
+    </div>
+    <div class="modal-actions auth-actions">
+      <button class="btn primary" onclick="cloudSendMagicLink()">Kirim Link Masuk</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="data_mpp1.js?v=8"></script>
@@ -162,6 +176,10 @@
 <script src="data_active.js?v=8"></script>
 <script src="data_out.js?v=8"></script>
 <script src="data_units.js?v=8"></script>
-<script src="app.js?v=21"></script>
+<script src="app.js?v=22"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase/config.js?v=1"></script>
+<script src="../supabase/cloud-access.js?v=2"></script>
+<script src="../supabase/app-integration.js?v=1"></script>
 </body>
 </html>
