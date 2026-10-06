@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#101827">
 <title>Monitoring KMB | PT. Karunia Mandiri Berkarya</title>
-<link rel="stylesheet" href="styles.css?v=6">
+<link rel="stylesheet" href="styles.css?v=7">
 <style>
 .app-name{font-size:10px;color:#7b8797;text-transform:uppercase;letter-spacing:.11em;font-weight:800;margin-bottom:2px}
 .section-sub{margin:4px 0 0;font-size:11px;color:#6b7280}
@@ -103,7 +103,7 @@
 <section class="view" id="mp">
   <div class="page-head">
     <div><h2 id="mpTitle">MP Aktif</h2><p>Database manpower lengkap dan terhubung dengan penempatan jobsite.</p></div>
-    <div class="toolbar"><input class="input" id="mpSearch" placeholder="Cari nama / jabatan / site..."><button class="btn" id="mpFullBtn">Semua Kolom</button><button class="btn yellow" id="addMP">+ Tambah Data</button><button class="btn" id="exportMP">Export CSV</button></div>
+    <div class="toolbar"><input class="input" id="mpSearch" placeholder="Cari nama / jabatan / site..."><label class="btn yellow">Import Data Lengkap Excel<input type="file" accept=".xlsx,.xls" hidden onchange="importOriginalExcel(this)"></label><button class="btn" id="mpFullBtn">Semua Kolom</button><button class="btn" id="addMP">+ Tambah Data</button><button class="btn" id="exportMP">Export CSV</button></div>
   </div>
   <div class="mp-tabs"><button class="mp-tab active" data-mode="active">MP Aktif</button><button class="mp-tab" data-mode="out">MP OUT</button><span class="pill" id="mpCount">0 data</span></div>
   <div class="notice mp-notice"><b>Alur sinkron:</b> pada MP Aktif tersedia tombol <b>MP OUT</b> untuk memindahkan seluruh data ke MP OUT sekaligus menghapus dari MP Aktif dan membuat posisi jobsite lama menjadi Vacant. Ubah <b>Tempat Bekerja</b> saat Edit untuk memindahkan manpower antar-jobsite.</div>
@@ -130,7 +130,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="data.js?v=6"></script>
-<script src="app.js?v=6"></script>
+<script src="data.js?v=7"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>
