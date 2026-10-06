@@ -122,3 +122,8 @@ body{background:linear-gradient(180deg,#eef0f7 0,#f7f8fc 240px,#f7f8fc 100%);col
 .unit-manage-actions{display:flex;gap:6px;flex:0 0 auto}
 .chart-card canvas{cursor:pointer}
 @media(max-width:760px){.unit-manage-card{align-items:stretch;flex-direction:column}.unit-manage-actions .btn{flex:1}}
+
+/* Safe navigation */
+.back-dashboard-btn{background:#f3efff!important;border-color:#e1d7ff!important;color:#6d28d9!important;font-weight:850!important}
+.back-dashboard-btn:hover{background:#eae2ff!important}
+@media(max-width:760px){.top-actions{gap:5px}.back-dashboard-btn{padding:8px 9px!important;font-size:10px!important}}
