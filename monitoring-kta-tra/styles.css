@@ -127,3 +127,9 @@ body{background:linear-gradient(180deg,#eef0f7 0,#f7f8fc 240px,#f7f8fc 100%);col
 .back-dashboard-btn{background:#f3efff!important;border-color:#e1d7ff!important;color:#6d28d9!important;font-weight:850!important}
 .back-dashboard-btn:hover{background:#eae2ff!important}
 @media(max-width:760px){.top-actions{gap:5px}.back-dashboard-btn{padding:8px 9px!important;font-size:10px!important}}
+
+/* KTA sidebar click reliability */
+#sidebar{z-index:999!important;pointer-events:auto!important}
+#sidebar .nav{position:relative;z-index:2;pointer-events:auto!important;cursor:pointer!important}
+#sidebar .group,#sidebar .brand{position:relative;z-index:1}
+.main,.topbar,.content{position:relative;z-index:auto}
