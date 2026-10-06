@@ -55,8 +55,10 @@
 
   async function refreshRole(){
     if(!sb||!session){role="viewer";return role}
-    const {data,error}=await sb.rpc("current_app_role");
-    role=error?"viewer":(data||"viewer");
+    const email=String(session.user?.email||"").trim().toLowerCase();
+    if(!email){role="viewer";return role}
+    const {data,error}=await sb.from("access_roles").select("role").eq("email",email).maybeSingle();
+    role=error?"viewer":(data?.role||"viewer");
     return role;
   }
 
