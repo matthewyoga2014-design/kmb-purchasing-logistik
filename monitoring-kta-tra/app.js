@@ -11,6 +11,21 @@ const BASE={
 const STORAGE_KEY="kta_tra_monitoring_v1";
 const EDITOR_KEY="kmb_editors";
 const OWNER_EMAIL="matthewyoga2014@gmail.com";
+function isEditorMode(){return new URLSearchParams(window.location.search).get("mode")==="editor"}
+function ownerOnly(){
+  if(!isEditorMode())return true;
+  alert("Mode Editor hanya untuk mengisi data operasional. Pengaturan hanya dapat diakses Pemilik / Administrator.");
+  goDashboard();
+  return false;
+}
+function applyAccessMode(){
+  const settingsNav=document.querySelector('.nav[data-view="settings"]');
+  if(settingsNav)settingsNav.style.display=isEditorMode()?"none":"";
+  document.body.classList.toggle("editor-mode",isEditorMode());
+  const title=document.querySelector(".app-name");
+  if(title&&isEditorMode())title.textContent="Monitoring Manpower KTA - TRA • MODE EDITOR";
+}
+
 let data=loadData(), editState=null, mpMode="active", mpFull=false, recruitRole="";
 
 const MPP_FIELDS=["No","Nama","Jabatan","Keterangan","PIC","PTK","Tanggal Pengajuan PTK","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi","Due Date","Status","Tanggal Close","Keterangan PTK","Lama Closing (Hari)"];
@@ -536,7 +551,7 @@ function buildDashboardAOA(){
   const m=metrics(),candidateTotal=allCandidateRows().length,aoa=[["MONITORING MANPOWER KTA - TRA"],[],["KONDISI MANPOWER"],["Planning","Actual","Vacant","% Actual","Total Kandidat Vacant"],[m.planning,m.actual,m.vacant,m.pct/100,candidateTotal],[],["STATUS PTK","Jumlah"],["Open",m.open],["Continue",m.cont],["Close",m.close],[],["DUE DATE","Jumlah"],["Hampir Jatuh Tempo",m.near],["Jatuh Tempo",m.overdue],["Selesai",m.done],[],["RESUME UNIT","Jumlah"]];
   data.units.forEach(r=>aoa.push([r["Jenis Unit"],r.Jumlah]));return aoa;
 }
-function downloadExcel(){
+function downloadExcel(){if(!ownerOnly())return;
   if(!window.XLSX){alert("Modul Excel belum termuat.");return}
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(buildDashboardAOA()),"DASHBOARD");
@@ -549,9 +564,9 @@ function downloadExcel(){
   XLSX.utils.book_append_sheet(wb,deletedRows.length?XLSX.utils.json_to_sheet(deletedRows):XLSX.utils.aoa_to_sheet([["Belum ada data terhapus"]]),"MPP TERHAPUS");
   XLSX.writeFile(wb,"Monitoring_Manpower_KTA-TRA_"+todayISO()+".xlsx");
 }
-function backup(){download(JSON.stringify(data,null,2),"Monitoring_Manpower_KTA-TRA_Backup.json","application/json")}
+function backup(){if(!ownerOnly())return;download(JSON.stringify(data,null,2),"Monitoring_Manpower_KTA-TRA_Backup.json","application/json")}
 function importBackup(input){const f=input.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const v=JSON.parse(rd.result);if(!v.mpp)throw new Error();data=v;data.deletedMPP=Array.isArray(data.deletedMPP)?data.deletedMPP:[];data.mpRestoreMeta=(data.mpRestoreMeta&&typeof data.mpRestoreMeta==="object")?data.mpRestoreMeta:{};data.mpActive=(data.mpActive||[]).map(r=>normalizeMP(r,false));data.mpOut=(data.mpOut||[]).map(r=>normalizeMP(r,true));ensureCandidateData(data);ensureKtaRuntime();renumberKtaAll();saveData();renderMPP();renderMP();renderDashboard();alert("Backup berhasil dimuat.")}catch(e){alert("Backup tidak valid.")}};rd.readAsText(f);input.value=""}
-function resetAll(){if(confirm("Kembalikan ke data awal Monitoring KTA - TRA(7)?")){data=clone(BASE);data.mpActive=data.mpActive.map(r=>normalizeMP(r,false));data.mpOut=data.mpOut.map(r=>normalizeMP(r,true));ensureCandidateData(data);ensureKtaRuntime();renumberKtaAll();localStorage.removeItem(STORAGE_KEY);saveData();renderMPP();renderMP();renderDashboard()}}
+function resetAll(){if(!ownerOnly())return;if(confirm("Kembalikan ke data awal Monitoring KTA - TRA(7)?")){data=clone(BASE);data.mpActive=data.mpActive.map(r=>normalizeMP(r,false));data.mpOut=data.mpOut.map(r=>normalizeMP(r,true));ensureCandidateData(data);ensureKtaRuntime();renumberKtaAll();localStorage.removeItem(STORAGE_KEY);saveData();renderMPP();renderMP();renderDashboard()}}
 function renderDeletedMPP(){
   const list=data.deletedMPP||[];
   if(!list.length)return '<div class="empty">Belum ada data MPP yang terhapus.</div>';
@@ -560,7 +575,7 @@ function renderDeletedMPP(){
     return '<div class="statusline"><span><b>'+esc(r.Nama||"-")+'</b> • '+esc(r.Jabatan||"-")+' • No. '+esc(r.No||"-")+'<br><small>Dihapus: '+esc(dt)+' • '+((x.candidates||[]).length)+' kandidat</small></span><span><button class="btn yellow" onclick="restoreDeletedMPP('+i+')">Kembalikan</button> <button class="btn danger" onclick="permanentDeleteMPP('+i+')">Hapus Permanen</button></span></div>';
   }).join("");
 }
-function restoreDeletedMPP(index){
+function restoreDeletedMPP(index){if(!ownerOnly())return;
   const item=(data.deletedMPP||[])[index];if(!item||!item.row)return;
   const r=clone(item.row);
   if(data.mpp.some(x=>sameName(x.Nama,r.Nama)&&jobKey(x.Jabatan)===jobKey(r.Jabatan)&&norm(x.PTK)===norm(r.PTK))){alert("Data yang sama sudah ada di MPP. Pemulihan dibatalkan untuk mencegah duplikasi.");return}
@@ -570,27 +585,28 @@ function restoreDeletedMPP(index){
   if((item.candidates||[]).length){data.candidates=data.candidates||{};data.candidates[vacancyKey(r)]=clone(item.candidates)}
   data.deletedMPP.splice(index,1);saveData();renderMPP();renderDashboard();renderSettings();alert("Data MPP berhasil dikembalikan ke posisi semula.");
 }
-function permanentDeleteMPP(index){
+function permanentDeleteMPP(index){if(!ownerOnly())return;
   const item=(data.deletedMPP||[])[index];if(!item)return;
   if(!confirm("Hapus permanen data ini dari Data Terhapus?\n\nTindakan ini tidak dapat dibatalkan."))return;
   data.deletedMPP.splice(index,1);saveData();renderSettings();
 }
-function restoreLastDeletedMPP(){
+function restoreLastDeletedMPP(){if(!ownerOnly())return;
   if(!(data.deletedMPP||[]).length){alert("Tidak ada data MPP yang terhapus.");return}
   restoreDeletedMPP(0);
 }
 function getEditors(){try{const a=JSON.parse(localStorage.getItem(EDITOR_KEY)||"[]");return Array.isArray(a)?a:[]}catch(e){return[]}}
-function addEditor(){let e=prompt("Masukkan email Editor Full Access:");if(!e)return;e=e.trim().toLowerCase();if(!e.includes("@")){alert("Email tidak valid.");return}const a=getEditors();if(e===OWNER_EMAIL||a.includes(e)){alert("Email sudah terdaftar.");return}a.push(e);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
-function removeEditor(i){const a=getEditors();if(!a[i])return;if(!confirm("Hapus Editor "+a[i]+"?"))return;a.splice(i,1);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
+function addEditor(){if(!ownerOnly())return;let e=prompt("Masukkan email Editor (Input Data):");if(!e)return;e=e.trim().toLowerCase();if(!e.includes("@")){alert("Email tidak valid.");return}const a=getEditors();if(e===OWNER_EMAIL||a.includes(e)){alert("Email sudah terdaftar.");return}a.push(e);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
+function removeEditor(i){if(!ownerOnly())return;const a=getEditors();if(!a[i])return;if(!confirm("Hapus Editor "+a[i]+"?"))return;a.splice(i,1);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
 function renderSettings(){
-  const editors=getEditors(),host=document.getElementById("settingsContent");if(!host)return;
-  host.innerHTML='<div class="grid2"><div class="card"><div class="section-head"><h3>Pemilik & Akses</h3></div><div class="statusline"><span>Pemilik / Administrator</span><b>'+esc(OWNER_EMAIL)+'</b></div><div class="statusline"><span>Sistem</span><b>Monitoring Manpower KTA - TRA</b></div><div class="statusline"><span>Hak Editor</span><b>Sama dengan Pemilik (Full Access)</b></div><div class="statusline"><span>Sumber terakhir</span><b>'+esc(data.sourceFile||"-")+'</b></div></div><div class="card"><div class="section-head"><h3>Editor</h3><button class="btn yellow" onclick="addEditor()">+ Tambah Editor</button></div>'+(editors.length?editors.map((e,i)=>'<div class="statusline"><span>'+esc(e)+'</span><span><b>FULL ACCESS</b> <button class="btn danger" onclick="removeEditor('+i+')">Hapus</button></span></div>').join(""):'<div class="empty">Belum ada editor Full Access.</div>')+'</div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Sinkron & Download Excel</h3></div><p class="settings-copy">Sinkronkan dari file Monitoring KTA - TRA terbaru atau download kondisi web saat ini menjadi Excel.</p><div class="toolbar"><label class="btn yellow">Sinkronkan Excel<input type="file" accept=".xlsx,.xls" hidden onchange="syncExcel(this)"></label><button class="btn primary" onclick="downloadExcel()">Download Excel</button></div></div><div class="card"><div class="section-head"><h3>Backup</h3></div><div class="toolbar"><button class="btn" onclick="backup()">Download Backup JSON</button><label class="btn">Import Backup<input type="file" accept=".json" hidden onchange="importBackup(this)"></label><button class="btn danger" onclick="resetAll()">Reset Data Awal</button></div></div></div><div style="height:16px"></div><div class="card"><div class="section-head"><div><h3>Data MPP Terhapus</h3><p class="section-sub">Salah hapus dapat dikembalikan tanpa sinkron ulang Excel.</p></div><span class="pill">'+((data.deletedMPP||[]).length)+' data</span></div><div class="toolbar" style="margin-bottom:8px"><button class="btn yellow" onclick="restoreLastDeletedMPP()">Kembalikan Terakhir Dihapus</button></div>'+renderDeletedMPP()+'</div>';
+  const host=document.getElementById("settingsContent");if(!host)return;if(isEditorMode()){host.innerHTML='<div class="card"><div class="empty">Pengaturan hanya dapat diakses Pemilik / Administrator.</div></div>';return}const editors=getEditors();
+  host.innerHTML='<div class="grid2"><div class="card"><div class="section-head"><h3>Pemilik & Akses</h3></div><div class="statusline"><span>Pemilik / Administrator</span><b>'+esc(OWNER_EMAIL)+'</b></div><div class="statusline"><span>Sistem</span><b>Monitoring Manpower KTA - TRA</b></div><div class="statusline"><span>Hak Editor</span><b>Input Data Operasional (Tanpa Pengaturan)</b></div><div class="statusline"><span>Sumber terakhir</span><b>'+esc(data.sourceFile||"-")+'</b></div></div><div class="card"><div class="section-head"><h3>Editor</h3><button class="btn yellow" onclick="addEditor()">+ Tambah Editor</button></div>'+(editors.length?editors.map((e,i)=>'<div class="statusline"><span>'+esc(e)+'</span><span><b>INPUT DATA</b> <button class="btn danger" onclick="removeEditor('+i+')">Hapus</button></span></div>').join(""):'<div class="empty">Belum ada Editor Input Data.</div>')+'</div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Sinkron & Download Excel</h3></div><p class="settings-copy">Sinkronkan dari file Monitoring KTA - TRA terbaru atau download kondisi web saat ini menjadi Excel.</p><div class="toolbar"><label class="btn yellow">Sinkronkan Excel<input type="file" accept=".xlsx,.xls" hidden onchange="syncExcel(this)"></label><button class="btn primary" onclick="downloadExcel()">Download Excel</button></div></div><div class="card"><div class="section-head"><h3>Backup</h3></div><div class="toolbar"><button class="btn" onclick="backup()">Download Backup JSON</button><label class="btn">Import Backup<input type="file" accept=".json" hidden onchange="importBackup(this)"></label><button class="btn danger" onclick="resetAll()">Reset Data Awal</button></div></div></div><div style="height:16px"></div><div class="card"><div class="section-head"><div><h3>Data MPP Terhapus</h3><p class="section-sub">Salah hapus dapat dikembalikan tanpa sinkron ulang Excel.</p></div><span class="pill">'+((data.deletedMPP||[]).length)+' data</span></div><div class="toolbar" style="margin-bottom:8px"><button class="btn yellow" onclick="restoreLastDeletedMPP()">Kembalikan Terakhir Dihapus</button></div>'+renderDeletedMPP()+'</div>';
 }
 function goDashboard(){
   recruitRole="";
   showView("dashboard");
 }
 function showView(name){
+  if(name==="settings"&&isEditorMode()){alert("Pengaturan hanya dapat diakses Pemilik / Administrator.");name="dashboard"}
   const target=document.getElementById(name)?name:"dashboard";
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
   document.getElementById(target)?.classList.add("active");
@@ -606,6 +622,7 @@ function showView(name){
   return target;
 }
 document.addEventListener("DOMContentLoaded",()=>{
+  applyAccessMode();
   document.getElementById("today").textContent=new Intl.DateTimeFormat("id-ID",{weekday:"long",day:"2-digit",month:"long",year:"numeric"}).format(new Date());
   renderDashboard();renderMPP();renderMP();renderSettings();
   const sidebar=document.getElementById("sidebar");
