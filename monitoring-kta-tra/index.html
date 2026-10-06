@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#6d28d9">
 <title>Monitoring Manpower KTA - TRA</title>
-<link rel="stylesheet" href="styles.css?v=24">
+<link rel="stylesheet" href="styles.css?v=25">
 </head>
 <body>
 <div class="app">
@@ -158,14 +158,14 @@
 <div class="modal" id="authModal">
   <div class="modal-card auth-card">
     <div class="modal-head"><h3>Masuk Pemilik / Editor</h3><button class="btn" id="closeAuthModal">✕</button></div>
-    <div class="auth-copy">Pelihat dapat membuka web tanpa login. Pemilik dan Editor masuk menggunakan email. Jika belum pernah membuat akun, pilih <b>Daftar Akun</b> satu kali.</div>
+    <div class="auth-copy">Pelihat dapat membuka web tanpa login. <b>Hanya email yang sudah didaftarkan oleh Pemilik sebagai Editor</b> yang akan mendapat akses edit saat login.</div>
     <div class="formgrid">
       <div class="field"><label>Email</label><input id="authEmail" type="email" autocomplete="email" placeholder="nama@email.com"></div>
       <div class="field"><label>Password</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="Minimal 8 karakter"></div>
     </div>
-    <div class="notice" style="margin-top:10px">Setelah pendaftaran pertama, cek email konfirmasi. Jika setelah klik konfirmasi halaman berhenti di localhost, email tetap sudah terkonfirmasi; tutup halaman tersebut, kembali ke web ini, lalu pilih <b>Masuk</b>.</div>
+    <div class="notice" style="margin-top:10px">Jika email Anda sudah didaftarkan sebagai Editor dan belum memiliki akun, pilih <b>Aktifkan Akun Editor</b> satu kali. Email yang tidak terdaftar tetap berstatus Pelihat.</div>
     <div class="modal-actions auth-actions">
-      <button class="btn" onclick="cloudSignupPassword()">Daftar Akun</button>
+      <button class="btn" onclick="cloudSignupPassword()">Aktifkan Akun Editor</button>
       <button class="btn primary" onclick="cloudLoginPassword()">Masuk</button>
     </div>
   </div>
@@ -179,7 +179,7 @@
 <script src="data_active.js?v=8"></script>
 <script src="data_out.js?v=8"></script>
 <script src="data_units.js?v=8"></script>
-<script src="app.js?v=24"></script>
+<script src="app.js?v=25"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase/config.js?v=1"></script>
 <script src="../supabase/cloud-access.js?v=5"></script>
