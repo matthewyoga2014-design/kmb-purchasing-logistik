@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#6d28d9">
 <title>Monitoring Manpower KMB</title>
-<link rel="stylesheet" href="styles.css?v=17">
+<link rel="stylesheet" href="styles.css?v=18">
 </head>
 <body>
 <div class="app">
@@ -98,13 +98,26 @@
 
   <div class="grid2 dashboard-summary-grid">
     <div class="card"><div class="section-head"><div><span class="eyebrow">JOBSITE</span><h3>Ringkasan Manpower per Jobsite</h3></div><span class="pill">Terhubung otomatis</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Jobsite</th><th>Planning</th><th>Actual</th><th>Vacant</th><th>% Actual</th><th>Open</th><th>Continue</th><th>Close</th><th>Jatuh Tempo</th></tr></thead><tbody id="summaryBody"></tbody></table></div></div>
-    <div class="card"><div class="section-head"><div><span class="eyebrow">PTK</span><h3>Status PTK</h3></div></div><div class="stats modern-stats" id="statusCards"></div><div id="bars" class="legacy-bars"></div></div>
+    <div class="dashboard-side-stack">
+      <div class="card compact-dashboard-card">
+        <div class="section-head"><div><span class="eyebrow">PTK</span><h3>Status PTK</h3></div></div>
+        <div class="stats modern-stats ptk-status-grid" id="statusCards"></div>
+      </div>
+      <div class="card compact-dashboard-card">
+        <div class="section-head">
+          <div><span class="eyebrow">POPULASI UNIT</span><h3>Total Unit KMB</h3><p class="section-sub">Ringkasan unit per jobsite/unit section.</p></div>
+          <span class="unit-total-pill" id="kmbUnitTotal">0 unit</span>
+        </div>
+        <div class="dashboard-unit-grid" id="kmbUnitDashboard"></div>
+        <button class="btn unit-dashboard-link" onclick="showView('units')">Kelola Populasi Unit →</button>
+      </div>
+    </div>
   </div>
 </section>
 <div id="siteViews"></div>
 
 <section class="view" id="units">
-  <div class="page-head"><div><h2>Populasi Unit</h2><p>Data unit dari sheet UNIT pada Monitoring Manpower KMB</p></div><div class="toolbar"><input class="input" id="unitSearch" placeholder="Cari unit / serial number..."><button class="btn" id="exportUnits">Export CSV</button></div></div>
+  <div class="page-head"><div><h2>Populasi Unit KMB</h2><p>Kelola dan edit populasi unit per jobsite / section.</p></div><div class="toolbar"><span class="unit-total-pill" id="unitGrandTotal">0 unit</span><input class="input" id="unitSearch" placeholder="Cari unit / serial number..."><button class="btn yellow" onclick="addUnitSection()">+ Tambah Jobsite Unit</button><button class="btn" id="exportUnits">Export CSV</button></div></div>
   <div id="unitTables"></div>
 </section>
 
@@ -140,6 +153,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="data.js?v=10"></script>
-<script src="app.js?v=17"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>
