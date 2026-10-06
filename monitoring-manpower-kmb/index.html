@@ -5,24 +5,24 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#6d28d9">
 <title>Monitoring Manpower KMB</title>
-<link rel="stylesheet" href="styles.css?v=22">
+<link rel="stylesheet" href="styles.css?v=23">
 </head>
 <body>
 <div class="app">
 <aside class="sidebar" id="sidebar">
   <div class="brand"><div class="mark">KMB</div><div><b>Monitoring Manpower KMB</b></div></div>
   <div class="group">Ringkasan</div>
-  <button class="nav active" data-view="dashboard" data-title="Monitoring Manpower KMB">▦ &nbsp; Dashboard</button>
+  <button class="nav active" data-view="dashboard" data-title="Monitoring Manpower KMB" onclick="showView('dashboard')">▦ &nbsp; Dashboard</button>
   <div class="group">Monitoring Manpower</div>
-  <button class="nav" data-view="site-C4" data-title="C4">● &nbsp; C4</button>
-  <button class="nav" data-view="site-SLR___MAINTENANCE" data-title="SLR Maintenance">● &nbsp; SLR Maintenance</button>
-  <button class="nav" data-view="site-SLR___REKONDISI" data-title="SLR Rekondisi">● &nbsp; SLR Rekondisi</button>
-  <button class="nav" data-view="site-WS" data-title="Workshop Legok">● &nbsp; Workshop Legok</button>
+  <button class="nav" data-view="site-C4" data-title="C4" onclick="showView('site-C4')">● &nbsp; C4</button>
+  <button class="nav" data-view="site-SLR___MAINTENANCE" data-title="SLR Maintenance" onclick="showView('site-SLR___MAINTENANCE')">● &nbsp; SLR Maintenance</button>
+  <button class="nav" data-view="site-SLR___REKONDISI" data-title="SLR Rekondisi" onclick="showView('site-SLR___REKONDISI')">● &nbsp; SLR Rekondisi</button>
+  <button class="nav" data-view="site-WS" data-title="Workshop Legok" onclick="showView('site-WS')">● &nbsp; Workshop Legok</button>
   <div class="group">Database</div>
-  <button class="nav" data-view="units" data-title="Populasi Unit">▤ &nbsp; Populasi Unit</button>
-  <button class="nav" data-view="mp" data-title="MP Aktif & MP OUT">👥 &nbsp; MP Aktif & MP OUT</button>
+  <button class="nav" data-view="units" data-title="Populasi Unit" onclick="showView('units')">▤ &nbsp; Populasi Unit</button>
+  <button class="nav" data-view="mp" data-title="MP Aktif & MP OUT" onclick="showView('mp')">👥 &nbsp; MP Aktif & MP OUT</button>
   <div class="group">Sistem</div>
-  <button class="nav" data-view="settings" data-title="Pengaturan">⚙ &nbsp; Pengaturan</button>
+  <button class="nav" data-view="settings" data-title="Pengaturan" onclick="showView('settings')">⚙ &nbsp; Pengaturan</button>
 </aside>
 
 <main class="main">
@@ -153,6 +153,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="data.js?v=10"></script>
-<script src="app.js?v=22"></script>
+<script src="app.js?v=23"></script>
 </body>
 </html>
