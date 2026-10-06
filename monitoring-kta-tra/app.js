@@ -12,7 +12,7 @@ const STORAGE_KEY="kta_tra_monitoring_v1";
 const EDITOR_KEY="kmb_editors";
 const VIEWER_KEY="kmb_viewers";
 const OWNER_EMAIL="matthewyoga2014@gmail.com";
-function accessMode(){return new URLSearchParams(window.location.search).get("mode")||"owner"}
+function accessMode(){return new URLSearchParams(window.location.search).get("mode")||"viewer"}
 function isEditorMode(){return accessMode()==="editor"}
 function isViewerMode(){return accessMode()==="viewer"}
 function isRestrictedMode(){return isEditorMode()||isViewerMode()}
