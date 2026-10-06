@@ -704,12 +704,22 @@ function renderSettings(){
   const host=document.getElementById("settingsContent");if(!host)return;const editors=getEditors();
   host.innerHTML='<div class="grid2"><div class="card"><div class="section-head"><h3>Pemilik & Akses</h3></div><div class="statusline"><span>Pemilik / Administrator</span><b>'+esc(OWNER_EMAIL)+'</b></div><div class="statusline"><span>Hosting</span><b>GitHub Pages</b></div><div class="statusline"><span>Nama Sistem</span><b>Monitoring Manpower KMB</b></div><div class="statusline"><span>Hak Editor</span><b>Sama dengan Pemilik (Full Access)</b></div><div class="notice" style="margin-top:12px">Nomor jobsite dan manpower diatur otomatis. MP Aktif dan MP OUT dikelompokkan per jobsite.</div></div><div class="card"><div class="section-head"><div><h3>Editor</h3><p class="section-sub">Daftar editor yang sama dengan web KTA - TRA.</p></div><button class="btn yellow" onclick="addEditor()">+ Tambah Editor</button></div>'+(editors.length?editors.map((e,i)=>'<div class="statusline"><span>'+esc(e)+'</span><span><b>FULL ACCESS</b> <button class="btn danger" onclick="removeEditor('+i+')">Hapus</button></span></div>').join(""):'<div class="empty">Belum ada editor Full Access di browser ini.</div>')+'</div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Download Excel</h3></div><button class="btn primary" onclick="downloadExcel()">Download Monitoring Manpower KMB.xlsx</button></div><div class="card"><div class="section-head"><h3>Import Data Lengkap dari Excel</h3></div><label class="btn yellow">Import Excel Monitoring Manpower KMB<input type="file" accept=".xlsx,.xls" hidden onchange="importOriginalExcel(this)"></label></div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Backup Data Web</h3></div><div class="toolbar"><button class="btn" onclick="backup()">Download Backup JSON</button><label class="btn">Import Backup<input type="file" accept=".json" hidden onchange="importBackup(this)"></label></div></div><div class="card"><div class="section-head"><h3>Reset</h3></div><button class="btn danger" onclick="resetAll()">Reset ke Data Awal</button></div></div><div style="height:16px"></div><div class="card"><div class="section-head"><div><h3>Data Terhapus</h3><p class="section-sub">Data jobsite, MP Aktif, atau MP OUT yang salah hapus dapat dipulihkan.</p></div><span class="pill">'+((data.deletedKMB||[]).length)+' data</span></div><div class="toolbar" style="margin-bottom:8px"><button class="btn yellow" onclick="restoreLastDeletedKMB()">Kembalikan Terakhir Dihapus</button></div>'+renderDeletedKMB()+'</div>';
 }
+function goDashboard(){
+  recruitRoleFilter="";
+  showView("dashboard");
+}
 function showView(name){
-  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));const el=document.getElementById(name);if(el)el.classList.add("active");
-  document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("active",n.dataset.view===name));
-  document.getElementById("topTitle").textContent=document.querySelector('.nav[data-view="'+name+'"]')?.dataset.title||"Monitoring Manpower KMB";
+  const target=document.getElementById(name)?name:"dashboard";
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  const el=document.getElementById(target);if(el)el.classList.add("active");
+  document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("active",n.dataset.view===target));
+  document.getElementById("topTitle").textContent=document.querySelector('.nav[data-view="'+target+'"]')?.dataset.title||"Monitoring Manpower KMB";
+  const back=document.getElementById("backDashboard");if(back)back.style.display=target==="dashboard"?"none":"inline-flex";
   document.getElementById("sidebar").classList.remove("open");window.scrollTo(0,0);
-  if(name==="dashboard")renderDashboard();if(name==="units")renderUnits();if(name==="mp")renderMP();if(name==="settings")renderSettings();
+  if(target==="dashboard")renderDashboard();
+  if(target==="units")renderUnits();
+  if(target==="mp")renderMP();
+  if(target==="settings")renderSettings();
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
