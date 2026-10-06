@@ -1,11 +1,55 @@
 const INITIAL=window.KMB_DATA||{sites:{},siteLabels:{},units:[],mpActive:[],mpOut:[]};
 const KEY="kmb_monitoring_web_v1";
-let data=loadData(),editState=null,mpMode="active";
-const siteFields=["No","Nama","Jabatan","Keterangan","PIC","Judul","Awal Rekrutmen","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi","Due Date","Status","Tanggal Close"];
-const mpFields=["No","Nama","Jabatan","Departemen","Level","Status Kontrak","Akhir Kontrak","POH","Tanggal Masuk","Masa Kerja","Jenis Kelamin","Pendidikan Terakhir","Keterangan","Tempat Bekerja","Blok Kamar"];
-const mpOutFields=[...mpFields,"Tanggal Keluar","Alasan"];
+const OWNER_EMAIL="matthewyoga2014@gmail.com";
+const EDITOR_KEY="kmb_editors";
+let data=loadData(),editState=null,mpMode="active",mpFullView=false,recruitRoleFilter="";
+
+const SITE_FIELDS=["No","Nama","Jabatan","Keterangan","PIC","Judul","Awal Rekrutmen","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi","Due Date","Status","Tanggal Close"];
+const MP_SCHEMA_ACTIVE=[
+"No.","NIP (KARYAWAN)","NIK KTP","NO.KK","Nama","NO. NPWP","Nomor HP","Jabatan","Departemen","Level",
+"Status Kontrak PKWT/PKWTT/Harian Lepas","Akhir Kontrak","POH","Sisa Hari","Reminder","Tanggal Masuk","Masa Kerja",
+"Jenis Kelamin","Agama","Tempat Lahir","Tgl/Lahir","Umur","Pendidikan Terakhir","Alamat Domisili","Alamat Lengkap",
+"Keterangan","Tempat Bekerja","No Rekening","Nama Bank","Nama Pemilik Rekening","Nomor BPJS Kesehatan",
+"Nomor BPJS Ketenagakerjaan","Nama Ibu","Pendidikan Terakhir Ibu","Pekerjaan Ibu","Nama Ayah","Pendidikan Terakhir Ayah",
+"Pekerjaan Ayah","Saudara Kandung (1)","Jenis Kelamin (1)","Tanggal Lahir (1)","Saudara Kandung (2)","Jenis Kelamin (2)",
+"Tanggal Lahir (2)","Saudara Kandung (3)","Jenis Kelamin (3)","Tanggal Lahir (3)","Saudara Kandung (4)","Jenis Kelamin (4)",
+"Tanggal Lahir (4)","Nama Emergency","Hubungan","Nomor Telepon","STATUS","BLOK KAMAR"
+];
+const MP_SCHEMA_OUT=[...MP_SCHEMA_ACTIVE,"Tanggal Keluar","Alasan"];
+const SENSITIVE_FIELDS=new Set(["NIP (KARYAWAN)","NIK KTP","NO.KK","NO. NPWP","Nomor HP","Alamat Domisili","Alamat Lengkap","No Rekening","Nama Bank","Nama Pemilik Rekening","Nomor BPJS Kesehatan","Nomor BPJS Ketenagakerjaan","Nama Ibu","Pendidikan Terakhir Ibu","Pekerjaan Ibu","Nama Ayah","Pendidikan Terakhir Ayah","Pekerjaan Ayah","Saudara Kandung (1)","Jenis Kelamin (1)","Tanggal Lahir (1)","Saudara Kandung (2)","Jenis Kelamin (2)","Tanggal Lahir (2)","Saudara Kandung (3)","Jenis Kelamin (3)","Tanggal Lahir (3)","Saudara Kandung (4)","Jenis Kelamin (4)","Tanggal Lahir (4)","Nama Emergency","Hubungan","Nomor Telepon"]);
+const SUMMARY_MP_FIELDS=["No.","Nama","Jabatan","Departemen","Status Kontrak PKWT/PKWTT/Harian Lepas","POH","Tanggal Masuk","Masa Kerja","Keterangan","Tempat Bekerja","STATUS","BLOK KAMAR"];
 
 function clone(v){return JSON.parse(JSON.stringify(v))}
+function normText(v){return String(v??"").trim()}
+function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function id(s){return String(s).replace(/[^a-z0-9]/gi,"_")}
+function todayISO(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
+function fmtDate(v){if(!v)return "-";const s=String(v);const d=/^\d{4}-\d{2}-\d{2}/.test(s)?new Date(s.slice(0,10)+"T00:00:00"):new Date(s);return isNaN(d)?esc(v):new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",year:"numeric"}).format(d)}
+function canonicalJob(v){let s=normText(v).toLowerCase();s=s.replace(/\bjr\b/g,"junior").replace(/\bharian\b/g,"").replace(/\s+/g," ").trim();return s}
+function canonicalJobLabel(v){const s=canonicalJob(v);if(s==="junior mekanik")return "Junior Mekanik";if(s==="junior welder")return "Junior Welder";if(s==="helper mekanik")return "Helper Mekanik";if(s==="admin plant")return "Admin Plant";return normText(v)||"Belum ditentukan"}
+function sameName(a,b){return normText(a).toLowerCase()===normText(b).toLowerCase()}
+function isVacantName(v){const s=normText(v).toLowerCase();return !s||s==="vacant"}
+function siteKeyFromPlacement(v){const s=normText(v).toLowerCase();if(!s)return "";if(s==="c4"||s.includes("kta")||s.includes("tra"))return "C4";if(s.includes("maintenance"))return "SLR - MAINTENANCE";if(s.includes("rekondisi"))return "SLR - REKONDISI";if(s.includes("workshop")||s.includes("legok")||s==="ws")return "WS";return ""}
+function placementFromSiteKey(k){return ({C4:"C4","SLR - MAINTENANCE":"SLR - Maintenance","SLR - REKONDISI":"SLR - Rekondisi",WS:"Workshop Legok"})[k]||k}
+function normalizedMP(row){
+  const out={};
+  const legacy={
+    "No.":["No.","No"],"NIP (KARYAWAN)":["NIP (KARYAWAN)","NIP\n (KARYAWAN)"],"Status Kontrak PKWT/PKWTT/Harian Lepas":["Status Kontrak PKWT/PKWTT/Harian Lepas","Status Kontrak"],
+    "Tanggal Masuk":["Tanggal Masuk","Tanggal \n Masuk"],"Pendidikan Terakhir":["Pendidikan Terakhir","Pendidikan \n Terakhir"],
+    "Tempat Bekerja":["Tempat Bekerja","Tempat \n Bekerja"],"Nomor Telepon":["Nomor Telepon","Nomor \n Telfon"],"BLOK KAMAR":["BLOK KAMAR","Blok Kamar"]
+  };
+  for(const f of MP_SCHEMA_OUT){
+    let val=row?.[f];
+    if(val===undefined&&legacy[f])for(const k of legacy[f])if(row?.[k]!==undefined){val=row[k];break}
+    if(val===undefined)val="";
+    out[f]=val;
+  }
+  return out;
+}
+function normalizeAllMP(){
+  data.mpActive=(data.mpActive||[]).map(normalizedMP);
+  data.mpOut=(data.mpOut||[]).map(normalizedMP);
+}
 function loadData(){
   try{
     const x=localStorage.getItem(KEY),saved=x?JSON.parse(x):clone(INITIAL);
@@ -17,10 +61,9 @@ function loadData(){
     return saved;
   }catch(e){return clone(INITIAL)}
 }
-function saveData(){localStorage.setItem(KEY,JSON.stringify(data));renderDashboard()}
-function id(s){return s.replace(/[^a-z0-9]/gi,"_")}
-function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
-function fmtDate(v){if(!v)return "-";const d=new Date(v+"T00:00:00");return isNaN(d)?esc(v):new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",year:"numeric"}).format(d)}
+normalizeAllMP();
+function saveData(){localStorage.setItem(KEY,JSON.stringify(data));renderDashboard();renderSettings()}
+
 function badge(v){
   if(!v)return '<span class="badge neutral">-</span>';
   let c="neutral",t=String(v);
@@ -30,15 +73,11 @@ function badge(v){
 function progress(r){
   const steps=[["Induksi",100,"INDUKSI"],["On Site",95,"ON SITE"],["FU MCU",80,"FU MCU"],["MCU",70,"MCU"],["Offering Latter",55,"OFFERING"],["Interview User",40,"INTERVIEW USER"],["Psikologi Test",25,"PSIKOLOGI TEST"]];
   for(const [k,p,label] of steps)if(r[k])return {p,label};
-  return {p:0,label:"SOURCHING KANDIDAT"};
+  return {p:0,label:"SOURCING KANDIDAT"};
 }
-function daysLeft(v){
-  if(!v)return "";
-  const due=new Date(v+"T00:00:00"),today=new Date();today.setHours(0,0,0,0);
-  return Math.round((due-today)/86400000);
-}
+function daysLeft(v){if(!v)return "";const due=new Date(v+"T00:00:00"),today=new Date();today.setHours(0,0,0,0);return Math.round((due-today)/86400000)}
 function siteMetrics(rows){
-  const planning=rows.length,vacant=rows.filter(r=>String(r.Nama||"").trim().toLowerCase()==="vacant"||String(r.Nama||"").trim()==="").length;
+  const planning=rows.length,vacant=rows.filter(r=>isVacantName(r.Nama)).length;
   return {planning,actual:planning-vacant,vacant,
     open:rows.filter(r=>String(r.Status).toLowerCase()==="open").length,
     cont:rows.filter(r=>String(r.Status).toLowerCase()==="continue").length,
@@ -50,7 +89,7 @@ function makeSiteViews(){
   const host=document.getElementById("siteViews");host.innerHTML="";
   Object.keys(data.sites).forEach(key=>{
     const sec=document.createElement("section");sec.className="view";sec.id="site-"+id(key);
-    sec.innerHTML='<div class="page-head"><div><h2>'+esc(data.siteLabels[key]||key)+'</h2><p>Monitoring manpower dan progress rekrutmen</p></div><div class="toolbar"><input class="input" id="q_'+id(key)+'" placeholder="Cari nama / jabatan..."><select class="select" id="st_'+id(key)+'"><option value="">Semua Status</option><option>Open</option><option>Continue</option><option>Close</option></select><button class="btn yellow" data-add="'+esc(key)+'">+ Tambah Data</button><button class="btn" data-export="'+esc(key)+'">Export CSV</button></div></div><div id="stats_'+id(key)+'"></div><div id="table_'+id(key)+'"></div>';
+    sec.innerHTML='<div class="page-head"><div><h2>'+esc(data.siteLabels[key]||key)+'</h2><p>Monitoring manpower dan progress rekrutmen</p></div><div class="toolbar"><input class="input" id="q_'+id(key)+'" placeholder="Cari nama / jabatan..."><select class="select" id="st_'+id(key)+'"><option value="">Semua Status</option><option>Open</option><option>Continue</option><option>Close</option></select><button class="btn yellow" data-add>+ Tambah Data</button><button class="btn" data-export>Export CSV</button></div></div><div id="stats_'+id(key)+'"></div><div id="table_'+id(key)+'"></div>';
     host.appendChild(sec);
     document.getElementById("q_"+id(key)).addEventListener("input",()=>renderSite(key));
     document.getElementById("st_"+id(key)).addEventListener("change",()=>renderSite(key));
@@ -75,24 +114,46 @@ function renderDashboard(){
   document.getElementById("summaryBody").innerHTML=rows;
   document.getElementById("bars").innerHTML=bars;
   document.getElementById("statusCards").innerHTML=[["Open",total.open],["Continue",total.cont],["Close",total.close],["Jatuh Tempo",total.due]].map(x=>'<div class="mini"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join("");
-  let vac={};Object.values(data.sites).flat().filter(r=>String(r.Nama||"").trim().toLowerCase()==="vacant"||!String(r.Nama||"").trim()).forEach(r=>vac[r.Jabatan||"Belum ditentukan"]=(vac[r.Jabatan||"Belum ditentukan"]||0)+1);
-  document.getElementById("vacancies").innerHTML=Object.keys(vac).length?Object.entries(vac).sort((a,b)=>b[1]-a[1]).map(x=>'<div class="vacancy-row"><span>'+esc(x[0])+'</span><b>'+x[1]+'</b></div>').join(""):'<div class="empty">Tidak ada vacant</div>';
-  renderRecruitmentSummary();
+  renderVacancyResume();renderRecruitmentSummary();
 }
+function renderVacancyResume(){
+  const groups={};
+  for(const [site,rows] of Object.entries(data.sites)){
+    rows.forEach((r,i)=>{
+      if(!isVacantName(r.Nama))return;
+      const role=canonicalJobLabel(r.Jabatan),key=canonicalJob(r.Jabatan)||"belum";
+      const p=progress(r);
+      if(!groups[key])groups[key]={role,items:[]};
+      groups[key].items.push({site,row:r,index:i,p});
+    })
+  }
+  const arr=Object.values(groups).sort((a,b)=>b.items.length-a.items.length||a.role.localeCompare(b.role));
+  document.getElementById("vacancyResume").innerHTML=arr.length?arr.map(g=>{
+    const best=g.items.slice().sort((a,b)=>b.p.p-a.p.p)[0];
+    const breakdown={};g.items.forEach(x=>breakdown[x.p.label]=(breakdown[x.p.label]||0)+1);
+    const breakdownText=Object.entries(breakdown).sort((a,b)=>{const pa=g.items.find(x=>x.p.label===a[0])?.p.p||0,pb=g.items.find(x=>x.p.label===b[0])?.p.p||0;return pb-pa}).map(([k,v])=>v+"× "+k).join(" • ");
+    const roleEnc=encodeURIComponent(canonicalJob(g.role));
+    return '<button class="resume-card" onclick="focusRecruitRole(decodeURIComponent(\''+roleEnc+'\'))"><div><span class="resume-count">'+g.items.length+'</span><b>'+esc(g.role)+'</b></div><div class="resume-best">Progress tertinggi: <b>'+esc(best.p.label)+' ('+best.p.p+'%)</b></div><div class="resume-breakdown">'+esc(breakdownText)+'</div><div class="resume-link">Lihat detail →</div></button>';
+  }).join(""):'<div class="empty">Tidak ada vacant</div>';
+}
+function focusRecruitRole(role){recruitRoleFilter=role;renderRecruitmentSummary();document.getElementById("recruitmentCard").scrollIntoView({behavior:"smooth",block:"start"})}
+function clearRecruitFilter(){recruitRoleFilter="";renderRecruitmentSummary()}
 function renderRecruitmentSummary(){
   const openRows=[];
   Object.keys(data.sites).forEach(key=>{
     (data.sites[key]||[]).forEach(r=>{
       if(String(r.Status||"").toLowerCase()!=="open")return;
-      const p=progress(r),days=daysLeft(r["Due Date"]);
-      openRows.push({site:key,row:r,p,days});
+      if(recruitRoleFilter&&canonicalJob(r.Jabatan)!==recruitRoleFilter)return;
+      const p=progress(r),days=daysLeft(r["Due Date"]);openRows.push({site:key,row:r,p,days});
     })
   });
   document.getElementById("recruitCount").textContent=openRows.length+" OPEN";
+  const fb=document.getElementById("recruitFilterBadge");
+  if(recruitRoleFilter){fb.style.display="inline-flex";fb.innerHTML=esc(canonicalJobLabel(recruitRoleFilter))+' <button onclick="clearRecruitFilter()" title="Hapus filter">×</button>'}else fb.style.display="none";
   document.getElementById("recruitBody").innerHTML=openRows.length?openRows.map(x=>{
     const r=x.row,dayClass=x.days<0?"overdue":x.days<=7?"warning":"";
     return '<tr><td><b>'+esc(x.site)+'</b></td><td>'+esc(r.Jabatan||"-")+'</td><td>'+fmtDate(r["Awal Rekrutmen"])+'</td><td>'+fmtDate(r["Due Date"])+'</td><td><span class="days '+dayClass+'">'+(x.days===""?"-":x.days)+'</span></td><td>'+badge(r.Status)+'</td><td><b>'+esc(x.p.label)+'</b></td><td><div style="display:flex;align-items:center;gap:8px"><div class="progress recruit-progress"><i style="width:'+x.p.p+'%"></i></div><b>'+x.p.p+'%</b></div></td><td>'+esc((r.Nama||"")+(r.Keterangan?" — "+r.Keterangan:""))+'</td></tr>';
-  }).join(""):'<tr><td colspan="9" class="empty">Tidak ada rekrutmen OPEN</td></tr>';
+  }).join(""):'<tr><td colspan="9" class="empty">Tidak ada rekrutmen OPEN untuk filter ini</td></tr>';
 }
 function renderSite(key){
   const q=(document.getElementById("q_"+id(key))?.value||"").toLowerCase(),st=document.getElementById("st_"+id(key))?.value||"",all=data.sites[key]||[],m=siteMetrics(all);
@@ -107,32 +168,53 @@ function computePTK(r){
   if(!r["Due Date"]){r["Keterangan PTK"]="";return}
   const d=daysLeft(r["Due Date"]);r["Keterangan PTK"]=d<=0?"JATUH TEMPO":d<=7?"HAMPIR JATUH TEMPO":"ON TRACK";
 }
-function fieldHtml(f,row){
-  if(f==="Status")return '<div class="field"><label>'+f+'</label><select data-f="'+f+'"><option value=""></option>'+["Open","Continue","Close"].map(x=>'<option '+(row[f]===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
-  if(["Keterangan","Alasan"].includes(f))return '<div class="field"><label>'+f+'</label><textarea data-f="'+f+'">'+esc(row[f]||"")+'</textarea></div>';
-  const dateFields=["Akhir Kontrak","Tanggal Masuk","Tanggal Keluar","Due Date","Tanggal Close","Awal Rekrutmen","Psikologi Test","Interview User","MCU","FU MCU","On Site","Induksi"];const type=dateFields.includes(f)?"date":"text";
-  return '<div class="field"><label>'+f+'</label><input type="'+type+'" data-f="'+f+'" value="'+esc(row[f]||"")+'"></div>';
+function fieldHtml(f,row,type="site"){
+  if(f==="Status"&&type==="site")return '<div class="field"><label>'+f+'</label><select data-f="'+f+'"><option value=""></option>'+["Open","Continue","Close"].map(x=>'<option '+(row[f]===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
+  if(f==="Tempat Bekerja"&&type==="mp")return '<div class="field"><label>'+f+'</label><select data-f="'+f+'"><option value=""></option>'+["C4","SLR - Maintenance","SLR - Rekondisi","Workshop Legok"].map(x=>'<option '+(normText(row[f])===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
+  if(["Keterangan","Alasan","Alamat Domisili","Alamat Lengkap"].includes(f))return '<div class="field '+(SENSITIVE_FIELDS.has(f)?"sensitive":"")+'"><label>'+f+'</label><textarea data-f="'+f+'">'+esc(row[f]||"")+'</textarea></div>';
+  const dateFields=["Akhir Kontrak","Tanggal Masuk","Tanggal Keluar","Tgl/Lahir","Tanggal Lahir (1)","Tanggal Lahir (2)","Tanggal Lahir (3)","Tanggal Lahir (4)","Due Date","Tanggal Close","Awal Rekrutmen","Psikologi Test","Interview User","MCU","FU MCU","On Site","Induksi"];
+  return '<div class="field '+(SENSITIVE_FIELDS.has(f)?"sensitive":"")+'"><label>'+f+(SENSITIVE_FIELDS.has(f)?' <span title="Data sensitif">🔒</span>':'')+'</label><input type="'+(dateFields.includes(f)?"date":"text")+'" data-f="'+f+'" value="'+esc(row[f]||"")+'"></div>';
 }
 function openSiteForm(key,index){
-  editState={type:"site",key,index};const row=index===null?{}:data.sites[key][index];
+  editState={type:"site",key,index,old:index===null?null:clone(data.sites[key][index])};const row=index===null?{}:data.sites[key][index];
   document.getElementById("modalTitle").textContent=(index===null?"Tambah Data - ":"Edit Data - ")+(data.siteLabels[key]||key);
-  document.getElementById("formFields").innerHTML=siteFields.map(f=>fieldHtml(f,row)).join("");
+  document.getElementById("formFields").innerHTML=SITE_FIELDS.map(f=>fieldHtml(f,row,"site")).join("");
   document.getElementById("modal").classList.add("show");
 }
-function closeModal(){document.getElementById("modal").classList.remove("show");editState=null}
+function syncActivePlacementFromSite(name,key){
+  if(isVacantName(name))return;
+  const emp=(data.mpActive||[]).find(r=>sameName(r.Nama,name));
+  if(emp)emp["Tempat Bekerja"]=placementFromSiteKey(key);
+}
 function saveModal(){
   if(!editState)return;let row={};document.querySelectorAll("#formFields [data-f]").forEach(el=>row[el.dataset.f]=el.value);
   if(editState.type==="site"){
     if(!row.No)row.No=String((data.sites[editState.key]||[]).length+1);computePTK(row);
     if(editState.index===null)data.sites[editState.key].push(row);else data.sites[editState.key][editState.index]={...data.sites[editState.key][editState.index],...row};
-    const k=editState.key;saveData();renderSite(k);closeModal();return;
+    if(!isVacantName(row.Nama))syncActivePlacementFromSite(row.Nama,editState.key);
+    const k=editState.key;saveData();renderSite(k);renderMP();closeModal();return;
   }
-  const arr=editState.mode==="active"?data.mpActive:data.mpOut;
-  if(!row.No)row.No=String(arr.length+1);
-  if(editState.index===null)arr.push(row);else arr[editState.index]={...arr[editState.index],...row};
-  saveData();renderMP();closeModal();
+  if(editState.type==="mp"||editState.type==="exit"){
+    const arr=editState.mode==="active"?data.mpActive:data.mpOut;
+    const schema=editState.mode==="active"?MP_SCHEMA_ACTIVE:MP_SCHEMA_OUT;
+    const clean={};schema.forEach(f=>clean[f]=row[f]||"");
+    if(!clean["No."])clean["No."]=String(arr.length+1);
+    const old=editState.index===null?null:clone(arr[editState.index]);
+    if(editState.index===null)arr.push(clean);else arr[editState.index]={...arr[editState.index],...clean};
+    if(editState.mode==="active"){
+      const oldPlacement=old?.["Tempat Bekerja"]||"",newPlacement=clean["Tempat Bekerja"]||"";
+      if(normText(oldPlacement)!==normText(newPlacement)&&clean.Nama)syncPlacement(clean,oldPlacement,newPlacement);
+    } else if(editState.type==="exit"){
+      const src=editState.sourceIndex;
+      const activeRec=data.mpActive[src];
+      if(activeRec){vacateForExit(activeRec,clean["Tanggal Keluar"],clean.Alasan);data.mpActive.splice(src,1)}
+    }
+    saveData();makeSiteViews();renderMP();closeModal();return;
+  }
 }
+function closeModal(){document.getElementById("modal").classList.remove("show");editState=null}
 function removeSiteRow(key,index){if(confirm("Hapus data ini?")){data.sites[key].splice(index,1);saveData();renderSite(key)}}
+
 function renderUnits(){
   const q=(document.getElementById("unitSearch")?.value||"").toLowerCase();
   document.getElementById("unitTables").innerHTML=(data.units||[]).map(sec=>{
@@ -140,54 +222,156 @@ function renderUnits(){
     return '<div class="card unit-block"><div class="section-head"><h3>'+esc(sec.name)+'</h3><span class="badge ok">'+rows.filter(r=>String(r["No."]||"")!=="Dolly").length+' unit</span></div><div class="table-wrap"><table class="table"><thead><tr>'+heads.map(h=>'<th>'+esc(h)+'</th>').join("")+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+heads.map(h=>'<td>'+esc(r[h]||"-")+'</td>').join("")+'</tr>').join("")+'</tbody></table></div></div>'
   }).join("");
 }
-function setMPMode(mode){
-  mpMode=mode;document.querySelectorAll(".mp-tab").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));renderMP();
-}
+
+function setMPMode(mode){mpMode=mode;document.querySelectorAll(".mp-tab").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));renderMP()}
+function toggleMPFull(){mpFullView=!mpFullView;document.getElementById("mpFullBtn").textContent=mpFullView?"Tampilan Ringkas":"Semua Kolom";renderMP()}
 function renderMP(){
-  const arr=mpMode==="active"?(data.mpActive||[]):(data.mpOut||[]),q=(document.getElementById("mpSearch")?.value||"").toLowerCase();
+  normalizeAllMP();
+  const arr=mpMode==="active"?data.mpActive:data.mpOut,q=(document.getElementById("mpSearch")?.value||"").toLowerCase();
   const rows=arr.map((r,i)=>({...r,__i:i})).filter(r=>!q||JSON.stringify(r).toLowerCase().includes(q));
   document.getElementById("mpTitle").textContent=mpMode==="active"?"MP Aktif":"MP OUT";
   document.getElementById("mpCount").textContent=rows.length+" data";
-  document.getElementById("mpTable").innerHTML='<div class="table-wrap"><table class="table mp-table"><thead><tr><th>No</th><th>Nama</th><th>Jabatan</th><th>Departemen</th><th>Status Kontrak</th><th>Tempat Bekerja</th><th>Tanggal Masuk</th>'+(mpMode==="out"?'<th>Tanggal Keluar</th><th>Alasan</th>':'<th>Keterangan</th>')+'<th>Aksi</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.No)+'</td><td><b>'+esc(r.Nama||"-")+'</b></td><td>'+esc(r.Jabatan||"-")+'</td><td>'+esc(r.Departemen||"-")+'</td><td>'+esc(r["Status Kontrak"]||"-")+'</td><td>'+esc(r["Tempat Bekerja"]||"-")+'</td><td>'+fmtDate(r["Tanggal Masuk"])+'</td>'+(mpMode==="out"?'<td>'+fmtDate(r["Tanggal Keluar"])+'</td><td>'+esc(r.Alasan||"-")+'</td>':'<td>'+esc(r.Keterangan||"-")+'</td>')+'<td><button class="btn" onclick="openMpForm(\''+mpMode+'\','+r.__i+')">Edit</button> <button class="btn danger" onclick="removeMpRow(\''+mpMode+'\','+r.__i+')">Hapus</button></td></tr>').join("")+'</tbody></table></div>';
+  const fields=mpFullView?(mpMode==="active"?MP_SCHEMA_ACTIVE:MP_SCHEMA_OUT):SUMMARY_MP_FIELDS.concat(mpMode==="out"?["Tanggal Keluar","Alasan"]:[]);
+  let head=fields.map(f=>'<th>'+esc(f)+'</th>').join("")+'<th>Aksi</th>';
+  let body=rows.map(r=>{
+    let cells=fields.map(f=>'<td>'+esc(r[f]||"-")+'</td>').join("");
+    let actions='<button class="btn" onclick="openMpForm(\''+mpMode+'\','+r.__i+')">Edit</button>';
+    if(mpMode==="active")actions+=' <button class="btn yellow" onclick="openMpForm(\'active\','+r.__i+')">Pindah Site</button> <button class="btn danger" onclick="openExitForm('+r.__i+')">MP OUT</button>';
+    else actions+=' <button class="btn danger" onclick="removeMpRow(\'out\','+r.__i+')">Hapus</button>';
+    return '<tr>'+cells+'<td class="action-cell">'+actions+'</td></tr>';
+  }).join("");
+  document.getElementById("mpTable").innerHTML='<div class="table-wrap"><table class="table mp-table"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';
 }
 function openMpForm(mode,index){
-  editState={type:"mp",mode,index};const arr=mode==="active"?data.mpActive:data.mpOut,row=index===null?{}:arr[index],fs=mode==="active"?mpFields:mpOutFields;
+  editState={type:"mp",mode,index};const arr=mode==="active"?data.mpActive:data.mpOut,row=index===null?{}:arr[index],fs=mode==="active"?MP_SCHEMA_ACTIVE:MP_SCHEMA_OUT;
   document.getElementById("modalTitle").textContent=(index===null?"Tambah ":"Edit ")+(mode==="active"?"MP Aktif":"MP OUT");
-  document.getElementById("formFields").innerHTML=fs.map(f=>fieldHtml(f,row)).join("");
+  let source="";
+  if(mode==="out"&&index===null){
+    source='<div class="source-box"><label>Ambil Data dari MP Aktif</label><select id="sourceActive"><option value="">-- pilih nama MP Aktif --</option>'+data.mpActive.map((r,i)=>'<option value="'+i+'">'+esc(r.Nama||"-")+' — '+esc(r.Jabatan||"-")+' — '+esc(r["Tempat Bekerja"]||"-")+'</option>').join("")+'</select><small>Pilih nama untuk menyalin seluruh data ke MP OUT.</small></div>';
+  }
+  document.getElementById("formFields").innerHTML=source+fs.map(f=>fieldHtml(f,row,"mp")).join("");
+  document.getElementById("modal").classList.add("show");
+  const sel=document.getElementById("sourceActive");if(sel)sel.onchange=()=>fillFromActive(sel.value);
+}
+function fillFromActive(idx){
+  if(idx==="")return;const src=data.mpActive[Number(idx)];if(!src)return;
+  for(const f of MP_SCHEMA_OUT){const el=document.querySelector('#formFields [data-f="'+CSS.escape(f)+'"]');if(el)el.value=f==="Tanggal Keluar"?todayISO():(src[f]||"")}
+}
+function openExitForm(index){
+  const src=data.mpActive[index];if(!src)return;
+  editState={type:"exit",mode:"out",index:null,sourceIndex:index};
+  const row={...normalizedMP(src),"Tanggal Keluar":todayISO(),"Alasan":""};
+  document.getElementById("modalTitle").textContent="Pindahkan ke MP OUT — "+(src.Nama||"");
+  document.getElementById("formFields").innerHTML='<div class="notice" style="grid-column:1/-1"><b>Sinkron otomatis:</b> saat disimpan, data akan masuk ke MP OUT, dihapus dari MP Aktif, dan posisi lama di jobsite menjadi Vacant.</div>'+MP_SCHEMA_OUT.map(f=>fieldHtml(f,row,"mp")).join("");
   document.getElementById("modal").classList.add("show");
 }
-function removeMpRow(mode,index){
-  if(!confirm("Hapus data manpower ini?"))return;
-  (mode==="active"?data.mpActive:data.mpOut).splice(index,1);saveData();renderMP();
+function removeMpRow(mode,index){if(confirm("Hapus data manpower ini?")){(mode==="active"?data.mpActive:data.mpOut).splice(index,1);saveData();renderMP()}}
+function vacateForExit(rec,date,reason){
+  const name=rec.Nama,site=siteKeyFromPlacement(rec["Tempat Bekerja"]);
+  if(site&&data.sites[site]){
+    const r=data.sites[site].find(x=>sameName(x.Nama,name));
+    if(r){r.Nama="Vacant";r.Keterangan="MP OUT "+name+(date?" • "+date:"")+(reason?" • "+reason:"");if(!r["Keterangan PTK"])r["Keterangan PTK"]="TIDAK ADA PENGAJUAN"}
+  }
 }
+function syncPlacement(rec,oldPlacement,newPlacement){
+  const oldKey=siteKeyFromPlacement(oldPlacement),newKey=siteKeyFromPlacement(newPlacement),name=rec.Nama,job=rec.Jabatan;
+  if(oldKey&&oldKey!==newKey&&data.sites[oldKey]){
+    const oldRow=data.sites[oldKey].find(r=>sameName(r.Nama,name));
+    if(oldRow){oldRow.Nama="Vacant";oldRow.Keterangan="Vacant — "+name+" pindah ke "+(newPlacement||"site lain");if(!oldRow["Keterangan PTK"])oldRow["Keterangan PTK"]="TIDAK ADA PENGAJUAN"}
+  }
+  if(newKey&&data.sites[newKey]){
+    let target=data.sites[newKey].find(r=>isVacantName(r.Nama)&&canonicalJob(r.Jabatan)===canonicalJob(job));
+    if(target){
+      target.Nama=name;target.Keterangan="Perpindahan dari "+(oldPlacement||"-");
+      if(["Open","Continue"].includes(target.Status)){target.Status="Close";target["Tanggal Close"]=todayISO();target["Keterangan PTK"]="SELESAI"}
+    }else if(!data.sites[newKey].some(r=>sameName(r.Nama,name))){
+      data.sites[newKey].push({No:String(data.sites[newKey].length+1),Nama:name,Jabatan:job,Keterangan:"Perpindahan dari "+(oldPlacement||"-"),PIC:"PT. KMB",Judul:"","Awal Rekrutmen":"","Psikologi Test":"","Interview User":"","Offering Latter":"","MCU":"","FU MCU":"","On Site":"","Induksi":"","Due Date":"","Status":"","Tanggal Close":"","Keterangan PTK":"TIDAK ADA PENGAJUAN","Lama Closing (Hari)":"","Open Index":""})
+    }
+  }
+}
+
 function csv(rows){if(!rows.length)return "";const hs=[...new Set(rows.flatMap(r=>Object.keys(r).filter(k=>!k.startsWith("__"))))],q=v=>'"'+String(v??"").replace(/"/g,'""')+'"';return "\ufeff"+hs.map(q).join(",")+"\n"+rows.map(r=>hs.map(h=>q(r[h])).join(",")).join("\n")}
 function download(content,name,type){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([content],{type:type||"text/csv;charset=utf-8"}));a.download=name;document.body.appendChild(a);a.click();a.remove()}
 function exportRows(rows,name){download(csv(rows),name)}
 function exportUnits(){const rows=(data.units||[]).flatMap(s=>s.rows.map(r=>({Jobsite:s.name,...r})));exportRows(rows,"KMB_Populasi_Unit.csv")}
 function exportMP(){exportRows(mpMode==="active"?data.mpActive:data.mpOut,mpMode==="active"?"KMB_MP_Aktif.csv":"KMB_MP_OUT.csv")}
+function buildDashboardAOA(){
+  const aoa=[["MONITORING KMB"],[],["RINGKASAN MANPOWER"],["Jobsite","Planning","Actual","Vacant","Open","Continue","Close","Jatuh Tempo"]];
+  for(const [k,rows] of Object.entries(data.sites)){const m=siteMetrics(rows);aoa.push([data.siteLabels[k]||k,m.planning,m.actual,m.vacant,m.open,m.cont,m.close,m.due])}
+  aoa.push([],["RESUME VACANT"],["Jabatan","Jumlah Vacant","Progress Tertinggi","Breakdown"]);
+  const groups={};
+  for(const rows of Object.values(data.sites))for(const r of rows)if(isVacantName(r.Nama)){const key=canonicalJob(r.Jabatan),p=progress(r);if(!groups[key])groups[key]={label:canonicalJobLabel(r.Jabatan),items:[]};groups[key].items.push(p)}
+  for(const g of Object.values(groups)){const best=g.items.slice().sort((a,b)=>b.p-a.p)[0],bd={};g.items.forEach(x=>bd[x.label]=(bd[x.label]||0)+1);aoa.push([g.label,g.items.length,best.label+" "+best.p+"%",Object.entries(bd).map(x=>x[1]+"x "+x[0]).join(" • ")])}
+  return aoa;
+}
+function downloadExcel(){
+  if(!window.XLSX){alert("Modul Excel belum termuat. Coba refresh halaman lalu ulangi.");return}
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(buildDashboardAOA()),"DASHBOARD");
+  for(const [k,rows] of Object.entries(data.sites))XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"C4"===k?"C4":k==="SLR - MAINTENANCE"?"SLR - MAINTENANCE":k==="SLR - REKONDISI"?"SLR - REKONDISI":"WS");
+  const unitRows=(data.units||[]).flatMap(s=>s.rows.map(r=>({Jobsite:s.name,...r})));XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(unitRows),"UNIT");
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data.mpActive.map(r=>{const o={};MP_SCHEMA_ACTIVE.forEach(f=>o[f]=r[f]||"");return o})),"MP Aktif");
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data.mpOut.map(r=>{const o={};MP_SCHEMA_OUT.forEach(f=>o[f]=r[f]||"");return o})),"MP OUT");
+  XLSX.writeFile(wb,"Monitoring_KMB_"+todayISO()+".xlsx");
+}
+function importOriginalExcel(input){
+  const file=input.files?.[0];if(!file)return;
+  if(!window.XLSX){alert("Modul Excel belum termuat.");return}
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const wb=XLSX.read(e.target.result,{type:"array"});
+      const readMP=(sheetName,isOut)=>{
+        const ws=wb.Sheets[sheetName];if(!ws)return [];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:false,dateNF:"yyyy-mm-dd"});
+        const schema=isOut?MP_SCHEMA_OUT:MP_SCHEMA_ACTIVE,out=[];
+        for(let i=6;i<rows.length;i++){
+          const a=rows[i]||[],name=normText(a[4]),job=normText(a[7]),dept=normText(a[8]),site=normText(a[26]),exit=normText(a[55]),reason=normText(a[56]);
+          if(!name||!/[A-Za-z]/.test(name))continue;
+          if(isOut){if(!job&&!dept&&!site&&!exit&&!reason)continue}else{if(!job&&!dept&&!site)continue}
+          const o={};schema.forEach((f,j)=>o[f]=a[j]??"");out.push(o);
+        }
+        return out;
+      };
+      const active=readMP("MP Aktif",false),out=readMP("MP OUT",true);
+      if(!active.length&&!out.length)throw new Error("Sheet MP Aktif/MP OUT tidak terbaca.");
+      if(active.length)data.mpActive=active;if(out.length)data.mpOut=out;
+      saveData();renderMP();alert("Import Excel selesai: "+data.mpActive.length+" MP Aktif dan "+data.mpOut.length+" MP OUT. Data sensitif tersimpan hanya di browser perangkat ini.");
+    }catch(err){alert("Import gagal: "+err.message)}
+  };
+  reader.readAsArrayBuffer(file);input.value="";
+}
 function backup(){download(JSON.stringify(data,null,2),"Monitoring_KMB_Backup.json","application/json")}
 function importBackup(input){
-  const file=input.files&&input.files[0];if(!file)return;const rd=new FileReader();
-  rd.onload=()=>{try{const v=JSON.parse(rd.result);if(!v.sites)throw new Error();data=v;if(!data.mpActive)data.mpActive=[];if(!data.mpOut)data.mpOut=[];saveData();makeSiteViews();renderUnits();renderMP();alert("Backup berhasil dimuat.")}catch(e){alert("File backup tidak valid.")}};rd.readAsText(file)
+  const file=input.files?.[0];if(!file)return;const rd=new FileReader();
+  rd.onload=()=>{try{const v=JSON.parse(rd.result);if(!v.sites)throw new Error();data=v;normalizeAllMP();saveData();makeSiteViews();renderUnits();renderMP();alert("Backup berhasil dimuat.")}catch(e){alert("File backup tidak valid.")}};rd.readAsText(file);input.value="";
 }
-function resetAll(){if(confirm("Kembalikan data ke kondisi awal dari Excel?")){data=clone(INITIAL);localStorage.removeItem(KEY);makeSiteViews();renderDashboard();renderUnits();renderMP();showView("dashboard")}}
+function resetAll(){if(confirm("Kembalikan data ke kondisi awal web?")){data=clone(INITIAL);normalizeAllMP();localStorage.removeItem(KEY);makeSiteViews();renderDashboard();renderUnits();renderMP();renderSettings();showView("dashboard")}}
+
+function getEditors(){try{const a=JSON.parse(localStorage.getItem(EDITOR_KEY)||"[]");return Array.isArray(a)?a:[]}catch(e){return []}}
+function addEditor(){let e=prompt("Masukkan email Editor Monitoring KMB:");if(!e)return;e=e.trim().toLowerCase();if(!e.includes("@")||!e.includes(".")){alert("Format email tidak valid.");return}const a=getEditors();if(e===OWNER_EMAIL||a.includes(e)){alert("Email sudah terdaftar.");return}a.push(e);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
+function removeEditor(i){const a=getEditors();if(!a[i])return;if(!confirm("Hapus Editor "+a[i]+"?"))return;a.splice(i,1);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
+function renderSettings(){
+  const host=document.getElementById("settingsContent");if(!host)return;const editors=getEditors();
+  host.innerHTML='<div class="grid2"><div class="card"><div class="section-head"><h3>Pemilik & Akses</h3></div><div class="statusline"><span>Pemilik / Administrator</span><b>'+esc(OWNER_EMAIL)+'</b></div><div class="statusline"><span>Hosting</span><b>GitHub Pages</b></div><div class="statusline"><span>Nama Sistem</span><b>Monitoring KMB</b></div><div class="notice" style="margin-top:12px">Daftar Pemilik/Editor pada GitHub Pages ini adalah konfigurasi aplikasi. Pengamanan login lintas perangkat memerlukan backend autentikasi.</div></div><div class="card"><div class="section-head"><div><h3>Editor</h3><p class="section-sub">Menggunakan daftar editor yang sama dengan web KMB sebelumnya.</p></div><button class="btn yellow" onclick="addEditor()">+ Tambah Editor</button></div>'+(editors.length?editors.map((e,i)=>'<div class="statusline"><span>'+esc(e)+'</span><span><b>EDITOR</b> <button class="btn danger" onclick="removeEditor('+i+')">Hapus</button></span></div>').join(""):'<div class="empty">Belum ada editor tambahan di browser ini.</div>')+'</div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Download Excel</h3></div><p class="settings-copy">Download seluruh data Monitoring KMB menjadi workbook Excel dengan sheet Dashboard, seluruh Jobsite, Unit, MP Aktif dan MP OUT.</p><button class="btn primary" onclick="downloadExcel()">Download Monitoring KMB.xlsx</button></div><div class="card"><div class="section-head"><h3>Import Data Lengkap dari Excel</h3></div><p class="settings-copy">Untuk menjaga NIK, KK, rekening, BPJS, alamat dan data keluarga agar tidak dipublikasikan di GitHub, pilih file Excel Monitoring KMB dari komputer Anda. Data lengkap MP Aktif/OUT akan dimuat lokal di browser ini.</p><label class="btn yellow">Import Excel Monitoring KMB<input type="file" accept=".xlsx,.xls" hidden onchange="importOriginalExcel(this)"></label></div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Backup Data Web</h3></div><div class="toolbar"><button class="btn" onclick="backup()">Download Backup JSON</button><label class="btn">Import Backup<input type="file" accept=".json" hidden onchange="importBackup(this)"></label></div></div><div class="card"><div class="section-head"><h3>Reset</h3></div><button class="btn danger" onclick="resetAll()">Reset ke Data Awal</button></div></div>';
+}
 function showView(name){
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));const el=document.getElementById(name);if(el)el.classList.add("active");
   document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("active",n.dataset.view===name));
   document.getElementById("topTitle").textContent=document.querySelector('.nav[data-view="'+name+'"]')?.dataset.title||"Monitoring KMB";
   document.getElementById("sidebar").classList.remove("open");window.scrollTo(0,0);
-  if(name==="mp")renderMP();
+  if(name==="mp")renderMP();if(name==="settings")renderSettings();
 }
+
 document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("today").textContent=new Intl.DateTimeFormat("id-ID",{weekday:"long",day:"2-digit",month:"long",year:"numeric"}).format(new Date());
-  makeSiteViews();renderDashboard();renderUnits();renderMP();
+  makeSiteViews();renderDashboard();renderUnits();renderMP();renderSettings();
   document.getElementById("unitSearch").addEventListener("input",renderUnits);
   document.getElementById("mpSearch").addEventListener("input",renderMP);
   document.querySelectorAll(".mp-tab").forEach(b=>b.onclick=()=>setMPMode(b.dataset.mode));
   document.querySelectorAll(".nav").forEach(n=>n.onclick=()=>showView(n.dataset.view));
   document.getElementById("saveModal").onclick=saveModal;document.getElementById("closeModal").onclick=closeModal;
   document.getElementById("menuBtn").onclick=()=>document.getElementById("sidebar").classList.toggle("open");
-  document.getElementById("backupBtn").onclick=backup;document.getElementById("resetBtn").onclick=resetAll;document.getElementById("importFile").onchange=e=>importBackup(e.target);
-  document.getElementById("exportUnits").onclick=exportUnits;document.getElementById("exportMP").onclick=exportMP;document.getElementById("addMP").onclick=()=>openMpForm(mpMode,null);
+  document.getElementById("exportUnits").onclick=exportUnits;document.getElementById("exportMP").onclick=exportMP;document.getElementById("addMP").onclick=()=>openMpForm(mpMode,null);document.getElementById("mpFullBtn").onclick=toggleMPFull;
   showView("dashboard");
 });
