@@ -227,21 +227,21 @@ function renderKMBCharts(){
   });
 }
 function renderDashboard(){
-  let total={planning:0,actual:0,vacant:0,open:0,cont:0,close:0,due:0},rows="",bars="";
+  let total={planning:0,actual:0,vacant:0,open:0,cont:0,close:0,due:0},rows="";
   Object.keys(data.sites).forEach(key=>{
     const m=siteMetrics(data.sites[key]);Object.keys(total).forEach(k=>total[k]+=m[k]||0);
     const pct=m.planning?Math.round(m.actual/m.planning*100):0;
     rows+='<tr><td><b>'+esc(data.siteLabels[key]||key)+'</b></td><td>'+m.planning+'</td><td>'+m.actual+'</td><td>'+m.vacant+'</td><td>'+pct+'%</td><td>'+m.open+'</td><td>'+m.cont+'</td><td>'+m.close+'</td><td>'+m.due+'</td></tr>';
-    const h=Math.max(4,Math.round(m.actual/Math.max(1,m.planning)*135));
-    bars+='<div class="barcol"><div class="bar" style="height:'+h+'px"></div><small>'+esc(data.siteLabels[key]||key)+'</small></div>';
   });
   document.getElementById("kPlanning").textContent=total.planning;
   document.getElementById("kActual").textContent=total.actual;
   document.getElementById("kVacant").textContent=total.vacant;
   document.getElementById("kPct").textContent=(total.planning?Math.round(total.actual/total.planning*100):0)+"%";
   document.getElementById("summaryBody").innerHTML=rows;
-  document.getElementById("bars").innerHTML=bars;
-  document.getElementById("statusCards").innerHTML=[["Open",total.open],["Continue",total.cont],["Close",total.close],["Jatuh Tempo",total.due]].map(x=>'<div class="mini"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join("");
+  document.getElementById("statusCards").innerHTML=[
+    ["Open",total.open,"ptk-open"],["Continue",total.cont,"ptk-continue"],["Close",total.close,"ptk-close"],["Jatuh Tempo",total.due,"ptk-due"]
+  ].map(x=>'<div class="mini ptk-mini '+x[2]+'"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join("");
+  renderKMBUnitDashboard();
   renderVacancyResume();renderRecruitmentSummary();renderKMBCharts();
 }
 function renderVacancyResume(){
@@ -347,6 +347,12 @@ function saveModal(){
     if(!isVacantName(row.Nama))syncActivePlacementFromSite(row.Nama,editState.key);
     const k=editState.key;saveData();renderSite(k);renderMP();closeModal();return;
   }
+  if(editState.type==="unit"){
+    const sec=data.units?.[editState.sectionIndex];if(!sec)return;
+    const clean={};(editState.fields||[]).forEach(f=>clean[f]=row[f]||"");
+    if(editState.rowIndex===null)sec.rows.push(clean);else sec.rows[editState.rowIndex]={...sec.rows[editState.rowIndex],...clean};
+    saveData();renderUnits();closeModal();return;
+  }
   if(editState.type==="mp"||editState.type==="exit"){
     const arr=editState.mode==="active"?data.mpActive:data.mpOut,schema=editState.mode==="active"?MP_SCHEMA_ACTIVE:MP_SCHEMA_OUT;
     const clean={};schema.forEach(f=>clean[f]=row[f]||"");
@@ -379,12 +385,58 @@ function removeSiteRow(key,index){
   data.sites[key].splice(index,1);renumberSiteRows(key);saveData();renderSite(key);
 }
 
+function unitSectionCount(sec){return (sec?.rows||[]).filter(r=>Object.values(r||{}).some(v=>normText(v))).length}
+function totalUnitCount(){return (data.units||[]).reduce((sum,sec)=>sum+unitSectionCount(sec),0)}
+function renderKMBUnitDashboard(){
+  const total=totalUnitCount(),totalEl=document.getElementById("kmbUnitTotal"),host=document.getElementById("kmbUnitDashboard");
+  if(totalEl)totalEl.textContent=total+" unit";
+  if(!host)return;
+  const sections=data.units||[];
+  host.innerHTML=sections.length?sections.map((sec,i)=>{
+    const n=unitSectionCount(sec);
+    return '<button class="dashboard-unit-item" onclick="showView(\'units\')"><span>'+esc(sec.name||("Section "+(i+1)))+'</span><b>'+n+'</b><small>unit</small></button>';
+  }).join(""):'<div class="empty compact-empty">Belum ada data populasi unit.</div>';
+}
 function renderUnits(){
-  const q=(document.getElementById("unitSearch")?.value||"").toLowerCase();
-  document.getElementById("unitTables").innerHTML=(data.units||[]).map(sec=>{
-    const rows=sec.rows.filter(r=>!q||JSON.stringify(r).toLowerCase().includes(q)),heads=[...new Set(sec.rows.flatMap(r=>Object.keys(r)))];
-    return '<div class="card unit-block"><div class="section-head"><h3>'+esc(sec.name)+'</h3><span class="badge ok">'+rows.filter(r=>String(r["No."]||"")!=="Dolly").length+' unit</span></div><div class="table-wrap"><table class="table"><thead><tr>'+heads.map(h=>'<th>'+esc(h)+'</th>').join("")+'</tr></thead><tbody>'+rows.map(r=>'<tr>'+heads.map(h=>'<td>'+esc(r[h]||"-")+'</td>').join("")+'</tr>').join("")+'</tbody></table></div></div>'
+  const q=(document.getElementById("unitSearch")?.value||"").toLowerCase(),grand=totalUnitCount();
+  const grandEl=document.getElementById("unitGrandTotal");if(grandEl)grandEl.textContent=grand+" unit";
+  renderKMBUnitDashboard();
+  const host=document.getElementById("unitTables");if(!host)return;
+  host.innerHTML=(data.units||[]).map((sec,sectionIndex)=>{
+    const all=sec.rows||[],heads=[...new Set(all.flatMap(r=>Object.keys(r).filter(k=>k!=="__i")))];
+    const safeHeads=heads.length?heads:["No.","Category","Code Unit SAP","Manufacturer","Model","Serial Number","Remark"];
+    const rows=all.map((r,i)=>({...r,__i:i})).filter(r=>!q||JSON.stringify(r).toLowerCase().includes(q));
+    const body=rows.length?rows.map(r=>'<tr>'+safeHeads.map(h=>'<td>'+esc(r[h]||"-")+'</td>').join("")+'<td class="action-cell"><button class="btn" onclick="openUnitForm('+sectionIndex+','+r.__i+')">Edit</button> <button class="btn danger" onclick="deleteUnitRow('+sectionIndex+','+r.__i+')">Hapus</button></td></tr>').join(""):'<tr><td colspan="'+(safeHeads.length+1)+'" class="empty">Belum ada unit pada section ini</td></tr>';
+    return '<div class="card unit-block"><div class="section-head"><div><span class="eyebrow">UNIT SECTION</span><h3>'+esc(sec.name)+'</h3></div><div class="toolbar"><span class="unit-total-pill">'+unitSectionCount(sec)+' unit</span><button class="btn yellow" onclick="openUnitForm('+sectionIndex+',null)">+ Tambah Unit</button><button class="btn danger" onclick="deleteUnitSection('+sectionIndex+')">Hapus Section</button></div></div><div class="table-wrap"><table class="table"><thead><tr>'+safeHeads.map(h=>'<th>'+esc(h)+'</th>').join("")+'<th>Aksi</th></tr></thead><tbody>'+body+'</tbody></table></div></div>';
   }).join("");
+}
+function openUnitForm(sectionIndex,rowIndex){
+  const sec=data.units?.[sectionIndex];if(!sec)return;
+  const heads=[...new Set((sec.rows||[]).flatMap(r=>Object.keys(r).filter(k=>k!=="__i")))];
+  const fields=heads.length?heads:["No.","Category","Code Unit SAP","Manufacturer","Model","Serial Number","Remark"];
+  const row=rowIndex===null?{}:sec.rows[rowIndex];
+  editState={type:"unit",sectionIndex,rowIndex,fields};
+  document.getElementById("modalTitle").textContent=(rowIndex===null?"Tambah Unit - ":"Edit Unit - ")+sec.name;
+  document.getElementById("formFields").innerHTML=fields.map(f=>fieldHtml(f,row||{},"unit")).join("");
+  document.getElementById("modal").classList.add("show");
+}
+function addUnitSection(){
+  let name=prompt("Nama jobsite / section populasi unit:");if(!name)return;name=name.trim();if(!name)return;
+  if((data.units||[]).some(s=>normText(s.name).toLowerCase()===name.toLowerCase())){alert("Section unit tersebut sudah ada.");return}
+  data.units=data.units||[];data.units.push({name,rows:[]});saveData();renderUnits();
+}
+function deleteUnitRow(sectionIndex,rowIndex){
+  const sec=data.units?.[sectionIndex],row=sec?.rows?.[rowIndex];if(!sec||!row)return;
+  if(!confirm("Hapus unit ini dari "+sec.name+"?\n\nData akan masuk Data Terhapus dan masih dapat dipulihkan."))return;
+  data.deletedKMB=data.deletedKMB||[];data.deletedKMB.unshift({type:"unit",sectionIndex,sectionName:sec.name,rowIndex,row:clone(row),deletedAt:new Date().toISOString()});
+  sec.rows.splice(rowIndex,1);saveData();renderUnits();
+}
+function deleteUnitSection(sectionIndex){
+  const sec=data.units?.[sectionIndex];if(!sec)return;
+  if(unitSectionCount(sec)>0){alert("Section masih memiliki data unit. Hapus atau pindahkan unit terlebih dahulu.");return}
+  if(!confirm("Hapus section "+sec.name+"?"))return;
+  data.deletedKMB=data.deletedKMB||[];data.deletedKMB.unshift({type:"unitSection",sectionIndex,section:clone(sec),deletedAt:new Date().toISOString()});
+  data.units.splice(sectionIndex,1);saveData();renderUnits();
 }
 
 function setMPMode(mode){mpMode=mode;document.querySelectorAll(".mp-tab").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));renderMP()}
@@ -604,6 +656,8 @@ function resetAll(){if(confirm("Kembalikan data ke kondisi awal web?")){data=clo
 
 function deletedKMBLabel(item){
   if(item.type==="site")return (data.siteLabels?.[item.siteKey]||item.siteKey||"Jobsite")+" • "+(item.row?.Nama||"-")+" • "+(item.row?.Jabatan||"-");
+  if(item.type==="unit")return "Unit • "+(item.sectionName||"-")+" • "+(item.row?.["Code Unit SAP"]||item.row?.["Serial Number"]||item.row?.["No."]||"Data Unit");
+  if(item.type==="unitSection")return "Section Unit • "+(item.section?.name||"-");
   return (item.mode==="active"?"MP Aktif":"MP OUT")+" • "+(item.row?.Nama||"-")+" • "+mpGroupLabel(item.row||{});
 }
 function renderDeletedKMB(){
@@ -615,11 +669,17 @@ function restoreDeletedKMB(index){
   if(item.type==="site"){
     const arr=data.sites?.[item.siteKey];if(!arr){alert("Jobsite asal tidak ditemukan.");return}
     arr.splice(Math.min(Math.max(0,Number(item.index)||0),arr.length),0,clone(item.row));renumberSiteRows(item.siteKey);
+  }else if(item.type==="unit"){
+    let sec=(data.units||[]).find(s=>normText(s.name)===normText(item.sectionName));
+    if(!sec){sec={name:item.sectionName||"Unit",rows:[]};data.units.push(sec)}
+    sec.rows.splice(Math.min(Math.max(0,Number(item.rowIndex)||0),sec.rows.length),0,clone(item.row));
+  }else if(item.type==="unitSection"){
+    data.units=data.units||[];data.units.splice(Math.min(Math.max(0,Number(item.sectionIndex)||0),data.units.length),0,clone(item.section));
   }else{
     const arr=item.mode==="active"?data.mpActive:data.mpOut,rec=normalizedMP(item.row||{});
     insertGroupedMP(arr,rec,{siteKey:item.siteKey,localNo:item.localNo,activeIndex:item.index});
   }
-  data.deletedKMB.splice(index,1);saveData();makeSiteViews();renderMP();renderDashboard();renderSettings();
+  data.deletedKMB.splice(index,1);saveData();makeSiteViews();renderUnits();renderMP();renderDashboard();renderSettings();
 }
 function permanentDeleteKMB(index){const item=(data.deletedKMB||[])[index];if(!item)return;if(!confirm("Hapus permanen data ini? Tindakan ini tidak dapat dibatalkan."))return;data.deletedKMB.splice(index,1);saveData();renderSettings()}
 function restoreLastDeletedKMB(){if(!(data.deletedKMB||[]).length){alert("Tidak ada data terhapus.");return}restoreDeletedKMB(0)}
@@ -635,7 +695,7 @@ function showView(name){
   document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("active",n.dataset.view===name));
   document.getElementById("topTitle").textContent=document.querySelector('.nav[data-view="'+name+'"]')?.dataset.title||"Monitoring Manpower KMB";
   document.getElementById("sidebar").classList.remove("open");window.scrollTo(0,0);
-  if(name==="dashboard")renderDashboard();if(name==="mp")renderMP();if(name==="settings")renderSettings();
+  if(name==="dashboard")renderDashboard();if(name==="units")renderUnits();if(name==="mp")renderMP();if(name==="settings")renderSettings();
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
