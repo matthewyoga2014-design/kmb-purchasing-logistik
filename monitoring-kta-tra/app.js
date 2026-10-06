@@ -282,7 +282,7 @@ function renderVacancyResume(){
     return '<button class="resume-card" onclick="focusRole(decodeURIComponent(\''+encodeURIComponent(jobKey(g.label))+'\'))"><div><span class="resume-count">'+g.items.length+'</span><b>'+esc(g.label)+'</b></div><div class="candidate-total">'+g.candidateCount+' kandidat untuk '+g.items.length+' vacant</div><div class="resume-best">Progress kandidat tertinggi: <b>'+esc(best.p.label)+' ('+best.p.p+'%)</b></div><div class="resume-breakdown">'+esc(Object.entries(bd).map(x=>x[1]+'× '+x[0]).join(" • ")||"Belum ada kandidat")+'</div><div class="resume-link">Lihat detail →</div></button>'
   }).join(""):'<div class="empty">Tidak ada vacant</div>';
 }
-function focusRole(role){recruitRole=role;renderRecruitment();document.getElementById("recruitmentCard").scrollIntoView({behavior:"smooth",block:"start"})}
+function focusRole(role){recruitRole=role;openKtaMppRole(jobLabel(role))}
 function clearRole(){recruitRole="";renderRecruitment()}
 function renderRecruitment(){
   const rows=data.mpp.map((r,i)=>({...r,__i:i})).filter(r=>norm(r.Status).toLowerCase()==="open"&&(!recruitRole||jobKey(r.Jabatan)===recruitRole));
