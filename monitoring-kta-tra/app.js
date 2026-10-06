@@ -5,6 +5,7 @@ const BASE={
   units:window.KTA_TRA_UNITS||[],
   candidates:{},
   deletedMPP:[],
+  mpRestoreMeta:{},
   sourceFile:"Monitoring KTA - TRA(7).xlsx"
 };
 const STORAGE_KEY="kta_tra_monitoring_v1";
@@ -14,7 +15,7 @@ let data=loadData(), editState=null, mpMode="active", mpFull=false, recruitRole=
 
 const MPP_FIELDS=["No","Nama","Jabatan","Keterangan","PIC","PTK","Tanggal Pengajuan PTK","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi","Due Date","Status","Tanggal Close","Keterangan PTK","Lama Closing (Hari)"];
 const MP_ACTIVE_SCHEMA=["No.","NIP (KARYAWAN)","NIK KTP","NO.KK","Nama","NO. NPWP","Nomor HP","Whatsapp","Jabatan","Departemen","Level","Status Kontrak PKWT/PKWTT/Harian Lepas","Akhir Kontrak","POH","Sisa Hari","Reminder","Tanggal Masuk","Masa Kerja","Jenis Kelamin","Agama","Tempat Lahir","Tgl/Lahir","Umur","Pendidikan Terakhir","Alamat Domisili","Alamat Lengkap","Keterangan","Tempat Bekerja","SITE","No Rekening","Nama Bank","Nama Pemilik Rekening","Nomor BPJS Kesehatan","Nomor BPJS Ketenagakerjaan","Nama Ibu","Pendidikan Terakhir Ibu","Pekerjaan Ibu","Nama Ayah","Pendidikan Terakhir Ayah","Pekerjaan Ayah","Saudara Kandung (1)","Jenis Kelamin (1)","Tanggal Lahir (1)","Saudara Kandung (2)","Jenis Kelamin (2)","Tanggal Lahir (2)","Saudara Kandung (3)","Jenis Kelamin (3)","Tanggal Lahir (3)","Saudara Kandung (4)","Jenis Kelamin (4)","Tanggal Lahir (4)","Nama Emergency","Hubungan","Nomor Telepon","Whatsapp Emergency","STATUS","BLOK KAMAR"];
-const MP_OUT_SCHEMA=MP_ACTIVE_SCHEMA.slice(0,-1).concat(["Tanggal Keluar","Tanggal Lamaran"]);
+const MP_OUT_SCHEMA=MP_ACTIVE_SCHEMA.slice(0,-1).concat(["Tanggal Keluar"]);
 const MP_SUMMARY=["No.","Nama","Jabatan","Departemen","Level","Status Kontrak PKWT/PKWTT/Harian Lepas","Akhir Kontrak","POH","Sisa Hari","Tanggal Masuk","Masa Kerja","Keterangan","SITE","STATUS"];
 const CANDIDATE_FIELDS=["Nama Kandidat","Tanggal Lamaran","Sumber","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi","Status Kandidat","Keterangan"];
 const DATE_FIELDS=new Set(["Tanggal Pengajuan PTK","Psikologi Test","Interview User","Offering Latter","MCU","On Site","Induksi","Due Date","Tanggal Close","Akhir Kontrak","Reminder","Tanggal Masuk","Tgl/Lahir","Tanggal Lahir (1)","Tanggal Lahir (2)","Tanggal Lahir (3)","Tanggal Lahir (4)","Tanggal Keluar"]);
@@ -104,6 +105,7 @@ function loadData(){
     d.mpOut=Array.isArray(d.mpOut)?d.mpOut:clone(BASE.mpOut);
     d.units=Array.isArray(d.units)?d.units:clone(BASE.units);
     d.deletedMPP=Array.isArray(d.deletedMPP)?d.deletedMPP:[];
+    d.mpRestoreMeta=(d.mpRestoreMeta&&typeof d.mpRestoreMeta==="object"&&!Array.isArray(d.mpRestoreMeta))?d.mpRestoreMeta:{};
     d.sourceFile=d.sourceFile||BASE.sourceFile;
     d.mpActive=d.mpActive.map(r=>normalizeMP(r,false));
     d.mpOut=d.mpOut.map(r=>normalizeMP(r,true));
@@ -111,7 +113,28 @@ function loadData(){
     return d;
   }catch(e){return clone(BASE)}
 }
-function saveData(){localStorage.setItem(STORAGE_KEY,JSON.stringify(data));renderDashboard();renderSettings()}
+ensureKtaRuntime();renumberKtaAll();
+function saveData(){ensureKtaRuntime();renumberKtaAll();localStorage.setItem(STORAGE_KEY,JSON.stringify(data));renderDashboard();renderSettings()}
+function ktaRestoreKey(rec){return [nameKey(rec?.Nama),jobKey(rec?.Jabatan),norm(rec?.SITE||"TRA").toLowerCase()].join("|")}
+function ensureKtaRuntime(){
+  if(!Array.isArray(data.deletedMPP))data.deletedMPP=[];
+  if(!data.mpRestoreMeta||typeof data.mpRestoreMeta!=="object"||Array.isArray(data.mpRestoreMeta))data.mpRestoreMeta={};
+  (data.mpOut||[]).forEach((r,i)=>{const k=ktaRestoreKey(r);if(!data.mpRestoreMeta[k])data.mpRestoreMeta[k]={index:Math.max(0,(Number(r["No."])||i+1)-1),no:Number(r["No."])||i+1,capturedFrom:"existing-mp-out"}})
+}
+function renumberMPP(){
+  const oldCandidates=data.candidates||{},next={};
+  (data.mpp||[]).forEach((r,i)=>{
+    const oldKey="MPP-"+norm(r.No),list=oldCandidates[oldKey];
+    r.No=String(i+1);
+    if(Array.isArray(list)&&list.length)next["MPP-"+r.No]=list;
+  });
+  data.candidates=next;
+}
+function renumberKtaMP(){
+  (data.mpActive||[]).forEach((r,i)=>r["No."]=String(i+1));
+  (data.mpOut||[]).forEach((r,i)=>r["No."]=String(i+1));
+}
+function renumberKtaAll(){renumberMPP();renumberKtaMP()}
 function normalizeMP(row,isOut){
   const schema=isOut?MP_OUT_SCHEMA:MP_ACTIVE_SCHEMA, out={};
   const aliases={"No.":["No.","No"],"Status Kontrak PKWT/PKWTT/Harian Lepas":["Status Kontrak PKWT/PKWTT/Harian Lepas","Status Kontrak"],"Tanggal Masuk":["Tanggal Masuk","Tanggal \n Masuk"],"Pendidikan Terakhir":["Pendidikan Terakhir","Pendidikan \n Terakhir"],"Tempat Bekerja":["Tempat Bekerja","Tempat \n Bekerja"],"Nomor Telepon":["Nomor Telepon","Nomor \n Telfon"],"BLOK KAMAR":["BLOK KAMAR","Blok Kamar"]};
@@ -208,6 +231,7 @@ function computeMPP(r){
 }
 function fieldHTML(f,row,type){
   const val=row?.[f]??"",empty=type==="mp"&&!norm(val);
+  if((f==="No"&&type==="mpp")||(f==="No."&&type==="mp"))return '<div class="field"><label>'+esc(f)+'</label><input value="'+esc(val||"Otomatis")+'" readonly><small class="empty-hint">Nomor diatur otomatis oleh sistem</small></div>';
   if(f==="Status"&&type==="mpp")return '<div class="field"><label>Status</label><select data-f="Status"><option value=""></option>'+["Open","Continue","Close"].map(x=>'<option '+(val===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
   if(["Keterangan","Alamat Domisili","Alamat Lengkap"].includes(f))return '<div class="field '+(empty?"empty-field":"")+'"><label>'+esc(f)+'</label><textarea data-f="'+esc(f)+'" placeholder="'+(empty?"Belum terisi di Excel":"")+'">'+esc(val)+'</textarea>'+(empty?'<small class="empty-hint">Belum terisi di Excel</small>':'')+'</div>';
   return '<div class="field '+(empty?"empty-field":"")+'"><label>'+esc(f)+'</label><input type="'+(DATE_FIELDS.has(f)?"date":"text")+'" data-f="'+esc(f)+'" value="'+esc(val)+'" placeholder="'+(empty?"Belum terisi di Excel":"")+'">'+(empty?'<small class="empty-hint">Belum terisi di Excel</small>':'')+'</div>';
@@ -224,10 +248,9 @@ function deleteMPP(index){
   if(!confirm("Hapus data MPP ini?\n\nData tidak akan hilang permanen. Data akan dipindahkan ke Data Terhapus dan bisa dikembalikan kapan saja."))return;
   const key=vacancyKey(row),cands=clone(getCandidates(row));
   data.deletedMPP=data.deletedMPP||[];
-  data.deletedMPP.unshift({row:clone(row),candidates:cands,deletedAt:new Date().toISOString()});
+  data.deletedMPP.unshift({row:clone(row),candidates:cands,index,deletedAt:new Date().toISOString()});
   if(data.candidates)delete data.candidates[key];
-  data.mpp.splice(index,1);
-  saveData();renderMPP();
+  data.mpp.splice(index,1);renumberMPP();saveData();renderMPP();
   alert("Data MPP dipindahkan ke Data Terhapus. Anda bisa memulihkannya dari menu Pengaturan.");
 }
 function setModalSave(show,label="Simpan Perubahan"){
@@ -304,47 +327,24 @@ function deleteMP(mode,index){if(confirm("Hapus data ini?")){(mode==="active"?da
 function restoreFromOut(index){
   const rec=data.mpOut[index];if(!rec)return;
   const name=rec.Nama||"data ini";
-  if(data.mpActive.some(x=>sameName(x.Nama,rec.Nama))){
-    alert(name+" sudah ada di MP Aktif. Data MP Out tidak dipindahkan untuk mencegah duplikasi.");
-    return;
-  }
-  if(!confirm("Kembalikan "+name+" dari MP Out ke MP Aktif?\n\nJabatan: "+(rec.Jabatan||"-")+"\nSITE: "+(rec.SITE||"TRA")+"\n\nJika posisi MPP sebelumnya masih Vacant, posisi tersebut akan diisi kembali otomatis."))return;
-
-  const active={};MP_ACTIVE_SCHEMA.forEach(f=>active[f]=rec[f]||"");
-  if(!active["No."])active["No."]=String(data.mpActive.length+1);
-  data.mpActive.push(active);
+  if(data.mpActive.some(x=>sameName(x.Nama,rec.Nama))){alert(name+" sudah ada di MP Aktif. Data MP Out tidak dipindahkan untuk mencegah duplikasi.");return}
+  const key=ktaRestoreKey(rec),meta=data.mpRestoreMeta?.[key]||{index:Math.max(0,(Number(rec["No."])||1)-1),no:Number(rec["No."])||1};
+  if(!confirm("Kembalikan "+name+" dari MP Out ke MP Aktif?\n\nJabatan: "+(rec.Jabatan||"-")+"\nSITE: "+(rec.SITE||"TRA")+"\nNomor asal: "+(meta.no||"-")+"\n\nData akan kembali ke urutan asal."))return;
+  const active={};MP_ACTIVE_SCHEMA.forEach(f=>active[f]=rec[f]||"");active["No."]="";
+  const insertAt=Math.min(Math.max(0,Number.isInteger(meta.index)?meta.index:(Number(meta.no)||1)-1),data.mpActive.length);
+  data.mpActive.splice(insertAt,0,active);
 
   let target=data.mpp.find(r=>isVacant(r.Nama)&&norm(r.Keterangan).toLowerCase().includes(norm(rec.Nama).toLowerCase()));
   if(!target)target=data.mpp.find(r=>isVacant(r.Nama)&&jobKey(r.Jabatan)===jobKey(rec.Jabatan));
   if(target){
-    target.Nama=rec.Nama;
-    target.Jabatan=target.Jabatan||rec.Jabatan;
-    target.Keterangan="Dikembalikan dari MP Out";
-    if(target.PTK&&norm(target.Status).toLowerCase()==="open"){
-      target.Status="Close";
-      target["Tanggal Close"]=todayISO();
-      target["Keterangan PTK"]="SELESAI";
-      if(target["Tanggal Pengajuan PTK"]){
-        const a=new Date(target["Tanggal Pengajuan PTK"]),b=new Date(target["Tanggal Close"]);
-        target["Lama Closing (Hari)"]=String(Math.round((b-a)/86400000));
-      }
-    }else if(!target.PTK){
-      target.Status="";
-      target["Keterangan PTK"]="TIDAK ADA PENGAJUAN";
-    }
+    target.Nama=rec.Nama;target.Jabatan=target.Jabatan||rec.Jabatan;target.Keterangan="Dikembalikan dari MP Out";
+    if(target.PTK&&norm(target.Status).toLowerCase()==="open"){target.Status="Close";target["Tanggal Close"]=todayISO();target["Keterangan PTK"]="SELESAI";if(target["Tanggal Pengajuan PTK"]){const a=new Date(target["Tanggal Pengajuan PTK"]),b=new Date(target["Tanggal Close"]);target["Lama Closing (Hari)"]=String(Math.round((b-a)/86400000))}}
+    else if(!target.PTK){target.Status="";target["Keterangan PTK"]="TIDAK ADA PENGAJUAN"}
   }else if(!data.mpp.some(r=>sameName(r.Nama,rec.Nama))){
-    data.mpp.push({
-      No:String(Math.max(0,...data.mpp.map(r=>Number(r.No)||0))+1),
-      Nama:rec.Nama,Jabatan:rec.Jabatan||"",Keterangan:"Dikembalikan dari MP Out",PIC:"",
-      PTK:"","Tanggal Pengajuan PTK":"","Psikologi Test":"","Interview User":"","Offering Latter":"",
-      MCU:"","FU MCU":"","On Site":"","Induksi":"","Due Date":"","Status":"","Tanggal Close":"",
-      "Keterangan PTK":"TIDAK ADA PENGAJUAN","Lama Closing (Hari)":""
-    });
+    data.mpp.push({No:"",Nama:rec.Nama,Jabatan:rec.Jabatan||"",Keterangan:"Dikembalikan dari MP Out",PIC:"",PTK:"","Tanggal Pengajuan PTK":"","Psikologi Test":"","Interview User":"","Offering Latter":"","MCU":"","FU MCU":"","On Site":"","Induksi":"","Due Date":"","Status":"","Tanggal Close":"","Keterangan PTK":"TIDAK ADA PENGAJUAN","Lama Closing (Hari)":""});
   }
-
-  data.mpOut.splice(index,1);
-  saveData();renderMPP();renderMP();renderDashboard();
-  alert(name+" berhasil dikembalikan ke MP Aktif dan data MPP sudah disinkronkan.");
+  data.mpOut.splice(index,1);if(data.mpRestoreMeta)delete data.mpRestoreMeta[key];
+  saveData();renderMPP();renderMP();renderDashboard();alert(name+" berhasil dikembalikan ke MP Aktif pada urutan asal.");
 }
 function vacateMPP(rec){
   const row=data.mpp.find(r=>sameName(r.Nama,rec.Nama));
@@ -354,9 +354,9 @@ function closeModal(){document.getElementById("modal").classList.remove("show");
 function saveModal(){
   if(!editState)return;const vals={};document.querySelectorAll("#formFields [data-f]").forEach(el=>vals[el.dataset.f]=el.value);
   if(editState.type==="mpp"){
-    if(!vals.No)vals.No=String(Math.max(0,...data.mpp.map(r=>Number(r.No)||0))+1);computeMPP(vals);
-    if(editState.index===null)data.mpp.push(vals);else data.mpp[editState.index]={...data.mpp[editState.index],...vals};
-    saveData();renderMPP();closeModal();return;
+    if(editState.index===null){vals.No="";computeMPP(vals);data.mpp.push(vals)}
+    else{vals.No=data.mpp[editState.index]?.No||"";computeMPP(vals);data.mpp[editState.index]={...data.mpp[editState.index],...vals}}
+    renumberMPP();saveData();renderMPP();closeModal();return;
   }
   if(editState.type==="candidate"){
     const r=data.mpp[editState.mppIndex],key=vacancyKey(r),list=getCandidates(r),clean={};
@@ -367,14 +367,16 @@ function saveModal(){
   }
   if(editState.type==="mp"){
     const arr=editState.mode==="active"?data.mpActive:data.mpOut,schema=editState.mode==="active"?MP_ACTIVE_SCHEMA:MP_OUT_SCHEMA,clean={};schema.forEach(f=>clean[f]=vals[f]||"");
-    if(!clean["No."])clean["No."]=String(arr.length+1);
-    if(editState.index===null)arr.push(clean);else arr[editState.index]={...arr[editState.index],...clean};
+    if(editState.index===null){clean["No."]="";arr.push(clean)}
+    else{clean["No."]=arr[editState.index]?.["No."]||"";arr[editState.index]={...arr[editState.index],...clean}}
     saveData();renderMP();closeModal();return;
   }
   if(editState.type==="exit"){
     const src=data.mpActive[editState.sourceIndex],clean={};MP_OUT_SCHEMA.forEach(f=>clean[f]=vals[f]||"");
-    if(!clean["No."])clean["No."]=String(data.mpOut.length+1);
-    data.mpOut.push(clean);vacateMPP(src);data.mpActive.splice(editState.sourceIndex,1);
+    if(src){
+      const key=ktaRestoreKey(src);data.mpRestoreMeta[key]={index:editState.sourceIndex,no:Number(src["No."])||editState.sourceIndex+1,capturedFrom:"mp-out"};
+      clean["No."]=src["No."]||"";data.mpOut.push(clean);vacateMPP(src);data.mpActive.splice(editState.sourceIndex,1);
+    }
     saveData();renderMPP();renderMP();closeModal();
   }
 }
@@ -431,8 +433,8 @@ function downloadExcel(){
   XLSX.writeFile(wb,"Monitoring_Manpower_KTA-TRA_"+todayISO()+".xlsx");
 }
 function backup(){download(JSON.stringify(data,null,2),"Monitoring_Manpower_KTA-TRA_Backup.json","application/json")}
-function importBackup(input){const f=input.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const v=JSON.parse(rd.result);if(!v.mpp)throw new Error();data=v;data.deletedMPP=Array.isArray(data.deletedMPP)?data.deletedMPP:[];data.mpActive=(data.mpActive||[]).map(r=>normalizeMP(r,false));data.mpOut=(data.mpOut||[]).map(r=>normalizeMP(r,true));ensureCandidateData(data);saveData();renderMPP();renderMP();renderDashboard();alert("Backup berhasil dimuat.")}catch(e){alert("Backup tidak valid.")}};rd.readAsText(f);input.value=""}
-function resetAll(){if(confirm("Kembalikan ke data awal Monitoring KTA - TRA(7)?")){data=clone(BASE);data.mpActive=data.mpActive.map(r=>normalizeMP(r,false));data.mpOut=data.mpOut.map(r=>normalizeMP(r,true));ensureCandidateData(data);localStorage.removeItem(STORAGE_KEY);saveData();renderMPP();renderMP();renderDashboard()}}
+function importBackup(input){const f=input.files?.[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{try{const v=JSON.parse(rd.result);if(!v.mpp)throw new Error();data=v;data.deletedMPP=Array.isArray(data.deletedMPP)?data.deletedMPP:[];data.mpRestoreMeta=(data.mpRestoreMeta&&typeof data.mpRestoreMeta==="object")?data.mpRestoreMeta:{};data.mpActive=(data.mpActive||[]).map(r=>normalizeMP(r,false));data.mpOut=(data.mpOut||[]).map(r=>normalizeMP(r,true));ensureCandidateData(data);ensureKtaRuntime();renumberKtaAll();saveData();renderMPP();renderMP();renderDashboard();alert("Backup berhasil dimuat.")}catch(e){alert("Backup tidak valid.")}};rd.readAsText(f);input.value=""}
+function resetAll(){if(confirm("Kembalikan ke data awal Monitoring KTA - TRA(7)?")){data=clone(BASE);data.mpActive=data.mpActive.map(r=>normalizeMP(r,false));data.mpOut=data.mpOut.map(r=>normalizeMP(r,true));ensureCandidateData(data);ensureKtaRuntime();renumberKtaAll();localStorage.removeItem(STORAGE_KEY);saveData();renderMPP();renderMP();renderDashboard()}}
 function renderDeletedMPP(){
   const list=data.deletedMPP||[];
   if(!list.length)return '<div class="empty">Belum ada data MPP yang terhapus.</div>';
@@ -444,19 +446,12 @@ function renderDeletedMPP(){
 function restoreDeletedMPP(index){
   const item=(data.deletedMPP||[])[index];if(!item||!item.row)return;
   const r=clone(item.row);
-  if(data.mpp.some(x=>norm(x.No)===norm(r.No)&&sameName(x.Nama,r.Nama)&&jobKey(x.Jabatan)===jobKey(r.Jabatan))){
-    alert("Data yang sama sudah ada di MPP. Pemulihan dibatalkan untuk mencegah duplikasi.");return;
-  }
+  if(data.mpp.some(x=>sameName(x.Nama,r.Nama)&&jobKey(x.Jabatan)===jobKey(r.Jabatan)&&norm(x.PTK)===norm(r.PTK))){alert("Data yang sama sudah ada di MPP. Pemulihan dibatalkan untuk mencegah duplikasi.");return}
   if(!confirm("Kembalikan data MPP "+(r.Nama||"-")+" — "+(r.Jabatan||"-")+"?"))return;
-  data.mpp.push(r);
-  data.mpp.sort((a,b)=>(Number(a.No)||9999)-(Number(b.No)||9999));
-  if((item.candidates||[]).length){
-    data.candidates=data.candidates||{};
-    data.candidates[vacancyKey(r)]=clone(item.candidates);
-  }
-  data.deletedMPP.splice(index,1);
-  saveData();renderMPP();renderDashboard();renderSettings();
-  alert("Data MPP berhasil dikembalikan.");
+  const at=Math.min(Math.max(0,Number.isInteger(item.index)?item.index:data.mpp.length),data.mpp.length);
+  r.No="";data.mpp.splice(at,0,r);renumberMPP();
+  if((item.candidates||[]).length){data.candidates=data.candidates||{};data.candidates[vacancyKey(r)]=clone(item.candidates)}
+  data.deletedMPP.splice(index,1);saveData();renderMPP();renderDashboard();renderSettings();alert("Data MPP berhasil dikembalikan ke posisi semula.");
 }
 function permanentDeleteMPP(index){
   const item=(data.deletedMPP||[])[index];if(!item)return;
