@@ -635,7 +635,7 @@ function showView(name){
   document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("active",n.dataset.view===name));
   document.getElementById("topTitle").textContent=document.querySelector('.nav[data-view="'+name+'"]')?.dataset.title||"Monitoring Manpower KMB";
   document.getElementById("sidebar").classList.remove("open");window.scrollTo(0,0);
-  if(name==="mp")renderMP();if(name==="settings")renderSettings();
+  if(name==="dashboard")renderDashboard();if(name==="mp")renderMP();if(name==="settings")renderSettings();
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
