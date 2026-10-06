@@ -5,20 +5,20 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#6d28d9">
 <title>Monitoring Manpower KTA - TRA</title>
-<link rel="stylesheet" href="styles.css?v=16">
+<link rel="stylesheet" href="styles.css?v=17">
 </head>
 <body>
 <div class="app">
 <aside class="sidebar" id="sidebar">
   <div class="brand"><div class="mark">KMB</div><div><b>Monitoring Manpower<br>KTA - TRA</b></div></div>
   <div class="group">Ringkasan</div>
-  <button class="nav active" data-view="dashboard" data-title="Monitoring Manpower KTA - TRA">▦ &nbsp; Dashboard</button>
+  <button class="nav active" data-view="dashboard" data-title="Monitoring Manpower KTA - TRA" onclick="showView('dashboard')">▦ &nbsp; Dashboard</button>
   <div class="group">Monitoring</div>
-  <button class="nav" data-view="mpp" data-title="MPP KTA - TRA">▤ &nbsp; MPP KTA - TRA</button>
-  <button class="nav" data-view="mp" data-title="MP Aktif & MP Out">👥 &nbsp; MP Aktif & MP Out</button>
-  <button class="nav" data-view="unit-population" data-title="Populasi Unit KTA - TRA">▦ &nbsp; Populasi Unit</button>
+  <button class="nav" data-view="mpp" data-title="MPP KTA - TRA" onclick="showView('mpp')">▤ &nbsp; MPP KTA - TRA</button>
+  <button class="nav" data-view="mp" data-title="MP Aktif & MP Out" onclick="showView('mp')">👥 &nbsp; MP Aktif & MP Out</button>
+  <button class="nav" data-view="unit-population" data-title="Populasi Unit KTA - TRA" onclick="showView('unit-population')">▦ &nbsp; Populasi Unit</button>
   <div class="group">Sistem</div>
-  <button class="nav" data-view="settings" data-title="Pengaturan">⚙ &nbsp; Pengaturan</button>
+  <button class="nav" data-view="settings" data-title="Pengaturan" onclick="showView('settings')">⚙ &nbsp; Pengaturan</button>
 </aside>
 
 <main class="main">
@@ -162,6 +162,6 @@
 <script src="data_active.js?v=8"></script>
 <script src="data_out.js?v=8"></script>
 <script src="data_units.js?v=8"></script>
-<script src="app.js?v=16"></script>
+<script src="app.js?v=17"></script>
 </body>
 </html>
