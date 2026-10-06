@@ -515,12 +515,23 @@ function renderSettings(){
   const editors=getEditors(),host=document.getElementById("settingsContent");if(!host)return;
   host.innerHTML='<div class="grid2"><div class="card"><div class="section-head"><h3>Pemilik & Akses</h3></div><div class="statusline"><span>Pemilik / Administrator</span><b>'+esc(OWNER_EMAIL)+'</b></div><div class="statusline"><span>Sistem</span><b>Monitoring Manpower KTA - TRA</b></div><div class="statusline"><span>Hak Editor</span><b>Sama dengan Pemilik (Full Access)</b></div><div class="statusline"><span>Sumber terakhir</span><b>'+esc(data.sourceFile||"-")+'</b></div></div><div class="card"><div class="section-head"><h3>Editor</h3><button class="btn yellow" onclick="addEditor()">+ Tambah Editor</button></div>'+(editors.length?editors.map((e,i)=>'<div class="statusline"><span>'+esc(e)+'</span><span><b>FULL ACCESS</b> <button class="btn danger" onclick="removeEditor('+i+')">Hapus</button></span></div>').join(""):'<div class="empty">Belum ada editor Full Access.</div>')+'</div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Sinkron & Download Excel</h3></div><p class="settings-copy">Sinkronkan dari file Monitoring KTA - TRA terbaru atau download kondisi web saat ini menjadi Excel.</p><div class="toolbar"><label class="btn yellow">Sinkronkan Excel<input type="file" accept=".xlsx,.xls" hidden onchange="syncExcel(this)"></label><button class="btn primary" onclick="downloadExcel()">Download Excel</button></div></div><div class="card"><div class="section-head"><h3>Backup</h3></div><div class="toolbar"><button class="btn" onclick="backup()">Download Backup JSON</button><label class="btn">Import Backup<input type="file" accept=".json" hidden onchange="importBackup(this)"></label><button class="btn danger" onclick="resetAll()">Reset Data Awal</button></div></div></div><div style="height:16px"></div><div class="card"><div class="section-head"><div><h3>Data MPP Terhapus</h3><p class="section-sub">Salah hapus dapat dikembalikan tanpa sinkron ulang Excel.</p></div><span class="pill">'+((data.deletedMPP||[]).length)+' data</span></div><div class="toolbar" style="margin-bottom:8px"><button class="btn yellow" onclick="restoreLastDeletedMPP()">Kembalikan Terakhir Dihapus</button></div>'+renderDeletedMPP()+'</div>';
 }
+function goDashboard(){
+  recruitRole="";
+  showView("dashboard");
+}
 function showView(name){
-  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));document.getElementById(name)?.classList.add("active");
-  document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("active",n.dataset.view===name));
-  document.getElementById("topTitle").textContent=document.querySelector('.nav[data-view="'+name+'"]')?.dataset.title||"Monitoring Manpower KTA - TRA";
+  const target=document.getElementById(name)?name:"dashboard";
+  document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
+  document.getElementById(target)?.classList.add("active");
+  document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("active",n.dataset.view===target));
+  document.getElementById("topTitle").textContent=document.querySelector('.nav[data-view="'+target+'"]')?.dataset.title||"Monitoring Manpower KTA - TRA";
+  const back=document.getElementById("backDashboard");if(back)back.style.display=target==="dashboard"?"none":"inline-flex";
   document.getElementById("sidebar").classList.remove("open");window.scrollTo(0,0);
-  if(name==="dashboard")renderDashboard();if(name==="mpp")renderMPP();if(name==="mp")renderMP();if(name==="unit-population")renderUnits();if(name==="settings")renderSettings();
+  if(target==="dashboard")renderDashboard();
+  if(target==="mpp")renderMPP();
+  if(target==="mp")renderMP();
+  if(target==="unit-population")renderUnits();
+  if(target==="settings")renderSettings();
 }
 document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("today").textContent=new Intl.DateTimeFormat("id-ID",{weekday:"long",day:"2-digit",month:"long",year:"numeric"}).format(new Date());
