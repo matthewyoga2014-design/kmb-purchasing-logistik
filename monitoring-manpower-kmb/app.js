@@ -1,7 +1,7 @@
 const INITIAL=window.KMB_DATA||{sites:{},siteLabels:{},units:[],mpActive:[],mpOut:[]};
 const KEY="kmb_monitoring_web_v1";
 const OWNER_EMAIL="matthewyoga2014@gmail.com";
-function accessMode(){return new URLSearchParams(window.location.search).get("mode")||"owner"}
+function accessMode(){return new URLSearchParams(window.location.search).get("mode")||"viewer"}
 function isEditorMode(){return accessMode()==="editor"}
 function isViewerMode(){return accessMode()==="viewer"}
 function isRestrictedMode(){return isEditorMode()||isViewerMode()}
