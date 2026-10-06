@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#6d28d9">
 <title>Monitoring Manpower KMB</title>
-<link rel="stylesheet" href="styles.css?v=19">
+<link rel="stylesheet" href="styles.css?v=20">
 </head>
 <body>
 <div class="app">
@@ -28,7 +28,7 @@
 <main class="main">
 <header class="topbar">
   <div style="display:flex;align-items:center;gap:10px"><button class="btn hamb" id="menuBtn">☰</button><div><div class="app-name">Monitoring Manpower KMB</div><h1 id="topTitle">Monitoring Manpower KMB</h1></div></div>
-  <div class="top-actions"><button class="btn" onclick="window.print()">Print</button></div>
+  <div class="top-actions"><button class="btn back-dashboard-btn" id="backDashboard" onclick="goDashboard()" style="display:none">← Kembali ke Dashboard</button><button class="btn" onclick="window.print()">Print</button></div>
 </header>
 <div class="content">
 
@@ -153,6 +153,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="data.js?v=10"></script>
-<script src="app.js?v=19"></script>
+<script src="app.js?v=20"></script>
 </body>
 </html>
