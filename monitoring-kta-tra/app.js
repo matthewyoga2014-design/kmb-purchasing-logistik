@@ -288,6 +288,84 @@ function renderRecruitment(){
     return '<tr><td><b>'+esc(r.Jabatan)+'</b></td><td>'+fmtDate(r["Tanggal Pengajuan PTK"])+'</td><td>'+fmtDate(r["Due Date"])+'</td><td><span class="days '+dc+'">'+(d===""?"-":d)+'</span></td><td>'+badge(r.Status)+'</td><td><b>'+esc(p.label)+'</b></td><td><div style="display:flex;align-items:center;gap:8px"><div class="progress recruit-progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b></div></td><td><button class="btn candidate-btn" onclick="openCandidateList('+r.__i+')">'+list.length+' Kandidat</button>'+preview+(list.length>3?'<small>+'+(list.length-3)+' kandidat lainnya</small>':'')+'</td><td>'+esc(r.Keterangan||"-")+'</td></tr>'
   }).join(""):'<tr><td colspan="9" class="empty">Tidak ada PTK Open untuk filter ini.</td></tr>';
 }
+
+function setModalSave(show,label="Simpan Perubahan"){
+  const b=document.getElementById("saveModal");if(!b)return;b.style.display=show?"":"none";b.textContent=label;
+}
+function fieldHTML(f,row,type){
+  const val=row?.[f]??"",empty=type==="mp"&&!norm(val);
+  if((f==="No"&&type==="mpp")||(f==="No."&&type==="mp"))return '<div class="field"><label>'+esc(f)+'</label><input value="'+esc(val||"Otomatis")+'" readonly><small class="empty-hint">Nomor diatur otomatis oleh sistem</small></div>';
+  if(f==="Status"&&type==="mpp")return '<div class="field"><label>Status</label><select data-f="Status"><option value=""></option>'+["Open","Continue","Close"].map(x=>'<option '+(val===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
+  if(["Keterangan","Alamat Domisili","Alamat Lengkap"].includes(f))return '<div class="field '+(empty?"empty-field":"")+'"><label>'+esc(f)+'</label><textarea data-f="'+esc(f)+'" placeholder="'+(empty?"Belum terisi di Excel":"")+'">'+esc(val)+'</textarea>'+(empty?'<small class="empty-hint">Belum terisi di Excel</small>':'')+'</div>';
+  return '<div class="field '+(empty?"empty-field":"")+'"><label>'+esc(f)+'</label><input type="'+(DATE_FIELDS.has(f)?"date":"text")+'" data-f="'+esc(f)+'" value="'+esc(val)+'" placeholder="'+(empty?"Belum terisi di Excel":"")+'">'+(empty?'<small class="empty-hint">Belum terisi di Excel</small>':'')+'</div>';
+}
+function candidateFieldHTML(f,row){
+  const val=row?.[f]??"";
+  if(f==="Status Kandidat")return '<div class="field"><label>Status Kandidat</label><select data-f="Status Kandidat">'+["Aktif","Hold","Tidak Lolos","Menolak","No Response","Hired","Cancel"].map(x=>'<option '+(val===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
+  if(f==="Keterangan")return '<div class="field"><label>Keterangan</label><textarea data-f="Keterangan">'+esc(val)+'</textarea></div>';
+  return '<div class="field"><label>'+esc(f)+'</label><input type="'+(DATE_FIELDS.has(f)?"date":"text")+'" data-f="'+esc(f)+'" value="'+esc(val)+'"></div>';
+}
+function computeMPP(r){
+  if(!norm(r.PTK)||!norm(r["Tanggal Pengajuan PTK"])){r["Keterangan PTK"]="TIDAK ADA PENGAJUAN";r["Lama Closing (Hari)"]="";return}
+  if(r.Status==="Close"){r["Keterangan PTK"]="SELESAI";if(r["Tanggal Close"]&&r["Tanggal Pengajuan PTK"]){const a=new Date(r["Tanggal Pengajuan PTK"]),b=new Date(r["Tanggal Close"]);r["Lama Closing (Hari)"]=String(Math.round((b-a)/86400000))}return}
+  const d=daysLeft(r["Due Date"]);r["Keterangan PTK"]=d===""?"":d<=0?"JATUH TEMPO":d<=7?"HAMPIR JATUH TEMPO":"ON TRACK";r["Lama Closing (Hari)"]="";
+}
+function renderMPP(){
+  const stats=document.getElementById("mppStats"),table=document.getElementById("mppTable");if(!stats||!table)return;
+  const q=norm(document.getElementById("mppSearch")?.value).toLowerCase(),st=norm(document.getElementById("mppStatus")?.value),m=metrics();
+  stats.innerHTML='<div class="stats"><div class="mini"><b>'+m.planning+'</b><span>Planning</span></div><div class="mini"><b>'+m.actual+'</b><span>Actual</span></div><div class="mini"><b>'+m.vacant+'</b><span>Vacant</span></div><div class="mini"><b>'+m.open+'</b><span>Open</span></div><div class="mini"><b>'+m.close+'</b><span>Close</span></div></div>';
+  const rows=(data.mpp||[]).map((r,i)=>({...r,__i:i})).filter(r=>(!q||JSON.stringify(r).toLowerCase().includes(q)||JSON.stringify(getCandidates(r)).toLowerCase().includes(q))&&(!st||r.Status===st));
+  const body=rows.length?rows.map(r=>{
+    const p=isVacant(r.Nama)?bestCandidateProgress(r):progress(r),list=getCandidates(r);
+    const cand=isVacant(r.Nama)?'<button class="btn candidate-btn" onclick="openCandidateList('+r.__i+')">'+list.length+' Pelamar</button>':'<span class="badge neutral">-</span>';
+    const preview=isVacant(r.Nama)&&list.length?list.slice(0,2).map(x=>{const cp=candidateProgress(x);return '<div class="candidate-preview"><b>'+esc(x["Nama Kandidat"]||"-")+'</b><span>'+esc(cp.label)+' '+cp.p+'%</span></div>'}).join(""):"";
+    return '<tr><td>'+esc(r.No)+'</td><td><b>'+esc(r.Nama||"Vacant")+'</b></td><td>'+esc(r.Jabatan||"-")+'</td><td>'+cand+preview+'</td><td>'+esc(r.Keterangan||"-")+'</td><td>'+esc(r.PTK||"-")+'</td><td>'+badge(r.Status)+'</td><td><div style="display:flex;align-items:center;gap:7px"><div class="progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b></div><small>'+esc(p.label)+'</small></td><td>'+fmtDate(r["Due Date"])+'</td><td>'+badge(r["Keterangan PTK"])+'</td><td class="action-cell"><button class="btn" onclick="openMPPForm('+r.__i+')">Edit</button> '+(isVacant(r.Nama)?'<button class="btn yellow" onclick="openCandidateList('+r.__i+')">Pelamar</button> ':'')+'<button class="btn danger" onclick="deleteMPP('+r.__i+')">Hapus</button></td></tr>';
+  }).join(""):'<tr><td colspan="11" class="empty">Belum ada data MPP yang sesuai filter.</td></tr>';
+  table.innerHTML='<div class="table-wrap"><table class="table"><thead><tr><th>No</th><th>Nama</th><th>Jabatan</th><th>Pelamar</th><th>Keterangan</th><th>PTK</th><th>Status</th><th>Progress</th><th>Due Date</th><th>Ket. PTK</th><th>Aksi</th></tr></thead><tbody>'+body+'</tbody></table></div>';
+}
+function openMPPForm(index=null){
+  setModalSave(true);
+  editState={type:"mpp",index};const row=index===null?{}:data.mpp[index];
+  document.getElementById("modalTitle").textContent=index===null?"Tambah MPP KTA - TRA":"Edit MPP KTA - TRA";
+  document.getElementById("formFields").innerHTML=MPP_FIELDS.map(f=>fieldHTML(f,row,"mpp")).join("");
+  document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
+}
+function openCandidateList(mppIndex){
+  const r=data.mpp[mppIndex];if(!r)return;
+  if(!isVacant(r.Nama)){alert("Pelamar hanya dikelola untuk posisi Vacant.");return}
+  const list=getCandidates(r),best=bestCandidateProgress(r);
+  editState={type:"candidate-list",mppIndex};
+  document.getElementById("modalTitle").textContent="Pelamar — "+r.Jabatan+" (Vacant #"+r.No+")";
+  setModalSave(false);
+  document.getElementById("formFields").innerHTML='<div class="candidate-manager"><div class="candidate-manager-head"><div><b>'+list.length+' pelamar</b><span>Progress tertinggi '+esc(best.label)+' ('+best.p+'%)</span></div><button class="btn yellow" onclick="openCandidateForm('+mppIndex+',null)">+ Tambah Pelamar</button></div>'+(list.length?list.map((cand,ci)=>{
+    const p=candidateProgress(cand);
+    return '<div class="candidate-card"><div class="candidate-card-main"><div class="candidate-name">'+esc(cand["Nama Kandidat"]||"-")+'</div><div class="candidate-meta">'+badge(cand["Status Kandidat"]||"Aktif")+' <span>'+esc(cand.Sumber||"Sumber belum diisi")+'</span></div><div class="candidate-progress"><div class="progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b><span>'+esc(p.label)+'</span></div><div class="candidate-note">'+esc(cand.Keterangan||"")+'</div></div><div class="candidate-actions"><button class="btn" onclick="openCandidateForm('+mppIndex+','+ci+')">Edit</button><button class="btn danger" onclick="deleteCandidate('+mppIndex+','+ci+')">Hapus</button></div></div>';
+  }).join(""):'<div class="empty">Belum ada pelamar. Klik “Tambah Pelamar”.</div>')+'</div>';
+  document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
+}
+function openCandidateForm(mppIndex,candidateIndex=null){
+  const r=data.mpp[mppIndex];if(!r)return;const list=getCandidates(r),row=candidateIndex===null?{"Status Kandidat":"Aktif"}:(list[candidateIndex]||{});
+  editState={type:"candidate",mppIndex,candidateIndex};
+  document.getElementById("modalTitle").textContent=(candidateIndex===null?"Tambah":"Edit")+" Pelamar — "+r.Jabatan;
+  setModalSave(true,candidateIndex===null?"Tambah Pelamar":"Simpan Pelamar");
+  document.getElementById("formFields").innerHTML='<div class="candidate-back"><button class="btn" type="button" onclick="openCandidateList('+mppIndex+')">← Daftar Pelamar</button><span>Vacant #'+esc(r.No)+' • '+esc(r.PTK||"PTK belum diisi")+'</span></div>'+CANDIDATE_FIELDS.map(f=>candidateFieldHTML(f,row)).join("");
+  document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
+}
+function deleteCandidate(mppIndex,candidateIndex){
+  const r=data.mpp[mppIndex],list=getCandidates(r),cand=list[candidateIndex];if(!cand)return;
+  if(!confirm("Hapus pelamar "+(cand["Nama Kandidat"]||"ini")+"?"))return;
+  list.splice(candidateIndex,1);data.candidates[vacancyKey(r)]=list;saveData();renderMPP();openCandidateList(mppIndex);
+}
+function deleteMPP(index){
+  const row=data.mpp[index];if(!row)return;
+  if(!confirm("Hapus data MPP ini?\n\nData tidak akan hilang permanen. Data akan dipindahkan ke Data Terhapus dan bisa dikembalikan kapan saja."))return;
+  const key=vacancyKey(row),cands=clone(getCandidates(row));
+  data.deletedMPP=data.deletedMPP||[];
+  data.deletedMPP.unshift({row:clone(row),candidates:cands,index,deletedAt:new Date().toISOString()});
+  if(data.candidates)delete data.candidates[key];
+  data.mpp.splice(index,1);renumberMPP();saveData();renderMPP();
+  alert("Data MPP dipindahkan ke Data Terhapus. Anda bisa memulihkannya dari menu Pengaturan.");
+}
 function openKtaMpp(filters={}){
   showView("mpp");
   const q=document.getElementById("mppSearch"),st=document.getElementById("mppStatus");
