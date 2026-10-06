@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#101827">
+<meta name="theme-color" content="#6d28d9">
 <title>Monitoring Manpower KTA - TRA</title>
-<link rel="stylesheet" href="styles.css?v=7">
+<link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body>
 <div class="app">
@@ -31,23 +31,59 @@
 
 <div class="content">
 <section class="view active" id="dashboard">
-  <div class="hero"><div><h2>Monitoring Manpower KTA - TRA</h2><p>Planning • Actual • Vacant • Rekrutmen • MP Aktif / Out</p></div><div class="date" id="today"></div></div>
-
-  <div class="kpis">
-    <div class="card"><div class="kpi-label">Manpower Planning</div><div class="kpi-value" id="kPlanning">0</div><div class="kpi-sub">Seluruh posisi MPP</div><div class="accent"></div></div>
-    <div class="card"><div class="kpi-label">Manpower Actual</div><div class="kpi-value" id="kActual">0</div><div class="kpi-sub">Planning dikurangi vacant</div><div class="accent"></div></div>
-    <div class="card"><div class="kpi-label">Vacant / Kekosongan</div><div class="kpi-value" id="kVacant">0</div><div class="kpi-sub">Posisi yang belum terisi</div><div class="accent"></div></div>
-    <div class="card"><div class="kpi-label">% Actual terhadap Planning</div><div class="kpi-value" id="kPct">0%</div><div class="kpi-sub">Tingkat pemenuhan manpower</div><div class="accent"></div></div>
+  <div class="dashboard-title-row">
+    <div>
+      <span class="eyebrow">OVERVIEW</span>
+      <h2>Dashboard Manpower KTA - TRA</h2>
+      <p>Monitoring MPP, actual, vacant, kandidat dan progress rekrutmen dalam satu lokasi.</p>
+    </div>
+    <div class="dashboard-date"><span>●</span><div><small>Update Hari Ini</small><b id="today"></b></div></div>
   </div>
 
-  <div class="card">
-    <div class="section-head"><div><h3>Resume Vacant per Jabatan</h3><p class="section-sub">Klik jabatan untuk melihat progress rekrutmen terkait.</p></div><span class="pill" id="vacantTotal">0 vacant</span></div>
-    <div class="resume-grid" id="vacancyResume"></div>
+  <div class="kpis modern-kpis">
+    <div class="card metric-card metric-purple">
+      <div class="metric-icon">◎</div><div><div class="kpi-label">Planning</div><div class="kpi-value" id="kPlanning">0</div><div class="kpi-sub">Seluruh posisi MPP</div></div>
+    </div>
+    <div class="card metric-card metric-blue">
+      <div class="metric-icon">✓</div><div><div class="kpi-label">Actual</div><div class="kpi-value" id="kActual">0</div><div class="kpi-sub">Posisi yang sudah terisi</div></div>
+    </div>
+    <div class="card metric-card metric-coral">
+      <div class="metric-icon">!</div><div><div class="kpi-label">Vacant</div><div class="kpi-value" id="kVacant">0</div><div class="kpi-sub">Posisi yang belum terisi</div></div>
+    </div>
+    <div class="card metric-card metric-orange">
+      <div class="metric-icon">%</div><div><div class="kpi-label">Pemenuhan</div><div class="kpi-value" id="kPct">0%</div><div class="kpi-sub">Actual terhadap planning</div></div>
+    </div>
+  </div>
+
+  <div class="dashboard-charts">
+    <div class="card chart-card chart-main">
+      <div class="section-head">
+        <div><span class="eyebrow">RECRUITMENT PIPELINE</span><h3>Progress Kandidat & Rekrutmen</h3><p class="section-sub">Jumlah kandidat/posisi berdasarkan tahap terakhir.</p></div>
+        <span class="chart-dot">LIVE DATA</span>
+      </div>
+      <div class="chart-canvas tall"><canvas id="ktaPipelineChart"></canvas></div>
+    </div>
+    <div class="card chart-card">
+      <div class="section-head"><div><span class="eyebrow">COMPOSITION</span><h3>Pemenuhan MPP</h3><p class="section-sub">Actual dibandingkan vacant.</p></div></div>
+      <div class="chart-canvas donut"><canvas id="ktaCompositionChart"></canvas></div>
+      <div class="donut-legend"><span><i class="legend-purple"></i>Actual</span><span><i class="legend-coral"></i>Vacant</span></div>
+    </div>
+  </div>
+
+  <div class="dashboard-lower">
+    <div class="card chart-card">
+      <div class="section-head"><div><span class="eyebrow">VACANCY</span><h3>Vacant per Jabatan</h3><p class="section-sub">Kebutuhan kosong berdasarkan posisi.</p></div><span class="pill" id="vacantTotal">0 vacant</span></div>
+      <div class="chart-canvas medium"><canvas id="ktaVacancyChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-head"><div><span class="eyebrow">VACANT DETAIL</span><h3>Resume Vacant per Jabatan</h3><p class="section-sub">Klik jabatan untuk melihat kandidat terkait.</p></div></div>
+      <div class="resume-grid dashboard-resume" id="vacancyResume"></div>
+    </div>
   </div>
 
   <div class="card recruitment-card" id="recruitmentCard">
     <div class="section-head">
-      <div><h3>Summary Progress Rekrutmen</h3><p class="section-sub">Data PTK Open dari MPP KTA - TRA.</p></div>
+      <div><span class="eyebrow">RECRUITMENT</span><h3>Summary Progress Rekrutmen</h3><p class="section-sub">Data PTK Open dari MPP KTA - TRA.</p></div>
       <div style="display:flex;gap:7px;align-items:center"><span class="filter-badge" id="recruitFilterBadge"></span><span class="badge open" id="recruitCount">0 OPEN</span></div>
     </div>
     <div class="table-wrap">
@@ -58,17 +94,16 @@
     </div>
   </div>
 
-  <div class="grid2" style="margin-top:16px">
-    <div class="card"><div class="section-head"><h3>Status PTK</h3></div><div class="stats" id="statusCards" style="grid-template-columns:repeat(3,1fr);margin:0"></div></div>
-    <div class="card"><div class="section-head"><h3>Due Date PTK</h3></div><div class="stats" id="dueCards" style="grid-template-columns:repeat(3,1fr);margin:0"></div></div>
+  <div class="grid2 dashboard-summary-grid">
+    <div class="card"><div class="section-head"><div><span class="eyebrow">STATUS</span><h3>Status PTK</h3></div></div><div class="stats modern-stats" id="statusCards"></div></div>
+    <div class="card"><div class="section-head"><div><span class="eyebrow">DUE DATE</span><h3>Due Date PTK</h3></div></div><div class="stats modern-stats" id="dueCards"></div></div>
   </div>
 
-  <div class="card" style="margin-top:16px">
-    <div class="section-head"><div><h3>Resume Unit</h3><p class="section-sub">Jumlah unit sesuai Dashboard Excel.</p></div><span class="pill" id="unitTotal">0 unit</span></div>
+  <div class="card units-modern">
+    <div class="section-head"><div><span class="eyebrow">EQUIPMENT</span><h3>Resume Unit</h3><p class="section-sub">Jumlah unit sesuai data Dashboard Excel.</p></div><span class="pill" id="unitTotal">0 unit</span></div>
     <div class="units-grid" id="unitSummary"></div>
   </div>
 </section>
-
 <section class="view" id="mpp">
   <div class="page-head">
     <div><h2>MPP KTA - TRA</h2><p>Planning manpower dan monitoring PTK/rekrutmen.</p></div>
@@ -107,13 +142,14 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="data_mpp1.js?v=7"></script>
-<script src="data_mpp2.js?v=7"></script>
-<script src="data_mpp3.js?v=7"></script>
-<script src="data_active.js?v=7"></script>
-<script src="data_out.js?v=7"></script>
-<script src="data_units.js?v=7"></script>
-<script src="app.js?v=7"></script>
+<script src="data_mpp1.js?v=8"></script>
+<script src="data_mpp2.js?v=8"></script>
+<script src="data_mpp3.js?v=8"></script>
+<script src="data_active.js?v=8"></script>
+<script src="data_out.js?v=8"></script>
+<script src="data_units.js?v=8"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>
