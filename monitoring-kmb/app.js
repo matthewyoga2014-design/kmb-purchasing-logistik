@@ -110,7 +110,7 @@ function computePTK(r){
 function fieldHtml(f,row){
   if(f==="Status")return '<div class="field"><label>'+f+'</label><select data-f="'+f+'"><option value=""></option>'+["Open","Continue","Close"].map(x=>'<option '+(row[f]===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
   if(["Keterangan","Alasan"].includes(f))return '<div class="field"><label>'+f+'</label><textarea data-f="'+f+'">'+esc(row[f]||"")+'</textarea></div>';
-  const type=/Tanggal|Date|Kontrak$/.test(f)||["Awal Rekrutmen","Psikologi Test","Interview User","MCU","FU MCU","On Site","Induksi"].includes(f)?"date":"text";
+  const dateFields=["Akhir Kontrak","Tanggal Masuk","Tanggal Keluar","Due Date","Tanggal Close","Awal Rekrutmen","Psikologi Test","Interview User","MCU","FU MCU","On Site","Induksi"];const type=dateFields.includes(f)?"date":"text";
   return '<div class="field"><label>'+f+'</label><input type="'+type+'" data-f="'+f+'" value="'+esc(row[f]||"")+'"></div>';
 }
 function openSiteForm(key,index){
