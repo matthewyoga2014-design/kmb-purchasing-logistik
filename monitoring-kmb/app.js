@@ -196,11 +196,13 @@ function computePTK(r){
   const d=daysLeft(r["Due Date"]);r["Keterangan PTK"]=d<=0?"JATUH TEMPO":d<=7?"HAMPIR JATUH TEMPO":"ON TRACK";
 }
 function fieldHtml(f,row,type="site"){
+  const empty=type==="mp"&&!normText(row[f]);
+  const hint=empty?'<small class="empty-hint">Belum terisi di Excel</small>':"";
   if(f==="Status"&&type==="site")return '<div class="field"><label>'+f+'</label><select data-f="'+f+'"><option value=""></option>'+["Open","Continue","Close"].map(x=>'<option '+(row[f]===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
-  if(f==="Tempat Bekerja"&&type==="mp")return '<div class="field"><label>'+f+'</label><select data-f="'+f+'"><option value=""></option>'+["C4","SLR - Maintenance","SLR - Rekondisi","Workshop Legok"].map(x=>'<option '+(normText(row[f])===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
-  if(["Keterangan","Alasan","Alamat Domisili","Alamat Lengkap"].includes(f))return '<div class="field '+(SENSITIVE_FIELDS.has(f)?"sensitive":"")+'"><label>'+f+'</label><textarea data-f="'+f+'">'+esc(row[f]||"")+'</textarea></div>';
+  if(f==="Tempat Bekerja"&&type==="mp")return '<div class="field '+(empty?"empty-field":"")+'"><label>'+f+'</label><select data-f="'+f+'"><option value="">-- belum terisi --</option>'+["C4","SLR - Maintenance","SLR - Rekondisi","Workshop Legok"].map(x=>'<option '+(normText(row[f])===x?"selected":"")+'>'+x+'</option>').join("")+'</select>'+hint+'</div>';
+  if(["Keterangan","Alasan","Alamat Domisili","Alamat Lengkap"].includes(f))return '<div class="field '+(SENSITIVE_FIELDS.has(f)?"sensitive ":"")+(empty?"empty-field":"")+'"><label>'+f+(SENSITIVE_FIELDS.has(f)?' <span title="Data sensitif">🔒</span>':'')+'</label><textarea data-f="'+f+'" placeholder="Belum terisi di Excel">'+esc(row[f]||"")+'</textarea>'+hint+'</div>';
   const dateFields=["Akhir Kontrak","Tanggal Masuk","Tanggal Keluar","Tgl/Lahir","Tanggal Lahir (1)","Tanggal Lahir (2)","Tanggal Lahir (3)","Tanggal Lahir (4)","Due Date","Tanggal Close","Awal Rekrutmen","Psikologi Test","Interview User","MCU","FU MCU","On Site","Induksi"];
-  return '<div class="field '+(SENSITIVE_FIELDS.has(f)?"sensitive":"")+'"><label>'+f+(SENSITIVE_FIELDS.has(f)?' <span title="Data sensitif">🔒</span>':'')+'</label><input type="'+(dateFields.includes(f)?"date":"text")+'" data-f="'+f+'" value="'+esc(row[f]||"")+'"></div>';
+  return '<div class="field '+(SENSITIVE_FIELDS.has(f)?"sensitive ":"")+(empty?"empty-field":"")+'"><label>'+f+(SENSITIVE_FIELDS.has(f)?' <span title="Data sensitif">🔒</span>':'')+'</label><input type="'+(dateFields.includes(f)?"date":"text")+'" data-f="'+f+'" value="'+esc(row[f]||"")+'" placeholder="Belum terisi di Excel">'+hint+'</div>';
 }
 function openSiteForm(key,index){
   editState={type:"site",key,index,old:index===null?null:clone(data.sites[key][index])};const row=index===null?{}:data.sites[key][index];
@@ -276,11 +278,15 @@ function openMpForm(mode,index){
   editState={type:"mp",mode,index};const arr=mode==="active"?data.mpActive:data.mpOut,row=index===null?{}:arr[index],fs=mode==="active"?MP_SCHEMA_ACTIVE:MP_SCHEMA_OUT;
   document.getElementById("modalTitle").textContent=(index===null?"Tambah ":"Edit ")+(mode==="active"?"MP Aktif":"MP OUT");
   let source="";
+  if(index!==null){
+    const filled=fs.filter(f=>normText(row[f])).length,empty=fs.length-filled;
+    source+='<div class="data-completeness" style="grid-column:1/-1"><div><b>'+esc(row.Nama||"Data Manpower")+'</b><span>'+filled+' dari '+fs.length+' kolom terisi</span></div><div><span class="badge ok">'+filled+' terisi</span> <span class="badge neutral">'+empty+' kosong di Excel</span></div></div>';
+  }
   if(index!==null&&!hasFullMPData(row)){
-    source+='<div class="notice" style="grid-column:1/-1"><b>Data lengkap belum dimuat dari Excel.</b> Nama, jabatan, dan penempatan sudah ada, tetapi kolom detail masih kosong. Klik <label class="btn yellow" style="display:inline-flex;margin-left:6px">Import Excel<input type="file" accept=".xlsx,.xls" hidden onchange="importOriginalExcel(this)"></label> lalu buka Edit kembali.</div>';
+    source+='<div class="notice" style="grid-column:1/-1"><b>Kolom detail orang ini memang masih kosong pada file Excel yang tersinkron.</b> Semua kolom tetap ditampilkan di bawah dan dapat Anda isi manual. Jika file Excel terbaru memiliki datanya, klik <label class="btn yellow" style="display:inline-flex;margin-left:6px">Sinkronkan Excel<input type="file" accept=".xlsx,.xls" hidden onchange="importOriginalExcel(this)"></label>.</div>';
   }
   if(mode==="out"&&index===null){
-    source='<div class="source-box"><label>Ambil Data dari MP Aktif</label><select id="sourceActive"><option value="">-- pilih nama MP Aktif --</option>'+data.mpActive.map((r,i)=>'<option value="'+i+'">'+esc(r.Nama||"-")+' — '+esc(r.Jabatan||"-")+' — '+esc(r["Tempat Bekerja"]||"-")+'</option>').join("")+'</select><small>Pilih nama untuk menyalin seluruh data ke MP OUT.</small></div>';
+    source+='<div class="source-box"><label>Ambil Data dari MP Aktif</label><select id="sourceActive"><option value="">-- pilih nama MP Aktif --</option>'+data.mpActive.map((r,i)=>'<option value="'+i+'">'+esc(r.Nama||"-")+' — '+esc(r.Jabatan||"-")+' — '+esc(r["Tempat Bekerja"]||"-")+'</option>').join("")+'</select><small>Pilih nama untuk menyalin seluruh data ke MP OUT.</small></div>';
   }
   document.getElementById("formFields").innerHTML=source+fs.map(f=>fieldHtml(f,row,"mp")).join("");
   const modal=document.getElementById("modal");modal.classList.add("show");
