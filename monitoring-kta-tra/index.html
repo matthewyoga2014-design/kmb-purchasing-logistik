@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>Monitoring Manpower KTA - TRA</title>
+<link rel="stylesheet" href="styles.css?v=1">
+</head>
+<body>
+<div class="app">
+<aside class="sidebar" id="sidebar">
+  <div class="brand"><div class="mark">KMB</div><div><b>Monitoring Manpower<br>KTA - TRA</b></div></div>
+  <div class="group">Ringkasan</div>
+  <button class="nav active" data-view="dashboard" data-title="Monitoring Manpower KTA - TRA">▦ &nbsp; Dashboard</button>
+  <div class="group">Monitoring</div>
+  <button class="nav" data-view="mpp" data-title="MPP KTA - TRA">▤ &nbsp; MPP KTA - TRA</button>
+  <button class="nav" data-view="mp" data-title="MP Aktif & MP Out">👥 &nbsp; MP Aktif & MP Out</button>
+  <div class="group">Sistem</div>
+  <button class="nav" data-view="settings" data-title="Pengaturan">⚙ &nbsp; Pengaturan</button>
+</aside>
+
+<main class="main">
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="btn hamb" id="menuBtn">☰</button>
+    <div><div class="app-name">Monitoring Manpower KTA - TRA</div><h1 id="topTitle">Monitoring Manpower KTA - TRA</h1></div>
+  </div>
+  <div class="top-actions"><button class="btn" onclick="window.print()">Print</button></div>
+</header>
+
+<div class="content">
+<section class="view active" id="dashboard">
+  <div class="hero"><div><h2>Monitoring Manpower KTA - TRA</h2><p>Planning • Actual • Vacant • Rekrutmen • MP Aktif / Out</p></div><div class="date" id="today"></div></div>
+
+  <div class="kpis">
+    <div class="card"><div class="kpi-label">Manpower Planning</div><div class="kpi-value" id="kPlanning">0</div><div class="kpi-sub">Seluruh posisi MPP</div><div class="accent"></div></div>
+    <div class="card"><div class="kpi-label">Manpower Actual</div><div class="kpi-value" id="kActual">0</div><div class="kpi-sub">Planning dikurangi vacant</div><div class="accent"></div></div>
+    <div class="card"><div class="kpi-label">Vacant / Kekosongan</div><div class="kpi-value" id="kVacant">0</div><div class="kpi-sub">Posisi yang belum terisi</div><div class="accent"></div></div>
+    <div class="card"><div class="kpi-label">% Actual terhadap Planning</div><div class="kpi-value" id="kPct">0%</div><div class="kpi-sub">Tingkat pemenuhan manpower</div><div class="accent"></div></div>
+  </div>
+
+  <div class="card">
+    <div class="section-head"><div><h3>Resume Vacant per Jabatan</h3><p class="section-sub">Klik jabatan untuk melihat progress rekrutmen terkait.</p></div><span class="pill" id="vacantTotal">0 vacant</span></div>
+    <div class="resume-grid" id="vacancyResume"></div>
+  </div>
+
+  <div class="card recruitment-card" id="recruitmentCard">
+    <div class="section-head">
+      <div><h3>Summary Progress Rekrutmen</h3><p class="section-sub">Data PTK Open dari MPP KTA - TRA.</p></div>
+      <div style="display:flex;gap:7px;align-items:center"><span class="filter-badge" id="recruitFilterBadge"></span><span class="badge open" id="recruitCount">0 OPEN</span></div>
+    </div>
+    <div class="table-wrap">
+      <table class="table recruitment-table">
+        <thead><tr><th>Jabatan</th><th>Tanggal Pengajuan</th><th>Due Date</th><th>Hari Tersisa</th><th>Status</th><th>Progress Terakhir</th><th>Progress</th><th>Kandidat / Keterangan</th></tr></thead>
+        <tbody id="recruitBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid2" style="margin-top:16px">
+    <div class="card"><div class="section-head"><h3>Status PTK</h3></div><div class="stats" id="statusCards" style="grid-template-columns:repeat(3,1fr);margin:0"></div></div>
+    <div class="card"><div class="section-head"><h3>Due Date PTK</h3></div><div class="stats" id="dueCards" style="grid-template-columns:repeat(3,1fr);margin:0"></div></div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="section-head"><div><h3>Resume Unit</h3><p class="section-sub">Jumlah unit sesuai Dashboard Excel.</p></div><span class="pill" id="unitTotal">0 unit</span></div>
+    <div class="units-grid" id="unitSummary"></div>
+  </div>
+</section>
+
+<section class="view" id="mpp">
+  <div class="page-head">
+    <div><h2>MPP KTA - TRA</h2><p>Planning manpower dan monitoring PTK/rekrutmen.</p></div>
+    <div class="toolbar"><input class="input" id="mppSearch" placeholder="Cari nama / jabatan / kandidat..."><select class="select" id="mppStatus"><option value="">Semua Status</option><option>Open</option><option>Continue</option><option>Close</option></select><button class="btn yellow" id="addMPP">+ Tambah Data</button><button class="btn" id="exportMPP">Export CSV</button></div>
+  </div>
+  <div id="mppStats"></div>
+  <div id="mppTable"></div>
+</section>
+
+<section class="view" id="mp">
+  <div class="page-head">
+    <div><h2 id="mpTitle">MP Aktif</h2><p>Database manpower KTA - TRA. Data lengkap dapat disinkronkan dari Excel.</p></div>
+    <div class="toolbar"><input class="input" id="mpSearch" placeholder="Cari nama / jabatan..."><label class="btn yellow">Sinkronkan Excel<input type="file" accept=".xlsx,.xls" hidden onchange="syncExcel(this)"></label><button class="btn" id="mpFullBtn">Semua Kolom</button><button class="btn" id="addMP">+ Tambah Data</button><button class="btn" id="exportMP">Export CSV</button></div>
+  </div>
+  <div class="mp-tabs"><button class="mp-tab active" data-mode="active">MP Aktif</button><button class="mp-tab" data-mode="out">MP Out</button><span class="pill" id="mpCount">0 data</span></div>
+  <div class="notice"><b>MP Aktif → MP Out terhubung.</b> Gunakan tombol MP OUT pada data aktif untuk memindahkan data ke MP Out sekaligus membuat posisi yang sesuai di MPP menjadi Vacant.</div>
+  <div style="height:12px"></div>
+  <div id="mpTable"></div>
+</section>
+
+<section class="view" id="settings">
+  <div class="page-head"><div><h2>Pengaturan</h2><p>Pemilik, editor, sinkronisasi, backup, dan download Excel.</p></div></div>
+  <div id="settingsContent"></div>
+</section>
+
+<div class="footer">Monitoring Manpower KTA - TRA</div>
+</div>
+</main>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <div class="modal-head"><h3 id="modalTitle">Edit Data</h3><button class="btn" id="closeModal">✕</button></div>
+    <div class="formgrid" id="formFields"></div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Batal</button><button class="btn primary" id="saveModal">Simpan Perubahan</button></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="data_mpp1.js?v=1"></script>
+<script src="data_mpp2.js?v=1"></script>
+<script src="data_mpp3.js?v=1"></script>
+<script src="data_active.js?v=1"></script>
+<script src="data_out.js?v=1"></script>
+<script src="data_units.js?v=1"></script>
+<script src="app.js?v=1"></script>
+</body>
+</html>
