@@ -197,10 +197,49 @@ function renderKtaCharts(){
   const groups={};
   (data.mpp||[]).filter(r=>isVacant(r.Nama)).forEach(r=>{const label=jobLabel(r.Jabatan);groups[label]=(groups[label]||0)+1});
   const vac=Object.entries(groups).sort((a,b)=>b[1]-a[1]);
+  const maxVac=Math.max(0,...vac.map(x=>x[1]));
+  const valuePlugin={
+    id:"ktaVacancyValues",
+    afterDatasetsDraw(chart){
+      const {ctx,chartArea}=chart,meta=chart.getDatasetMeta(0);
+      ctx.save();ctx.font="800 11px Inter, Segoe UI, Arial";ctx.fillStyle="#35304b";ctx.textBaseline="middle";
+      meta.data.forEach((bar,i)=>{
+        const value=chart.data.datasets[0].data[i];
+        const x=Math.min(bar.x+8,chartArea.right-18);
+        ctx.fillText(String(value),x,bar.y);
+      });
+      ctx.restore();
+    }
+  };
   ktaMakeChart("ktaVacancyChart",{
     type:"bar",
     data:{labels:vac.map(x=>x[0]),datasets:[{label:"Vacant",data:vac.map(x=>x[1]),backgroundColor:vac.map((_,i)=>["#7c3aed","#3b82f6","#ff6b6b","#fb923c","#a78bfa"][i%5]),borderRadius:8,borderSkipped:false}]},
-    options:ktaChartOptions({indexAxis:"y",plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}},scales:{x:{beginAtZero:true,grid:{color:"rgba(123,110,153,.09)"},ticks:{precision:0,color:"#9297a8",font:{size:10}}},y:{grid:{display:false},ticks:{color:"#7b8090",font:{size:10}}}}})
+    plugins:[valuePlugin],
+    options:ktaChartOptions({
+      indexAxis:"y",
+      interaction:{mode:"nearest",intersect:true},
+      onHover:(event,elements,chart)=>{chart.canvas.style.cursor=elements.length?"pointer":"default"},
+      onClick:(event,elements,chart)=>{
+        if(!elements.length)return;
+        const i=elements[0].index,label=chart.data.labels[i],value=chart.data.datasets[0].data[i];
+        const pill=document.getElementById("vacantTotal");
+        if(pill)pill.textContent=label+": "+value+" vacant";
+      },
+      plugins:{
+        legend:{display:false},
+        tooltip:{
+          enabled:true,backgroundColor:"#252238",padding:10,cornerRadius:10,displayColors:false,
+          callbacks:{
+            title:items=>items.length?String(items[0].label):"",
+            label:ctx=>"Total Vacant: "+ctx.raw
+          }
+        }
+      },
+      scales:{
+        x:{beginAtZero:true,suggestedMax:maxVac+1,grid:{color:"rgba(123,110,153,.09)"},ticks:{precision:0,color:"#9297a8",font:{size:10}}},
+        y:{grid:{display:false},ticks:{color:"#7b8090",font:{size:10}}}
+      }
+    })
   });
 
   const stages=["SOURCING KANDIDAT","PSIKOLOGI TEST","INTERVIEW USER","OFFERING","MCU","FU MCU","ON SITE","INDUKSI","HIRED"];
