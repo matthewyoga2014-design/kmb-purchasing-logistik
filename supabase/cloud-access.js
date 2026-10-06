@@ -74,6 +74,35 @@
     return true;
   }
 
+  async function signInPassword(email,password){
+    if(!sb)throw new Error("Supabase belum dikonfigurasi.");
+    const {data,error}=await sb.auth.signInWithPassword({
+      email:String(email||"").trim().toLowerCase(),
+      password:String(password||"")
+    });
+    if(error)throw error;
+    session=data.session;
+    await refreshRole();
+    if(opts.onRoleChange)opts.onRoleChange(role,session?.user||null);
+    return {role,user:session?.user||null};
+  }
+
+  async function signUpPassword(email,password){
+    if(!sb)throw new Error("Supabase belum dikonfigurasi.");
+    const {data,error}=await sb.auth.signUp({
+      email:String(email||"").trim().toLowerCase(),
+      password:String(password||""),
+      options:{emailRedirectTo:location.origin+location.pathname}
+    });
+    if(error)throw error;
+    session=data.session;
+    if(session){
+      await refreshRole();
+      if(opts.onRoleChange)opts.onRoleChange(role,session?.user||null);
+    }
+    return {session,user:data.user||null};
+  }
+
   async function signOut(){
     if(!sb)return;
     const {error}=await sb.auth.signOut();
@@ -135,5 +164,5 @@
     return ()=>sb.removeChannel(channel);
   }
 
-  global.KMBCloud={init,refreshRole,canEdit,isOwner,signIn,signOut,loadState,saveState,listEditors,addEditor,removeEditor,subscribe,sanitizeState,get role(){return role},get user(){return session?.user||null}};
+  global.KMBCloud={init,refreshRole,canEdit,isOwner,signIn,signInPassword,signUpPassword,signOut,loadState,saveState,listEditors,addEditor,removeEditor,subscribe,sanitizeState,get role(){return role},get user(){return session?.user||null}};
 })(window);
