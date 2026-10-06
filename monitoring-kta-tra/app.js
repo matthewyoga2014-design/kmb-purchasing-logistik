@@ -168,6 +168,53 @@ function metrics(){
     done:data.mpp.filter(r=>norm(r["Keterangan PTK"]).toUpperCase()==="SELESAI").length
   }
 }
+let ktaChartInstances={};
+function ktaMakeChart(id,config){
+  if(!window.Chart)return;
+  const canvas=document.getElementById(id);if(!canvas)return;
+  if(ktaChartInstances[id])ktaChartInstances[id].destroy();
+  ktaChartInstances[id]=new Chart(canvas,config);
+}
+function ktaChartOptions(extra={}){
+  return {
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:"index",intersect:false},
+    plugins:{legend:{labels:{usePointStyle:true,boxWidth:7,boxHeight:7,color:"#73788a",font:{size:10,weight:"600"}}},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}},
+    scales:{x:{grid:{display:false},ticks:{color:"#9297a8",font:{size:10}}},y:{beginAtZero:true,grid:{color:"rgba(123,110,153,.09)"},ticks:{precision:0,color:"#9297a8",font:{size:10}}}},
+    ...extra
+  };
+}
+function renderKtaCharts(){
+  if(!window.Chart)return;
+  const m=metrics();
+
+  ktaMakeChart("ktaCompositionChart",{
+    type:"doughnut",
+    data:{labels:["Actual","Vacant"],datasets:[{data:[m.actual,m.vacant],backgroundColor:["#7c3aed","#ff6b6b"],borderWidth:0,hoverOffset:5,borderRadius:6,spacing:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:"72%",plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}}
+  });
+
+  const groups={};
+  (data.mpp||[]).filter(r=>isVacant(r.Nama)).forEach(r=>{const label=jobLabel(r.Jabatan);groups[label]=(groups[label]||0)+1});
+  const vac=Object.entries(groups).sort((a,b)=>b[1]-a[1]);
+  ktaMakeChart("ktaVacancyChart",{
+    type:"bar",
+    data:{labels:vac.map(x=>x[0]),datasets:[{label:"Vacant",data:vac.map(x=>x[1]),backgroundColor:vac.map((_,i)=>["#7c3aed","#3b82f6","#ff6b6b","#fb923c","#a78bfa"][i%5]),borderRadius:8,borderSkipped:false}]},
+    options:ktaChartOptions({indexAxis:"y",plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}},scales:{x:{beginAtZero:true,grid:{color:"rgba(123,110,153,.09)"},ticks:{precision:0,color:"#9297a8",font:{size:10}}},y:{grid:{display:false},ticks:{color:"#7b8090",font:{size:10}}}}})
+  });
+
+  const stages=["SOURCING KANDIDAT","PSIKOLOGI TEST","INTERVIEW USER","OFFERING","MCU","FU MCU","ON SITE","INDUKSI","HIRED"];
+  const labels=["Sourcing","Psikotes","Interview","Offering","MCU","FU MCU","On Site","Induksi","Hired"];
+  const counts=Object.fromEntries(stages.map(x=>[x,0]));
+  const candidateRows=allCandidateRows();
+  candidateRows.forEach(r=>{const label=norm(r["Progress Terakhir"]).toUpperCase();if(counts[label]!==undefined)counts[label]++});
+  (data.mpp||[]).filter(r=>isVacant(r.Nama)&&getCandidates(r).length===0).forEach(r=>{const p=bestCandidateProgress(r);if(counts[p.label]!==undefined)counts[p.label]++});
+  ktaMakeChart("ktaPipelineChart",{
+    type:"line",
+    data:{labels,datasets:[{label:"Kandidat / Posisi",data:stages.map(s=>counts[s]),borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.12)",pointBackgroundColor:"#fff",pointBorderColor:"#7c3aed",pointBorderWidth:3,pointRadius:4,tension:.38,fill:true}]},
+    options:ktaChartOptions({plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
+  });
+}
 function renderDashboard(){
   const m=metrics();
   document.getElementById("kPlanning").textContent=m.planning;
@@ -177,7 +224,7 @@ function renderDashboard(){
   document.getElementById("vacantTotal").textContent=m.vacant+" vacant • "+allCandidateRows().length+" kandidat";
   document.getElementById("statusCards").innerHTML=[["Open",m.open],["Continue",m.cont],["Close",m.close]].map(x=>'<div class="mini"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join("");
   document.getElementById("dueCards").innerHTML=[["Hampir Jatuh Tempo",m.near],["Jatuh Tempo",m.overdue],["Selesai",m.done]].map(x=>'<div class="mini"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join("");
-  renderVacancyResume();renderRecruitment();renderUnits();
+  renderVacancyResume();renderRecruitment();renderUnits();renderKtaCharts();
 }
 function renderVacancyResume(){
   const groups={};
@@ -474,7 +521,7 @@ function showView(name){
   document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("active",n.dataset.view===name));
   document.getElementById("topTitle").textContent=document.querySelector('.nav[data-view="'+name+'"]')?.dataset.title||"Monitoring Manpower KTA - TRA";
   document.getElementById("sidebar").classList.remove("open");window.scrollTo(0,0);
-  if(name==="mpp")renderMPP();if(name==="mp")renderMP();if(name==="settings")renderSettings();
+  if(name==="dashboard")renderDashboard();if(name==="mpp")renderMPP();if(name==="mp")renderMP();if(name==="settings")renderSettings();
 }
 document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("today").textContent=new Intl.DateTimeFormat("id-ID",{weekday:"long",day:"2-digit",month:"long",year:"numeric"}).format(new Date());
