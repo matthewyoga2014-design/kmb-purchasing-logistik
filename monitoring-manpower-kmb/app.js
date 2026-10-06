@@ -175,6 +175,57 @@ function makeSiteViews(){
     renderSite(key);
   })
 }
+let kmbChartInstances={};
+function kmbMakeChart(id,config){
+  if(!window.Chart)return;
+  const canvas=document.getElementById(id);if(!canvas)return;
+  if(kmbChartInstances[id])kmbChartInstances[id].destroy();
+  kmbChartInstances[id]=new Chart(canvas,config);
+}
+function kmbChartOptions(extra={}){
+  return {
+    responsive:true,maintainAspectRatio:false,
+    interaction:{mode:"index",intersect:false},
+    plugins:{legend:{labels:{usePointStyle:true,boxWidth:7,boxHeight:7,color:"#73788a",font:{size:10,weight:"600"}}},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}},
+    scales:{x:{grid:{display:false},ticks:{color:"#9297a8",font:{size:10}}},y:{beginAtZero:true,grid:{color:"rgba(123,110,153,.09)"},ticks:{precision:0,color:"#9297a8",font:{size:10}}}},
+    ...extra
+  };
+}
+function renderKMBCharts(){
+  if(!window.Chart)return;
+  const keys=Object.keys(data.sites||{});
+  const labels=keys.map(k=>data.siteLabels[k]||k);
+  const mets=keys.map(k=>siteMetrics(data.sites[k]||[]));
+  const totalActual=mets.reduce((s,m)=>s+m.actual,0),totalVacant=mets.reduce((s,m)=>s+m.vacant,0);
+
+  kmbMakeChart("kmbJobsiteChart",{
+    type:"bar",
+    data:{labels,datasets:[
+      {label:"Planning",data:mets.map(m=>m.planning),backgroundColor:"#d9ccff",borderRadius:8,borderSkipped:false},
+      {label:"Actual",data:mets.map(m=>m.actual),backgroundColor:"#7c3aed",borderRadius:8,borderSkipped:false},
+      {label:"Vacant",data:mets.map(m=>m.vacant),backgroundColor:"#ff747d",borderRadius:8,borderSkipped:false}
+    ]},
+    options:kmbChartOptions({plugins:{legend:{position:"top",align:"end",labels:{usePointStyle:true,boxWidth:7,color:"#73788a",font:{size:10,weight:"600"}}},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
+  });
+
+  kmbMakeChart("kmbCompositionChart",{
+    type:"doughnut",
+    data:{labels:["Actual","Vacant"],datasets:[{data:[totalActual,totalVacant],backgroundColor:["#7c3aed","#ff6b6b"],borderWidth:0,hoverOffset:5,borderRadius:6,spacing:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:"72%",plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}}
+  });
+
+  const stages=["SOURCING KANDIDAT","PSIKOLOGI TEST","INTERVIEW USER","OFFERING","MCU","FU MCU","ON SITE","INDUKSI"];
+  const stageLabels=["Sourcing","Psikotes","Interview","Offering","MCU","FU MCU","On Site","Induksi"];
+  const counts=Object.fromEntries(stages.map(x=>[x,0]));
+  Object.values(data.sites||{}).flat().filter(r=>isVacantName(r.Nama)||["open","continue"].includes(normText(r.Status).toLowerCase())).forEach(r=>{
+    const p=progress(r);if(counts[p.label]!==undefined)counts[p.label]++;
+  });
+  kmbMakeChart("kmbRecruitChart",{
+    type:"line",
+    data:{labels:stageLabels,datasets:[{label:"Jumlah Posisi",data:stages.map(s=>counts[s]),borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.12)",pointBackgroundColor:"#fff",pointBorderColor:"#7c3aed",pointBorderWidth:3,pointRadius:4,tension:.38,fill:true}]},
+    options:kmbChartOptions({plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
+  });
+}
 function renderDashboard(){
   let total={planning:0,actual:0,vacant:0,open:0,cont:0,close:0,due:0},rows="",bars="";
   Object.keys(data.sites).forEach(key=>{
@@ -191,7 +242,7 @@ function renderDashboard(){
   document.getElementById("summaryBody").innerHTML=rows;
   document.getElementById("bars").innerHTML=bars;
   document.getElementById("statusCards").innerHTML=[["Open",total.open],["Continue",total.cont],["Close",total.close],["Jatuh Tempo",total.due]].map(x=>'<div class="mini"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join("");
-  renderVacancyResume();renderRecruitmentSummary();
+  renderVacancyResume();renderRecruitmentSummary();renderKMBCharts();
 }
 function renderVacancyResume(){
   const groups={};
