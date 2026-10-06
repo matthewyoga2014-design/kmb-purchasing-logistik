@@ -52,6 +52,36 @@
     if(who)who.textContent=cloudUser?.email||"";
   }
 
+  const accessControlledSelectors=[
+    "#addMPP","#addMP","#exportMPP","#exportMP","#exportUnits","#mpFullBtn",
+    ".candidate-btn",".candidate-actions",".action-cell .btn",
+    "button[data-add]","button[data-export]",
+    "button[onclick*='openMPPForm']","button[onclick*='openCandidate']","button[onclick*='deleteMPP']",
+    "button[onclick*='openUnitForm']","button[onclick*='openKtaUnitForm']","button[onclick*='addUnitSection']",
+    "button[onclick*='deleteUnit']","button[onclick*='openSiteForm']","button[onclick*='removeSiteRow']",
+    "button[onclick*='openMpForm']","button[onclick*='openMPForm']","button[onclick*='openExit']",
+    "button[onclick*='restoreFromOut']","label.btn"
+  ];
+
+  window.applyReadOnlyUI=function(){
+    const viewer=cloudRole==="viewer";
+    accessControlledSelectors.forEach(sel=>{
+      document.querySelectorAll(sel).forEach(el=>{
+        if(viewer){
+          if(!el.dataset.accessDisplay)el.dataset.accessDisplay=el.style.display||"__default__";
+          el.style.display="none";
+        }else if(el.dataset.accessDisplay!==undefined){
+          el.style.display=el.dataset.accessDisplay==="__default__"?"":el.dataset.accessDisplay;
+          delete el.dataset.accessDisplay;
+        }
+      });
+    });
+    document.querySelectorAll('input[type="file"]').forEach(el=>{
+      if(viewer){el.dataset.accessDisabled=el.disabled?"1":"0";el.disabled=true}
+      else if(el.dataset.accessDisabled!==undefined){el.disabled=el.dataset.accessDisabled==="1";delete el.dataset.accessDisabled}
+    });
+  };
+
   window.applyAccessMode=function(){
     const settingsNav=document.querySelector('.nav[data-view="settings"]');
     if(settingsNav)settingsNav.style.display=cloudRole==="owner"?"":"none";
