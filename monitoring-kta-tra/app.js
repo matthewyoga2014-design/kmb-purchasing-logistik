@@ -296,8 +296,11 @@ function renderRecruitment(){
 }
 function renderUnits(){
   const total=(data.units||[]).reduce((s,r)=>s+(Number(r.Jumlah)||0),0);
-  document.getElementById("unitTotal").textContent=total+" unit";
-  document.getElementById("unitSummary").innerHTML=(data.units||[]).map(r=>'<div class="unit-card"><span>'+esc(r["Jenis Unit"])+'</span><b>'+esc(r.Jumlah)+'</b></div>').join("");
+  const cards=(data.units||[]).map(r=>'<div class="unit-card"><span>'+esc(r["Jenis Unit"])+'</span><b>'+esc(r.Jumlah)+'</b></div>').join("");
+  const totalEl=document.getElementById("unitTotal");if(totalEl)totalEl.textContent=total+" unit";
+  const dash=document.getElementById("unitSummary");if(dash)dash.innerHTML=cards;
+  const pageTotal=document.getElementById("unitPageTotal");if(pageTotal)pageTotal.textContent=total+" unit";
+  const page=document.getElementById("unitPageSummary");if(page)page.innerHTML=cards||'<div class="empty">Belum ada data populasi unit.</div>';
 }
 function renderMPP(){
   const q=norm(document.getElementById("mppSearch")?.value).toLowerCase(),st=norm(document.getElementById("mppStatus")?.value),m=metrics();
@@ -560,7 +563,7 @@ function showView(name){
   document.querySelectorAll(".nav").forEach(n=>n.classList.toggle("active",n.dataset.view===name));
   document.getElementById("topTitle").textContent=document.querySelector('.nav[data-view="'+name+'"]')?.dataset.title||"Monitoring Manpower KTA - TRA";
   document.getElementById("sidebar").classList.remove("open");window.scrollTo(0,0);
-  if(name==="dashboard")renderDashboard();if(name==="mpp")renderMPP();if(name==="mp")renderMP();if(name==="settings")renderSettings();
+  if(name==="dashboard")renderDashboard();if(name==="mpp")renderMPP();if(name==="mp")renderMP();if(name==="unit-population")renderUnits();if(name==="settings")renderSettings();
 }
 document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("today").textContent=new Intl.DateTimeFormat("id-ID",{weekday:"long",day:"2-digit",month:"long",year:"numeric"}).format(new Date());
