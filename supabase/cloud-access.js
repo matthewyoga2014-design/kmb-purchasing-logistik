@@ -101,8 +101,7 @@
     if(!sb)throw new Error("Supabase belum dikonfigurasi.");
     const {data,error}=await sb.auth.signUp({
       email:String(email||"").trim().toLowerCase(),
-      password:String(password||""),
-      options:{emailRedirectTo:location.origin+location.pathname}
+      password:String(password||"")
     });
     if(error)throw error;
     session=data.session;
