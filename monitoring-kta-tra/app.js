@@ -263,7 +263,7 @@ function renderMP(){
   const head=fields.map(f=>'<th>'+esc(f)+'</th>').join("")+'<th>Aksi</th>';
   const body=rows.map(r=>{
     const cells=fields.map(f=>'<td>'+esc(r[f]||"-")+'</td>').join("");
-    const acts=mpMode==="active"?'<button class="btn" onclick="openMPForm(\'active\','+r.__i+')">Edit</button> <button class="btn danger" onclick="openExit('+r.__i+')">MP OUT</button>':'<button class="btn" onclick="openMPForm(\'out\','+r.__i+')">Edit</button> <button class="btn danger" onclick="deleteMP(\'out\','+r.__i+')">Hapus</button>';
+    const acts=mpMode==="active"?'<button class="btn" onclick="openMPForm(\'active\','+r.__i+')">Edit</button> <button class="btn danger" onclick="openExit('+r.__i+')">MP OUT</button>':'<button class="btn" onclick="openMPForm(\'out\','+r.__i+')">Edit</button> <button class="btn yellow" onclick="restoreFromOut('+r.__i+')">Kembalikan ke MP Aktif</button> <button class="btn danger" onclick="deleteMP(\'out\','+r.__i+')">Hapus</button>';
     return '<tr>'+cells+'<td class="action-cell">'+acts+'</td></tr>'
   }).join("");
   document.getElementById("mpTable").innerHTML='<div class="table-wrap"><table class="table"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';
@@ -289,6 +289,51 @@ function openExit(index){
   document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
 }
 function deleteMP(mode,index){if(confirm("Hapus data ini?")){(mode==="active"?data.mpActive:data.mpOut).splice(index,1);saveData();renderMP()}}
+function restoreFromOut(index){
+  const rec=data.mpOut[index];if(!rec)return;
+  const name=rec.Nama||"data ini";
+  if(data.mpActive.some(x=>sameName(x.Nama,rec.Nama))){
+    alert(name+" sudah ada di MP Aktif. Data MP Out tidak dipindahkan untuk mencegah duplikasi.");
+    return;
+  }
+  if(!confirm("Kembalikan "+name+" dari MP Out ke MP Aktif?\n\nJabatan: "+(rec.Jabatan||"-")+"\nSITE: "+(rec.SITE||"TRA")+"\n\nJika posisi MPP sebelumnya masih Vacant, posisi tersebut akan diisi kembali otomatis."))return;
+
+  const active={};MP_ACTIVE_SCHEMA.forEach(f=>active[f]=rec[f]||"");
+  if(!active["No."])active["No."]=String(data.mpActive.length+1);
+  data.mpActive.push(active);
+
+  let target=data.mpp.find(r=>isVacant(r.Nama)&&norm(r.Keterangan).toLowerCase().includes(norm(rec.Nama).toLowerCase()));
+  if(!target)target=data.mpp.find(r=>isVacant(r.Nama)&&jobKey(r.Jabatan)===jobKey(rec.Jabatan));
+  if(target){
+    target.Nama=rec.Nama;
+    target.Jabatan=target.Jabatan||rec.Jabatan;
+    target.Keterangan="Dikembalikan dari MP Out";
+    if(target.PTK&&norm(target.Status).toLowerCase()==="open"){
+      target.Status="Close";
+      target["Tanggal Close"]=todayISO();
+      target["Keterangan PTK"]="SELESAI";
+      if(target["Tanggal Pengajuan PTK"]){
+        const a=new Date(target["Tanggal Pengajuan PTK"]),b=new Date(target["Tanggal Close"]);
+        target["Lama Closing (Hari)"]=String(Math.round((b-a)/86400000));
+      }
+    }else if(!target.PTK){
+      target.Status="";
+      target["Keterangan PTK"]="TIDAK ADA PENGAJUAN";
+    }
+  }else if(!data.mpp.some(r=>sameName(r.Nama,rec.Nama))){
+    data.mpp.push({
+      No:String(Math.max(0,...data.mpp.map(r=>Number(r.No)||0))+1),
+      Nama:rec.Nama,Jabatan:rec.Jabatan||"",Keterangan:"Dikembalikan dari MP Out",PIC:"",
+      PTK:"","Tanggal Pengajuan PTK":"","Psikologi Test":"","Interview User":"","Offering Latter":"",
+      MCU:"","FU MCU":"","On Site":"","Induksi":"","Due Date":"","Status":"","Tanggal Close":"",
+      "Keterangan PTK":"TIDAK ADA PENGAJUAN","Lama Closing (Hari)":""
+    });
+  }
+
+  data.mpOut.splice(index,1);
+  saveData();renderMPP();renderMP();renderDashboard();
+  alert(name+" berhasil dikembalikan ke MP Aktif dan data MPP sudah disinkronkan.");
+}
 function vacateMPP(rec){
   const row=data.mpp.find(r=>sameName(r.Nama,rec.Nama));
   if(row){row.Nama="Vacant";row.Keterangan="MP OUT - "+rec.Nama;row.PIC=row.PIC||"";if(!row.PTK){row.Status="";row["Keterangan PTK"]="TIDAK ADA PENGAJUAN"}}
