@@ -198,6 +198,20 @@
     renderAll();
   }
 
+  const originalRenderSettings=window.renderSettings;
+  if(typeof originalRenderSettings==="function"){
+    window.renderSettings=function(){
+      originalRenderSettings.apply(this,arguments);
+      if(cloudRole!=="owner")return;
+      const host=document.getElementById("settingsContent");if(!host)return;
+      const heading=[...host.querySelectorAll("h3")].find(x=>/Pelihat\s*\/\s*Viewer/i.test(x.textContent||""));
+      const card=heading?.closest(".card");
+      if(card){
+        card.innerHTML='<div class="section-head"><div><h3>Pelihat / Viewer</h3><p class="section-sub">Otomatis. Semua pengguna yang tidak terdaftar sebagai Editor hanya dapat melihat data.</p></div></div><div class="notice">Tidak perlu menambahkan email Pelihat satu per satu.</div>';
+      }
+    };
+  }
+
   const originalSave=window.saveData;
   if(typeof originalSave==="function"){
     window.saveData=function(){
