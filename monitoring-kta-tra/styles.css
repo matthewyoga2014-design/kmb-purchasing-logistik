@@ -150,3 +150,31 @@ body.viewer-mode #mpFullBtn,
 body.viewer-mode label.btn{display:none!important}
 body.viewer-mode .input,body.viewer-mode .select{pointer-events:auto}
 body.viewer-mode .app-name{color:#6d28d9!important}
+
+/* One-link access controls */
+.access-badge{display:inline-flex;align-items:center;justify-content:center;padding:7px 10px;border-radius:999px;font-size:10px;font-weight:900;letter-spacing:.03em;white-space:nowrap;border:1px solid transparent}
+.access-badge.role-owner{background:#ede9fe;color:#6d28d9;border-color:#ddd6fe}
+.access-badge.role-editor{background:#eaf2ff;color:#2563eb;border-color:#dbeafe}
+.access-badge.role-viewer{background:#f3f4f6;color:#6b7280;border-color:#e5e7eb}
+.auth-who{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px;color:#7b8090}
+.auth-btn{font-weight:800!important}
+.auth-card{max-width:520px}
+.auth-copy{padding:12px 14px;margin-bottom:12px;border-radius:12px;background:#f7f3ff;color:#655d78;font-size:11px;line-height:1.5}
+.auth-actions{justify-content:flex-end}
+body.viewer-mode .candidate-btn,
+body.viewer-mode .candidate-actions,
+body.viewer-mode .action-cell .btn,
+body.viewer-mode button[onclick*="openMPPForm"],
+body.viewer-mode button[onclick*="openCandidate"],
+body.viewer-mode button[onclick*="deleteMPP"],
+body.viewer-mode button[onclick*="openUnit"],
+body.viewer-mode button[onclick*="addUnit"],
+body.viewer-mode button[onclick*="openSiteForm"],
+body.viewer-mode button[onclick*="removeSiteRow"],
+body.viewer-mode button[onclick*="openMpForm"],
+body.viewer-mode button[onclick*="openMPForm"],
+body.viewer-mode button[onclick*="openExit"],
+body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
+@media(max-width:760px){
+  .auth-who{display:none}.access-badge{padding:6px 8px}.auth-btn{padding:8px!important;font-size:9px!important}
+}
