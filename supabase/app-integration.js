@@ -154,9 +154,9 @@
       const r=await window.KMBCloud.signUpPassword(email,password);
       if(r.session){
         closeAuthModal();
-        alert("Akun berhasil dibuat dan sudah masuk.");
+        alert(window.KMBCloud.role==="viewer"?"Akun aktif, tetapi email ini tidak terdaftar sebagai Editor. Akses tetap Pelihat.":"Akun Editor berhasil diaktifkan dan sudah masuk.");
       }else{
-        alert("Akun dibuat. Cek email untuk konfirmasi, lalu kembali ke web dan pilih Masuk.");
+        alert("Akun dibuat. Cek email untuk konfirmasi. Hak edit hanya akan aktif jika email ini sudah didaftarkan oleh Pemilik sebagai Editor.");
       }
     }catch(e){alert("Pendaftaran gagal: "+(e.message||e))}
   };
