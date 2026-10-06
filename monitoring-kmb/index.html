@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#101827">
 <title>Monitoring KMB | PT. Karunia Mandiri Berkarya</title>
-<link rel="stylesheet" href="styles.css?v=8">
+<link rel="stylesheet" href="styles.css?v=9">
 <style>
 .app-name{font-size:10px;color:#7b8797;text-transform:uppercase;letter-spacing:.11em;font-weight:800;margin-bottom:2px}
 .section-sub{margin:4px 0 0;font-size:11px;color:#6b7280}
@@ -28,7 +28,13 @@
 .sensitive label{color:#7c2d12}.statusline{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid #eef0f3;font-size:12px}.statusline:last-child{border-bottom:0}.settings-copy{font-size:12px;color:#64748b;line-height:1.6}
 @media(max-width:760px){.mp-tabs .pill{margin-left:0}.recruit-progress{min-width:90px}.resume-grid{grid-template-columns:1fr}.statusline{flex-direction:column;gap:5px}}
 </style>
-</head>
+<style>
+.empty-hint{display:block;margin-top:4px;font-size:10px;color:#9a3412;font-weight:600}
+.empty-field input,.empty-field textarea,.empty-field select{background:#fffaf5}
+.data-completeness{display:flex;justify-content:space-between;gap:16px;align-items:center;padding:12px 14px;border:1px solid #dbe2ea;border-radius:11px;background:#f8fafc}
+.data-completeness>div:first-child{display:flex;flex-direction:column;gap:3px}.data-completeness span{font-size:11px;color:#64748b}
+@media(max-width:760px){.data-completeness{align-items:flex-start;flex-direction:column}}
+</style></head>
 <body>
 <div class="app">
 <aside class="sidebar" id="sidebar">
@@ -130,7 +136,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="data.js?v=8"></script>
-<script src="app.js?v=8"></script>
+<script src="data.js?v=9"></script>
+<script src="app.js?v=9"></script>
 </body>
 </html>
