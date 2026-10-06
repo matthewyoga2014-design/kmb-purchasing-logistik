@@ -3,6 +3,8 @@
 
   const isKta=location.pathname.includes("monitoring-kta-tra");
   const appId=isKta?"kta-tra":"kmb";
+  const localStateKey=isKta?"kta_tra_monitoring_v1":"kmb_monitoring_web_v1";
+  const hadLocalBeforeCloud=!!localStorage.getItem(localStateKey);
   let cloudRole="viewer", cloudUser=null, cloudEditors=[], cloudUnsub=null, applyingRemote=false;
 
   window.accessMode=function(){return cloudRole||"viewer"};
@@ -182,8 +184,13 @@
     if(!window.KMBCloud)return;
     try{
       const row=await window.KMBCloud.loadState();
+      const initialSeed=row?.updated_by==="initial-seed";
       if(hasRemoteData(row)){
-        persistRemoteLocally(row.data);
+        if(initialSeed&&hadLocalBeforeCloud&&window.KMBCloud.isOwner?.()){
+          await window.KMBCloud.saveState(data);
+        }else if(!(initialSeed&&hadLocalBeforeCloud&&cloudRole==="viewer")){
+          persistRemoteLocally(row.data);
+        }
       }else if(window.KMBCloud.isOwner?.()){
         await window.KMBCloud.saveState(data);
       }
