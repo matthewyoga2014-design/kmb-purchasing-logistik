@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#6d28d9">
 <title>Monitoring Manpower KMB</title>
-<link rel="stylesheet" href="styles.css?v=20">
+<link rel="stylesheet" href="styles.css?v=21">
 </head>
 <body>
 <div class="app">
@@ -43,16 +43,16 @@
   </div>
 
   <div class="kpis modern-kpis">
-    <div class="card metric-card metric-purple dashboard-click" onclick="openKmbSummary()">
+    <div class="card metric-card metric-purple">
       <div class="metric-icon">◎</div><div><div class="kpi-label">Manpower Planning</div><div class="kpi-value" id="kPlanning">0</div><div class="kpi-sub">Seluruh posisi per jobsite</div></div>
     </div>
-    <div class="card metric-card metric-blue dashboard-click" onclick="openKmbMp()">
+    <div class="card metric-card metric-blue">
       <div class="metric-icon">✓</div><div><div class="kpi-label">Manpower Actual</div><div class="kpi-value" id="kActual">0</div><div class="kpi-sub">Posisi yang sudah terisi</div></div>
     </div>
-    <div class="card metric-card metric-coral dashboard-click" onclick="openKmbSummary()">
+    <div class="card metric-card metric-coral">
       <div class="metric-icon">!</div><div><div class="kpi-label">Vacant / Kekosongan</div><div class="kpi-value" id="kVacant">0</div><div class="kpi-sub">Kebutuhan yang masih kosong</div></div>
     </div>
-    <div class="card metric-card metric-orange dashboard-click" onclick="openKmbSummary()">
+    <div class="card metric-card metric-orange">
       <div class="metric-icon">%</div><div><div class="kpi-label">% Actual terhadap Planning</div><div class="kpi-value" id="kPct">0%</div><div class="kpi-sub">Actual terhadap planning</div></div>
     </div>
   </div>
@@ -109,7 +109,7 @@
           <span class="unit-total-pill" id="kmbUnitTotal">0 unit</span>
         </div>
         <div class="dashboard-unit-grid" id="kmbUnitDashboard"></div>
-        <button class="btn unit-dashboard-link" onclick="showView('units')">Kelola Populasi Unit →</button>
+        
       </div>
     </div>
   </div>
@@ -153,6 +153,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="data.js?v=10"></script>
-<script src="app.js?v=20"></script>
+<script src="app.js?v=21"></script>
 </body>
 </html>
