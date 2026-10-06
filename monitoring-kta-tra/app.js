@@ -221,11 +221,11 @@ function syncExcel(input){
       const wb=XLSX.read(e.target.result,{type:"array",cellDates:true});
       const readMPP=()=>{
         const ws=wb.Sheets["MPP KTA-TRA"];if(!ws)throw new Error("Sheet MPP KTA-TRA tidak ditemukan.");
-        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true}),out=[],dateIdx=new Set([6,7,8,9,10,12,13,14,16]);
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true}),out=[],dateIdx=new Set([6,7,8,9,10,11,12,13,14,16]);
         for(let i=1;i<rows.length;i++){const a=rows[i]||[],no=norm(a[0]),name=norm(a[1]);if(!/^\d+(\.0)?$/.test(no)||!name)continue;const o={};MPP_FIELDS.forEach((f,j)=>o[f]=dateIdx.has(j)?excelDate(a[j]):(a[j]??""));out.push(o)}return out;
       };
       const readMP=(sheet,isOut)=>{
-        const ws=wb.Sheets[sheet];if(!ws)return[];const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true}),schema=isOut?MP_OUT_SCHEMA:MP_ACTIVE_SCHEMA,out=[],dateIdx=new Set([12,15,16,21,42,45,48,51,57]);
+        const ws=wb.Sheets[sheet];if(!ws)return[];const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true}),schema=isOut?MP_OUT_SCHEMA:MP_ACTIVE_SCHEMA,out=[],dateIdx=new Set([12,15,16,21,42,45,48,51]);if(isOut)dateIdx.add(57);
         for(let i=6;i<rows.length;i++){const a=rows[i]||[],no=norm(a[0]),name=norm(a[4]),job=norm(a[8]),dept=norm(a[9]),site=norm(a[28]);if(!/^\d+(\.0)?$/.test(no)||!/[A-Za-z]/.test(name)||!(job||dept||site))continue;const o={};schema.forEach((f,j)=>o[f]=dateIdx.has(j)?excelDate(a[j]):(a[j]??""));out.push(o)}return out;
       };
       const readUnits=()=>{
