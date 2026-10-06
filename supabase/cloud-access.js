@@ -22,11 +22,19 @@
     Object.entries(row||{}).forEach(([k,v])=>{if(!SENSITIVE_FIELDS.has(k))out[k]=v});
     return out;
   };
+  function deepSanitize(value){
+    if(Array.isArray(value))return value.map(deepSanitize);
+    if(value&&typeof value==="object"){
+      const out={};
+      Object.entries(value).forEach(([k,v])=>{
+        if(!SENSITIVE_FIELDS.has(k))out[k]=deepSanitize(v);
+      });
+      return out;
+    }
+    return value;
+  }
   function sanitizeState(state){
-    const out=clone(state);
-    if(Array.isArray(out.mpActive))out.mpActive=out.mpActive.map(cleanRecord);
-    if(Array.isArray(out.mpOut))out.mpOut=out.mpOut.map(cleanRecord);
-    return out;
+    return deepSanitize(clone(state));
   }
 
   let sb=null, appId="", role="viewer", session=null, opts={};
