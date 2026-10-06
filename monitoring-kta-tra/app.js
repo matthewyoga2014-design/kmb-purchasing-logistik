@@ -525,11 +525,20 @@ function showView(name){
   if(target==="mp")renderMP();
   if(target==="unit-population")renderUnits();
   if(target==="settings")renderSettings();
+  return target;
 }
 document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("today").textContent=new Intl.DateTimeFormat("id-ID",{weekday:"long",day:"2-digit",month:"long",year:"numeric"}).format(new Date());
   renderDashboard();renderMPP();renderMP();renderSettings();
-  document.querySelectorAll(".nav").forEach(n=>n.onclick=()=>showView(n.dataset.view));
+  const sidebar=document.getElementById("sidebar");
+  if(sidebar){
+    sidebar.addEventListener("click",e=>{
+      const nav=e.target.closest(".nav[data-view]");
+      if(!nav||!sidebar.contains(nav))return;
+      e.preventDefault();e.stopPropagation();
+      showView(nav.dataset.view);
+    },true);
+  }
   document.querySelectorAll(".mp-tab").forEach(b=>b.onclick=()=>setMPMode(b.dataset.mode));
   document.getElementById("menuBtn").onclick=()=>document.getElementById("sidebar").classList.toggle("open");
   document.getElementById("mppSearch").oninput=renderMPP;document.getElementById("mppStatus").onchange=renderMPP;document.getElementById("addMPP").onclick=()=>openMPPForm(null);document.getElementById("exportMPP").onclick=()=>exportRows(data.mpp,"MPP_KTA-TRA.csv");
