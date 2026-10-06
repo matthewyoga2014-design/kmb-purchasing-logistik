@@ -191,7 +191,7 @@ function renderKtaCharts(){
   ktaMakeChart("ktaCompositionChart",{
     type:"doughnut",
     data:{labels:["Actual","Vacant"],datasets:[{data:[m.actual,m.vacant],backgroundColor:["#7c3aed","#ff6b6b"],borderWidth:0,hoverOffset:5,borderRadius:6,spacing:3}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:"72%",onHover:(e,els,chart)=>{chart.canvas.style.cursor=els.length?"pointer":"default"},onClick:()=>openKtaMpp(),plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}}
+    options:{responsive:true,maintainAspectRatio:false,cutout:"72%",plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}}
   });
 
   const groups={};
@@ -218,14 +218,7 @@ function renderKtaCharts(){
     options:ktaChartOptions({
       indexAxis:"y",
       interaction:{mode:"nearest",intersect:true},
-      onHover:(event,elements,chart)=>{chart.canvas.style.cursor=elements.length?"pointer":"default"},
-      onClick:(event,elements,chart)=>{
-        if(!elements.length)return;
-        const i=elements[0].index,label=chart.data.labels[i],value=chart.data.datasets[0].data[i];
-        const pill=document.getElementById("vacantTotal");
-        if(pill)pill.textContent=label+": "+value+" vacant";
-        openKtaMppRole(label);
-      },
+
       plugins:{
         legend:{display:false},
         tooltip:{
@@ -252,7 +245,7 @@ function renderKtaCharts(){
   ktaMakeChart("ktaPipelineChart",{
     type:"line",
     data:{labels,datasets:[{label:"Kandidat / Posisi",data:stages.map(s=>counts[s]),borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.12)",pointBackgroundColor:"#fff",pointBorderColor:"#7c3aed",pointBorderWidth:3,pointRadius:4,tension:.38,fill:true}]},
-    options:ktaChartOptions({onHover:(e,els,chart)=>{chart.canvas.style.cursor=els.length?"pointer":"default"},onClick:()=>openKtaMpp(),plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
+    options:ktaChartOptions({plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
   });
 }
 function renderDashboard(){
@@ -262,8 +255,8 @@ function renderDashboard(){
   document.getElementById("kVacant").textContent=m.vacant;
   document.getElementById("kPct").textContent=m.pct+"%";
   document.getElementById("vacantTotal").textContent=m.vacant+" vacant • "+allCandidateRows().length+" kandidat";
-  document.getElementById("statusCards").innerHTML=[["Open",m.open],["Continue",m.cont],["Close",m.close]].map(x=>'<button class="mini dashboard-link-card" onclick="openKtaMppStatus(\''+x[0]+'\')"><b>'+x[1]+'</b><span>'+x[0]+'</span></button>').join("");
-  document.getElementById("dueCards").innerHTML=[["Hampir Jatuh Tempo",m.near],["Jatuh Tempo",m.overdue],["Selesai",m.done]].map(x=>'<button class="mini dashboard-link-card" onclick="openKtaMpp()"><b>'+x[1]+'</b><span>'+x[0]+'</span></button>').join("");
+  document.getElementById("statusCards").innerHTML=[["Open",m.open],["Continue",m.cont],["Close",m.close]].map(x=>'<div class="mini"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join("");
+  document.getElementById("dueCards").innerHTML=[["Hampir Jatuh Tempo",m.near],["Jatuh Tempo",m.overdue],["Selesai",m.done]].map(x=>'<div class="mini"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join("");
   renderVacancyResume();renderRecruitment();renderUnits();renderKtaCharts();
 }
 function renderVacancyResume(){
@@ -282,7 +275,7 @@ function renderVacancyResume(){
     return '<button class="resume-card" onclick="focusRole(decodeURIComponent(\''+encodeURIComponent(jobKey(g.label))+'\'))"><div><span class="resume-count">'+g.items.length+'</span><b>'+esc(g.label)+'</b></div><div class="candidate-total">'+g.candidateCount+' kandidat untuk '+g.items.length+' vacant</div><div class="resume-best">Progress kandidat tertinggi: <b>'+esc(best.p.label)+' ('+best.p.p+'%)</b></div><div class="resume-breakdown">'+esc(Object.entries(bd).map(x=>x[1]+'× '+x[0]).join(" • ")||"Belum ada kandidat")+'</div><div class="resume-link">Lihat detail →</div></button>'
   }).join(""):'<div class="empty">Tidak ada vacant</div>';
 }
-function focusRole(role){recruitRole=role;openKtaMppRole(jobLabel(role))}
+function focusRole(role){recruitRole=role;renderRecruitment();document.getElementById("recruitmentCard").scrollIntoView({behavior:"smooth",block:"start"})}
 function clearRole(){recruitRole="";renderRecruitment()}
 function renderRecruitment(){
   const rows=data.mpp.map((r,i)=>({...r,__i:i})).filter(r=>norm(r.Status).toLowerCase()==="open"&&(!recruitRole||jobKey(r.Jabatan)===recruitRole));
@@ -320,7 +313,7 @@ function deleteKtaUnit(index){
 }
 function renderUnits(){
   const total=(data.units||[]).reduce((s,r)=>s+(Number(r.Jumlah)||0),0);
-  const dashboardCards=(data.units||[]).map((r,i)=>'<button class="unit-card unit-card-click" onclick="showView(\'unit-population\')"><span>'+esc(r["Jenis Unit"])+'</span><b>'+esc(r.Jumlah)+'</b></button>').join("");
+  const dashboardCards=(data.units||[]).map(r=>'<div class="unit-card"><span>'+esc(r["Jenis Unit"])+'</span><b>'+esc(r.Jumlah)+'</b></div>').join("");
   const pageCards=(data.units||[]).map((r,i)=>'<div class="unit-card unit-manage-card"><div class="unit-manage-main"><span>'+esc(r["Jenis Unit"])+'</span><b>'+esc(r.Jumlah)+'</b></div><div class="unit-manage-actions"><button class="btn" onclick="openKtaUnitForm('+i+')">Edit</button><button class="btn danger" onclick="deleteKtaUnit('+i+')">Hapus</button></div></div>').join("");
   const totalEl=document.getElementById("unitTotal");if(totalEl)totalEl.textContent=total+" unit";
   const dash=document.getElementById("unitSummary");if(dash)dash.innerHTML=dashboardCards;
