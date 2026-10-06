@@ -104,3 +104,5 @@ body{background:linear-gradient(180deg,#eef0f7 0,#f7f8fc 240px,#f7f8fc 100%);col
 .card.metric-card.metric-orange{background:linear-gradient(135deg,#fb8d45,#ffad5f)!important;color:#fff!important}
 .metric-card .kpi-label,.metric-card .kpi-value,.metric-card .kpi-sub,.metric-card .metric-icon{color:#fff!important}
 .metric-card .kpi-value{font-weight:900!important}
+
+.unit-total-pill{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;padding:8px 11px;border-radius:999px;background:#f1ecff;color:#6d28d9;font-size:11px;font-weight:900;border:1px solid #e2d8ff}
