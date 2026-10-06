@@ -236,8 +236,28 @@ function renderSite(key){
   const q=(document.getElementById("q_"+id(key))?.value||"").toLowerCase(),st=document.getElementById("st_"+id(key))?.value||"",all=data.sites[key]||[],m=siteMetrics(all);
   document.getElementById("stats_"+id(key)).innerHTML='<div class="stats"><div class="mini"><b>'+m.planning+'</b><span>Planning</span></div><div class="mini"><b>'+m.actual+'</b><span>Actual</span></div><div class="mini"><b>'+m.vacant+'</b><span>Vacant</span></div><div class="mini"><b>'+m.open+'</b><span>Open</span></div><div class="mini"><b>'+m.close+'</b><span>Close</span></div></div>';
   const rows=all.map((r,i)=>({...r,__i:i})).filter(r=>(!q||JSON.stringify(r).toLowerCase().includes(q))&&(!st||r.Status===st));
-  let body=rows.map(r=>{const p=progress(r);return '<tr><td>'+esc(r.No)+'</td><td><b>'+esc(r.Nama||"-")+'</b></td><td>'+esc(r.Jabatan||"-")+'</td><td>'+esc(r.Keterangan||"-")+'</td><td>'+esc(r.PIC||"-")+'</td><td>'+badge(r.Status)+'</td><td><div style="display:flex;align-items:center;gap:7px"><div class="progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b></div><div style="font-size:10px;color:#6b7280;margin-top:3px">'+esc(p.label)+'</div></td><td>'+fmtDate(r["Due Date"])+'</td><td>'+badge(r["Keterangan PTK"])+'</td><td><button class="btn" onclick="openSiteForm(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">Edit</button> <button class="btn danger" onclick="removeSiteRow(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">Hapus</button></td></tr>'}).join("");
+  let body=rows.map(r=>{
+    const p=progress(r),vacant=isVacantName(r.Nama);
+    const action=vacant
+      ? '<button class="btn" onclick="openSiteForm(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">Edit</button> <button class="btn danger" onclick="removeSiteRow(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">Hapus Posisi</button>'
+      : '<button class="btn" onclick="openSiteForm(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">Edit</button> <button class="btn danger" onclick="openExitFromSite(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">MP OUT</button>';
+    return '<tr><td>'+esc(r.No)+'</td><td><b>'+esc(r.Nama||"-")+'</b></td><td>'+esc(r.Jabatan||"-")+'</td><td>'+esc(r.Keterangan||"-")+'</td><td>'+esc(r.PIC||"-")+'</td><td>'+badge(r.Status)+'</td><td><div style="display:flex;align-items:center;gap:7px"><div class="progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b></div><div style="font-size:10px;color:#6b7280;margin-top:3px">'+esc(p.label)+'</div></td><td>'+fmtDate(r["Due Date"])+'</td><td>'+badge(r["Keterangan PTK"])+'</td><td class="action-cell">'+action+'</td></tr>';
+  }).join("");
   document.getElementById("table_"+id(key)).innerHTML='<div class="table-wrap"><table class="table"><thead><tr><th>No</th><th>Nama</th><th>Jabatan</th><th>Keterangan</th><th>PIC</th><th>Status</th><th>Progress</th><th>Due Date</th><th>Ket. PTK</th><th>Aksi</th></tr></thead><tbody>'+body+'</tbody></table></div>';
+}
+function openExitFromSite(key,index){
+  const siteRow=data.sites?.[key]?.[index];if(!siteRow||isVacantName(siteRow.Nama))return;
+  const activeIndex=(data.mpActive||[]).findIndex(r=>sameName(r.Nama,siteRow.Nama));
+  if(activeIndex<0){
+    alert("Data "+siteRow.Nama+" belum ditemukan di MP Aktif. Sistem akan membuka MP Aktif dan mencari nama tersebut.");
+    mpMode="active";
+    showView("mp");
+    document.querySelectorAll(".mp-tab").forEach(b=>b.classList.toggle("active",b.dataset.mode==="active"));
+    const q=document.getElementById("mpSearch");if(q)q.value=siteRow.Nama;
+    renderMP();
+    return;
+  }
+  openExitForm(activeIndex);
 }
 function computePTK(r){
   if(!r.Judul||!r["Awal Rekrutmen"]){r["Keterangan PTK"]="TIDAK ADA PENGAJUAN";return}
@@ -302,7 +322,8 @@ function saveModal(){
 function closeModal(){document.getElementById("modal").classList.remove("show");editState=null}
 function removeSiteRow(key,index){
   const row=data.sites?.[key]?.[index];if(!row)return;
-  if(!confirm("Hapus data ini?\n\nData akan masuk Data Terhapus dan dapat dipulihkan."))return;
+  if(!isVacantName(row.Nama)){alert("Manpower aktif tidak dihapus sebagai posisi. Gunakan tombol MP OUT.");return}
+  if(!confirm("Hapus posisi kebutuhan "+(row.Jabatan||"ini")+"?\n\nPlanning manpower akan berkurang 1. Data posisi masuk Data Terhapus dan tetap dapat dipulihkan."))return;
   data.deletedKMB=data.deletedKMB||[];data.deletedKMB.unshift({type:"site",siteKey:key,index,row:clone(row),deletedAt:new Date().toISOString()});
   data.sites[key].splice(index,1);renumberSiteRows(key);saveData();renderSite(key);
 }
@@ -331,7 +352,7 @@ function renderMP(){
     const cells=fields.map(f=>'<td>'+esc(r[f]||"-")+'</td>').join("");
     let actions='<button class="btn" onclick="openMpForm(\''+mpMode+'\','+r.__i+')">Edit</button>';
     if(mpMode==="active")actions+=' <button class="btn yellow" onclick="openMpForm(\'active\','+r.__i+')">Pindah Site</button> <button class="btn danger" onclick="openExitForm('+r.__i+')">MP OUT</button>';
-    else actions+=' <button class="btn yellow" onclick="restoreFromOut('+r.__i+')">Kembalikan ke MP Aktif</button> <button class="btn danger" onclick="removeMpRow(\'out\','+r.__i+')">Hapus</button>';
+    else actions+=' <button class="btn yellow" onclick="restoreFromOut('+r.__i+')">Kembalikan ke MP Aktif</button> <button class="btn danger" onclick="removeMpRow(\'out\','+r.__i+')">Hapus Data</button>';
     body+='<tr>'+cells+'<td class="action-cell">'+actions+'</td></tr>';
   });
   document.getElementById("mpTable").innerHTML='<div class="table-wrap"><table class="table mp-table"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';
@@ -372,7 +393,8 @@ function openExitForm(index){
 }
 function removeMpRow(mode,index){
   const arr=mode==="active"?data.mpActive:data.mpOut,rec=arr[index];if(!rec)return;
-  if(!confirm("Hapus data manpower ini?\n\nData akan masuk Data Terhapus dan dapat dipulihkan."))return;
+  const label=mode==="out"?"Hapus record "+(rec.Nama||"ini")+" dari MP OUT?":"Hapus data manpower ini?";
+  if(!confirm(label+"\n\nData akan masuk Data Terhapus dan dapat dipulihkan."))return;
   data.deletedKMB=data.deletedKMB||[];data.deletedKMB.unshift({type:"mp",mode,index,siteKey:mpGroupKey(rec),localNo:Number(rec["No."])||1,row:clone(rec),deletedAt:new Date().toISOString()});
   arr.splice(index,1);saveData();renderMP();
 }
