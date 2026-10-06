@@ -115,3 +115,11 @@ body{background:linear-gradient(180deg,#eef0f7 0,#f7f8fc 240px,#f7f8fc 100%);col
   .mp-tabs .pill{margin-left:0}
   .recruit-progress{min-width:90px}
 }
+
+/* KPI visibility fix: keep gradient background above generic .card */
+.card.metric-card.metric-purple{background:linear-gradient(135deg,#8b5cf6,#a78bfa)!important;color:#fff!important}
+.card.metric-card.metric-blue{background:linear-gradient(135deg,#3867d6,#3b9af8)!important;color:#fff!important}
+.card.metric-card.metric-coral{background:linear-gradient(135deg,#ff626d,#ff8585)!important;color:#fff!important}
+.card.metric-card.metric-orange{background:linear-gradient(135deg,#fb8d45,#ffad5f)!important;color:#fff!important}
+.metric-card .kpi-label,.metric-card .kpi-value,.metric-card .kpi-sub,.metric-card .metric-icon{color:#fff!important}
+.metric-card .kpi-value{font-weight:900!important}
