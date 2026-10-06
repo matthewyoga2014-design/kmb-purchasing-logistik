@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827">
+<title>PT. Karunia Mandiri Berkarya | Monitoring KMB</title>
+<link rel="stylesheet" href="styles.css?v=1">
+</head>
+<body>
+<div class="app">
+<aside class="sidebar" id="sidebar">
+  <div class="brand"><div class="mark">KMB</div><div><b>Karunia Mandiri<br>Berkarya</b><small>Monitoring System</small></div></div>
+  <div class="group">Ringkasan</div>
+  <button class="nav active" data-view="dashboard" data-title="Dashboard">▦ &nbsp; Dashboard</button>
+  <div class="group">Monitoring Manpower</div>
+  <button class="nav" data-view="site-C4" data-title="C4">● &nbsp; C4</button>
+  <button class="nav" data-view="site-SLR___MAINTENANCE" data-title="SLR Maintenance">● &nbsp; SLR Maintenance</button>
+  <button class="nav" data-view="site-SLR___REKONDISI" data-title="SLR Rekondisi">● &nbsp; SLR Rekondisi</button>
+  <button class="nav" data-view="site-WS" data-title="Workshop Legok">● &nbsp; Workshop Legok</button>
+  <div class="group">Database</div>
+  <button class="nav" data-view="units" data-title="Populasi Unit">▤ &nbsp; Populasi Unit</button>
+  <button class="nav" data-view="privacy" data-title="MP Aktif / MP OUT">👥 &nbsp; MP Aktif / MP OUT</button>
+  <div class="group">Sistem</div>
+  <button class="nav" data-view="settings" data-title="Pengaturan">⚙ &nbsp; Pengaturan</button>
+</aside>
+
+<main class="main">
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px"><button class="btn hamb" id="menuBtn">☰</button><h1 id="topTitle">Dashboard</h1></div>
+  <div class="top-actions"><span class="pill hide-mobile">Monitoring KMB • Web</span><button class="btn" onclick="window.print()">Print</button></div>
+</header>
+<div class="content">
+
+<section class="view active" id="dashboard">
+  <div class="hero">
+    <div><h2>Dashboard Manpower KMB</h2><p>C4 • SLR Maintenance • SLR Rekondisi • Workshop Legok</p></div>
+    <div class="date" id="today"></div>
+  </div>
+  <div class="kpis">
+    <div class="card"><div class="kpi-label">Total Manpower Planning</div><div class="kpi-value" id="kPlanning">0</div><div class="kpi-sub">Seluruh posisi per jobsite</div><div class="accent"></div></div>
+    <div class="card"><div class="kpi-label">Manpower Actual</div><div class="kpi-value" id="kActual">0</div><div class="kpi-sub">Posisi yang sudah terisi</div><div class="accent"></div></div>
+    <div class="card"><div class="kpi-label">Vacant / Kekosongan</div><div class="kpi-value" id="kVacant">0</div><div class="kpi-sub">Kebutuhan yang masih kosong</div><div class="accent"></div></div>
+    <div class="card"><div class="kpi-label">Actual vs Planning</div><div class="kpi-value" id="kPct">0%</div><div class="kpi-sub">Persentase pemenuhan manpower</div><div class="accent"></div></div>
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="section-head"><h3>Ringkasan per Jobsite</h3><span class="pill">Data Excel awal</span></div>
+      <div class="table-wrap"><table class="table"><thead><tr><th>Jobsite</th><th>Planning</th><th>Actual</th><th>Vacant</th><th>% Actual</th><th>Open</th><th>Continue</th><th>Close</th><th>Jatuh Tempo</th></tr></thead><tbody id="summaryBody"></tbody></table></div>
+    </div>
+    <div class="card"><div class="section-head"><h3>Planning vs Actual</h3></div><div class="bars" id="bars"></div></div>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <div class="card"><div class="section-head"><h3>Status PTK</h3></div><div class="stats" style="grid-template-columns:repeat(4,1fr);margin:0" id="statusCards"></div></div>
+    <div class="card"><div class="section-head"><h3>Kekosongan per Jabatan</h3></div><div id="vacancies"></div></div>
+  </div>
+</section>
+
+<div id="siteViews"></div>
+
+<section class="view" id="units">
+  <div class="page-head"><div><h2>Populasi Unit</h2><p>Data unit dari sheet UNIT pada Monitoring KMB</p></div><div class="toolbar"><input class="input" id="unitSearch" placeholder="Cari unit / serial number..."><button class="btn" id="exportUnits">Export CSV</button></div></div>
+  <div id="unitTables"></div>
+</section>
+
+<section class="view" id="privacy">
+  <div class="page-head"><div><h2>MP Aktif / MP OUT</h2><p>Database personalia pada workbook sumber</p></div></div>
+  <div class="card privacy-card">
+    <div class="notice red"><b>Data personal tidak dipublikasikan pada GitHub Pages.</b><br>Sheet MP Aktif dan MP OUT pada Excel berisi informasi seperti NIK, nomor rekening, BPJS, alamat, dan nomor telepon. Agar tidak terbuka di internet, data tersebut tidak ditanam ke versi web publik ini.</div>
+    <div style="height:14px"></div>
+    <h3>Struktur tetap disiapkan untuk versi internal</h3>
+    <p style="font-size:12px;color:#6b7280;line-height:1.6">Jika sistem nanti menggunakan database dengan autentikasi Admin/Editor, menu ini dapat diaktifkan untuk data karyawan tanpa menjadikannya data publik.</p>
+  </div>
+</section>
+
+<section class="view" id="settings">
+  <div class="page-head"><div><h2>Pengaturan & Backup</h2><p>Kelola data yang tersimpan pada browser ini</p></div></div>
+  <div class="grid2">
+    <div class="card"><div class="section-head"><h3>Backup Data</h3></div><p style="font-size:12px;color:#6b7280;line-height:1.6">Perubahan yang Anda lakukan disimpan di browser perangkat ini. Gunakan backup JSON untuk menyimpan salinan atau memindahkan perubahan ke perangkat lain.</p><div class="toolbar"><button class="btn primary" id="backupBtn">Download Backup</button><label class="btn">Import Backup<input id="importFile" type="file" accept=".json,application/json" hidden></label></div></div>
+    <div class="card"><div class="section-head"><h3>Reset</h3></div><p style="font-size:12px;color:#6b7280;line-height:1.6">Mengembalikan data web ke kondisi awal dari file Excel yang dipakai saat pembuatan aplikasi.</p><button class="btn danger" id="resetBtn">Reset ke Data Awal</button></div>
+  </div>
+  <div style="height:16px"></div>
+  <div class="notice"><b>Catatan:</b> versi ini menggunakan penyimpanan browser seperti aplikasi web statis. Untuk sinkronisasi antar Admin/Editor secara real-time dibutuhkan database online dan autentikasi.</div>
+</section>
+
+<div class="footer">PT. Karunia Mandiri Berkarya • Monitoring KMB</div>
+</div>
+</main>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <div class="modal-head"><h3 id="modalTitle">Edit Data</h3><button class="btn" id="closeModal">✕</button></div>
+    <div class="formgrid" id="formFields"></div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Batal</button><button class="btn primary" id="saveModal">Simpan Perubahan</button></div>
+  </div>
+</div>
+
+<script src="data.js?v=1"></script>
+<script src="app.js?v=1"></script>
+</body>
+</html>
