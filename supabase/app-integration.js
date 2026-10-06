@@ -143,7 +143,26 @@
     try{
       await window.KMBCloud.signInPassword(email,password);
       closeAuthModal();
-    }catch(e){alert("Login gagal: "+(e.message||e))}
+    }catch(e){
+      const msg=String(e?.message||e||"");
+      const knownRole = email==="matthewyoga2014@gmail.com" || getEditors().map(x=>String(x).toLowerCase()).includes(email);
+      if(knownRole && /invalid login credentials|email not confirmed|user not found/i.test(msg)){
+        try{
+          const r=await window.KMBCloud.signUpPassword(email,password);
+          if(r.session){
+            closeAuthModal();
+            alert("Akun berhasil diaktifkan. Silakan coba edit kembali.");
+          }else{
+            alert("Akun berhasil dibuat. Cek email "+email+" lalu klik konfirmasi satu kali. Setelah itu kembali ke web ini dan tekan Masuk lagi.");
+          }
+          return;
+        }catch(signErr){
+          alert("Aktivasi akun gagal: "+(signErr.message||signErr));
+          return;
+        }
+      }
+      alert("Login gagal: "+msg);
+    }
   };
 
   window.cloudSignupPassword=async function(){
