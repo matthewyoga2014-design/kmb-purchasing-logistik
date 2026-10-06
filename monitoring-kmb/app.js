@@ -20,6 +20,7 @@ const MP_SCHEMA_ACTIVE=[
 const MP_SCHEMA_OUT=[...MP_SCHEMA_ACTIVE,"Tanggal Keluar","Alasan"];
 const SENSITIVE_FIELDS=new Set(["NIP (KARYAWAN)","NIK KTP","NO.KK","NO. NPWP","Nomor HP","Alamat Domisili","Alamat Lengkap","No Rekening","Nama Bank","Nama Pemilik Rekening","Nomor BPJS Kesehatan","Nomor BPJS Ketenagakerjaan","Nama Ibu","Pendidikan Terakhir Ibu","Pekerjaan Ibu","Nama Ayah","Pendidikan Terakhir Ayah","Pekerjaan Ayah","Saudara Kandung (1)","Jenis Kelamin (1)","Tanggal Lahir (1)","Saudara Kandung (2)","Jenis Kelamin (2)","Tanggal Lahir (2)","Saudara Kandung (3)","Jenis Kelamin (3)","Tanggal Lahir (3)","Saudara Kandung (4)","Jenis Kelamin (4)","Tanggal Lahir (4)","Nama Emergency","Hubungan","Nomor Telepon"]);
 const SUMMARY_MP_FIELDS=["No.","Nama","Jabatan","Departemen","Status Kontrak PKWT/PKWTT/Harian Lepas","POH","Tanggal Masuk","Masa Kerja","Keterangan","Tempat Bekerja","STATUS","BLOK KAMAR"];
+const SITE_DISPLAY_ORDER=["C4","SLR - MAINTENANCE","SLR - REKONDISI","WS"];
 
 function clone(v){return JSON.parse(JSON.stringify(v))}
 function normText(v){return String(v??"").trim()}
@@ -57,6 +58,53 @@ function normalizeAllMP(){
   data.mpActive=(data.mpActive||[]).map(normalizedMP);
   data.mpOut=(data.mpOut||[]).map(normalizedMP);
 }
+function mpRestoreKey(rec){
+  return [nameKey(rec?.Nama),canonicalJob(rec?.Jabatan),normText(rec?.["Tempat Bekerja"]).toLowerCase()].join("|");
+}
+function mpGroupKey(rec){return siteKeyFromPlacement(rec?.["Tempat Bekerja"])||"OTHER"}
+function mpGroupLabel(rec){
+  const k=mpGroupKey(rec);
+  return k==="OTHER"?(normText(rec?.["Tempat Bekerja"])||"Belum Ditentukan"):(data.siteLabels?.[k]||placementFromSiteKey(k)||k);
+}
+function mpGroupRank(rec){
+  const k=mpGroupKey(rec),i=SITE_DISPLAY_ORDER.indexOf(k);
+  return i<0?SITE_DISPLAY_ORDER.length:i;
+}
+function ensureRuntimeData(){
+  if(!Array.isArray(data.deletedKMB))data.deletedKMB=[];
+  if(!data.mpRestoreMeta||typeof data.mpRestoreMeta!=="object"||Array.isArray(data.mpRestoreMeta))data.mpRestoreMeta={};
+  (data.mpOut||[]).forEach(r=>{
+    const k=mpRestoreKey(r);
+    if(!data.mpRestoreMeta[k])data.mpRestoreMeta[k]={siteKey:mpGroupKey(r),localNo:Number(r["No."])||null,activeIndex:null,capturedFrom:"existing-mp-out"};
+  });
+}
+function renumberSiteRows(key){(data.sites?.[key]||[]).forEach((r,i)=>r.No=String(i+1))}
+function renumberMPArray(arr){
+  arr.sort((a,b)=>mpGroupRank(a)-mpGroupRank(b));
+  const counts={};
+  arr.forEach(r=>{const k=mpGroupKey(r);counts[k]=(counts[k]||0)+1;r["No."]=String(counts[k])});
+}
+function renumberAll(){
+  Object.keys(data.sites||{}).forEach(renumberSiteRows);
+  renumberMPArray(data.mpActive||[]);
+  renumberMPArray(data.mpOut||[]);
+}
+function insertGroupedMP(arr,rec,meta){
+  const key=meta?.siteKey||mpGroupKey(rec),wanted=Math.max(1,Number(meta?.localNo)||1),rank=SITE_DISPLAY_ORDER.indexOf(key);
+  let insertAt=arr.length,lastSame=-1,firstLater=-1;
+  for(let i=0;i<arr.length;i++){
+    const rk=mpGroupKey(arr[i]),rr=SITE_DISPLAY_ORDER.indexOf(rk),rRank=rr<0?SITE_DISPLAY_ORDER.length:rr,targetRank=rank<0?SITE_DISPLAY_ORDER.length:rank;
+    if(rk===key){lastSame=i;if((Number(arr[i]["No."])||9999)>=wanted){insertAt=i;break}}
+    else if(firstLater<0&&rRank>targetRank)firstLater=i;
+  }
+  if(insertAt===arr.length){
+    if(lastSame>=0)insertAt=lastSame+1;
+    else if(firstLater>=0)insertAt=firstLater;
+    else if(Number.isInteger(meta?.activeIndex))insertAt=Math.min(Math.max(0,meta.activeIndex),arr.length);
+  }
+  arr.splice(insertAt,0,rec);
+}
+
 function mergeRosterFromSource(existing,baseline){
   const ex=Array.isArray(existing)?existing:[];
   const safe=["No.","Nama","Jabatan","Departemen","Level","Status Kontrak PKWT/PKWTT/Harian Lepas","Akhir Kontrak","POH","Sisa Hari","Reminder","Tanggal Masuk","Masa Kerja","Jenis Kelamin","Agama","Tempat Lahir","Tgl/Lahir","Umur","Pendidikan Terakhir","Keterangan","Tempat Bekerja","STATUS","BLOK KAMAR","Tanggal Keluar","Alasan"];
@@ -76,6 +124,8 @@ function loadData(){
     saved.units=saved.units||clone(INITIAL.units||[]);
     saved.mpActive=Array.isArray(saved.mpActive)?saved.mpActive:[];
     saved.mpOut=Array.isArray(saved.mpOut)?saved.mpOut:[];
+    saved.deletedKMB=Array.isArray(saved.deletedKMB)?saved.deletedKMB:[];
+    saved.mpRestoreMeta=(saved.mpRestoreMeta&&typeof saved.mpRestoreMeta==="object"&&!Array.isArray(saved.mpRestoreMeta))?saved.mpRestoreMeta:{};
     if(!localStorage.getItem(SOURCE_SYNC_KEY)){
       saved.sites=clone(INITIAL.sites||{});
       saved.siteLabels=clone(INITIAL.siteLabels||{});
@@ -88,8 +138,8 @@ function loadData(){
     return saved;
   }catch(e){return clone(INITIAL)}
 }
-normalizeAllMP();
-function saveData(){localStorage.setItem(KEY,JSON.stringify(data));renderDashboard();renderSettings()}
+normalizeAllMP();ensureRuntimeData();renumberAll();
+function saveData(){ensureRuntimeData();renumberAll();localStorage.setItem(KEY,JSON.stringify(data));renderDashboard();renderSettings()}
 
 function badge(v){
   if(!v)return '<span class="badge neutral">-</span>';
@@ -198,6 +248,7 @@ function computePTK(r){
 function fieldHtml(f,row,type="site"){
   const empty=type==="mp"&&!normText(row[f]);
   const hint=empty?'<small class="empty-hint">Belum terisi di Excel</small>':"";
+  if((f==="No"&&type==="site")||(f==="No."&&type==="mp"))return '<div class="field"><label>'+f+'</label><input value="'+esc(row[f]||"Otomatis")+'" readonly><small class="empty-hint">Nomor diatur otomatis oleh sistem</small></div>';
   if(f==="Status"&&type==="site")return '<div class="field"><label>'+f+'</label><select data-f="'+f+'"><option value=""></option>'+["Open","Continue","Close"].map(x=>'<option '+(row[f]===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
   if(f==="Tempat Bekerja"&&type==="mp")return '<div class="field '+(empty?"empty-field":"")+'"><label>'+f+'</label><select data-f="'+f+'"><option value="">-- belum terisi --</option>'+["C4","SLR - Maintenance","SLR - Rekondisi","Workshop Legok"].map(x=>'<option '+(normText(row[f])===x?"selected":"")+'>'+x+'</option>').join("")+'</select>'+hint+'</div>';
   if(["Keterangan","Alasan","Alamat Domisili","Alamat Lengkap"].includes(f))return '<div class="field '+(SENSITIVE_FIELDS.has(f)?"sensitive ":"")+(empty?"empty-field":"")+'"><label>'+f+(SENSITIVE_FIELDS.has(f)?' <span title="Data sensitif">🔒</span>':'')+'</label><textarea data-f="'+f+'" placeholder="Belum terisi di Excel">'+esc(row[f]||"")+'</textarea>'+hint+'</div>';
@@ -218,31 +269,43 @@ function syncActivePlacementFromSite(name,key){
 function saveModal(){
   if(!editState)return;let row={};document.querySelectorAll("#formFields [data-f]").forEach(el=>row[el.dataset.f]=el.value);
   if(editState.type==="site"){
-    if(!row.No)row.No=String((data.sites[editState.key]||[]).length+1);computePTK(row);
-    if(editState.index===null)data.sites[editState.key].push(row);else data.sites[editState.key][editState.index]={...data.sites[editState.key][editState.index],...row};
+    computePTK(row);
+    if(editState.index===null){row.No="";data.sites[editState.key].push(row)}
+    else{row.No=data.sites[editState.key][editState.index]?.No||"";data.sites[editState.key][editState.index]={...data.sites[editState.key][editState.index],...row}}
+    renumberSiteRows(editState.key);
     if(!isVacantName(row.Nama))syncActivePlacementFromSite(row.Nama,editState.key);
     const k=editState.key;saveData();renderSite(k);renderMP();closeModal();return;
   }
   if(editState.type==="mp"||editState.type==="exit"){
-    const arr=editState.mode==="active"?data.mpActive:data.mpOut;
-    const schema=editState.mode==="active"?MP_SCHEMA_ACTIVE:MP_SCHEMA_OUT;
+    const arr=editState.mode==="active"?data.mpActive:data.mpOut,schema=editState.mode==="active"?MP_SCHEMA_ACTIVE:MP_SCHEMA_OUT;
     const clean={};schema.forEach(f=>clean[f]=row[f]||"");
-    if(!clean["No."])clean["No."]=String(arr.length+1);
     const old=editState.index===null?null:clone(arr[editState.index]);
-    if(editState.index===null)arr.push(clean);else arr[editState.index]={...arr[editState.index],...clean};
-    if(editState.mode==="active"){
-      const oldPlacement=old?.["Tempat Bekerja"]||"",newPlacement=clean["Tempat Bekerja"]||"";
-      if(normText(oldPlacement)!==normText(newPlacement)&&clean.Nama)syncPlacement(clean,oldPlacement,newPlacement);
-    } else if(editState.type==="exit"){
-      const src=editState.sourceIndex;
-      const activeRec=data.mpActive[src];
-      if(activeRec){vacateForExit(activeRec,clean["Tanggal Keluar"],clean.Alasan);data.mpActive.splice(src,1)}
+    if(editState.type==="exit"){
+      const src=editState.sourceIndex,activeRec=data.mpActive[src];
+      if(activeRec){
+        const key=mpRestoreKey(activeRec);
+        data.mpRestoreMeta[key]={siteKey:mpGroupKey(activeRec),localNo:Number(activeRec["No."])||1,activeIndex:src,capturedFrom:"mp-out"};
+        clean["No."]=activeRec["No."]||"";
+        arr.push(clean);vacateForExit(activeRec,clean["Tanggal Keluar"],clean.Alasan);data.mpActive.splice(src,1);
+      }
+    }else{
+      if(editState.index===null){clean["No."]="";arr.push(clean)}
+      else{clean["No."]=arr[editState.index]?.["No."]||"";arr[editState.index]={...arr[editState.index],...clean}}
+      if(editState.mode==="active"){
+        const oldPlacement=old?.["Tempat Bekerja"]||"",newPlacement=clean["Tempat Bekerja"]||"";
+        if(normText(oldPlacement)!==normText(newPlacement)&&clean.Nama)syncPlacement(clean,oldPlacement,newPlacement);
+      }
     }
     saveData();makeSiteViews();renderMP();closeModal();return;
   }
 }
 function closeModal(){document.getElementById("modal").classList.remove("show");editState=null}
-function removeSiteRow(key,index){if(confirm("Hapus data ini?")){data.sites[key].splice(index,1);saveData();renderSite(key)}}
+function removeSiteRow(key,index){
+  const row=data.sites?.[key]?.[index];if(!row)return;
+  if(!confirm("Hapus data ini?\n\nData akan masuk Data Terhapus dan dapat dipulihkan."))return;
+  data.deletedKMB=data.deletedKMB||[];data.deletedKMB.unshift({type:"site",siteKey:key,index,row:clone(row),deletedAt:new Date().toISOString()});
+  data.sites[key].splice(index,1);renumberSiteRows(key);saveData();renderSite(key);
+}
 
 function renderUnits(){
   const q=(document.getElementById("unitSearch")?.value||"").toLowerCase();
@@ -255,20 +318,22 @@ function renderUnits(){
 function setMPMode(mode){mpMode=mode;document.querySelectorAll(".mp-tab").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));renderMP()}
 function toggleMPFull(){mpFullView=!mpFullView;document.getElementById("mpFullBtn").textContent=mpFullView?"Tampilan Ringkas":"Semua Kolom";renderMP()}
 function renderMP(){
-  normalizeAllMP();
+  normalizeAllMP();ensureRuntimeData();renumberAll();
   const arr=mpMode==="active"?data.mpActive:data.mpOut,q=(document.getElementById("mpSearch")?.value||"").toLowerCase();
   const rows=arr.map((r,i)=>({...r,__i:i})).filter(r=>!q||JSON.stringify(r).toLowerCase().includes(q));
   document.getElementById("mpTitle").textContent=mpMode==="active"?"MP Aktif":"MP OUT";
   document.getElementById("mpCount").textContent=rows.length+" data";
   const fields=mpFullView?(mpMode==="active"?MP_SCHEMA_ACTIVE:MP_SCHEMA_OUT):SUMMARY_MP_FIELDS.concat(mpMode==="out"?["Tanggal Keluar","Alasan"]:[]);
-  let head=fields.map(f=>'<th>'+esc(f)+'</th>').join("")+'<th>Aksi</th>';
-  let body=rows.map(r=>{
-    let cells=fields.map(f=>'<td>'+esc(r[f]||"-")+'</td>').join("");
+  let head=fields.map(f=>'<th>'+esc(f)+'</th>').join("")+'<th>Aksi</th>',body="",lastGroup=null;
+  rows.forEach(r=>{
+    const group=mpGroupLabel(r);
+    if(group!==lastGroup){body+='<tr class="mp-group-row"><td colspan="'+(fields.length+1)+'"><b>'+esc(group)+'</b><span>Nomor otomatis per jobsite</span></td></tr>';lastGroup=group}
+    const cells=fields.map(f=>'<td>'+esc(r[f]||"-")+'</td>').join("");
     let actions='<button class="btn" onclick="openMpForm(\''+mpMode+'\','+r.__i+')">Edit</button>';
     if(mpMode==="active")actions+=' <button class="btn yellow" onclick="openMpForm(\'active\','+r.__i+')">Pindah Site</button> <button class="btn danger" onclick="openExitForm('+r.__i+')">MP OUT</button>';
     else actions+=' <button class="btn yellow" onclick="restoreFromOut('+r.__i+')">Kembalikan ke MP Aktif</button> <button class="btn danger" onclick="removeMpRow(\'out\','+r.__i+')">Hapus</button>';
-    return '<tr>'+cells+'<td class="action-cell">'+actions+'</td></tr>';
-  }).join("");
+    body+='<tr>'+cells+'<td class="action-cell">'+actions+'</td></tr>';
+  });
   document.getElementById("mpTable").innerHTML='<div class="table-wrap"><table class="table mp-table"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';
 }
 function hasFullMPData(row){
@@ -305,37 +370,31 @@ function openExitForm(index){
   document.getElementById("formFields").innerHTML='<div class="notice" style="grid-column:1/-1"><b>Sinkron otomatis:</b> saat disimpan, data akan masuk ke MP OUT, dihapus dari MP Aktif, dan posisi lama di jobsite menjadi Vacant.</div>'+MP_SCHEMA_OUT.map(f=>fieldHtml(f,row,"mp")).join("");
   document.getElementById("modal").classList.add("show");
 }
-function removeMpRow(mode,index){if(confirm("Hapus data manpower ini?")){(mode==="active"?data.mpActive:data.mpOut).splice(index,1);saveData();renderMP()}}
+function removeMpRow(mode,index){
+  const arr=mode==="active"?data.mpActive:data.mpOut,rec=arr[index];if(!rec)return;
+  if(!confirm("Hapus data manpower ini?\n\nData akan masuk Data Terhapus dan dapat dipulihkan."))return;
+  data.deletedKMB=data.deletedKMB||[];data.deletedKMB.unshift({type:"mp",mode,index,siteKey:mpGroupKey(rec),localNo:Number(rec["No."])||1,row:clone(rec),deletedAt:new Date().toISOString()});
+  arr.splice(index,1);saveData();renderMP();
+}
 function restoreFromOut(index){
   const rec=data.mpOut[index];if(!rec)return;
   const name=rec.Nama||"data ini";
-  if(data.mpActive.some(x=>sameName(x.Nama,rec.Nama))){
-    alert(name+" sudah ada di MP Aktif. Data MP OUT tidak dipindahkan untuk mencegah duplikasi.");return;
-  }
-  const placement=rec["Tempat Bekerja"]||"",site=siteKeyFromPlacement(placement);
-  const siteLabel=site?(data.siteLabels[site]||site):(placement||"site belum terdeteksi");
-  if(!confirm("Kembalikan "+name+" dari MP OUT ke MP Aktif?\n\nPenempatan: "+siteLabel+"\nPosisi: "+(rec.Jabatan||"-")+"\n\nJika posisi jobsite sebelumnya masih Vacant, posisi tersebut akan diisi kembali otomatis."))return;
-  const active={};MP_SCHEMA_ACTIVE.forEach(f=>active[f]=rec[f]||"");
-  if(!active["No."])active["No."]=String(data.mpActive.length+1);
-  data.mpActive.push(active);
-
+  if(data.mpActive.some(x=>sameName(x.Nama,rec.Nama))){alert(name+" sudah ada di MP Aktif. Data MP OUT tidak dipindahkan untuk mencegah duplikasi.");return}
+  const placement=rec["Tempat Bekerja"]||"",site=siteKeyFromPlacement(placement),siteLabel=site?(data.siteLabels[site]||site):(placement||"site belum terdeteksi");
+  const metaKey=mpRestoreKey(rec),meta=data.mpRestoreMeta?.[metaKey]||{siteKey:mpGroupKey(rec),localNo:Number(rec["No."])||1};
+  if(!confirm("Kembalikan "+name+" dari MP OUT ke MP Aktif?\n\nPenempatan: "+siteLabel+"\nPosisi: "+(rec.Jabatan||"-")+"\nNomor asal: "+(meta.localNo||"-")+"\n\nData akan kembali ke urutan asal di jobsite tersebut."))return;
+  const active={};MP_SCHEMA_ACTIVE.forEach(f=>active[f]=rec[f]||"");active["No."]="";
+  insertGroupedMP(data.mpActive,active,meta);
   if(site&&data.sites[site]){
     const rows=data.sites[site];
     let target=rows.find(r=>isVacantName(r.Nama)&&normText(r.Keterangan).toLowerCase().includes(normText(rec.Nama).toLowerCase()));
     if(!target)target=rows.find(r=>isVacantName(r.Nama)&&canonicalJob(r.Jabatan)===canonicalJob(rec.Jabatan));
-    if(target){
-      target.Nama=rec.Nama;
-      target.Jabatan=target.Jabatan||rec.Jabatan;
-      target.Keterangan="Dikembalikan dari MP OUT";
-      if(target["Keterangan PTK"]==="TIDAK ADA PENGAJUAN"&&!target.Judul)target["Keterangan PTK"]="TIDAK ADA PENGAJUAN";
-    }else if(!rows.some(r=>sameName(r.Nama,rec.Nama))){
-      rows.push({No:String(rows.length+1),Nama:rec.Nama,Jabatan:rec.Jabatan||"",Keterangan:"Dikembalikan dari MP OUT",PIC:"PT. KMB",Judul:"","Awal Rekrutmen":"","Psikologi Test":"","Interview User":"","Offering Latter":"","MCU":"","FU MCU":"","On Site":"","Induksi":"","Due Date":"","Status":"","Tanggal Close":"","Keterangan PTK":"TIDAK ADA PENGAJUAN","Lama Closing (Hari)":"","Open Index":""});
-    }
+    if(target){target.Nama=rec.Nama;target.Jabatan=target.Jabatan||rec.Jabatan;target.Keterangan="Dikembalikan dari MP OUT"}
+    else if(!rows.some(r=>sameName(r.Nama,rec.Nama)))rows.push({No:"",Nama:rec.Nama,Jabatan:rec.Jabatan||"",Keterangan:"Dikembalikan dari MP OUT",PIC:"PT. KMB",Judul:"","Awal Rekrutmen":"","Psikologi Test":"","Interview User":"","Offering Latter":"","MCU":"","FU MCU":"","On Site":"","Induksi":"","Due Date":"","Status":"","Tanggal Close":"","Keterangan PTK":"TIDAK ADA PENGAJUAN","Lama Closing (Hari)":"","Open Index":""});
+    renumberSiteRows(site);
   }
-
-  data.mpOut.splice(index,1);
-  saveData();makeSiteViews();renderMP();renderDashboard();
-  alert(name+" berhasil dikembalikan ke MP Aktif"+(site?" dan penempatan "+siteLabel+" sudah disinkronkan.":". Penempatan jobsite belum terdeteksi, silakan cek kolom Tempat Bekerja."));
+  data.mpOut.splice(index,1);if(data.mpRestoreMeta)delete data.mpRestoreMeta[metaKey];
+  saveData();makeSiteViews();renderMP();renderDashboard();alert(name+" berhasil dikembalikan ke MP Aktif pada urutan jobsite asal.");
 }
 function vacateForExit(rec,date,reason){
   const name=rec.Nama,site=siteKeyFromPlacement(rec["Tempat Bekerja"]);
@@ -383,6 +442,8 @@ function downloadExcel(){
   const unitRows=(data.units||[]).flatMap(s=>s.rows.map(r=>({Jobsite:s.name,...r})));XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(unitRows),"UNIT");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data.mpActive.map(r=>{const o={};MP_SCHEMA_ACTIVE.forEach(f=>o[f]=r[f]||"");return o})),"MP Aktif");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data.mpOut.map(r=>{const o={};MP_SCHEMA_OUT.forEach(f=>o[f]=r[f]||"");return o})),"MP OUT");
+  const deletedRows=(data.deletedKMB||[]).map(x=>({Tipe:x.type==="site"?"Jobsite":(x.mode==="active"?"MP Aktif":"MP OUT"),Jobsite:x.siteKey||mpGroupLabel(x.row||{}),Nama:x.row?.Nama||"",Jabatan:x.row?.Jabatan||"",Nomor:x.row?.No||x.row?.["No."]||"",Dihapus:x.deletedAt||""}));
+  XLSX.utils.book_append_sheet(wb,deletedRows.length?XLSX.utils.json_to_sheet(deletedRows):XLSX.utils.aoa_to_sheet([["Belum ada data terhapus"]]),"DATA TERHAPUS");
   XLSX.writeFile(wb,"Monitoring_Manpower_KMB_"+todayISO()+".xlsx");
 }
 function importOriginalExcel(input){
@@ -464,16 +525,37 @@ function importOriginalExcel(input){
 function backup(){download(JSON.stringify(data,null,2),"Monitoring_Manpower_KMB_Backup.json","application/json")}
 function importBackup(input){
   const file=input.files?.[0];if(!file)return;const rd=new FileReader();
-  rd.onload=()=>{try{const v=JSON.parse(rd.result);if(!v.sites)throw new Error();data=v;normalizeAllMP();saveData();makeSiteViews();renderUnits();renderMP();alert("Backup berhasil dimuat.")}catch(e){alert("File backup tidak valid.")}};rd.readAsText(file);input.value="";
+  rd.onload=()=>{try{const v=JSON.parse(rd.result);if(!v.sites)throw new Error();data=v;normalizeAllMP();ensureRuntimeData();renumberAll();saveData();makeSiteViews();renderUnits();renderMP();alert("Backup berhasil dimuat.")}catch(e){alert("File backup tidak valid.")}};rd.readAsText(file);input.value="";
 }
-function resetAll(){if(confirm("Kembalikan data ke kondisi awal web?")){data=clone(INITIAL);normalizeAllMP();localStorage.removeItem(KEY);makeSiteViews();renderDashboard();renderUnits();renderMP();renderSettings();showView("dashboard")}}
+function resetAll(){if(confirm("Kembalikan data ke kondisi awal web?")){data=clone(INITIAL);normalizeAllMP();ensureRuntimeData();renumberAll();localStorage.removeItem(KEY);saveData();makeSiteViews();renderDashboard();renderUnits();renderMP();renderSettings();showView("dashboard")}}
 
+function deletedKMBLabel(item){
+  if(item.type==="site")return (data.siteLabels?.[item.siteKey]||item.siteKey||"Jobsite")+" • "+(item.row?.Nama||"-")+" • "+(item.row?.Jabatan||"-");
+  return (item.mode==="active"?"MP Aktif":"MP OUT")+" • "+(item.row?.Nama||"-")+" • "+mpGroupLabel(item.row||{});
+}
+function renderDeletedKMB(){
+  const list=data.deletedKMB||[];if(!list.length)return '<div class="empty">Belum ada data terhapus.</div>';
+  return list.map((x,i)=>{const dt=x.deletedAt?new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(x.deletedAt)):"-";return '<div class="statusline"><span><b>'+esc(deletedKMBLabel(x))+'</b><br><small>Dihapus: '+esc(dt)+'</small></span><span><button class="btn yellow" onclick="restoreDeletedKMB('+i+')">Kembalikan</button> <button class="btn danger" onclick="permanentDeleteKMB('+i+')">Hapus Permanen</button></span></div>'}).join("");
+}
+function restoreDeletedKMB(index){
+  const item=(data.deletedKMB||[])[index];if(!item)return;if(!confirm("Kembalikan "+deletedKMBLabel(item)+"?"))return;
+  if(item.type==="site"){
+    const arr=data.sites?.[item.siteKey];if(!arr){alert("Jobsite asal tidak ditemukan.");return}
+    arr.splice(Math.min(Math.max(0,Number(item.index)||0),arr.length),0,clone(item.row));renumberSiteRows(item.siteKey);
+  }else{
+    const arr=item.mode==="active"?data.mpActive:data.mpOut,rec=normalizedMP(item.row||{});
+    insertGroupedMP(arr,rec,{siteKey:item.siteKey,localNo:item.localNo,activeIndex:item.index});
+  }
+  data.deletedKMB.splice(index,1);saveData();makeSiteViews();renderMP();renderDashboard();renderSettings();
+}
+function permanentDeleteKMB(index){const item=(data.deletedKMB||[])[index];if(!item)return;if(!confirm("Hapus permanen data ini? Tindakan ini tidak dapat dibatalkan."))return;data.deletedKMB.splice(index,1);saveData();renderSettings()}
+function restoreLastDeletedKMB(){if(!(data.deletedKMB||[]).length){alert("Tidak ada data terhapus.");return}restoreDeletedKMB(0)}
 function getEditors(){try{const a=JSON.parse(localStorage.getItem(EDITOR_KEY)||"[]");return Array.isArray(a)?a:[]}catch(e){return []}}
 function addEditor(){let e=prompt("Masukkan email Editor Full Access:");if(!e)return;e=e.trim().toLowerCase();if(!e.includes("@")||!e.includes(".")){alert("Format email tidak valid.");return}const a=getEditors();if(e===OWNER_EMAIL||a.includes(e)){alert("Email sudah terdaftar.");return}a.push(e);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
 function removeEditor(i){const a=getEditors();if(!a[i])return;if(!confirm("Hapus Editor "+a[i]+"?"))return;a.splice(i,1);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
 function renderSettings(){
   const host=document.getElementById("settingsContent");if(!host)return;const editors=getEditors();
-  host.innerHTML='<div class="grid2"><div class="card"><div class="section-head"><h3>Pemilik & Akses</h3></div><div class="statusline"><span>Pemilik / Administrator</span><b>'+esc(OWNER_EMAIL)+'</b></div><div class="statusline"><span>Hosting</span><b>GitHub Pages</b></div><div class="statusline"><span>Nama Sistem</span><b>Monitoring Manpower KMB</b></div><div class="statusline"><span>Hak Editor</span><b>Sama dengan Pemilik (Full Access)</b></div><div class="notice" style="margin-top:12px">Editor pada aplikasi ini memiliki hak yang sama dengan Pemilik untuk mengelola data. Daftar email pada GitHub Pages ini tetap berupa konfigurasi aplikasi; pengamanan login lintas perangkat memerlukan backend autentikasi.</div></div><div class="card"><div class="section-head"><div><h3>Editor</h3><p class="section-sub">Menggunakan daftar editor yang sama dengan web KMB sebelumnya.</p></div><button class="btn yellow" onclick="addEditor()">+ Tambah Editor</button></div>'+(editors.length?editors.map((e,i)=>'<div class="statusline"><span>'+esc(e)+'</span><span><b>FULL ACCESS</b> <button class="btn danger" onclick="removeEditor('+i+')">Hapus</button></span></div>').join(""):'<div class="empty">Belum ada editor Full Access di browser ini.</div>')+'</div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Download Excel</h3></div><p class="settings-copy">Download seluruh data Monitoring Manpower KMB menjadi workbook Excel dengan sheet Dashboard, seluruh Jobsite, Unit, MP Aktif dan MP OUT.</p><button class="btn primary" onclick="downloadExcel()">Download Monitoring Manpower KMB.xlsx</button></div><div class="card"><div class="section-head"><h3>Import Data Lengkap dari Excel</h3></div><p class="settings-copy">Untuk menjaga NIK, KK, rekening, BPJS, alamat dan data keluarga agar tidak dipublikasikan di GitHub, pilih file Excel Monitoring Manpower KMB dari komputer Anda. Data lengkap MP Aktif/OUT akan dimuat lokal di browser ini.</p><label class="btn yellow">Import Excel Monitoring Manpower KMB<input type="file" accept=".xlsx,.xls" hidden onchange="importOriginalExcel(this)"></label></div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Backup Data Web</h3></div><div class="toolbar"><button class="btn" onclick="backup()">Download Backup JSON</button><label class="btn">Import Backup<input type="file" accept=".json" hidden onchange="importBackup(this)"></label></div></div><div class="card"><div class="section-head"><h3>Reset</h3></div><button class="btn danger" onclick="resetAll()">Reset ke Data Awal</button></div></div>';
+  host.innerHTML='<div class="grid2"><div class="card"><div class="section-head"><h3>Pemilik & Akses</h3></div><div class="statusline"><span>Pemilik / Administrator</span><b>'+esc(OWNER_EMAIL)+'</b></div><div class="statusline"><span>Hosting</span><b>GitHub Pages</b></div><div class="statusline"><span>Nama Sistem</span><b>Monitoring Manpower KMB</b></div><div class="statusline"><span>Hak Editor</span><b>Sama dengan Pemilik (Full Access)</b></div><div class="notice" style="margin-top:12px">Nomor jobsite dan manpower diatur otomatis. MP Aktif dan MP OUT dikelompokkan per jobsite.</div></div><div class="card"><div class="section-head"><div><h3>Editor</h3><p class="section-sub">Daftar editor yang sama dengan web KTA - TRA.</p></div><button class="btn yellow" onclick="addEditor()">+ Tambah Editor</button></div>'+(editors.length?editors.map((e,i)=>'<div class="statusline"><span>'+esc(e)+'</span><span><b>FULL ACCESS</b> <button class="btn danger" onclick="removeEditor('+i+')">Hapus</button></span></div>').join(""):'<div class="empty">Belum ada editor Full Access di browser ini.</div>')+'</div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Download Excel</h3></div><button class="btn primary" onclick="downloadExcel()">Download Monitoring Manpower KMB.xlsx</button></div><div class="card"><div class="section-head"><h3>Import Data Lengkap dari Excel</h3></div><label class="btn yellow">Import Excel Monitoring Manpower KMB<input type="file" accept=".xlsx,.xls" hidden onchange="importOriginalExcel(this)"></label></div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Backup Data Web</h3></div><div class="toolbar"><button class="btn" onclick="backup()">Download Backup JSON</button><label class="btn">Import Backup<input type="file" accept=".json" hidden onchange="importBackup(this)"></label></div></div><div class="card"><div class="section-head"><h3>Reset</h3></div><button class="btn danger" onclick="resetAll()">Reset ke Data Awal</button></div></div><div style="height:16px"></div><div class="card"><div class="section-head"><div><h3>Data Terhapus</h3><p class="section-sub">Data jobsite, MP Aktif, atau MP OUT yang salah hapus dapat dipulihkan.</p></div><span class="pill">'+((data.deletedKMB||[]).length)+' data</span></div><div class="toolbar" style="margin-bottom:8px"><button class="btn yellow" onclick="restoreLastDeletedKMB()">Kembalikan Terakhir Dihapus</button></div>'+renderDeletedKMB()+'</div>';
 }
 function showView(name){
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));const el=document.getElementById(name);if(el)el.classList.add("active");
