@@ -252,15 +252,22 @@ function renderMP(){
   }).join("");
   document.getElementById("mpTable").innerHTML='<div class="table-wrap"><table class="table mp-table"><thead><tr>'+head+'</tr></thead><tbody>'+body+'</tbody></table></div>';
 }
+function hasFullMPData(row){
+  return !!(normText(row?.["NIK KTP"])||normText(row?.["Nomor HP"])||normText(row?.["No Rekening"])||normText(row?.["Nomor BPJS Kesehatan"])||normText(row?.["Alamat Lengkap"]));
+}
 function openMpForm(mode,index){
   editState={type:"mp",mode,index};const arr=mode==="active"?data.mpActive:data.mpOut,row=index===null?{}:arr[index],fs=mode==="active"?MP_SCHEMA_ACTIVE:MP_SCHEMA_OUT;
   document.getElementById("modalTitle").textContent=(index===null?"Tambah ":"Edit ")+(mode==="active"?"MP Aktif":"MP OUT");
   let source="";
+  if(index!==null&&!hasFullMPData(row)){
+    source+='<div class="notice" style="grid-column:1/-1"><b>Data lengkap belum dimuat dari Excel.</b> Nama, jabatan, dan penempatan sudah ada, tetapi kolom detail masih kosong. Klik <label class="btn yellow" style="display:inline-flex;margin-left:6px">Import Excel<input type="file" accept=".xlsx,.xls" hidden onchange="importOriginalExcel(this)"></label> lalu buka Edit kembali.</div>';
+  }
   if(mode==="out"&&index===null){
     source='<div class="source-box"><label>Ambil Data dari MP Aktif</label><select id="sourceActive"><option value="">-- pilih nama MP Aktif --</option>'+data.mpActive.map((r,i)=>'<option value="'+i+'">'+esc(r.Nama||"-")+' — '+esc(r.Jabatan||"-")+' — '+esc(r["Tempat Bekerja"]||"-")+'</option>').join("")+'</select><small>Pilih nama untuk menyalin seluruh data ke MP OUT.</small></div>';
   }
   document.getElementById("formFields").innerHTML=source+fs.map(f=>fieldHtml(f,row,"mp")).join("");
-  document.getElementById("modal").classList.add("show");
+  const modal=document.getElementById("modal");modal.classList.add("show");
+  const card=modal.querySelector(".modal-card");if(card)card.scrollTop=0;
   const sel=document.getElementById("sourceActive");if(sel)sel.onchange=()=>fillFromActive(sel.value);
 }
 function fillFromActive(idx){
@@ -346,7 +353,9 @@ function importOriginalExcel(input){
       const active=readMP("MP Aktif",false),out=readMP("MP OUT",true);
       if(!active.length&&!out.length)throw new Error("Sheet MP Aktif/MP OUT tidak terbaca.");
       if(active.length)data.mpActive=active;if(out.length)data.mpOut=out;
-      saveData();renderMP();alert("Import Excel selesai: "+data.mpActive.length+" MP Aktif dan "+data.mpOut.length+" MP OUT. Data sensitif tersimpan hanya di browser perangkat ini.");
+      localStorage.setItem("kmb_full_mp_loaded","1");
+      saveData();makeSiteViews();renderMP();
+      alert("Import Excel selesai: "+data.mpActive.length+" MP Aktif dan "+data.mpOut.length+" MP OUT. Sekarang buka kembali tombol Edit untuk melihat data lengkap.");
     }catch(err){alert("Import gagal: "+err.message)}
   };
   reader.readAsArrayBuffer(file);input.value="";
