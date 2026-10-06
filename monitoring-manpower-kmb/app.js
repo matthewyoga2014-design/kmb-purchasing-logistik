@@ -219,13 +219,13 @@ function renderKMBCharts(){
       {label:"Actual",data:mets.map(m=>m.actual),backgroundColor:"#7c3aed",borderRadius:8,borderSkipped:false},
       {label:"Vacant",data:mets.map(m=>m.vacant),backgroundColor:"#ff747d",borderRadius:8,borderSkipped:false}
     ]},
-    options:kmbChartOptions({onHover:(e,els,chart)=>{chart.canvas.style.cursor=els.length?"pointer":"default"},onClick:(e,els)=>{if(els.length)openKmbSite(keys[els[0].index])},plugins:{legend:{position:"top",align:"end",labels:{usePointStyle:true,boxWidth:7,color:"#73788a",font:{size:10,weight:"600"}}},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
+    options:kmbChartOptions({plugins:{legend:{position:"top",align:"end",labels:{usePointStyle:true,boxWidth:7,color:"#73788a",font:{size:10,weight:"600"}}},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
   });
 
   kmbMakeChart("kmbCompositionChart",{
     type:"doughnut",
     data:{labels:["Actual","Vacant"],datasets:[{data:[totalActual,totalVacant],backgroundColor:["#7c3aed","#ff6b6b"],borderWidth:0,hoverOffset:5,borderRadius:6,spacing:3}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:"72%",onHover:(e,els,chart)=>{chart.canvas.style.cursor=els.length?"pointer":"default"},onClick:(e,els,chart)=>{if(!els.length)return;const label=chart.data.labels[els[0].index];if(label==="Actual")openKmbMp();else openKmbSummary()},plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}}
+    options:{responsive:true,maintainAspectRatio:false,cutout:"72%",plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}}
   });
 
   const stages=["SOURCING KANDIDAT","PSIKOLOGI TEST","INTERVIEW USER","OFFERING","MCU","FU MCU","ON SITE","INDUKSI"];
@@ -237,7 +237,7 @@ function renderKMBCharts(){
   kmbMakeChart("kmbRecruitChart",{
     type:"line",
     data:{labels:stageLabels,datasets:[{label:"Jumlah Posisi",data:stages.map(s=>counts[s]),borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.12)",pointBackgroundColor:"#fff",pointBorderColor:"#7c3aed",pointBorderWidth:3,pointRadius:4,tension:.38,fill:true}]},
-    options:kmbChartOptions({onHover:(e,els,chart)=>{chart.canvas.style.cursor=els.length?"pointer":"default"},onClick:()=>openKmbRecruitment(),plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
+    options:kmbChartOptions({plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
   });
 }
 function renderDashboard(){
@@ -245,7 +245,7 @@ function renderDashboard(){
   Object.keys(data.sites).forEach(key=>{
     const m=siteMetrics(data.sites[key]);Object.keys(total).forEach(k=>total[k]+=m[k]||0);
     const pct=m.planning?Math.round(m.actual/m.planning*100):0;
-    rows+='<tr class="dashboard-row-link" onclick="openKmbSite(decodeURIComponent(\''+encodeURIComponent(key)+'\'))"><td><b>'+esc(data.siteLabels[key]||key)+'</b></td><td>'+m.planning+'</td><td>'+m.actual+'</td><td>'+m.vacant+'</td><td>'+pct+'%</td><td>'+m.open+'</td><td>'+m.cont+'</td><td>'+m.close+'</td><td>'+m.due+'</td></tr>';
+    rows+='<tr><td><b>'+esc(data.siteLabels[key]||key)+'</b></td><td>'+m.planning+'</td><td>'+m.actual+'</td><td>'+m.vacant+'</td><td>'+pct+'%</td><td>'+m.open+'</td><td>'+m.cont+'</td><td>'+m.close+'</td><td>'+m.due+'</td></tr>';
   });
   document.getElementById("kPlanning").textContent=total.planning;
   document.getElementById("kActual").textContent=total.actual;
@@ -254,7 +254,7 @@ function renderDashboard(){
   document.getElementById("summaryBody").innerHTML=rows;
   document.getElementById("statusCards").innerHTML=[
     ["Open",total.open,"ptk-open"],["Continue",total.cont,"ptk-continue"],["Close",total.close,"ptk-close"],["Jatuh Tempo",total.due,"ptk-due"]
-  ].map(x=>'<button class="mini ptk-mini dashboard-link-card '+x[2]+'" onclick="openKmbRecruitment()"><b>'+x[1]+'</b><span>'+x[0]+'</span></button>').join("");
+  ].map(x=>'<div class="mini ptk-mini '+x[2]+'"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join("");
   renderKMBUnitDashboard();
   renderVacancyResume();renderRecruitmentSummary();renderKMBCharts();
 }
@@ -294,7 +294,7 @@ function renderRecruitmentSummary(){
   if(recruitRoleFilter){fb.style.display="inline-flex";fb.innerHTML=esc(canonicalJobLabel(recruitRoleFilter))+' <button onclick="clearRecruitFilter()" title="Hapus filter">×</button>'}else fb.style.display="none";
   document.getElementById("recruitBody").innerHTML=openRows.length?openRows.map(x=>{
     const r=x.row,dayClass=x.days<0?"overdue":x.days<=7?"warning":"";
-    return '<tr class="dashboard-row-link" onclick="openKmbSite(decodeURIComponent(\''+encodeURIComponent(x.site)+'\'))"><td><b>'+esc(x.site)+'</b></td><td>'+esc(r.Jabatan||"-")+'</td><td>'+fmtDate(r["Awal Rekrutmen"])+'</td><td>'+fmtDate(r["Due Date"])+'</td><td><span class="days '+dayClass+'">'+(x.days===""?"-":x.days)+'</span></td><td>'+badge(r.Status)+'</td><td><b>'+esc(x.p.label)+'</b></td><td><div style="display:flex;align-items:center;gap:8px"><div class="progress recruit-progress"><i style="width:'+x.p.p+'%"></i></div><b>'+x.p.p+'%</b></div></td><td>'+esc((r.Nama||"")+(r.Keterangan?" — "+r.Keterangan:""))+'</td></tr>';
+    return '<tr><td><b>'+esc(x.site)+'</b></td><td>'+esc(r.Jabatan||"-")+'</td><td>'+fmtDate(r["Awal Rekrutmen"])+'</td><td>'+fmtDate(r["Due Date"])+'</td><td><span class="days '+dayClass+'">'+(x.days===""?"-":x.days)+'</span></td><td>'+badge(r.Status)+'</td><td><b>'+esc(x.p.label)+'</b></td><td><div style="display:flex;align-items:center;gap:8px"><div class="progress recruit-progress"><i style="width:'+x.p.p+'%"></i></div><b>'+x.p.p+'%</b></div></td><td>'+esc((r.Nama||"")+(r.Keterangan?" — "+r.Keterangan:""))+'</td></tr>';
   }).join(""):'<tr><td colspan="9" class="empty">Tidak ada rekrutmen OPEN untuk filter ini</td></tr>';
 }
 function renderSite(key){
@@ -408,7 +408,7 @@ function renderKMBUnitDashboard(){
   const sections=data.units||[];
   host.innerHTML=sections.length?sections.map((sec,i)=>{
     const n=unitSectionCount(sec);
-    return '<button class="dashboard-unit-item" onclick="showView(\'units\')"><span>'+esc(sec.name||("Section "+(i+1)))+'</span><b>'+n+'</b><small>unit</small></button>';
+    return '<div class="dashboard-unit-item"><span>'+esc(sec.name||("Section "+(i+1)))+'</span><b>'+n+'</b><small>unit</small></div>';
   }).join(""):'<div class="empty compact-empty">Belum ada data populasi unit.</div>';
 }
 function renderUnits(){
