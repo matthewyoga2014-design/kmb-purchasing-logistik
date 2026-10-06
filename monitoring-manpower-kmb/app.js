@@ -1,6 +1,21 @@
 const INITIAL=window.KMB_DATA||{sites:{},siteLabels:{},units:[],mpActive:[],mpOut:[]};
 const KEY="kmb_monitoring_web_v1";
 const OWNER_EMAIL="matthewyoga2014@gmail.com";
+function isEditorMode(){return new URLSearchParams(window.location.search).get("mode")==="editor"}
+function ownerOnly(){
+  if(!isEditorMode())return true;
+  alert("Mode Editor hanya untuk mengisi data operasional. Pengaturan hanya dapat diakses Pemilik / Administrator.");
+  goDashboard();
+  return false;
+}
+function applyAccessMode(){
+  const settingsNav=document.querySelector('.nav[data-view="settings"]');
+  if(settingsNav)settingsNav.style.display=isEditorMode()?"none":"";
+  document.body.classList.toggle("editor-mode",isEditorMode());
+  const title=document.querySelector(".app-name");
+  if(title&&isEditorMode())title.textContent="Monitoring Manpower KMB • MODE EDITOR";
+}
+
 const EDITOR_KEY="kmb_editors";
 const SOURCE_SYNC_KEY="kmb_excel_sync_monitoring6_v1";
 let data=loadData(),editState=null,mpMode="active",mpFullView=false,recruitRoleFilter="";
@@ -573,7 +588,7 @@ function buildDashboardAOA(){
   for(const g of Object.values(groups)){const best=g.items.slice().sort((a,b)=>b.p-a.p)[0],bd={};g.items.forEach(x=>bd[x.label]=(bd[x.label]||0)+1);aoa.push([g.label,g.items.length,best.label+" "+best.p+"%",Object.entries(bd).map(x=>x[1]+"x "+x[0]).join(" • ")])}
   return aoa;
 }
-function downloadExcel(){
+function downloadExcel(){if(!ownerOnly())return;
   if(!window.XLSX){alert("Modul Excel belum termuat. Coba refresh halaman lalu ulangi.");return}
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(buildDashboardAOA()),"DASHBOARD");
@@ -661,12 +676,12 @@ function importOriginalExcel(input){
   };
   reader.readAsArrayBuffer(file);input.value="";
 }
-function backup(){download(JSON.stringify(data,null,2),"Monitoring_Manpower_KMB_Backup.json","application/json")}
+function backup(){if(!ownerOnly())return;download(JSON.stringify(data,null,2),"Monitoring_Manpower_KMB_Backup.json","application/json")}
 function importBackup(input){
   const file=input.files?.[0];if(!file)return;const rd=new FileReader();
   rd.onload=()=>{try{const v=JSON.parse(rd.result);if(!v.sites)throw new Error();data=v;normalizeAllMP();ensureRuntimeData();renumberAll();saveData();makeSiteViews();renderUnits();renderMP();alert("Backup berhasil dimuat.")}catch(e){alert("File backup tidak valid.")}};rd.readAsText(file);input.value="";
 }
-function resetAll(){if(confirm("Kembalikan data ke kondisi awal web?")){data=clone(INITIAL);normalizeAllMP();ensureRuntimeData();renumberAll();localStorage.removeItem(KEY);saveData();makeSiteViews();renderDashboard();renderUnits();renderMP();renderSettings();showView("dashboard")}}
+function resetAll(){if(!ownerOnly())return;if(confirm("Kembalikan data ke kondisi awal web?")){data=clone(INITIAL);normalizeAllMP();ensureRuntimeData();renumberAll();localStorage.removeItem(KEY);saveData();makeSiteViews();renderDashboard();renderUnits();renderMP();renderSettings();showView("dashboard")}}
 
 function deletedKMBLabel(item){
   if(item.type==="site")return (data.siteLabels?.[item.siteKey]||item.siteKey||"Jobsite")+" • "+(item.row?.Nama||"-")+" • "+(item.row?.Jabatan||"-");
@@ -678,7 +693,7 @@ function renderDeletedKMB(){
   const list=data.deletedKMB||[];if(!list.length)return '<div class="empty">Belum ada data terhapus.</div>';
   return list.map((x,i)=>{const dt=x.deletedAt?new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}).format(new Date(x.deletedAt)):"-";return '<div class="statusline"><span><b>'+esc(deletedKMBLabel(x))+'</b><br><small>Dihapus: '+esc(dt)+'</small></span><span><button class="btn yellow" onclick="restoreDeletedKMB('+i+')">Kembalikan</button> <button class="btn danger" onclick="permanentDeleteKMB('+i+')">Hapus Permanen</button></span></div>'}).join("");
 }
-function restoreDeletedKMB(index){
+function restoreDeletedKMB(index){if(!ownerOnly())return;
   const item=(data.deletedKMB||[])[index];if(!item)return;if(!confirm("Kembalikan "+deletedKMBLabel(item)+"?"))return;
   if(item.type==="site"){
     const arr=data.sites?.[item.siteKey];if(!arr){alert("Jobsite asal tidak ditemukan.");return}
@@ -695,20 +710,21 @@ function restoreDeletedKMB(index){
   }
   data.deletedKMB.splice(index,1);saveData();makeSiteViews();renderUnits();renderMP();renderDashboard();renderSettings();
 }
-function permanentDeleteKMB(index){const item=(data.deletedKMB||[])[index];if(!item)return;if(!confirm("Hapus permanen data ini? Tindakan ini tidak dapat dibatalkan."))return;data.deletedKMB.splice(index,1);saveData();renderSettings()}
-function restoreLastDeletedKMB(){if(!(data.deletedKMB||[]).length){alert("Tidak ada data terhapus.");return}restoreDeletedKMB(0)}
+function permanentDeleteKMB(index){if(!ownerOnly())return;const item=(data.deletedKMB||[])[index];if(!item)return;if(!confirm("Hapus permanen data ini? Tindakan ini tidak dapat dibatalkan."))return;data.deletedKMB.splice(index,1);saveData();renderSettings()}
+function restoreLastDeletedKMB(){if(!ownerOnly())return;if(!(data.deletedKMB||[]).length){alert("Tidak ada data terhapus.");return}restoreDeletedKMB(0)}
 function getEditors(){try{const a=JSON.parse(localStorage.getItem(EDITOR_KEY)||"[]");return Array.isArray(a)?a:[]}catch(e){return []}}
-function addEditor(){let e=prompt("Masukkan email Editor Full Access:");if(!e)return;e=e.trim().toLowerCase();if(!e.includes("@")||!e.includes(".")){alert("Format email tidak valid.");return}const a=getEditors();if(e===OWNER_EMAIL||a.includes(e)){alert("Email sudah terdaftar.");return}a.push(e);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
-function removeEditor(i){const a=getEditors();if(!a[i])return;if(!confirm("Hapus Editor "+a[i]+"?"))return;a.splice(i,1);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
+function addEditor(){if(!ownerOnly())return;let e=prompt("Masukkan email Editor (Input Data):");if(!e)return;e=e.trim().toLowerCase();if(!e.includes("@")||!e.includes(".")){alert("Format email tidak valid.");return}const a=getEditors();if(e===OWNER_EMAIL||a.includes(e)){alert("Email sudah terdaftar.");return}a.push(e);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
+function removeEditor(i){if(!ownerOnly())return;const a=getEditors();if(!a[i])return;if(!confirm("Hapus Editor "+a[i]+"?"))return;a.splice(i,1);localStorage.setItem(EDITOR_KEY,JSON.stringify(a));renderSettings()}
 function renderSettings(){
-  const host=document.getElementById("settingsContent");if(!host)return;const editors=getEditors();
-  host.innerHTML='<div class="grid2"><div class="card"><div class="section-head"><h3>Pemilik & Akses</h3></div><div class="statusline"><span>Pemilik / Administrator</span><b>'+esc(OWNER_EMAIL)+'</b></div><div class="statusline"><span>Hosting</span><b>GitHub Pages</b></div><div class="statusline"><span>Nama Sistem</span><b>Monitoring Manpower KMB</b></div><div class="statusline"><span>Hak Editor</span><b>Sama dengan Pemilik (Full Access)</b></div><div class="notice" style="margin-top:12px">Nomor jobsite dan manpower diatur otomatis. MP Aktif dan MP OUT dikelompokkan per jobsite.</div></div><div class="card"><div class="section-head"><div><h3>Editor</h3><p class="section-sub">Daftar editor yang sama dengan web KTA - TRA.</p></div><button class="btn yellow" onclick="addEditor()">+ Tambah Editor</button></div>'+(editors.length?editors.map((e,i)=>'<div class="statusline"><span>'+esc(e)+'</span><span><b>FULL ACCESS</b> <button class="btn danger" onclick="removeEditor('+i+')">Hapus</button></span></div>').join(""):'<div class="empty">Belum ada editor Full Access di browser ini.</div>')+'</div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Download Excel</h3></div><button class="btn primary" onclick="downloadExcel()">Download Monitoring Manpower KMB.xlsx</button></div><div class="card"><div class="section-head"><h3>Import Data Lengkap dari Excel</h3></div><label class="btn yellow">Import Excel Monitoring Manpower KMB<input type="file" accept=".xlsx,.xls" hidden onchange="importOriginalExcel(this)"></label></div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Backup Data Web</h3></div><div class="toolbar"><button class="btn" onclick="backup()">Download Backup JSON</button><label class="btn">Import Backup<input type="file" accept=".json" hidden onchange="importBackup(this)"></label></div></div><div class="card"><div class="section-head"><h3>Reset</h3></div><button class="btn danger" onclick="resetAll()">Reset ke Data Awal</button></div></div><div style="height:16px"></div><div class="card"><div class="section-head"><div><h3>Data Terhapus</h3><p class="section-sub">Data jobsite, MP Aktif, atau MP OUT yang salah hapus dapat dipulihkan.</p></div><span class="pill">'+((data.deletedKMB||[]).length)+' data</span></div><div class="toolbar" style="margin-bottom:8px"><button class="btn yellow" onclick="restoreLastDeletedKMB()">Kembalikan Terakhir Dihapus</button></div>'+renderDeletedKMB()+'</div>';
+  const host=document.getElementById("settingsContent");if(!host)return;if(isEditorMode()){host.innerHTML='<div class="card"><div class="empty">Pengaturan hanya dapat diakses Pemilik / Administrator.</div></div>';return}const editors=getEditors();
+  host.innerHTML='<div class="grid2"><div class="card"><div class="section-head"><h3>Pemilik & Akses</h3></div><div class="statusline"><span>Pemilik / Administrator</span><b>'+esc(OWNER_EMAIL)+'</b></div><div class="statusline"><span>Hosting</span><b>GitHub Pages</b></div><div class="statusline"><span>Nama Sistem</span><b>Monitoring Manpower KMB</b></div><div class="statusline"><span>Hak Editor</span><b>Input Data Operasional (Tanpa Pengaturan)</b></div><div class="notice" style="margin-top:12px">Nomor jobsite dan manpower diatur otomatis. MP Aktif dan MP OUT dikelompokkan per jobsite.</div></div><div class="card"><div class="section-head"><div><h3>Editor</h3><p class="section-sub">Daftar editor yang sama dengan web KTA - TRA.</p></div><button class="btn yellow" onclick="addEditor()">+ Tambah Editor</button></div>'+(editors.length?editors.map((e,i)=>'<div class="statusline"><span>'+esc(e)+'</span><span><b>INPUT DATA</b> <button class="btn danger" onclick="removeEditor('+i+')">Hapus</button></span></div>').join(""):'<div class="empty">Belum ada Editor Input Data di browser ini.</div>')+'</div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Download Excel</h3></div><button class="btn primary" onclick="downloadExcel()">Download Monitoring Manpower KMB.xlsx</button></div><div class="card"><div class="section-head"><h3>Import Data Lengkap dari Excel</h3></div><label class="btn yellow">Import Excel Monitoring Manpower KMB<input type="file" accept=".xlsx,.xls" hidden onchange="importOriginalExcel(this)"></label></div></div><div style="height:16px"></div><div class="grid2"><div class="card"><div class="section-head"><h3>Backup Data Web</h3></div><div class="toolbar"><button class="btn" onclick="backup()">Download Backup JSON</button><label class="btn">Import Backup<input type="file" accept=".json" hidden onchange="importBackup(this)"></label></div></div><div class="card"><div class="section-head"><h3>Reset</h3></div><button class="btn danger" onclick="resetAll()">Reset ke Data Awal</button></div></div><div style="height:16px"></div><div class="card"><div class="section-head"><div><h3>Data Terhapus</h3><p class="section-sub">Data jobsite, MP Aktif, atau MP OUT yang salah hapus dapat dipulihkan.</p></div><span class="pill">'+((data.deletedKMB||[]).length)+' data</span></div><div class="toolbar" style="margin-bottom:8px"><button class="btn yellow" onclick="restoreLastDeletedKMB()">Kembalikan Terakhir Dihapus</button></div>'+renderDeletedKMB()+'</div>';
 }
 function goDashboard(){
   recruitRoleFilter="";
   showView("dashboard");
 }
 function showView(name){
+  if(name==="settings"&&isEditorMode()){alert("Pengaturan hanya dapat diakses Pemilik / Administrator.");name="dashboard"}
   const target=document.getElementById(name)?name:"dashboard";
   document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));
   const el=document.getElementById(target);if(el)el.classList.add("active");
@@ -723,6 +739,7 @@ function showView(name){
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
+  applyAccessMode();
   document.getElementById("today").textContent=new Intl.DateTimeFormat("id-ID",{weekday:"long",day:"2-digit",month:"long",year:"numeric"}).format(new Date());
   makeSiteViews();renderDashboard();renderUnits();renderMP();renderSettings();
   document.getElementById("unitSearch").addEventListener("input",renderUnits);
