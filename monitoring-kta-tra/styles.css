@@ -106,3 +106,19 @@ body{background:linear-gradient(180deg,#eef0f7 0,#f7f8fc 240px,#f7f8fc 100%);col
 .metric-card .kpi-value{font-weight:900!important}
 
 .unit-total-pill{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;padding:8px 11px;border-radius:999px;background:#f1ecff;color:#6d28d9;font-size:11px;font-weight:900;border:1px solid #e2d8ff}
+
+/* Dashboard interactive navigation + unit editor */
+.dashboard-click,.dashboard-link-card,.unit-card-click{cursor:pointer}
+.dashboard-click{transition:transform .16s ease,box-shadow .16s ease}
+.dashboard-click:hover{transform:translateY(-3px);box-shadow:0 20px 38px rgba(52,35,91,.16)}
+.dashboard-link-card{border:0;text-align:left;width:100%;cursor:pointer}
+.dashboard-link-card:hover{background:#f1ecff!important}
+.unit-card-click{width:100%;border:0;text-align:left}
+.unit-card-click:hover{background:#f2edff!important}
+.unit-manage-card{display:flex!important;align-items:center;justify-content:space-between;gap:12px}
+.unit-manage-main{display:flex;align-items:center;justify-content:space-between;gap:14px;flex:1;min-width:0}
+.unit-manage-main span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.unit-manage-main b{font-size:20px}
+.unit-manage-actions{display:flex;gap:6px;flex:0 0 auto}
+.chart-card canvas{cursor:pointer}
+@media(max-width:760px){.unit-manage-card{align-items:stretch;flex-direction:column}.unit-manage-actions .btn{flex:1}}
