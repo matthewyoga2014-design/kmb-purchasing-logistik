@@ -96,3 +96,11 @@ body{background:linear-gradient(180deg,#eef0f7 0,#f7f8fc 240px,#f7f8fc 100%);col
 .modal{background:rgba(27,18,48,.52);backdrop-filter:blur(5px)}.modal-card{border-radius:22px;box-shadow:0 30px 70px rgba(28,18,51,.24)}
 @media(max-width:1100px){.dashboard-charts,.dashboard-lower{grid-template-columns:1fr}.chart-card{min-height:auto}.dashboard-resume{max-height:none}.sidebar{width:210px}.main{margin-left:210px;width:calc(100% - 210px)}}
 @media(max-width:760px){.sidebar{width:230px}.main{margin-left:0;width:100%}.content{padding:16px}.dashboard-title-row{align-items:flex-start;flex-direction:column}.modern-kpis{grid-template-columns:1fr}.dashboard-charts,.dashboard-lower,.dashboard-summary-grid{grid-template-columns:1fr}.dashboard-resume{grid-template-columns:1fr}.chart-canvas.tall,.chart-canvas.medium,.chart-canvas.donut{height:230px}.modern-stats{grid-template-columns:1fr 1fr!important}}
+
+/* KPI visibility fix: keep gradient background above generic .card */
+.card.metric-card.metric-purple{background:linear-gradient(135deg,#8b5cf6,#a78bfa)!important;color:#fff!important}
+.card.metric-card.metric-blue{background:linear-gradient(135deg,#3867d6,#3b9af8)!important;color:#fff!important}
+.card.metric-card.metric-coral{background:linear-gradient(135deg,#ff626d,#ff8585)!important;color:#fff!important}
+.card.metric-card.metric-orange{background:linear-gradient(135deg,#fb8d45,#ffad5f)!important;color:#fff!important}
+.metric-card .kpi-label,.metric-card .kpi-value,.metric-card .kpi-sub,.metric-card .metric-icon{color:#fff!important}
+.metric-card .kpi-value{font-weight:900!important}
