@@ -133,3 +133,20 @@ body{background:linear-gradient(180deg,#eef0f7 0,#f7f8fc 240px,#f7f8fc 100%);col
 #sidebar .nav{position:relative;z-index:2;pointer-events:auto!important;cursor:pointer!important}
 #sidebar .group,#sidebar .brand{position:relative;z-index:1}
 .main,.topbar,.content{position:relative;z-index:auto}
+
+/* Three-level access UI */
+body.viewer-mode #settingsContent,
+body.viewer-mode .action-cell .btn,
+body.viewer-mode .candidate-actions,
+body.viewer-mode .unit-manage-actions,
+body.viewer-mode button[data-add],
+body.viewer-mode button[data-export],
+body.viewer-mode #addMPP,
+body.viewer-mode #addMP,
+body.viewer-mode #exportMPP,
+body.viewer-mode #exportMP,
+body.viewer-mode #exportUnits,
+body.viewer-mode #mpFullBtn,
+body.viewer-mode label.btn{display:none!important}
+body.viewer-mode .input,body.viewer-mode .select{pointer-events:auto}
+body.viewer-mode .app-name{color:#6d28d9!important}
