@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#6d28d9">
 <title>Monitoring Manpower KTA - TRA</title>
-<link rel="stylesheet" href="styles.css?v=10">
+<link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body>
 <div class="app">
@@ -16,6 +16,7 @@
   <div class="group">Monitoring</div>
   <button class="nav" data-view="mpp" data-title="MPP KTA - TRA">▤ &nbsp; MPP KTA - TRA</button>
   <button class="nav" data-view="mp" data-title="MP Aktif & MP Out">👥 &nbsp; MP Aktif & MP Out</button>
+  <button class="nav" data-view="unit-population" data-title="Populasi Unit KTA - TRA">▦ &nbsp; Populasi Unit</button>
   <div class="group">Sistem</div>
   <button class="nav" data-view="settings" data-title="Pengaturan">⚙ &nbsp; Pengaturan</button>
 </aside>
@@ -124,6 +125,17 @@
   <div id="mpTable"></div>
 </section>
 
+<section class="view" id="unit-population">
+  <div class="page-head">
+    <div><h2>Populasi Unit KTA - TRA</h2><p>Daftar populasi unit operasional KTA - TRA sesuai data monitoring.</p></div>
+    <div class="toolbar"><span class="unit-total-pill" id="unitPageTotal">0 unit</span></div>
+  </div>
+  <div class="card">
+    <div class="section-head"><div><span class="eyebrow">POPULASI UNIT</span><h3>Daftar Unit KTA - TRA</h3><p class="section-sub">Terhubung dengan data unit pada Dashboard.</p></div></div>
+    <div class="units-grid" id="unitPageSummary"></div>
+  </div>
+</section>
+
 <section class="view" id="settings">
   <div class="page-head"><div><h2>Pengaturan</h2><p>Pemilik, editor, sinkronisasi, backup, dan download Excel.</p></div></div>
   <div id="settingsContent"></div>
@@ -150,6 +162,6 @@
 <script src="data_active.js?v=8"></script>
 <script src="data_out.js?v=8"></script>
 <script src="data_units.js?v=8"></script>
-<script src="app.js?v=10"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>
