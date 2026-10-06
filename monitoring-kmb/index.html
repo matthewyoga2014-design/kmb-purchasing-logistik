@@ -5,24 +5,30 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#101827">
 <title>Monitoring KMB | PT. Karunia Mandiri Berkarya</title>
-<link rel="stylesheet" href="styles.css?v=2">
+<link rel="stylesheet" href="styles.css?v=5">
 <style>
 .app-name{font-size:10px;color:#7b8797;text-transform:uppercase;letter-spacing:.11em;font-weight:800;margin-bottom:2px}
 .section-sub{margin:4px 0 0;font-size:11px;color:#6b7280}
-.recruitment-card{margin-top:18px}
-.recruitment-table{min-width:1150px}
-.recruit-progress{min-width:130px}
+.recruitment-card{margin-top:18px}.recruitment-table{min-width:1150px}.recruit-progress{min-width:130px}
 .days{display:inline-flex;min-width:34px;justify-content:center;padding:5px 8px;border-radius:8px;background:#e8f3ee;color:#166534;font-weight:800}
-.days.warning{background:#fff4d6;color:#92400e}
-.days.overdue{background:#fee2e2;color:#991b1b}
+.days.warning{background:#fff4d6;color:#92400e}.days.overdue{background:#fee2e2;color:#991b1b}
 .mp-tabs{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
 .mp-tab{border:1px solid #e5e7eb;background:#fff;color:#475569;padding:9px 14px;border-radius:9px;font-size:12px;font-weight:750;cursor:pointer}
-.mp-tab.active{background:#101827;border-color:#101827;color:#fff}
-.mp-tabs .pill{margin-left:auto}
-.mp-notice{background:#f8fafc;border-left-color:#64748b}
-.mp-table{min-width:1120px}
-@media(max-width:760px){.mp-tabs .pill{margin-left:0}.recruit-progress{min-width:90px}}
-</style></head>
+.mp-tab.active{background:#101827;border-color:#101827;color:#fff}.mp-tabs .pill{margin-left:auto}
+.mp-notice{background:#f8fafc;border-left-color:#64748b}.mp-table{min-width:1120px}.action-cell{white-space:nowrap}
+.resume-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.resume-card{border:1px solid #e5e7eb;background:#fff;border-radius:13px;padding:15px;text-align:left;cursor:pointer;transition:.15s}
+.resume-card:hover{border-color:#c3cad5;box-shadow:0 8px 24px #10182712;transform:translateY(-1px)}
+.resume-card>div:first-child{display:flex;align-items:center;gap:9px}.resume-count{width:31px;height:31px;border-radius:9px;background:#101827;color:#fff;display:grid;place-items:center;font-weight:850}
+.resume-best{font-size:12px;margin-top:10px;color:#334155}.resume-breakdown{font-size:11px;color:#6b7280;margin-top:6px;line-height:1.5}.resume-link{font-size:11px;color:#172235;font-weight:800;margin-top:9px}
+.filter-badge{display:none;align-items:center;gap:7px;padding:5px 8px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:10px;font-weight:800}
+.filter-badge button{border:0;background:transparent;color:inherit;font-weight:900;cursor:pointer}
+.source-box{grid-column:1/-1;border:1px solid #d8dee7;background:#f8fafc;border-radius:10px;padding:12px}
+.source-box label{display:block;font-size:11px;font-weight:800;margin-bottom:6px}.source-box select{width:100%;padding:9px;border:1px solid #d4dae2;border-radius:8px;background:white}.source-box small{display:block;color:#64748b;margin-top:6px}
+.sensitive label{color:#7c2d12}.statusline{display:flex;justify-content:space-between;gap:14px;padding:11px 0;border-bottom:1px solid #eef0f3;font-size:12px}.statusline:last-child{border-bottom:0}.settings-copy{font-size:12px;color:#64748b;line-height:1.6}
+@media(max-width:760px){.mp-tabs .pill{margin-left:0}.recruit-progress{min-width:90px}.resume-grid{grid-template-columns:1fr}.statusline{flex-direction:column;gap:5px}}
+</style>
+</head>
 <body>
 <div class="app">
 <aside class="sidebar" id="sidebar">
@@ -49,10 +55,7 @@
 <div class="content">
 
 <section class="view active" id="dashboard">
-  <div class="hero">
-    <div><h2>Monitoring KMB</h2><p>Manpower • Rekrutmen • Unit • MP Aktif • MP OUT</p></div>
-    <div class="date" id="today"></div>
-  </div>
+  <div class="hero"><div><h2>Monitoring KMB</h2><p>Manpower • Rekrutmen • Unit • MP Aktif • MP OUT</p></div><div class="date" id="today"></div></div>
 
   <div class="kpis">
     <div class="card"><div class="kpi-label">Total Manpower Planning</div><div class="kpi-value" id="kPlanning">0</div><div class="kpi-sub">Seluruh posisi per jobsite</div><div class="accent"></div></div>
@@ -61,10 +64,15 @@
     <div class="card"><div class="kpi-label">Actual vs Planning</div><div class="kpi-value" id="kPct">0%</div><div class="kpi-sub">Persentase pemenuhan manpower</div><div class="accent"></div></div>
   </div>
 
-  <div class="card recruitment-card">
+  <div class="card">
+    <div class="section-head"><div><h3>Resume Vacant per Jabatan</h3><p class="section-sub">Klik jabatan untuk langsung melihat detail progress rekrutmen.</p></div><span class="pill">Terhubung otomatis</span></div>
+    <div class="resume-grid" id="vacancyResume"></div>
+  </div>
+
+  <div class="card recruitment-card" id="recruitmentCard">
     <div class="section-head">
-      <div><h3>Summary Progress Rekrutmen</h3><p class="section-sub">Sesuai tabel MONITORING REKRUTMEN pada Dashboard Excel</p></div>
-      <span class="badge open" id="recruitCount">0 OPEN</span>
+      <div><h3>Summary Progress Rekrutmen</h3><p class="section-sub">Jobsite • Jabatan • Due Date • Progress terakhir • Nama/Keterangan</p></div>
+      <div style="display:flex;gap:7px;align-items:center"><span class="filter-badge" id="recruitFilterBadge"></span><span class="badge open" id="recruitCount">0 OPEN</span></div>
     </div>
     <div class="table-wrap">
       <table class="table recruitment-table">
@@ -75,16 +83,13 @@
   </div>
 
   <div class="grid2" style="margin-top:16px">
-    <div class="card">
-      <div class="section-head"><h3>Ringkasan Manpower per Jobsite</h3><span class="pill">Terhubung data monitoring</span></div>
-      <div class="table-wrap"><table class="table"><thead><tr><th>Jobsite</th><th>Planning</th><th>Actual</th><th>Vacant</th><th>% Actual</th><th>Open</th><th>Continue</th><th>Close</th><th>Jatuh Tempo</th></tr></thead><tbody id="summaryBody"></tbody></table></div>
-    </div>
+    <div class="card"><div class="section-head"><h3>Ringkasan Manpower per Jobsite</h3><span class="pill">Terhubung data monitoring</span></div><div class="table-wrap"><table class="table"><thead><tr><th>Jobsite</th><th>Planning</th><th>Actual</th><th>Vacant</th><th>% Actual</th><th>Open</th><th>Continue</th><th>Close</th><th>Jatuh Tempo</th></tr></thead><tbody id="summaryBody"></tbody></table></div></div>
     <div class="card"><div class="section-head"><h3>Planning vs Actual</h3></div><div class="bars" id="bars"></div></div>
   </div>
 
   <div class="grid2" style="margin-top:16px">
     <div class="card"><div class="section-head"><h3>Status PTK</h3></div><div class="stats" style="grid-template-columns:repeat(4,1fr);margin:0" id="statusCards"></div></div>
-    <div class="card"><div class="section-head"><h3>Kekosongan per Jabatan</h3></div><div id="vacancies"></div></div>
+    <div class="card"><div class="section-head"><h3>Catatan Sinkronisasi</h3></div><div class="notice"><b>MP Aktif ↔ Jobsite terhubung.</b> Perubahan penempatan di MP Aktif akan memindahkan manpower ke jobsite baru dan membuat posisi lama menjadi Vacant.</div></div>
   </div>
 </section>
 
@@ -97,27 +102,18 @@
 
 <section class="view" id="mp">
   <div class="page-head">
-    <div><h2 id="mpTitle">MP Aktif</h2><p>Data manpower aktif dan manpower keluar dari file Monitoring KMB</p></div>
-    <div class="toolbar"><input class="input" id="mpSearch" placeholder="Cari nama / jabatan / site..."><button class="btn yellow" id="addMP">+ Tambah Data</button><button class="btn" id="exportMP">Export CSV</button></div>
+    <div><h2 id="mpTitle">MP Aktif</h2><p>Database manpower lengkap dan terhubung dengan penempatan jobsite.</p></div>
+    <div class="toolbar"><input class="input" id="mpSearch" placeholder="Cari nama / jabatan / site..."><button class="btn" id="mpFullBtn">Semua Kolom</button><button class="btn yellow" id="addMP">+ Tambah Data</button><button class="btn" id="exportMP">Export CSV</button></div>
   </div>
-  <div class="mp-tabs">
-    <button class="mp-tab active" data-mode="active">MP Aktif</button>
-    <button class="mp-tab" data-mode="out">MP OUT</button>
-    <span class="pill" id="mpCount">0 data</span>
-  </div>
-  <div class="notice mp-notice"><b>Data dapat diedit langsung di web.</b> Perubahan tersimpan pada browser ini. Kolom identitas sangat sensitif seperti NIK/KK/NPWP, nomor HP, rekening, BPJS, alamat lengkap, dan emergency contact tidak dipublikasikan pada GitHub Pages.</div>
+  <div class="mp-tabs"><button class="mp-tab active" data-mode="active">MP Aktif</button><button class="mp-tab" data-mode="out">MP OUT</button><span class="pill" id="mpCount">0 data</span></div>
+  <div class="notice mp-notice"><b>Alur sinkron:</b> pada MP Aktif tersedia tombol <b>MP OUT</b> untuk memindahkan seluruh data ke MP OUT sekaligus menghapus dari MP Aktif dan membuat posisi jobsite lama menjadi Vacant. Ubah <b>Tempat Bekerja</b> saat Edit untuk memindahkan manpower antar-jobsite.</div>
   <div style="height:12px"></div>
   <div id="mpTable"></div>
 </section>
 
 <section class="view" id="settings">
-  <div class="page-head"><div><h2>Pengaturan & Backup</h2><p>Kelola data Monitoring KMB yang tersimpan pada browser ini</p></div></div>
-  <div class="grid2">
-    <div class="card"><div class="section-head"><h3>Backup Data</h3></div><p style="font-size:12px;color:#6b7280;line-height:1.6">Perubahan yang Anda lakukan disimpan di browser perangkat ini. Backup mencakup monitoring jobsite, MP Aktif, dan MP OUT.</p><div class="toolbar"><button class="btn primary" id="backupBtn">Download Backup</button><label class="btn">Import Backup<input id="importFile" type="file" accept=".json,application/json" hidden></label></div></div>
-    <div class="card"><div class="section-head"><h3>Reset</h3></div><p style="font-size:12px;color:#6b7280;line-height:1.6">Mengembalikan data web ke kondisi awal dari file Excel yang dipakai saat pembuatan aplikasi.</p><button class="btn danger" id="resetBtn">Reset ke Data Awal</button></div>
-  </div>
-  <div style="height:16px"></div>
-  <div class="notice"><b>Catatan:</b> versi saat ini menggunakan penyimpanan browser. Jika nantinya dipakai beberapa Admin/Editor di perangkat berbeda, tahap berikutnya adalah menghubungkannya ke database online dengan login.</div>
+  <div class="page-head"><div><h2>Pengaturan</h2><p>Pemilik, Editor, Backup, Import Excel, dan Download Excel Monitoring KMB.</p></div></div>
+  <div id="settingsContent"></div>
 </section>
 
 <div class="footer">Monitoring KMB • PT. Karunia Mandiri Berkarya</div>
@@ -133,7 +129,8 @@
   </div>
 </div>
 
-<script src="data.js?v=2"></script>
-<script src="app.js?v=2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="data.js?v=5"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>
