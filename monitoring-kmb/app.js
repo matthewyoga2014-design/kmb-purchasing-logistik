@@ -2,9 +2,11 @@ const INITIAL=window.KMB_DATA||{sites:{},siteLabels:{},units:[],mpActive:[],mpOu
 const KEY="kmb_monitoring_web_v1";
 const OWNER_EMAIL="matthewyoga2014@gmail.com";
 const EDITOR_KEY="kmb_editors";
+const SOURCE_SYNC_KEY="kmb_excel_sync_monitoring6_v1";
 let data=loadData(),editState=null,mpMode="active",mpFullView=false,recruitRoleFilter="";
 
 const SITE_FIELDS=["No","Nama","Jabatan","Keterangan","PIC","Judul","Awal Rekrutmen","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi","Due Date","Status","Tanggal Close"];
+const SITE_IMPORT_FIELDS=[...SITE_FIELDS,"Keterangan PTK","Lama Closing (Hari)","Open Index"];
 const MP_SCHEMA_ACTIVE=[
 "No.","NIP (KARYAWAN)","NIK KTP","NO.KK","Nama","NO. NPWP","Nomor HP","Jabatan","Departemen","Level",
 "Status Kontrak PKWT/PKWTT/Harian Lepas","Akhir Kontrak","POH","Sisa Hari","Reminder","Tanggal Masuk","Masa Kerja",
@@ -27,7 +29,12 @@ function todayISO(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezone
 function fmtDate(v){if(!v)return "-";const s=String(v);const d=/^\d{4}-\d{2}-\d{2}/.test(s)?new Date(s.slice(0,10)+"T00:00:00"):new Date(s);return isNaN(d)?esc(v):new Intl.DateTimeFormat("id-ID",{day:"2-digit",month:"short",year:"numeric"}).format(d)}
 function canonicalJob(v){let s=normText(v).toLowerCase();s=s.replace(/\bjr\b/g,"junior").replace(/\bharian\b/g,"").replace(/\s+/g," ").trim();return s}
 function canonicalJobLabel(v){const s=canonicalJob(v);if(s==="junior mekanik")return "Junior Mekanik";if(s==="junior welder")return "Junior Welder";if(s==="helper mekanik")return "Helper Mekanik";if(s==="admin plant")return "Admin Plant";return normText(v)||"Belum ditentukan"}
-function sameName(a,b){return normText(a).toLowerCase()===normText(b).toLowerCase()}
+function nameKey(v){
+  let s=normText(v).toLowerCase().replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+  const aliases={"khoirul mustofa":"khoirul musthofa","adi":"aditya"};
+  return aliases[s]||s;
+}
+function sameName(a,b){return nameKey(a)===nameKey(b)}
 function isVacantName(v){const s=normText(v).toLowerCase();return !s||s==="vacant"}
 function siteKeyFromPlacement(v){const s=normText(v).toLowerCase();if(!s)return "";if(s==="c4"||s.includes("kta")||s.includes("tra"))return "C4";if(s.includes("maintenance"))return "SLR - MAINTENANCE";if(s.includes("rekondisi"))return "SLR - REKONDISI";if(s.includes("workshop")||s.includes("legok")||s==="ws")return "WS";return ""}
 function placementFromSiteKey(k){return ({C4:"C4","SLR - MAINTENANCE":"SLR - Maintenance","SLR - REKONDISI":"SLR - Rekondisi",WS:"Workshop Legok"})[k]||k}
@@ -50,22 +57,32 @@ function normalizeAllMP(){
   data.mpActive=(data.mpActive||[]).map(normalizedMP);
   data.mpOut=(data.mpOut||[]).map(normalizedMP);
 }
+function mergeRosterFromSource(existing,baseline){
+  const ex=Array.isArray(existing)?existing:[];
+  const safe=["No.","Nama","Jabatan","Departemen","Level","Status Kontrak PKWT/PKWTT/Harian Lepas","Akhir Kontrak","POH","Sisa Hari","Reminder","Tanggal Masuk","Masa Kerja","Jenis Kelamin","Agama","Tempat Lahir","Tgl/Lahir","Umur","Pendidikan Terakhir","Keterangan","Tempat Bekerja","STATUS","BLOK KAMAR","Tanggal Keluar","Alasan"];
+  return (baseline||[]).map(b=>{
+    const old=ex.find(e=>sameName(e?.Nama,b?.Nama));
+    const merged=normalizedMP(old||{});
+    const nb=normalizedMP(b||{});
+    safe.forEach(k=>{merged[k]=nb[k]??""});
+    return merged;
+  });
+}
 function loadData(){
   try{
     const x=localStorage.getItem(KEY),saved=x?JSON.parse(x):clone(INITIAL);
     saved.sites=saved.sites||clone(INITIAL.sites||{});
     saved.siteLabels=saved.siteLabels||clone(INITIAL.siteLabels||{});
     saved.units=saved.units||clone(INITIAL.units||[]);
-    const mpMigrationKey="kmb_mp_seed_v6";
-    const needsMpMigration=!localStorage.getItem(mpMigrationKey);
-    if(!Array.isArray(saved.mpActive)||(needsMpMigration&&saved.mpActive.length===0&&Array.isArray(INITIAL.mpActive)&&INITIAL.mpActive.length)){
-      saved.mpActive=clone(INITIAL.mpActive||[]);
-    }
-    if(!Array.isArray(saved.mpOut)||(needsMpMigration&&saved.mpOut.length===0&&Array.isArray(INITIAL.mpOut)&&INITIAL.mpOut.length)){
-      saved.mpOut=clone(INITIAL.mpOut||[]);
-    }
-    if(needsMpMigration){
-      localStorage.setItem(mpMigrationKey,"1");
+    saved.mpActive=Array.isArray(saved.mpActive)?saved.mpActive:[];
+    saved.mpOut=Array.isArray(saved.mpOut)?saved.mpOut:[];
+    if(!localStorage.getItem(SOURCE_SYNC_KEY)){
+      saved.sites=clone(INITIAL.sites||{});
+      saved.siteLabels=clone(INITIAL.siteLabels||{});
+      saved.units=clone(INITIAL.units||[]);
+      saved.mpActive=mergeRosterFromSource(saved.mpActive,INITIAL.mpActive||[]);
+      saved.mpOut=mergeRosterFromSource(saved.mpOut,INITIAL.mpOut||[]);
+      localStorage.setItem(SOURCE_SYNC_KEY,"1");
       localStorage.setItem(KEY,JSON.stringify(saved));
     }
     return saved;
@@ -337,26 +354,73 @@ function importOriginalExcel(input){
   const reader=new FileReader();
   reader.onload=e=>{
     try{
-      const wb=XLSX.read(e.target.result,{type:"array"});
+      const wb=XLSX.read(e.target.result,{type:"array",cellDates:true});
+      const iso=v=>{
+        if(v instanceof Date&&!isNaN(v)){const d=new Date(v);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,10)}
+        const s=normText(v);if(!s)return "";
+        const d=new Date(s);if(!isNaN(d)&&(/[\/\-]/.test(s)))return d.toISOString().slice(0,10);
+        return v;
+      };
+      const siteDateFields=new Set(["Awal Rekrutmen","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi","Due Date","Tanggal Close"]);
+      const readSite=sheetName=>{
+        const ws=wb.Sheets[sheetName];if(!ws)throw new Error("Sheet "+sheetName+" tidak ditemukan.");
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true});
+        const out=[];
+        for(let i=1;i<rows.length;i++){
+          const a=rows[i]||[],no=a[0],name=normText(a[1]);
+          if((no===""||no==null)&&!name)continue;
+          const o={};SITE_IMPORT_FIELDS.forEach((f,j)=>o[f]=siteDateFields.has(f)?iso(a[j]):(a[j]??""));
+          if(!o.No&&!o.Nama)continue;out.push(o);
+        }
+        return out;
+      };
       const readMP=(sheetName,isOut)=>{
         const ws=wb.Sheets[sheetName];if(!ws)return [];
-        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:false,dateNF:"yyyy-mm-dd"});
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true});
         const schema=isOut?MP_SCHEMA_OUT:MP_SCHEMA_ACTIVE,out=[];
+        const dateIdx=new Set([11,15,20,40,43,46,49,55]);
         for(let i=6;i<rows.length;i++){
           const a=rows[i]||[],name=normText(a[4]),job=normText(a[7]),dept=normText(a[8]),site=normText(a[26]),exit=normText(a[55]),reason=normText(a[56]);
           if(!name||!/[A-Za-z]/.test(name))continue;
           if(isOut){if(!job&&!dept&&!site&&!exit&&!reason)continue}else{if(!job&&!dept&&!site)continue}
-          const o={};schema.forEach((f,j)=>o[f]=a[j]??"");out.push(o);
+          const o={};schema.forEach((f,j)=>o[f]=dateIdx.has(j)?iso(a[j]):(a[j]??""));out.push(o);
         }
         return out;
       };
-      const active=readMP("MP Aktif",false),out=readMP("MP OUT",true);
-      if(!active.length&&!out.length)throw new Error("Sheet MP Aktif/MP OUT tidak terbaca.");
-      if(active.length)data.mpActive=active;if(out.length)data.mpOut=out;
+      const readUnits=()=>{
+        const ws=wb.Sheets["UNIT"];if(!ws)return [];
+        const rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:"",raw:true});
+        const rek=[],maint=[];
+        for(let i=7;i<rows.length;i++){
+          const a=rows[i]||[],rn=a[1],mn=a[9];
+          if(rn!==""&&rn!=null&&String(rn).toLowerCase()!=="vessel"){
+            if(String(rn).toLowerCase()==="dolly")rek.push({"No.":"Dolly","Category":"","Code Unit SAP":"","Manufacturer":"","Model":"","Serial Number":"","Remark":""});
+            else rek.push({"No.":rn,"Category":a[2]??"","Code Unit SAP":a[3]??"","Manufacturer":a[4]??"","Model":a[5]??"","Serial Number":a[6]??"","Remark":a[7]??""});
+          }
+          if(mn!==""&&mn!=null)maint.push({"No.":mn,"Category":a[10]??"","Code Unit SAP":a[11]??"","Merek":a[12]??"","Kode":a[13]??"","Serial Number":a[14]??""});
+        }
+        return [{name:"SLR Rekondisi",rows:rek},{name:"SLR Maintenance",rows:maint}];
+      };
+
+      const newSites={
+        "C4":readSite("C4"),
+        "SLR - MAINTENANCE":readSite("SLR - MAINTENANCE"),
+        "SLR - REKONDISI":readSite("SLR - REKONDISI"),
+        "WS":readSite("WS")
+      };
+      const active=readMP("MP Aktif",false),out=readMP("MP OUT",true),units=readUnits();
+      if(!active.length)throw new Error("Data MP Aktif tidak terbaca.");
+      data.sites=newSites;
+      data.siteLabels={"C4":"C4","SLR - MAINTENANCE":"SLR Maintenance","SLR - REKONDISI":"SLR Rekondisi","WS":"Workshop Legok"};
+      data.units=units;
+      data.mpActive=active;
+      data.mpOut=out;
+      normalizeAllMP();
       localStorage.setItem("kmb_full_mp_loaded","1");
-      saveData();makeSiteViews();renderMP();
-      alert("Import Excel selesai: "+data.mpActive.length+" MP Aktif dan "+data.mpOut.length+" MP OUT. Sekarang buka kembali tombol Edit untuk melihat data lengkap.");
-    }catch(err){alert("Import gagal: "+err.message)}
+      localStorage.setItem(SOURCE_SYNC_KEY,"1");
+      saveData();makeSiteViews();renderUnits();renderMP();renderDashboard();
+      alert("Sinkronisasi Excel selesai. Jobsite, progress rekrutmen, unit, MP Aktif dan MP OUT sudah diperbarui dari "+file.name+".");
+    }catch(err){alert("Sinkronisasi gagal: "+err.message)}
   };
   reader.readAsArrayBuffer(file);input.value="";
 }
