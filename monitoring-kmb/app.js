@@ -56,8 +56,18 @@ function loadData(){
     saved.sites=saved.sites||clone(INITIAL.sites||{});
     saved.siteLabels=saved.siteLabels||clone(INITIAL.siteLabels||{});
     saved.units=saved.units||clone(INITIAL.units||[]);
-    if(!Array.isArray(saved.mpActive))saved.mpActive=clone(INITIAL.mpActive||[]);
-    if(!Array.isArray(saved.mpOut))saved.mpOut=clone(INITIAL.mpOut||[]);
+    const mpMigrationKey="kmb_mp_seed_v6";
+    const needsMpMigration=!localStorage.getItem(mpMigrationKey);
+    if(!Array.isArray(saved.mpActive)||(needsMpMigration&&saved.mpActive.length===0&&Array.isArray(INITIAL.mpActive)&&INITIAL.mpActive.length)){
+      saved.mpActive=clone(INITIAL.mpActive||[]);
+    }
+    if(!Array.isArray(saved.mpOut)||(needsMpMigration&&saved.mpOut.length===0&&Array.isArray(INITIAL.mpOut)&&INITIAL.mpOut.length)){
+      saved.mpOut=clone(INITIAL.mpOut||[]);
+    }
+    if(needsMpMigration){
+      localStorage.setItem(mpMigrationKey,"1");
+      localStorage.setItem(KEY,JSON.stringify(saved));
+    }
     return saved;
   }catch(e){return clone(INITIAL)}
 }
