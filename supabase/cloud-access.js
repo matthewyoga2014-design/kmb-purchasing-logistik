@@ -65,7 +65,7 @@
     if(!sb||!session){role="viewer";return role}
     const email=String(session.user?.email||"").trim().toLowerCase();
     if(!email){role="viewer";return role}
-    const {data,error}=await sb.from("access_roles").select("role").eq("email",email).maybeSingle();
+    const {data,error}=await sb.from("app_access_roles").select("role").eq("app_id",appId).eq("email",email).maybeSingle();
     role=error?"viewer":(data?.role||"viewer");
     return role;
   }
@@ -144,7 +144,7 @@
 
   async function listEditors(){
     if(!sb||!isOwner())return [];
-    const {data,error}=await sb.from("access_roles").select("email,role,created_at,updated_at").eq("role","editor").order("email");
+    const {data,error}=await sb.from("app_access_roles").select("email,role,created_at,updated_at").eq("app_id",appId).eq("role","editor").order("email");
     if(error)throw error;
     return data||[];
   }
@@ -152,13 +152,13 @@
   async function addEditor(email){
     if(!sb||!isOwner())throw new Error("Hanya Pemilik yang dapat mengatur Editor.");
     const clean=String(email||"").trim().toLowerCase();
-    const {error}=await sb.from("access_roles").upsert({email:clean,role:"editor",updated_at:new Date().toISOString()},{onConflict:"email"});
+    const {error}=await sb.from("app_access_roles").upsert({app_id:appId,email:clean,role:"editor",updated_at:new Date().toISOString()},{onConflict:"app_id,email"});
     if(error)throw error;
   }
 
   async function removeEditor(email){
     if(!sb||!isOwner())throw new Error("Hanya Pemilik yang dapat mengatur Editor.");
-    const {error}=await sb.from("access_roles").delete().eq("email",String(email||"").trim().toLowerCase()).eq("role","editor");
+    const {error}=await sb.from("app_access_roles").delete().eq("app_id",appId).eq("email",String(email||"").trim().toLowerCase()).eq("role","editor");
     if(error)throw error;
   }
 
