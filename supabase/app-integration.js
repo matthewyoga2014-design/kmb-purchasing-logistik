@@ -169,15 +169,20 @@
     const email=(document.getElementById("authEmail")?.value||"").trim().toLowerCase();
     const password=document.getElementById("authPassword")?.value||"";
     if(!email||password.length<8){alert("Isi email dan password minimal 8 karakter.");return}
+    const allowed=email==="matthewyoga2014@gmail.com"||getEditors().map(x=>String(x).toLowerCase()).includes(email);
+    if(!allowed){
+      alert("Email ini belum didaftarkan sebagai Editor pada web ini. Akses tetap sebagai Pelihat.");
+      return;
+    }
     try{
       const r=await window.KMBCloud.signUpPassword(email,password);
       if(r.session){
         closeAuthModal();
-        alert(window.KMBCloud.role==="viewer"?"Akun aktif, tetapi email ini tidak terdaftar sebagai Editor. Akses tetap Pelihat.":"Akun Editor berhasil diaktifkan dan sudah masuk.");
+        alert(email==="matthewyoga2014@gmail.com"?"Akun Pemilik berhasil diaktifkan dan sudah masuk.":"Akun Editor berhasil diaktifkan dan sudah masuk.");
       }else{
-        alert("Akun dibuat. Cek email untuk konfirmasi. Hak edit hanya akan aktif jika email ini sudah didaftarkan oleh Pemilik sebagai Editor.");
+        alert("Akun dibuat. Cek email untuk konfirmasi satu kali, lalu kembali ke web ini dan tekan Masuk.");
       }
-    }catch(e){alert("Pendaftaran gagal: "+(e.message||e))}
+    }catch(e){alert("Aktivasi akun gagal: "+(e.message||e))}
   };
 
   window.cloudSendMagicLink=async function(){
