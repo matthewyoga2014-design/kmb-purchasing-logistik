@@ -388,7 +388,8 @@ function renderDashboard(){
   Object.keys(data.sites).forEach(key=>{
     const m=siteMetrics(data.sites[key]);Object.keys(total).forEach(k=>total[k]+=m[k]||0);
     const pct=m.planning?Math.round(m.actual/m.planning*100):0;
-    rows+='<tr><td><b>'+esc(data.siteLabels[key]||key)+'</b></td><td>'+m.planning+'</td><td>'+m.actual+'</td><td>'+m.vacant+'</td><td>'+pct+'%</td><td>'+m.open+'</td><td>'+m.cont+'</td><td>'+m.close+'</td><td>'+m.due+'</td></tr>';
+    const pctClass=pct<=25?"pct-red":pct<=50?"pct-orange":pct<=75?"pct-yellow":"pct-green";
+    rows+='<tr><td><b>'+esc(data.siteLabels[key]||key)+'</b></td><td>'+m.planning+'</td><td>'+m.actual+'</td><td><span class="vacant-number">'+m.vacant+'</span></td><td><span class="pct-badge '+pctClass+'">'+pct+'%</span></td><td>'+m.open+'</td><td>'+m.cont+'</td><td>'+m.close+'</td><td>'+m.due+'</td></tr>';
   });
   document.getElementById("kPlanning").textContent=total.planning;
   document.getElementById("kActual").textContent=total.actual;
