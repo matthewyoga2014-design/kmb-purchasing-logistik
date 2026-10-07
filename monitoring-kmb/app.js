@@ -145,9 +145,7 @@ function candidateFieldHtml(f,row){
   return '<div class="field"><label>'+esc(f)+'</label><input type="'+(dateFields.includes(f)?"date":"text")+'" data-f="'+esc(f)+'" value="'+esc(val)+'"></div>';
 }
 function setModalSave(show,label="Simpan Perubahan"){
-  const b=document.getElementById("saveModal");if(!b)return;
-  b.style.display=show?"":"none";b.textContent=label;
-  b.onclick=()=>saveModal();
+  const b=document.getElementById("saveModal");if(!b)return;b.style.display=show?"":"none";b.textContent=label;
 }
 function openKmbCandidateList(siteKey,rowIndex){
   const row=data.sites?.[siteKey]?.[rowIndex];if(!row)return;
@@ -157,7 +155,7 @@ function openKmbCandidateList(siteKey,rowIndex){
   document.getElementById("modalTitle").textContent="Pelamar — "+(row.Jabatan||"-")+" • "+(data.siteLabels?.[siteKey]||siteKey);
   setModalSave(false);
   document.getElementById("formFields").innerHTML='<div class="candidate-manager"><div class="candidate-manager-head"><div><b>'+list.length+' pelamar</b><span>Progress tertinggi '+esc(best.label)+' ('+best.p+'%)</span></div><button class="btn yellow" onclick="openKmbCandidateForm(decodeURIComponent(\''+encodeURIComponent(siteKey)+'\'),'+rowIndex+',null)">+ Tambah Pelamar</button></div>'+(list.length?list.map((cand,ci)=>{const p=candidateProgress(cand);return '<div class="candidate-card"><div class="candidate-card-main"><div class="candidate-name">'+esc(cand["Nama Kandidat"]||"-")+'</div><div class="candidate-meta">'+badge(cand["Status Kandidat"]||"Aktif")+' <span>'+esc(cand.Sumber||"Sumber belum diisi")+'</span></div><div class="candidate-progress"><div class="progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b><span>'+esc(p.label)+'</span></div><div class="candidate-note">'+esc(cand.Keterangan||"")+'</div></div><div class="candidate-actions"><button class="btn" onclick="openKmbCandidateForm(decodeURIComponent(\''+encodeURIComponent(siteKey)+'\'),'+rowIndex+','+ci+')">Edit</button><button class="btn danger" onclick="deleteKmbCandidate(decodeURIComponent(\''+encodeURIComponent(siteKey)+'\'),'+rowIndex+','+ci+')">Hapus</button></div></div>'}).join(""):'<div class="empty">Belum ada pelamar. Klik “Tambah Pelamar”.</div>')+'</div>';
-  document.getElementById("modal").classList.add("show");
+  document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
 }
 function openKmbCandidateForm(siteKey,rowIndex,candidateIndex=null){if(!editOnly())return;
   const row=data.sites?.[siteKey]?.[rowIndex];if(!row)return;
@@ -166,7 +164,7 @@ function openKmbCandidateForm(siteKey,rowIndex,candidateIndex=null){if(!editOnly
   document.getElementById("modalTitle").textContent=(candidateIndex===null?"Tambah":"Edit")+" Pelamar — "+(row.Jabatan||"-");
   setModalSave(true,candidateIndex===null?"Tambah Pelamar":"Simpan Pelamar");
   document.getElementById("formFields").innerHTML='<div class="candidate-back"><button class="btn" type="button" onclick="openKmbCandidateList(decodeURIComponent(\''+encodeURIComponent(siteKey)+'\'),'+rowIndex+')">← Daftar Pelamar</button><span>'+(data.siteLabels?.[siteKey]||siteKey)+' • Posisi #'+esc(row.No||"")+'</span></div>'+CANDIDATE_FIELDS.map(f=>candidateFieldHtml(f,cand)).join("");
-  document.getElementById("modal").classList.add("show");
+  document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
 }
 function deleteKmbCandidate(siteKey,rowIndex,candidateIndex){if(!editOnly())return;
   const row=data.sites?.[siteKey]?.[rowIndex];if(!row)return;
@@ -503,24 +501,11 @@ function saveModal(){if(!editOnly())return;
     const k=editState.key;saveData();renderSite(k);renderMP();closeModal();return;
   }
   if(editState.type==="candidate"){
-    try{
-      const siteKey=editState.siteKey,rowRec=data.sites?.[siteKey]?.[editState.rowIndex];
-      if(!rowRec){alert("Posisi vacant tidak ditemukan. Tutup form lalu buka kembali.");return}
-      const key=kmbCandidateKey(siteKey,rowRec),list=getKmbCandidates(siteKey,rowRec),clean={};
-      CANDIDATE_FIELDS.forEach(f=>clean[f]=row[f]||"");
-      if(!normText(clean["Nama Kandidat"])){alert("Nama kandidat wajib diisi.");return}
-      if(editState.candidateIndex===null)list.push(clean);else list[editState.candidateIndex]={...list[editState.candidateIndex],...clean};
-      data.candidates=data.candidates||{};
-      data.candidates[key]=list;
-      saveData();
-      renderSite(siteKey);
-      openKmbCandidateList(siteKey,editState.rowIndex);
-      return;
-    }catch(err){
-      console.error("Gagal simpan pelamar",err);
-      alert("Gagal menyimpan pelamar: "+(err?.message||err));
-      return;
-    }
+    const siteKey=editState.siteKey,r=data.sites?.[siteKey]?.[editState.rowIndex],key=kmbCandidateKey(siteKey,r),list=getKmbCandidates(siteKey,r),clean={};
+    CANDIDATE_FIELDS.forEach(f=>clean[f]=row[f]||"");
+    if(!normText(clean["Nama Kandidat"])){alert("Nama kandidat wajib diisi.");return}
+    if(editState.candidateIndex===null)list.push(clean);else list[editState.candidateIndex]={...list[editState.candidateIndex],...clean};
+    data.candidates[key]=list;saveData();renderSite(siteKey);openKmbCandidateList(siteKey,editState.rowIndex);return;
   }
   if(editState.type==="unit"){
     const sec=data.units?.[editState.sectionIndex];if(!sec)return;
