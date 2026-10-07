@@ -403,22 +403,46 @@ function renderDashboard(){
 }
 function renderVacancyResume(){
   const groups={};
-  for(const [site,rows] of Object.entries(data.sites)){
-    rows.forEach((r,i)=>{
+  for(const [site,rows] of Object.entries(data.sites||{})){
+    (rows||[]).forEach((r,i)=>{
       if(!isVacantName(r.Nama))return;
       const role=canonicalJobLabel(r.Jabatan),key=canonicalJob(r.Jabatan)||"belum";
-      const p=bestKmbCandidateProgress(site,r);
-      if(!groups[key])groups[key]={role,items:[]};
+      if(!groups[key])groups[key]={role,items:[],candidates:[]};
+      const p=bestKmbCandidateProgress(site,r),list=getKmbCandidates(site,r);
       groups[key].items.push({site,row:r,index:i,p});
-    })
+      list.forEach((cand,ci)=>{
+        const cp=candidateProgress(cand);
+        groups[key].candidates.push({
+          site,
+          vacancyNo:r.No||"",
+          candidateIndex:ci,
+          name:cand["Nama Kandidat"]||"-",
+          status:cand["Status Kandidat"]||"Aktif",
+          source:cand.Sumber||"",
+          p:cp
+        });
+      });
+    });
   }
+
   const arr=Object.values(groups).sort((a,b)=>b.items.length-a.items.length||a.role.localeCompare(b.role));
-  document.getElementById("vacancyResume").innerHTML=arr.length?arr.map(g=>{
-    const best=g.items.slice().sort((a,b)=>b.p.p-a.p.p)[0];
-    const breakdown={};g.items.forEach(x=>breakdown[x.p.label]=(breakdown[x.p.label]||0)+1);
-    const breakdownText=Object.entries(breakdown).sort((a,b)=>{const pa=g.items.find(x=>x.p.label===a[0])?.p.p||0,pb=g.items.find(x=>x.p.label===b[0])?.p.p||0;return pb-pa}).map(([k,v])=>v+"× "+k).join(" • ");
+  const host=document.getElementById("vacancyResume");if(!host)return;
+
+  host.innerHTML=arr.length?arr.map(g=>{
+    const need=g.items.length;
+    const candCount=g.candidates.length;
     const roleEnc=encodeURIComponent(canonicalJob(g.role));
-    return '<button class="resume-card" onclick="focusRecruitRole(decodeURIComponent(\''+roleEnc+'\'))"><div><span class="resume-count">'+g.items.length+'</span><b>'+esc(g.role)+'</b></div><div class="resume-best">Progress tertinggi: <b>'+esc(best.p.label)+' ('+best.p.p+'%)</b></div><div class="resume-breakdown">'+esc(breakdownText)+'</div><div class="resume-link">Lihat detail →</div></button>';
+    const candidateHtml=candCount
+      ? g.candidates
+          .slice()
+          .sort((a,b)=>b.p.p-a.p.p||a.name.localeCompare(b.name))
+          .map(c=>{
+            const siteLabel=data.siteLabels?.[c.site]||c.site;
+            return '<div class="resume-candidate-row"><div class="resume-candidate-main"><b>'+esc(c.name)+'</b><span>'+esc(siteLabel)+' • Posisi #'+esc(c.vacancyNo||"-")+(c.source?' • '+esc(c.source):'')+'</span></div><div class="resume-candidate-stage"><span>'+esc(c.p.label)+'</span><b>'+c.p.p+'%</b></div></div>';
+          }).join("")
+      : '<div class="resume-no-candidate">Belum ada pelamar</div>';
+
+    return '<div class="resume-card resume-card-detail"><button class="resume-card-head" onclick="focusRecruitRole(decodeURIComponent(\''+roleEnc+'\'))"><div><span class="resume-count">'+need+'</span><b>'+esc(g.role)+'</b></div><div class="resume-role-meta"><span>Kebutuhan '+need+'</span><span>'+candCount+' Pelamar</span></div></button><div class="resume-candidate-list">'+candidateHtml+'</div></div>';
   }).join(""):'<div class="empty">Tidak ada vacant</div>';
 }
 function focusRecruitRole(role){recruitRoleFilter=role;renderRecruitmentSummary();document.getElementById("recruitmentCard").scrollIntoView({behavior:"smooth",block:"start"})}
