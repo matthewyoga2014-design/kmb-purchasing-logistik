@@ -9,7 +9,7 @@
   if(hadLocalBeforeCloud&&!localStorage.getItem(migrationBackupKey)){
     try{localStorage.setItem(migrationBackupKey,localStorage.getItem(localStateKey))}catch(e){}
   }
-  let cloudRole="viewer", cloudUser=null, cloudEditors=[], cloudUnsub=null, applyingRemote=false;
+  let cloudRole="viewer", cloudUser=null, cloudEditors=[], cloudUnsub=null, applyingRemote=false, pendingCloudSaves=0, saveQueue=Promise.resolve();
 
   window.accessMode=function(){return cloudRole||"viewer"};
   window.isEditorMode=function(){return cloudRole==="editor"};
@@ -215,6 +215,7 @@
       }else{
         if(typeof normalizeAllMP==="function")normalizeAllMP();
         if(typeof ensureRuntimeData==="function")ensureRuntimeData();
+        if(typeof ensureKmbCandidateData==="function")ensureKmbCandidateData(data);
         if(typeof renumberAll==="function")renumberAll();
         if(typeof KEY!=="undefined")localStorage.setItem(KEY,JSON.stringify(data));
       }
@@ -297,7 +298,12 @@
     window.saveData=function(){
       originalSave.apply(this,arguments);
       if(!applyingRemote&&window.KMBCloud?.canEdit?.()){
-        window.KMBCloud.saveState(data).catch(e=>console.error("Cloud save failed",e));
+        const snapshot=JSON.parse(JSON.stringify(data));
+        pendingCloudSaves++;
+        saveQueue=saveQueue
+          .then(()=>window.KMBCloud.saveState(snapshot))
+          .catch(e=>console.error("Cloud save failed",e))
+          .finally(()=>{pendingCloudSaves=Math.max(0,pendingCloudSaves-1)});
       }
     };
   }
@@ -316,7 +322,7 @@
           await syncFromCloud();
           if(cloudUnsub){try{cloudUnsub()}catch(e){} cloudUnsub=null}
           cloudUnsub=window.KMBCloud.subscribe(next=>{
-            if(next){persistRemoteLocally(next);renderAll()}
+            if(next&&pendingCloudSaves===0&&!applyingRemote){persistRemoteLocally(next);renderAll()}
           });
         }
       });
@@ -326,7 +332,7 @@
       await syncFromCloud();
       if(cloudUnsub){try{cloudUnsub()}catch(e){}}
       cloudUnsub=window.KMBCloud.subscribe(next=>{
-        if(next){persistRemoteLocally(next);renderAll()}
+        if(next&&pendingCloudSaves===0&&!applyingRemote){persistRemoteLocally(next);renderAll()}
       });
       applyAccessMode();
     }catch(e){
