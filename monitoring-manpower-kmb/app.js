@@ -347,7 +347,7 @@ const kmbInlineValueLabels={
           const p=el.getProps(["x","y","startAngle","endAngle","innerRadius","outerRadius"],true);
           const a=(p.startAngle+p.endAngle)/2,r=(p.innerRadius+p.outerRadius)/2;
           const x=p.x+Math.cos(a)*r,y=p.y+Math.sin(a)*r;
-          ctx.fillStyle="#ffffff";
+          ctx.fillStyle="#111827";
           ctx.font="900 12px Inter, Segoe UI, Arial";
           const label=chart.data.labels?.[i]??"";
           ctx.fillText(label+" "+value,x,y);
