@@ -209,6 +209,45 @@ function metrics(){
   }
 }
 let ktaChartInstances={};
+
+const ktaInlineValueLabels={
+  id:"ktaInlineValueLabels",
+  afterDatasetsDraw(chart,args,opts){
+    if(opts===false)return;
+    const ctx=chart.ctx,type=chart.config.type;
+    ctx.save();
+    ctx.font="800 11px Inter, Segoe UI, Arial";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    chart.data.datasets.forEach((ds,di)=>{
+      const meta=chart.getDatasetMeta(di);
+      if(meta.hidden)return;
+      meta.data.forEach((el,i)=>{
+        const value=Number(ds.data[i]??0);
+        if(!Number.isFinite(value))return;
+        if(type==="doughnut"){
+          if(value<=0)return;
+          const p=el.getProps(["x","y","startAngle","endAngle","innerRadius","outerRadius"],true);
+          const a=(p.startAngle+p.endAngle)/2,r=(p.innerRadius+p.outerRadius)/2;
+          const x=p.x+Math.cos(a)*r,y=p.y+Math.sin(a)*r;
+          ctx.fillStyle="#ffffff";ctx.font="900 12px Inter, Segoe UI, Arial";
+          const label=chart.data.labels?.[i]??"";
+          ctx.fillText(label+" "+value,x,y);
+        }else if(type==="line"){
+          const p=el.getProps(["x","y"],true);
+          ctx.fillStyle="#5b21b6";ctx.font="900 11px Inter, Segoe UI, Arial";
+          ctx.fillText(String(value),p.x,p.y-14);
+        }else if(type==="bar"&&chart.options.indexAxis!=="y"){
+          if(value<=0)return;
+          const p=el.getProps(["x","y"],true);
+          ctx.fillStyle="#374151";ctx.font="800 10px Inter, Segoe UI, Arial";
+          ctx.fillText(String(value),p.x,p.y-8);
+        }
+      });
+    });
+    ctx.restore();
+  }
+};
 function ktaMakeChart(id,config){
   if(!window.Chart)return;
   const canvas=document.getElementById(id);if(!canvas)return;
@@ -231,6 +270,7 @@ function renderKtaCharts(){
   ktaMakeChart("ktaCompositionChart",{
     type:"doughnut",
     data:{labels:["Actual","Vacant"],datasets:[{data:[m.actual,m.vacant],backgroundColor:["#7c3aed","#ff6b6b"],borderWidth:0,hoverOffset:5,borderRadius:6,spacing:3}]},
+    plugins:[ktaInlineValueLabels],
     options:{responsive:true,maintainAspectRatio:false,cutout:"72%",plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}}
   });
 
@@ -285,7 +325,8 @@ function renderKtaCharts(){
   ktaMakeChart("ktaPipelineChart",{
     type:"line",
     data:{labels,datasets:[{label:"Kandidat / Posisi",data:stages.map(s=>counts[s]),borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.12)",pointBackgroundColor:"#fff",pointBorderColor:"#7c3aed",pointBorderWidth:3,pointRadius:4,tension:.38,fill:true}]},
-    options:ktaChartOptions({plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
+    plugins:[ktaInlineValueLabels],
+    options:ktaChartOptions({layout:{padding:{top:22}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
   });
 }
 function renderDashboard(){
