@@ -61,6 +61,7 @@ const MP_SCHEMA_OUT=[...MP_SCHEMA_ACTIVE,"Tanggal Keluar","Alasan"];
 const SENSITIVE_FIELDS=new Set(["NIP (KARYAWAN)","NIK KTP","NO.KK","NO. NPWP","Nomor HP","Alamat Domisili","Alamat Lengkap","No Rekening","Nama Bank","Nama Pemilik Rekening","Nomor BPJS Kesehatan","Nomor BPJS Ketenagakerjaan","Nama Ibu","Pendidikan Terakhir Ibu","Pekerjaan Ibu","Nama Ayah","Pendidikan Terakhir Ayah","Pekerjaan Ayah","Saudara Kandung (1)","Jenis Kelamin (1)","Tanggal Lahir (1)","Saudara Kandung (2)","Jenis Kelamin (2)","Tanggal Lahir (2)","Saudara Kandung (3)","Jenis Kelamin (3)","Tanggal Lahir (3)","Saudara Kandung (4)","Jenis Kelamin (4)","Tanggal Lahir (4)","Nama Emergency","Hubungan","Nomor Telepon"]);
 const SUMMARY_MP_FIELDS=["No.","Nama","Jabatan","Departemen","Status Kontrak PKWT/PKWTT/Harian Lepas","POH","Tanggal Masuk","Masa Kerja","Keterangan","Tempat Bekerja","STATUS","BLOK KAMAR"];
 const SITE_DISPLAY_ORDER=["C4","SLR - MAINTENANCE","SLR - REKONDISI","WS"];
+const CANDIDATE_FIELDS=["Nama Kandidat","Tanggal Lamaran","Sumber","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi","Status Kandidat","Keterangan"];
 
 function clone(v){return JSON.parse(JSON.stringify(v))}
 function normText(v){return String(v??"").trim()}
@@ -79,6 +80,101 @@ function sameName(a,b){return nameKey(a)===nameKey(b)}
 function isVacantName(v){const s=normText(v).toLowerCase();return !s||s==="vacant"}
 function siteKeyFromPlacement(v){const s=normText(v).toLowerCase();if(!s)return "";if(s==="c4"||s.includes("kta")||s.includes("tra"))return "C4";if(s.includes("maintenance"))return "SLR - MAINTENANCE";if(s.includes("rekondisi"))return "SLR - REKONDISI";if(s.includes("workshop")||s.includes("legok")||s==="ws")return "WS";return ""}
 function placementFromSiteKey(k){return ({C4:"C4","SLR - MAINTENANCE":"SLR - Maintenance","SLR - REKONDISI":"SLR - Rekondisi",WS:"Workshop Legok"})[k]||k}
+
+function makeVacancyId(siteKey,row,index){
+  if(row?.__vacancyId)return row.__vacancyId;
+  const raw=[siteKey,index+1,row?.No||"",row?.Jabatan||"",row?.PIC||"",row?.Judul||""].join("|");
+  let h=2166136261;
+  for(let i=0;i<raw.length;i++){h^=raw.charCodeAt(i);h=Math.imul(h,16777619)}
+  return "VAC-"+id(siteKey)+"-"+(h>>>0).toString(36);
+}
+function ensureKmbCandidateData(d){
+  if(!d.candidates||typeof d.candidates!=="object"||Array.isArray(d.candidates))d.candidates={};
+  Object.keys(d.sites||{}).forEach(siteKey=>{
+    (d.sites[siteKey]||[]).forEach((row,i)=>{
+      if(!row.__vacancyId)row.__vacancyId=makeVacancyId(siteKey,row,i);
+    });
+  });
+  return d;
+}
+function kmbCandidateKey(siteKey,row){return siteKey+"::"+(row?.__vacancyId||"")}
+function getKmbCandidates(siteKey,row){
+  const k=kmbCandidateKey(siteKey,row);
+  return (data.candidates&&Array.isArray(data.candidates[k]))?data.candidates[k]:[];
+}
+function siteExportRow(row){
+  const out={};Object.entries(row||{}).forEach(([k,v])=>{if(!k.startsWith("__"))out[k]=v});return out;
+}
+function allKmbCandidateRows(){
+  const out=[];
+  Object.keys(data.sites||{}).forEach(siteKey=>{
+    (data.sites[siteKey]||[]).forEach(row=>{
+      getKmbCandidates(siteKey,row).forEach((cand,ci)=>{
+        const p=candidateProgress(cand);
+        out.push({
+          "Jobsite":data.siteLabels?.[siteKey]||siteKey,
+          "No Posisi":row.No||"",
+          "Jabatan":row.Jabatan||"",
+          "PIC":row.PIC||"",
+          "Status PTK":row.Status||"",
+          "Due Date":row["Due Date"]||"",
+          ...cand,
+          "Progress Terakhir":p.label,
+          "Progress %":p.p,
+          "Pelamar Ke":ci+1
+        });
+      });
+    });
+  });
+  return out;
+}
+function candidateProgress(c){
+  if(normText(c?.["Status Kandidat"]).toLowerCase()==="hired")return {p:100,label:"HIRED"};
+  return progress(c||{});
+}
+function bestKmbCandidateProgress(siteKey,row){
+  const list=getKmbCandidates(siteKey,row);
+  if(!list.length)return progress(row);
+  return list.map(candidateProgress).sort((a,b)=>b.p-a.p)[0]||progress(row);
+}
+function candidateFieldHtml(f,row){
+  const val=row?.[f]??"";
+  const dateFields=["Tanggal Lamaran","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi"];
+  if(f==="Status Kandidat")return '<div class="field"><label>Status Kandidat</label><select data-f="Status Kandidat">'+["Aktif","Hold","Tidak Lolos","Menolak","No Response","Hired","Cancel"].map(x=>'<option '+(val===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
+  if(f==="Keterangan")return '<div class="field"><label>Keterangan</label><textarea data-f="Keterangan">'+esc(val)+'</textarea></div>';
+  return '<div class="field"><label>'+esc(f)+'</label><input type="'+(dateFields.includes(f)?"date":"text")+'" data-f="'+esc(f)+'" value="'+esc(val)+'"></div>';
+}
+function setModalSave(show,label="Simpan Perubahan"){
+  const b=document.getElementById("saveModal");if(!b)return;
+  b.style.display=show?"":"none";b.textContent=label;
+}
+function openKmbCandidateList(siteKey,rowIndex){
+  const row=data.sites?.[siteKey]?.[rowIndex];if(!row)return;
+  if(!isVacantName(row.Nama)){alert("Pelamar hanya dikelola untuk posisi Vacant.");return}
+  const list=getKmbCandidates(siteKey,row),best=bestKmbCandidateProgress(siteKey,row);
+  editState={type:"candidate-list",siteKey,rowIndex};
+  document.getElementById("modalTitle").textContent="Pelamar — "+(row.Jabatan||"-")+" • "+(data.siteLabels?.[siteKey]||siteKey);
+  setModalSave(false);
+  document.getElementById("formFields").innerHTML='<div class="candidate-manager"><div class="candidate-manager-head"><div><b>'+list.length+' pelamar</b><span>Progress tertinggi '+esc(best.label)+' ('+best.p+'%)</span></div><button class="btn yellow" onclick="openKmbCandidateForm(decodeURIComponent(\''+encodeURIComponent(siteKey)+'\'),'+rowIndex+',null)">+ Tambah Pelamar</button></div>'+(list.length?list.map((cand,ci)=>{const p=candidateProgress(cand);return '<div class="candidate-card"><div class="candidate-card-main"><div class="candidate-name">'+esc(cand["Nama Kandidat"]||"-")+'</div><div class="candidate-meta">'+badge(cand["Status Kandidat"]||"Aktif")+' <span>'+esc(cand.Sumber||"Sumber belum diisi")+'</span></div><div class="candidate-progress"><div class="progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b><span>'+esc(p.label)+'</span></div><div class="candidate-note">'+esc(cand.Keterangan||"")+'</div></div><div class="candidate-actions"><button class="btn" onclick="openKmbCandidateForm(decodeURIComponent(\''+encodeURIComponent(siteKey)+'\'),'+rowIndex+','+ci+')">Edit</button><button class="btn danger" onclick="deleteKmbCandidate(decodeURIComponent(\''+encodeURIComponent(siteKey)+'\'),'+rowIndex+','+ci+')">Hapus</button></div></div>'}).join(""):'<div class="empty">Belum ada pelamar. Klik “Tambah Pelamar”.</div>')+'</div>';
+  document.getElementById("modal").classList.add("show");
+}
+function openKmbCandidateForm(siteKey,rowIndex,candidateIndex=null){if(!editOnly())return;
+  const row=data.sites?.[siteKey]?.[rowIndex];if(!row)return;
+  const list=getKmbCandidates(siteKey,row),cand=candidateIndex===null?{"Status Kandidat":"Aktif"}:(list[candidateIndex]||{});
+  editState={type:"candidate",siteKey,rowIndex,candidateIndex};
+  document.getElementById("modalTitle").textContent=(candidateIndex===null?"Tambah":"Edit")+" Pelamar — "+(row.Jabatan||"-");
+  setModalSave(true,candidateIndex===null?"Tambah Pelamar":"Simpan Pelamar");
+  document.getElementById("formFields").innerHTML='<div class="candidate-back"><button class="btn" type="button" onclick="openKmbCandidateList(decodeURIComponent(\''+encodeURIComponent(siteKey)+'\'),'+rowIndex+')">← Daftar Pelamar</button><span>'+(data.siteLabels?.[siteKey]||siteKey)+' • Posisi #'+esc(row.No||"")+'</span></div>'+CANDIDATE_FIELDS.map(f=>candidateFieldHtml(f,cand)).join("");
+  document.getElementById("modal").classList.add("show");
+}
+function deleteKmbCandidate(siteKey,rowIndex,candidateIndex){if(!editOnly())return;
+  const row=data.sites?.[siteKey]?.[rowIndex];if(!row)return;
+  const list=getKmbCandidates(siteKey,row),cand=list[candidateIndex];if(!cand)return;
+  if(!confirm("Hapus pelamar "+(cand["Nama Kandidat"]||"ini")+"?"))return;
+  list.splice(candidateIndex,1);data.candidates[kmbCandidateKey(siteKey,row)]=list;
+  saveData();renderSite(siteKey);openKmbCandidateList(siteKey,rowIndex);
+}
+
 function normalizedMP(row){
   const out={};
   const legacy={
@@ -166,6 +262,7 @@ function loadData(){
     saved.mpOut=Array.isArray(saved.mpOut)?saved.mpOut:[];
     saved.deletedKMB=Array.isArray(saved.deletedKMB)?saved.deletedKMB:[];
     saved.mpRestoreMeta=(saved.mpRestoreMeta&&typeof saved.mpRestoreMeta==="object"&&!Array.isArray(saved.mpRestoreMeta))?saved.mpRestoreMeta:{};
+    ensureKmbCandidateData(saved);
     if(!localStorage.getItem(SOURCE_SYNC_KEY)){
       saved.sites=clone(INITIAL.sites||{});
       saved.siteLabels=clone(INITIAL.siteLabels||{});
@@ -178,8 +275,8 @@ function loadData(){
     return saved;
   }catch(e){return clone(INITIAL)}
 }
-normalizeAllMP();ensureRuntimeData();renumberAll();
-function saveData(){ensureRuntimeData();renumberAll();localStorage.setItem(KEY,JSON.stringify(data));renderDashboard();renderSettings()}
+normalizeAllMP();ensureRuntimeData();ensureKmbCandidateData(data);renumberAll();
+function saveData(){ensureRuntimeData();ensureKmbCandidateData(data);renumberAll();localStorage.setItem(KEY,JSON.stringify(data));renderDashboard();renderSettings()}
 
 function badge(v){
   if(!v)return '<span class="badge neutral">-</span>';
@@ -211,7 +308,7 @@ function makeSiteViews(){
     document.getElementById("q_"+id(key)).addEventListener("input",()=>renderSite(key));
     document.getElementById("st_"+id(key)).addEventListener("change",()=>renderSite(key));
     sec.querySelector("[data-add]").onclick=()=>openSiteForm(key,null);
-    sec.querySelector("[data-export]").onclick=()=>exportRows(data.sites[key],"KMB_"+(data.siteLabels[key]||key).replace(/\s+/g,"_")+".csv");
+    sec.querySelector("[data-export]").onclick=()=>exportRows(data.sites[key].map(siteExportRow),"KMB_"+(data.siteLabels[key]||key).replace(/\s+/g,"_")+".csv");
     renderSite(key);
   })
 }
@@ -340,15 +437,17 @@ function renderRecruitmentSummary(){
 function renderSite(key){
   const q=(document.getElementById("q_"+id(key))?.value||"").toLowerCase(),st=document.getElementById("st_"+id(key))?.value||"",all=data.sites[key]||[],m=siteMetrics(all);
   document.getElementById("stats_"+id(key)).innerHTML='<div class="stats"><div class="mini"><b>'+m.planning+'</b><span>Planning</span></div><div class="mini"><b>'+m.actual+'</b><span>Actual</span></div><div class="mini"><b>'+m.vacant+'</b><span>Vacant</span></div><div class="mini"><b>'+m.open+'</b><span>Open</span></div><div class="mini"><b>'+m.close+'</b><span>Close</span></div></div>';
-  const rows=all.map((r,i)=>({...r,__i:i})).filter(r=>(!q||JSON.stringify(r).toLowerCase().includes(q))&&(!st||r.Status===st));
+  const rows=all.map((r,i)=>({...r,__i:i})).filter(r=>(!q||JSON.stringify(r).toLowerCase().includes(q)||JSON.stringify(getKmbCandidates(key,r)).toLowerCase().includes(q))&&(!st||r.Status===st));
   let body=rows.map(r=>{
-    const p=progress(r),vacant=isVacantName(r.Nama);
+    const vacant=isVacantName(r.Nama),list=vacant?getKmbCandidates(key,r):[],p=vacant?bestKmbCandidateProgress(key,r):progress(r);
+    const pelamar=vacant?'<button class="btn candidate-btn" onclick="openKmbCandidateList(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">'+list.length+' Pelamar</button>'+(list.length?list.slice(0,2).map(x=>{const cp=candidateProgress(x);return '<div class="candidate-preview"><b>'+esc(x["Nama Kandidat"]||"-")+'</b><span>'+esc(cp.label)+' '+cp.p+'%</span></div>'}).join(""):""):'<span class="badge neutral">-</span>';
     const action=vacant
-      ? '<button class="btn" onclick="openSiteForm(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">Edit</button> <button class="btn danger" onclick="removeSiteRow(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">Hapus Posisi</button>'
+      ? '<button class="btn" onclick="openSiteForm(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">Edit</button> <button class="btn yellow" onclick="openKmbCandidateList(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">Pelamar</button> <button class="btn danger" onclick="removeSiteRow(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">Hapus Posisi</button>'
       : '<button class="btn" onclick="openSiteForm(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">Edit</button> <button class="btn danger" onclick="openExitFromSite(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">MP OUT</button>';
-    return '<tr><td>'+esc(r.No)+'</td><td><b>'+esc(r.Nama||"-")+'</b></td><td>'+esc(r.Jabatan||"-")+'</td><td>'+esc(r.Keterangan||"-")+'</td><td>'+esc(r.PIC||"-")+'</td><td>'+badge(r.Status)+'</td><td><div style="display:flex;align-items:center;gap:7px"><div class="progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b></div><div style="font-size:10px;color:#6b7280;margin-top:3px">'+esc(p.label)+'</div></td><td>'+fmtDate(r["Due Date"])+'</td><td>'+badge(r["Keterangan PTK"])+'</td><td class="action-cell">'+action+'</td></tr>';
+    return '<tr><td>'+esc(r.No)+'</td><td><b>'+esc(r.Nama||"-")+'</b></td><td>'+esc(r.Jabatan||"-")+'</td><td>'+pelamar+'</td><td>'+esc(r.Keterangan||"-")+'</td><td>'+esc(r.PIC||"-")+'</td><td>'+badge(r.Status)+'</td><td><div style="display:flex;align-items:center;gap:7px"><div class="progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b></div><div style="font-size:10px;color:#6b7280;margin-top:3px">'+esc(p.label)+'</div></td><td>'+fmtDate(r["Due Date"])+'</td><td>'+badge(r["Keterangan PTK"])+'</td><td class="action-cell">'+action+'</td></tr>';
   }).join("");
-  document.getElementById("table_"+id(key)).innerHTML='<div class="table-wrap"><table class="table"><thead><tr><th>No</th><th>Nama</th><th>Jabatan</th><th>Keterangan</th><th>PIC</th><th>Status</th><th>Progress</th><th>Due Date</th><th>Ket. PTK</th><th>Aksi</th></tr></thead><tbody>'+body+'</tbody></table></div>';
+  if(!body)body='<tr><td colspan="11" class="empty">Belum ada data yang sesuai filter.</td></tr>';
+  document.getElementById("table_"+id(key)).innerHTML='<div class="table-wrap"><table class="table"><thead><tr><th>No</th><th>Nama</th><th>Jabatan</th><th>Pelamar</th><th>Keterangan</th><th>PIC</th><th>Status</th><th>Progress</th><th>Due Date</th><th>Ket. PTK</th><th>Aksi</th></tr></thead><tbody>'+body+'</tbody></table></div>';
 }
 function openExitFromSite(key,index){
   const siteRow=data.sites?.[key]?.[index];if(!siteRow||isVacantName(siteRow.Nama))return;
@@ -381,6 +480,7 @@ function fieldHtml(f,row,type="site"){
   return '<div class="field '+(SENSITIVE_FIELDS.has(f)?"sensitive ":"")+(empty?"empty-field":"")+'"><label>'+f+(SENSITIVE_FIELDS.has(f)?' <span title="Data sensitif">🔒</span>':'')+'</label><input type="'+(dateFields.includes(f)?"date":"text")+'" data-f="'+f+'" value="'+esc(row[f]||"")+'" placeholder="Belum terisi di Excel">'+hint+'</div>';
 }
 function openSiteForm(key,index){if(!editOnly())return;
+  setModalSave(true,"Simpan Perubahan");
   editState={type:"site",key,index,old:index===null?null:clone(data.sites[key][index])};const row=index===null?{}:data.sites[key][index];
   document.getElementById("modalTitle").textContent=(index===null?"Tambah Data - ":"Edit Data - ")+(data.siteLabels[key]||key);
   document.getElementById("formFields").innerHTML=SITE_FIELDS.map(f=>fieldHtml(f,row,"site")).join("");
@@ -400,6 +500,14 @@ function saveModal(){if(!editOnly())return;
     renumberSiteRows(editState.key);
     if(!isVacantName(row.Nama))syncActivePlacementFromSite(row.Nama,editState.key);
     const k=editState.key;saveData();renderSite(k);renderMP();closeModal();return;
+  }
+  if(editState.type==="candidate"){
+    const siteKey=editState.siteKey,rowRec=data.sites?.[siteKey]?.[editState.rowIndex];if(!rowRec)return;
+    const key=kmbCandidateKey(siteKey,rowRec),list=getKmbCandidates(siteKey,rowRec),clean={};
+    CANDIDATE_FIELDS.forEach(f=>clean[f]=row[f]||"");
+    if(!normText(clean["Nama Kandidat"])){alert("Nama kandidat wajib diisi.");return}
+    if(editState.candidateIndex===null)list.push(clean);else list[editState.candidateIndex]={...list[editState.candidateIndex],...clean};
+    data.candidates[key]=list;saveData();renderSite(siteKey);openKmbCandidateList(siteKey,editState.rowIndex);return;
   }
   if(editState.type==="unit"){
     const sec=data.units?.[editState.sectionIndex];if(!sec)return;
@@ -464,7 +572,7 @@ function renderUnits(){
     return '<div class="card unit-block"><div class="section-head"><div><span class="eyebrow">UNIT SECTION</span><h3>'+esc(sec.name)+'</h3></div><div class="toolbar"><span class="unit-total-pill">'+unitSectionCount(sec)+' unit</span><button class="btn yellow" onclick="openUnitForm('+sectionIndex+',null)">+ Tambah Unit</button><button class="btn danger" onclick="deleteUnitSection('+sectionIndex+')">Hapus Section</button></div></div><div class="table-wrap"><table class="table"><thead><tr>'+safeHeads.map(h=>'<th>'+esc(h)+'</th>').join("")+'<th>Aksi</th></tr></thead><tbody>'+body+'</tbody></table></div></div>';
   }).join("");
 }
-function openUnitForm(sectionIndex,rowIndex){if(!editOnly())return;
+function openUnitForm(sectionIndex,rowIndex){setModalSave(true,"Simpan Perubahan");if(!editOnly())return;
   const sec=data.units?.[sectionIndex];if(!sec)return;
   const heads=[...new Set((sec.rows||[]).flatMap(r=>Object.keys(r).filter(k=>k!=="__i")))];
   const fields=heads.length?heads:["No.","Category","Code Unit SAP","Manufacturer","Model","Serial Number","Remark"];
@@ -517,7 +625,7 @@ function renderMP(){
 function hasFullMPData(row){
   return !!(normText(row?.["NIK KTP"])||normText(row?.["Nomor HP"])||normText(row?.["No Rekening"])||normText(row?.["Nomor BPJS Kesehatan"])||normText(row?.["Alamat Lengkap"]));
 }
-function openMpForm(mode,index){if(!editOnly())return;
+function openMpForm(mode,index){setModalSave(true,"Simpan Perubahan");if(!editOnly())return;
   editState={type:"mp",mode,index};const arr=mode==="active"?data.mpActive:data.mpOut,row=index===null?{}:arr[index],fs=mode==="active"?MP_SCHEMA_ACTIVE:MP_SCHEMA_OUT;
   document.getElementById("modalTitle").textContent=(index===null?"Tambah ":"Edit ")+(mode==="active"?"MP Aktif":"MP OUT");
   let source="";
@@ -540,7 +648,7 @@ function fillFromActive(idx){
   if(idx==="")return;const src=data.mpActive[Number(idx)];if(!src)return;
   for(const f of MP_SCHEMA_OUT){const el=document.querySelector('#formFields [data-f="'+CSS.escape(f)+'"]');if(el)el.value=f==="Tanggal Keluar"?todayISO():(src[f]||"")}
 }
-function openExitForm(index){if(!editOnly())return;
+function openExitForm(index){setModalSave(true,"Simpan Perubahan");if(!editOnly())return;
   const src=data.mpActive[index];if(!src)return;
   editState={type:"exit",mode:"out",index:null,sourceIndex:index};
   const row={...normalizedMP(src),"Tanggal Keluar":todayISO(),"Alasan":""};
@@ -617,7 +725,9 @@ function downloadExcel(){if(!ownerOnly())return;
   if(!window.XLSX){alert("Modul Excel belum termuat. Coba refresh halaman lalu ulangi.");return}
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(buildDashboardAOA()),"DASHBOARD");
-  for(const [k,rows] of Object.entries(data.sites))XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"C4"===k?"C4":k==="SLR - MAINTENANCE"?"SLR - MAINTENANCE":k==="SLR - REKONDISI"?"SLR - REKONDISI":"WS");
+  for(const [k,rows] of Object.entries(data.sites))XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows.map(siteExportRow)),"C4"===k?"C4":k==="SLR - MAINTENANCE"?"SLR - MAINTENANCE":k==="SLR - REKONDISI"?"SLR - REKONDISI":"WS");
+  const candidateRows=allKmbCandidateRows();
+  XLSX.utils.book_append_sheet(wb,candidateRows.length?XLSX.utils.json_to_sheet(candidateRows):XLSX.utils.aoa_to_sheet([["Belum ada pelamar"]]),"PELAMAR");
   const unitRows=(data.units||[]).flatMap(s=>s.rows.map(r=>({Jobsite:s.name,...r})));XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(unitRows),"UNIT");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data.mpActive.map(r=>{const o={};MP_SCHEMA_ACTIVE.forEach(f=>o[f]=r[f]||"");return o})),"MP Aktif");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data.mpOut.map(r=>{const o={};MP_SCHEMA_OUT.forEach(f=>o[f]=r[f]||"");return o})),"MP OUT");
