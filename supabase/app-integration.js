@@ -77,8 +77,13 @@
       });
     });
     document.querySelectorAll('input[type="file"]').forEach(el=>{
-      if(viewer){el.dataset.accessDisabled=el.disabled?"1":"0";el.disabled=true}
-      else if(el.dataset.accessDisabled!==undefined){el.disabled=el.dataset.accessDisabled==="1";delete el.dataset.accessDisabled}
+      if(viewer){
+        if(el.dataset.accessDisabled===undefined)el.dataset.accessDisabled=el.disabled?"1":"0";
+        el.disabled=true;
+      }else{
+        el.disabled=false;
+        if(el.dataset.accessDisabled!==undefined)delete el.dataset.accessDisabled;
+      }
     });
   };
 
