@@ -102,6 +102,32 @@ function getKmbCandidates(siteKey,row){
   const k=kmbCandidateKey(siteKey,row);
   return (data.candidates&&Array.isArray(data.candidates[k]))?data.candidates[k]:[];
 }
+function siteExportRow(row){
+  const out={};Object.entries(row||{}).forEach(([k,v])=>{if(!k.startsWith("__"))out[k]=v});return out;
+}
+function allKmbCandidateRows(){
+  const out=[];
+  Object.keys(data.sites||{}).forEach(siteKey=>{
+    (data.sites[siteKey]||[]).forEach(row=>{
+      getKmbCandidates(siteKey,row).forEach((cand,ci)=>{
+        const p=candidateProgress(cand);
+        out.push({
+          "Jobsite":data.siteLabels?.[siteKey]||siteKey,
+          "No Posisi":row.No||"",
+          "Jabatan":row.Jabatan||"",
+          "PIC":row.PIC||"",
+          "Status PTK":row.Status||"",
+          "Due Date":row["Due Date"]||"",
+          ...cand,
+          "Progress Terakhir":p.label,
+          "Progress %":p.p,
+          "Pelamar Ke":ci+1
+        });
+      });
+    });
+  });
+  return out;
+}
 function candidateProgress(c){
   if(normText(c?.["Status Kandidat"]).toLowerCase()==="hired")return {p:100,label:"HIRED"};
   return progress(c||{});
@@ -282,7 +308,7 @@ function makeSiteViews(){
     document.getElementById("q_"+id(key)).addEventListener("input",()=>renderSite(key));
     document.getElementById("st_"+id(key)).addEventListener("change",()=>renderSite(key));
     sec.querySelector("[data-add]").onclick=()=>openSiteForm(key,null);
-    sec.querySelector("[data-export]").onclick=()=>exportRows(data.sites[key],"KMB_"+(data.siteLabels[key]||key).replace(/\s+/g,"_")+".csv");
+    sec.querySelector("[data-export]").onclick=()=>exportRows(data.sites[key].map(siteExportRow),"KMB_"+(data.siteLabels[key]||key).replace(/\s+/g,"_")+".csv");
     renderSite(key);
   })
 }
@@ -699,7 +725,9 @@ function downloadExcel(){if(!ownerOnly())return;
   if(!window.XLSX){alert("Modul Excel belum termuat. Coba refresh halaman lalu ulangi.");return}
   const wb=XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(buildDashboardAOA()),"DASHBOARD");
-  for(const [k,rows] of Object.entries(data.sites))XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"C4"===k?"C4":k==="SLR - MAINTENANCE"?"SLR - MAINTENANCE":k==="SLR - REKONDISI"?"SLR - REKONDISI":"WS");
+  for(const [k,rows] of Object.entries(data.sites))XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows.map(siteExportRow)),"C4"===k?"C4":k==="SLR - MAINTENANCE"?"SLR - MAINTENANCE":k==="SLR - REKONDISI"?"SLR - REKONDISI":"WS");
+  const candidateRows=allKmbCandidateRows();
+  XLSX.utils.book_append_sheet(wb,candidateRows.length?XLSX.utils.json_to_sheet(candidateRows):XLSX.utils.aoa_to_sheet([["Belum ada pelamar"]]),"PELAMAR");
   const unitRows=(data.units||[]).flatMap(s=>s.rows.map(r=>({Jobsite:s.name,...r})));XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(unitRows),"UNIT");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data.mpActive.map(r=>{const o={};MP_SCHEMA_ACTIVE.forEach(f=>o[f]=r[f]||"");return o})),"MP Aktif");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(data.mpOut.map(r=>{const o={};MP_SCHEMA_OUT.forEach(f=>o[f]=r[f]||"");return o})),"MP OUT");
