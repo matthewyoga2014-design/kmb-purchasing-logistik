@@ -326,6 +326,55 @@ function openKmbRecruitment(){
   setTimeout(()=>document.getElementById("recruitmentCard")?.scrollIntoView({behavior:"smooth",block:"start"}),30);
 }
 let kmbChartInstances={};
+
+const kmbInlineValueLabels={
+  id:"kmbInlineValueLabels",
+  afterDatasetsDraw(chart,args,opts){
+    if(opts===false)return;
+    const ctx=chart.ctx,type=chart.config.type;
+    ctx.save();
+    ctx.font="800 11px Inter, Segoe UI, Arial";
+    ctx.textAlign="center";
+    ctx.textBaseline="middle";
+    chart.data.datasets.forEach((ds,di)=>{
+      const meta=chart.getDatasetMeta(di);
+      if(meta.hidden)return;
+      meta.data.forEach((el,i)=>{
+        const value=Number(ds.data[i]??0);
+        if(!Number.isFinite(value))return;
+        if(type==="doughnut"){
+          if(value<=0)return;
+          const p=el.getProps(["x","y","startAngle","endAngle","innerRadius","outerRadius"],true);
+          const a=(p.startAngle+p.endAngle)/2,r=(p.innerRadius+p.outerRadius)/2;
+          const x=p.x+Math.cos(a)*r,y=p.y+Math.sin(a)*r;
+          ctx.fillStyle="#ffffff";
+          ctx.font="900 12px Inter, Segoe UI, Arial";
+          const label=chart.data.labels?.[i]??"";
+          ctx.fillText(label+" "+value,x,y);
+        }else if(type==="line"){
+          const p=el.getProps(["x","y"],true);
+          ctx.fillStyle="#5b21b6";
+          ctx.font="900 11px Inter, Segoe UI, Arial";
+          ctx.fillText(String(value),p.x,p.y-14);
+        }else if(type==="bar"){
+          if(value<=0)return;
+          const p=el.getProps(["x","y","base"],true);
+          ctx.fillStyle="#374151";
+          ctx.font="800 10px Inter, Segoe UI, Arial";
+          const horizontal=chart.options.indexAxis==="y";
+          if(horizontal){
+            ctx.textAlign="left";
+            ctx.fillText(String(value),Math.min(p.x+9,chart.chartArea.right-10),p.y);
+            ctx.textAlign="center";
+          }else{
+            ctx.fillText(String(value),p.x,p.y-8);
+          }
+        }
+      });
+    });
+    ctx.restore();
+  }
+};
 function kmbMakeChart(id,config){
   if(!window.Chart)return;
   const canvas=document.getElementById(id);if(!canvas)return;
@@ -343,7 +392,6 @@ function kmbChartOptions(extra={}){
 }
 function renderKMBCharts(){
   if(!window.Chart)return;
-  if(window.ChartDataLabels&&!Chart.registry.plugins.get("datalabels"))Chart.register(window.ChartDataLabels);
   const keys=Object.keys(data.sites||{});
   const labels=keys.map(k=>data.siteLabels[k]||k);
   const mets=keys.map(k=>siteMetrics(data.sites[k]||[]));
@@ -356,13 +404,15 @@ function renderKMBCharts(){
       {label:"Actual",data:mets.map(m=>m.actual),backgroundColor:"#7c3aed",borderRadius:8,borderSkipped:false},
       {label:"Vacant",data:mets.map(m=>m.vacant),backgroundColor:"#ff747d",borderRadius:8,borderSkipped:false}
     ]},
-    options:kmbChartOptions({plugins:{legend:{position:"top",align:"end",labels:{usePointStyle:true,boxWidth:7,color:"#73788a",font:{size:10,weight:"600"}}},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10},datalabels:{display:ctx=>Number(ctx.dataset.data[ctx.dataIndex])>0,anchor:"end",align:"top",offset:2,color:"#374151",font:{size:10,weight:"800"},formatter:v=>v}}})
+    plugins:[kmbInlineValueLabels],
+    options:kmbChartOptions({layout:{padding:{top:18}},plugins:{legend:{position:"top",align:"end",labels:{usePointStyle:true,boxWidth:7,color:"#73788a",font:{size:10,weight:"600"}}},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
   });
 
   kmbMakeChart("kmbCompositionChart",{
     type:"doughnut",
     data:{labels:["Actual","Vacant"],datasets:[{data:[totalActual,totalVacant],backgroundColor:["#7c3aed","#ff6b6b"],borderWidth:0,hoverOffset:5,borderRadius:6,spacing:3}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:"72%",plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10},datalabels:{display:ctx=>Number(ctx.dataset.data[ctx.dataIndex])>0,color:"#ffffff",font:{size:13,weight:"900"},formatter:(v,ctx)=>ctx.chart.data.labels[ctx.dataIndex]+" "+v}}}
+    plugins:[kmbInlineValueLabels],
+    options:{responsive:true,maintainAspectRatio:false,cutout:"72%",plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}}
   });
 
   const stages=["SOURCING KANDIDAT","PSIKOLOGI TEST","INTERVIEW USER","OFFERING","MCU","FU MCU","ON SITE","INDUKSI"];
@@ -381,7 +431,8 @@ function renderKMBCharts(){
   kmbMakeChart("kmbRecruitChart",{
     type:"line",
     data:{labels:stageLabels,datasets:[{label:"Jumlah Pelamar",data:stages.map(s=>counts[s]),borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.12)",pointBackgroundColor:"#fff",pointBorderColor:"#7c3aed",pointBorderWidth:3,pointRadius:4,tension:.38,fill:true}]},
-    options:kmbChartOptions({layout:{padding:{top:22}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10},datalabels:{display:true,anchor:"end",align:"top",offset:4,color:"#5b21b6",backgroundColor:"rgba(255,255,255,.94)",borderColor:"#ddd6fe",borderWidth:1,borderRadius:6,padding:{top:3,bottom:3,left:6,right:6},font:{size:11,weight:"900"},formatter:v=>v}}})
+    plugins:[kmbInlineValueLabels],
+    options:kmbChartOptions({layout:{padding:{top:22}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
   });
 }
 function renderDashboard(){
