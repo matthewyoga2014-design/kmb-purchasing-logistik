@@ -204,3 +204,21 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
 @media(max-width:760px){
   .auth-who{display:none}.access-badge{padding:6px 8px}.auth-btn{padding:8px!important;font-size:9px!important}
 }
+
+/* Detailed vacancy resume */
+.resume-card-detail{display:block!important;text-align:left;padding:0!important;overflow:hidden}
+.resume-card-head{width:100%;border:0;background:transparent;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;cursor:pointer;text-align:left}
+.resume-card-head>div:first-child{display:flex;align-items:center;gap:10px}
+.resume-role-meta{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.resume-role-meta span{font-size:10px;font-weight:800;padding:5px 8px;border-radius:999px;background:#f4f1ff;color:#6d28d9}
+.resume-candidate-list{border-top:1px solid #eeeaf9;padding:6px 12px 10px}
+.resume-candidate-row{display:flex;justify-content:space-between;gap:14px;padding:10px 4px;border-bottom:1px dashed #e5e7eb}
+.resume-candidate-row:last-child{border-bottom:0}
+.resume-candidate-main{display:flex;flex-direction:column;gap:3px;min-width:0}
+.resume-candidate-main b{font-size:11px}
+.resume-candidate-main span{font-size:9px;color:#7b8090}
+.resume-candidate-stage{display:flex;align-items:center;gap:8px;white-space:nowrap}
+.resume-candidate-stage span{font-size:9px;color:#6b7280}
+.resume-candidate-stage b{font-size:11px;color:#6d28d9}
+.resume-no-candidate{padding:12px 4px;font-size:10px;color:#9ca3af}
+@media(max-width:760px){.resume-card-head,.resume-candidate-row{align-items:flex-start;flex-direction:column}.resume-role-meta{justify-content:flex-start}.resume-candidate-stage{width:100%;justify-content:space-between}}
