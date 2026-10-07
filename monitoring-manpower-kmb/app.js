@@ -147,6 +147,7 @@ function candidateFieldHtml(f,row){
 function setModalSave(show,label="Simpan Perubahan"){
   const b=document.getElementById("saveModal");if(!b)return;
   b.style.display=show?"":"none";b.textContent=label;
+  b.onclick=()=>saveModal();
 }
 function openKmbCandidateList(siteKey,rowIndex){
   const row=data.sites?.[siteKey]?.[rowIndex];if(!row)return;
@@ -502,12 +503,24 @@ function saveModal(){if(!editOnly())return;
     const k=editState.key;saveData();renderSite(k);renderMP();closeModal();return;
   }
   if(editState.type==="candidate"){
-    const siteKey=editState.siteKey,rowRec=data.sites?.[siteKey]?.[editState.rowIndex];if(!rowRec)return;
-    const key=kmbCandidateKey(siteKey,rowRec),list=getKmbCandidates(siteKey,rowRec),clean={};
-    CANDIDATE_FIELDS.forEach(f=>clean[f]=row[f]||"");
-    if(!normText(clean["Nama Kandidat"])){alert("Nama kandidat wajib diisi.");return}
-    if(editState.candidateIndex===null)list.push(clean);else list[editState.candidateIndex]={...list[editState.candidateIndex],...clean};
-    data.candidates[key]=list;saveData();renderSite(siteKey);openKmbCandidateList(siteKey,editState.rowIndex);return;
+    try{
+      const siteKey=editState.siteKey,rowRec=data.sites?.[siteKey]?.[editState.rowIndex];
+      if(!rowRec){alert("Posisi vacant tidak ditemukan. Tutup form lalu buka kembali.");return}
+      const key=kmbCandidateKey(siteKey,rowRec),list=getKmbCandidates(siteKey,rowRec),clean={};
+      CANDIDATE_FIELDS.forEach(f=>clean[f]=row[f]||"");
+      if(!normText(clean["Nama Kandidat"])){alert("Nama kandidat wajib diisi.");return}
+      if(editState.candidateIndex===null)list.push(clean);else list[editState.candidateIndex]={...list[editState.candidateIndex],...clean};
+      data.candidates=data.candidates||{};
+      data.candidates[key]=list;
+      saveData();
+      renderSite(siteKey);
+      openKmbCandidateList(siteKey,editState.rowIndex);
+      return;
+    }catch(err){
+      console.error("Gagal simpan pelamar",err);
+      alert("Gagal menyimpan pelamar: "+(err?.message||err));
+      return;
+    }
   }
   if(editState.type==="unit"){
     const sec=data.units?.[editState.sectionIndex];if(!sec)return;
