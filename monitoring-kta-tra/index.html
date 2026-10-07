@@ -158,12 +158,12 @@
 <div class="modal" id="authModal">
   <div class="modal-card auth-card">
     <div class="modal-head"><h3>Masuk Pemilik / Editor</h3><button class="btn" id="closeAuthModal">✕</button></div>
-    <div class="auth-copy">Pelihat dapat membuka web tanpa login. <b>Hanya email yang sudah didaftarkan oleh Pemilik sebagai Editor</b> yang akan mendapat akses edit saat login.</div>
+    <div class="auth-copy">Pelihat dapat membuka web tanpa login. <b>Hanya email yang sudah didaftarkan oleh Pemilik sebagai Editor pada web ini</b> yang akan mendapat akses edit saat login.</div>
     <div class="formgrid">
       <div class="field"><label>Email</label><input id="authEmail" type="email" autocomplete="email" placeholder="nama@email.com"></div>
       <div class="field"><label>Password</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="Minimal 8 karakter"></div>
     </div>
-    <div class="notice" style="margin-top:10px">Jika email Anda sudah didaftarkan sebagai Editor dan belum memiliki akun, pilih <b>Aktifkan Akun Owner / Editor</b> satu kali. Email yang tidak terdaftar tetap berstatus Pelihat.</div>
+    <div class="notice" style="margin-top:10px">Jika email Anda sudah didaftarkan sebagai Editor pada web ini dan belum memiliki akun, pilih <b>Aktifkan Akun Owner / Editor</b> satu kali. Email yang tidak terdaftar pada web ini tetap berstatus Pelihat.</div>
     <div class="modal-actions auth-actions">
       <button class="btn" onclick="cloudSignupPassword()">Aktifkan Akun Owner / Editor</button>
       <button class="btn primary" onclick="cloudLoginPassword()">Masuk</button>
@@ -183,6 +183,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase/config.js?v=1"></script>
 <script src="../supabase/cloud-access.js?v=6"></script>
-<script src="../supabase/app-integration.js?v=7"></script>
+<script src="../supabase/app-integration.js?v=8"></script>
 </body>
 </html>
