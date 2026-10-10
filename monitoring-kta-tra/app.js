@@ -365,8 +365,8 @@ function renderRecruitment(){
   if(recruitRole){fb.style.display="inline-flex";fb.innerHTML=esc(jobLabel(recruitRole))+' <button onclick="clearRole()">×</button>'}else fb.style.display="none";
   document.getElementById("recruitBody").innerHTML=rows.length?rows.map(r=>{
     const p=bestCandidateProgress(r),d=daysLeft(r["Due Date"]),dc=d<0?"overdue":d<=7?"warning":"",list=getCandidates(r);
-    const preview=list.slice(0,3).map(c=>{const cp=candidateProgress(c);return '<div class="candidate-preview"><b>'+esc(c["Nama Kandidat"]||"-")+'</b><span>'+esc(cp.label)+' '+cp.p+'%</span></div>'}).join("");
-    return '<tr><td><b>'+esc(r.Jabatan)+'</b></td><td>'+fmtDate(r["Tanggal Pengajuan PTK"])+'</td><td>'+fmtDate(r["Due Date"])+'</td><td><span class="days '+dc+'">'+(d===""?"-":d)+'</span></td><td>'+badge(r.Status)+'</td><td><b>'+esc(p.label)+'</b></td><td><div style="display:flex;align-items:center;gap:8px"><div class="progress recruit-progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b></div></td><td><button class="btn candidate-btn" onclick="openCandidateList('+r.__i+')">'+list.length+' Kandidat</button>'+preview+(list.length>3?'<small>+'+(list.length-3)+' pelamar lainnya</small>':'')+'</td><td>'+esc(r.Keterangan||"-")+'</td></tr>'
+    const preview=list.map(c=>{const cp=candidateProgress(c);return '<div class="candidate-preview"><b>'+esc(c["Nama Kandidat"]||"-")+'</b><span>'+esc(cp.label)+' '+cp.p+'%</span></div>'}).join("");
+    return '<tr><td><b>'+esc(r.Jabatan)+'</b></td><td>'+fmtDate(r["Tanggal Pengajuan PTK"])+'</td><td>'+fmtDate(r["Due Date"])+'</td><td><span class="days '+dc+'">'+(d===""?"-":d)+'</span></td><td>'+badge(r.Status)+'</td><td><b>'+esc(p.label)+'</b></td><td><div style="display:flex;align-items:center;gap:8px"><div class="progress recruit-progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b></div></td><td><button class="btn candidate-btn" onclick="openCandidateList('+r.__i+')">'+list.length+' Kandidat</button>'+preview+'</td><td>'+esc(r.Keterangan||"-")+'</td></tr>'
   }).join(""):'<tr><td colspan="9" class="empty">Tidak ada PTK Open untuk filter ini.</td></tr>';
 }
 
