@@ -299,7 +299,11 @@ function siteMetrics(rows){
   };
 }
 function makeSiteViews(){
-  const host=document.getElementById("siteViews");host.innerHTML="";
+  const host=document.getElementById("siteViews");
+  const activeSite=document.querySelector("#siteViews > .view.active")?.id||"";
+  const oldFilters={};
+  host.querySelectorAll(".view").forEach(sec=>{const key=sec.id.slice(5);oldFilters[key]={q:sec.querySelector("input[id^=q_]")?.value||"",status:sec.querySelector("select[id^=st_]")?.value||""}});
+  host.innerHTML="";
   Object.keys(data.sites).forEach(key=>{
     const sec=document.createElement("section");sec.className="view";sec.id="site-"+id(key);
     sec.innerHTML='<div class="page-head"><div><h2>'+esc(data.siteLabels[key]||key)+'</h2><p>Monitoring manpower dan progress rekrutmen</p></div><div class="toolbar"><input class="input" id="q_'+id(key)+'" placeholder="Cari nama / jabatan..."><select class="select" id="st_'+id(key)+'"><option value="">Semua Status</option><option>Open</option><option>Continue</option><option>Close</option></select><button class="btn yellow" data-add>+ Tambah Data</button><button class="btn" data-export>Export CSV</button></div></div><div id="stats_'+id(key)+'"></div><div id="table_'+id(key)+'"></div>';
@@ -308,8 +312,17 @@ function makeSiteViews(){
     document.getElementById("st_"+id(key)).addEventListener("change",()=>renderSite(key));
     sec.querySelector("[data-add]").onclick=()=>openSiteForm(key,null);
     sec.querySelector("[data-export]").onclick=()=>exportRows(data.sites[key].map(siteExportRow),"KMB_"+(data.siteLabels[key]||key).replace(/\s+/g,"_")+".csv");
+    if(oldFilters[sec.id.slice(5)]){
+      document.getElementById("q_"+id(key)).value=oldFilters[sec.id.slice(5)].q;
+      document.getElementById("st_"+id(key)).value=oldFilters[sec.id.slice(5)].status;
+    }
     renderSite(key);
-  })
+  });
+  if(activeSite){
+    const restored=document.getElementById(activeSite);
+    if(restored)restored.classList.add("active");
+    else showView("dashboard");
+  }
 }
 function openKmbSite(key){showView("site-"+id(key));renderSite(key)}
 function openKmbMp(){
