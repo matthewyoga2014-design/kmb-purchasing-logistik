@@ -300,6 +300,13 @@ function siteMetrics(rows){
 }
 function makeSiteViews(){
   const host=document.getElementById("siteViews");
+  // Refresh in place: avoid destroying the currently active jobsite section after cloud sync.
+  const siteKeys=Object.keys(data.sites||{});
+  const existingViews=[...host.children].filter(el=>el.classList.contains("view"));
+  if(existingViews.length===siteKeys.length && siteKeys.every(key=>host.querySelector("#site-"+id(key)))){
+    siteKeys.forEach(key=>renderSite(key));
+    return;
+  }
   const activeSite=document.querySelector("#siteViews > .view.active")?.id||"";
   const oldFilters={};
   host.querySelectorAll(".view").forEach(sec=>{const key=sec.id.slice(5);oldFilters[key]={q:sec.querySelector("input[id^=q_]")?.value||"",status:sec.querySelector("select[id^=st_]")?.value||""}});
