@@ -128,13 +128,15 @@ function allKmbCandidateRows(){
   });
   return out;
 }
+function isActiveCandidate(c){return normText(c?.["Status Kandidat"]||"Aktif").toLowerCase()==="aktif"}
+function activeKmbCandidates(siteKey,row){return getKmbCandidates(siteKey,row).filter(isActiveCandidate)}
 function candidateProgress(c){
   if(normText(c?.["Status Kandidat"]).toLowerCase()==="hired")return {p:100,label:"HIRED"};
   return progress(c||{});
 }
 function bestKmbCandidateProgress(siteKey,row){
-  const list=getKmbCandidates(siteKey,row);
-  if(!list.length)return progress(row);
+  const list=activeKmbCandidates(siteKey,row);
+  if(!list.length)return {p:0,label:"SOURCING KANDIDAT"};
   return list.map(candidateProgress).sort((a,b)=>b.p-a.p)[0]||progress(row);
 }
 function candidateFieldHtml(f,row){
@@ -441,8 +443,8 @@ function renderKMBCharts(){
   Object.entries(data.sites||{}).forEach(([siteKey,rows])=>{
     (rows||[]).filter(r=>isVacantName(r.Nama)||["open","continue"].includes(normText(r.Status).toLowerCase())).forEach(r=>{
       const list=isVacantName(r.Nama)?getKmbCandidates(siteKey,r):[];
-      if(list.length){
-        list.forEach(cand=>{const p=candidateProgress(cand);if(counts[p.label]!==undefined)counts[p.label]++});
+      if(list.some(isActiveCandidate)){
+        list.filter(isActiveCandidate).forEach(cand=>{const p=candidateProgress(cand);if(counts[p.label]!==undefined)counts[p.label]++});
       }else{
         const p=progress(r);if(counts[p.label]!==undefined)counts[p.label]++;
       }
@@ -481,7 +483,7 @@ function renderVacancyResume(){
       if(!isVacantName(r.Nama))return;
       const role=canonicalJobLabel(r.Jabatan),key=canonicalJob(r.Jabatan)||"belum";
       if(!groups[key])groups[key]={role,items:[],candidates:[]};
-      const p=bestKmbCandidateProgress(site,r),list=getKmbCandidates(site,r);
+      const p=bestKmbCandidateProgress(site,r),list=activeKmbCandidates(site,r);
       groups[key].items.push({site,row:r,index:i,p});
       list.forEach((cand,ci)=>{
         const cp=candidateProgress(cand);
@@ -536,7 +538,7 @@ function renderRecruitmentSummary(){
   if(recruitRoleFilter){fb.style.display="inline-flex";fb.innerHTML=esc(canonicalJobLabel(recruitRoleFilter))+' <button onclick="clearRecruitFilter()" title="Hapus filter">×</button>'}else fb.style.display="none";
   document.getElementById("recruitBody").innerHTML=openRows.length?openRows.map(x=>{
     const r=x.row,dayClass=x.days<0?"overdue":x.days<=7?"warning":"";
-    const names=x.candidates.length?x.candidates.map(a=>{const cp=candidateProgress(a);return '<div class="candidate-preview"><b>'+esc(a["Nama Kandidat"]||"-")+'</b><span>'+esc(cp.label)+" "+cp.p+'%</span></div>'}).join(""):esc((r.Nama||"")+(r.Keterangan?" — "+r.Keterangan:""));
+    const names=x.candidates.length?x.candidates.map(a=>{const cp=candidateProgress(a),active=isActiveCandidate(a),status=a["Status Kandidat"]||"Aktif";return '<div class="candidate-preview" style="'+(active?"":"opacity:.55;")+'"><b>'+esc(a["Nama Kandidat"]||"-")+'</b><span>'+esc(status)+(active?" • "+esc(cp.label)+" "+cp.p+"%":" • Tidak Aktif")+"</span></div>"}).join(""):esc((r.Nama||"")+(r.Keterangan?" — "+r.Keterangan:""));
     return '<tr><td><b>'+esc(data.siteLabels?.[x.site]||x.site)+'</b></td><td>'+esc(r.Jabatan||"-")+'</td><td>'+fmtDate(r["Awal Rekrutmen"])+'</td><td>'+fmtDate(r["Due Date"])+'</td><td><span class="days '+dayClass+'">'+(x.days===""?"-":x.days)+'</span></td><td>'+badge(r.Status)+'</td><td><b>'+esc(x.p.label)+'</b></td><td><div style="display:flex;align-items:center;gap:8px"><div class="progress recruit-progress"><i style="width:'+x.p.p+'%"></i></div><b>'+x.p.p+'%</b></div></td><td>'+(names||"-")+'</td></tr>';
   }).join(""):'<tr><td colspan="9" class="empty">Tidak ada rekrutmen OPEN untuk filter ini</td></tr>';
 }
