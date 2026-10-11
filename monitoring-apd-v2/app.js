@@ -156,7 +156,7 @@ function render(){
  else if(page==='stock'){el('pageTitle').textContent='Stok APD Gudang';el('app').innerHTML=stockPage()}
  else if(page==='history'){el('pageTitle').textContent='Riwayat Transaksi APD';el('app').innerHTML=historyPage()}
  else if(page==='guide'){el('pageTitle').textContent='Tata Cara';el('app').innerHTML=guidePage()}
- else if(page==='access'){el('pageTitle').textContent='Pengaturan Akses';el('app').innerHTML=accessPage()}
+ else if(page==='access'){el('pageTitle').textContent='Pengaturan Pemilik';el('app').innerHTML=accessPage()}
  else if(page==='images'){el('pageTitle').textContent='Gambar APD Utama';el('app').innerHTML=imagesPage()}
 }
 function schedules(){
@@ -283,7 +283,7 @@ function accessPage(){
  const labels={owner:'PEMILIK',editor:'EDITOR',viewer:'VIEWER'};
  const desc='<div class="access-rights"><div><strong>👑 Pemilik</strong><p>Mengatur seluruh data, gambar, hak akses, dan laporan.</p></div><div><strong>✎ Editor</strong><p>Menambah dan mengedit stok, APD karyawan, pengembalian, serta gambar; tidak dapat mengubah hak akses.</p></div><div><strong>◉ Viewer</strong><p>Melihat monitoring dan mengunduh Excel tanpa mengubah data.</p></div></div>';
  const members=accessUsers.map(a=>'<tr><td>'+H(a.email)+'</td><td><span class="role-tag '+H(a.role)+'">'+(labels[a.role]||H(a.role))+'</span></td><td>'+(a.role==='owner'?'<span class="muted">Dikelola oleh Pemilik</span>':'<div class="access-change"><select aria-label="Ubah hak akses" onchange="changeAccessRole(\''+H(a.email)+'\',this.value)"><option value="editor" '+(a.role==='editor'?'selected':'')+'>Editor</option><option value="viewer" '+(a.role==='viewer'?'selected':'')+'>Viewer</option></select><button class="btn slim danger" onclick="removeAccess(\''+H(a.email)+'\')">Hapus</button></div>')+'</td></tr>').join('')||'<tr><td colspan="3">Belum ada pengguna terdaftar.</td></tr>';
- return heading('HAK AKSES','Pemilik & Editor','Atur siapa yang boleh menginput, mengedit, dan membaca Monitoring APD.')+desc+
+ return heading('PENGATURAN PEMILIK','Pengaturan & Sinkronisasi','Sinkron Excel offline, atur akun Pemilik/Editor/Viewer, dan kelola keamanan APD.')+ownerOfflineSyncPanel()+desc+
  '<section class="panel"><div class="section-head"><div><h3>Tambahkan Editor / Viewer</h3><p>Gunakan alamat email akun KMB yang sudah terdaftar.</p></div><button class="btn" onclick="loadAccessUsers().then(render)">↻ Muat Ulang</button></div><form onsubmit="addRole(event)"><div class="formgrid"><label>Email Pengguna<input name="email" type="email" required placeholder="email akun KMB"></label><label>Hak Akses<select name="role"><option value="editor">Editor — Input dan Edit</option><option value="viewer">Viewer — Lihat dan Download Excel</option></select></label></div><div class="formactions"><button class="btn dark" type="submit">+ Simpan Akses</button></div></form></section>'+
  '<section class="panel" style="margin-top:17px"><div class="section-head"><h3>Daftar Pengguna APD ('+accessUsers.length+')</h3></div><div class="table-wrap"><table class="table"><thead><tr><th>Email</th><th>Hak Akses</th><th>Tindakan</th></tr></thead><tbody>'+members+'</tbody></table></div></section>';
 }
@@ -458,7 +458,7 @@ async function addRole(e){
  if(error)showNotice('Gagal menambahkan akses: '+error.message,'error');else{e.target.reset();await loadAccessUsers();render();showNotice('Hak akses Monitoring APD berhasil disimpan.','success')}
 }
 
-function exportExcel(){
+function exportOldExcel(){
  if(!user||!role)return showNotice('Silakan masuk terlebih dahulu untuk download Excel.','error');
  const XLSX=window.XLSX;
  if(!XLSX?.utils||!XLSX.writeFile)return showNotice('Komponen Excel belum termuat. Periksa koneksi internet lalu refresh halaman.','error');
