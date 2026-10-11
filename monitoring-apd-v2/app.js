@@ -193,6 +193,54 @@ function peoplePage(out){
  '<section class="panel"><div class="section-head"><div><h3>Data Manpower KMB ('+source.length+')</h3><p>Nama, jabatan, jobsite, dan status langsung mengikuti Monitoring Manpower KMB.</p></div></div><div class="row-tools"><input id="searchPerson" placeholder="Cari nama, jabatan, jobsite…" value="'+H(term)+'"><select id="filterSite"><option value="ALL">Semua Jobsite</option>'+sites.map(x=>'<option value="'+H(x)+'" '+(siteFilter===x?'selected':'')+'>'+H(x)+'</option>').join('')+'</select><button class="btn" onclick="loadAll()">↻ Sinkronkan Manpower</button></div><div class="table-wrap"><table class="table"><thead><tr><th>Nama & Jabatan</th><th>Jobsite</th><th>Status</th><th>Helm</th><th>Kaos</th><th>Sepatu</th><th>Aksi</th></tr></thead><tbody id="personRows">'+renderPeopleRows(out)+'</tbody></table></div></section>';
 }
 
+
+function detailPage(p){
+ const pieces=TYPES.map(t=>{
+  const lots=state.receipts.filter(x=>x.person===p.id&&x.type===t).sort((a,b)=>b.date.localeCompare(a.date));
+  const latestDist=latest(p.id,t),lastDate=due(p.id,t),oldStock=lots.filter(x=>x.source==='OLD').reduce((a,x)=>a+heldLot(x),0);
+  const rows=lots.map(r=>{
+   const remain=heldLot(r);
+   const back=state.returns.filter(x=>x.receiptId===r.id);
+   const source=r.source==='OLD'?'APD LAMA':r.source==='NEW'?'APD BARU':'APD BEKAS LAYAK';
+   const history=back.map(x=>'<small>↳ '+fmt(x.date)+' · '+x.qty+' unit '+(x.action==='REUSE'?'dikembalikan layak → stok bekas':'tidak layak → musnah')+(can()?'<button class="btn slim" onclick="editReturn(\''+H(x.id)+'\')">Edit</button>':'')+'</small>').join('');
+   return '<div class="lot"><div style="flex:1"><strong>'+source+' · '+fmt(r.date)+' · '+r.qty+' unit '+labelStatus(r.condition||'BELUM DIPERIKSA')+'</strong><small>Masih dimiliki: <b>'+remain+' unit</b>'+(r.source==='OLD'?' · APD lama tidak menjadi acuan tanggal ganti':' · Jatah '+r.months+' bulan · Jadwal '+fmt(addMonths(r.date,r.months)))+'</small><small>'+H(r.note||'')+'</small>'+history+'</div><div class="toolbarend">'+(can()?'<button class="btn slim" onclick="receiptForm(\''+H(p.id)+'\',\''+t+'\',\''+H(r.id)+'\')">✎ Edit APD</button>':'')+(can()&&p.status==='OUT'&&remain>0?'<button class="btn slim dark" onclick="returnForm(\''+H(r.id)+'\')">↩ Pengembalian</button>':'')+'</div></div>';
+  }).join('')||'<div class="notice">Belum ada riwayat. Gunakan Catat APD Lama untuk APD yang telah dimiliki, atau Bagikan APD untuk stok gudang.</div>';
+  return '<section class="panel" style="margin-bottom:16px"><div class="section-head"><div><h3>'+(t==='HELM'?'🪖':t==='KAOS'?'👕':'🥾')+' '+ART[t].label+'</h3><p>Dipegang '+held(p.id,t)+' unit · Stok lama '+oldStock+' unit</p></div><div class="toolbarend">'+(can()?'<button class="btn slim" onclick="receiptForm(\''+H(p.id)+'\',\''+t+'\',\'\',\'OLD\')">+ Catat APD Lama</button><button class="btn slim dark" onclick="receiptForm(\''+H(p.id)+'\',\''+t+'\',\'\',\'NEW\')">+ Tambah APD</button>':'')+'</div></div>'+
+  '<div class="stat-row"><div class="mini-stat"><small>Total Dipegang</small><b>'+held(p.id,t)+'</b></div><div class="mini-stat"><small>Stok APD Lama</small><b>'+oldStock+'</b></div><div class="mini-stat"><small>Terakhir Terima Baru/Bekas</small><b style="font-size:13px">'+fmt(latestDist?.date)+'</b></div><div class="mini-stat"><small>Jadwal Ganti</small><b style="font-size:13px">'+fmt(lastDate)+'</b></div></div><div class="lot-list">'+rows+'</div></section>';
+ }).join('');
+ return '<div class="flex between wrap" style="margin-bottom:13px"><button class="btn" onclick="navigate(\''+(p.status==='OUT'?'out':'people')+'\')">← Kembali</button><button class="btn" onclick="loadAll()">↻ Sinkronkan</button></div><div class="personhero"><span class="eyebrow" style="color:#f4d56b">DETAIL APD KARYAWAN</span><h2>'+H(p.name)+'</h2><p>'+H(p.position)+' · '+H(p.site)+' · '+p.status+'</p><p>Jumlah APD dipegang: <b>'+held(p.id)+' unit</b>. '+(p.status==='OUT'?'Periksa APD yang dikembalikan saat resign.':'APD lama dan distribusi gudang dikelola terpisah.')+'</p></div>'+pieces;
+}
+function stockPage(){
+ const cards='<div class="cards3">'+TYPES.map(t=>{const x=stock(t);return '<div class="card product">'+icon(t)+'<div><h3>'+ART[t].label+'</h3><div class="big">'+(x.NEW+x.REUSE)+'</div><small>Baru '+x.NEW+' · Bekas layak '+x.REUSE+' · Musnah '+x.DESTROYED+'</small></div></div>'}).join('')+'</div>';
+ const rows=[...state.stockIn].sort((a,b)=>b.date.localeCompare(a.date)).map(x=>'<tr><td>'+fmt(x.date)+'</td><td>'+x.type+'</td><td>'+labelStatus(x.grade==='NEW'?'BARU':'LAYAK')+'</td><td><b>'+x.qty+'</b></td><td>'+H(x.location||'Gudang')+'</td><td>'+H(x.note||'—')+'</td><td>'+(can()?'<button class="btn slim" onclick="stockForm(\''+H(x.id)+'\')">✎ Edit Stok</button>':'–')+'</td></tr>').join('')||'<tr><td colspan="7">Belum ada stok masuk. Stok awal 0; input manual ketika barang diterima gudang.</td></tr>';
+ return heading('INVENTORY','Stok APD Gudang','Stok gudang terpisah dari APD lama milik karyawan.',can()?'<button class="btn dark" onclick="stockForm()">+ Tambah Stok Masuk</button>':'')+cards+
+ '<div class="notice">APD yang <b>sudah dipakai karyawan</b> dicatat melalui Manpower → Detail → Catat APD Lama. Jangan masukkan ke stok gudang.</div><section class="panel"><div class="section-head"><h3>Riwayat Stok Masuk</h3><button class="btn" onclick="loadAll()">↻ Sinkronkan</button></div><div class="table-wrap"><table class="table"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Kondisi</th><th>Qty</th><th>Gudang</th><th>Keterangan</th><th>Aksi</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>';
+}
+function historyPage(){
+ const rows=[];
+ state.stockIn.forEach(x=>rows.push({date:x.date,type:x.type,label:x.grade==='NEW'?'STOK BARU MASUK':'STOK BEKAS MASUK',count:x.qty,name:x.location||'Gudang',call:"stockForm('"+H(x.id)+"')"}));
+ state.receipts.forEach(x=>rows.push({date:x.date,type:x.type,label:x.source==='OLD'?'APD LAMA':x.source==='NEW'?'TERIMA BARU':'TERIMA BEKAS',count:x.qty,name:personName(x.person),call:"receiptForm('"+H(x.person)+"','"+x.type+"','"+H(x.id)+"')"}));
+ state.returns.forEach(x=>{const r=state.receipts.find(a=>a.id===x.receiptId);if(r)rows.push({date:x.date,type:r.type,label:x.action==='REUSE'?'KEMBALI LAYAK':'DIMUSNAHKAN',count:x.qty,name:personName(r.person),call:"editReturn('"+H(x.id)+"')"})});
+ rows.sort((a,b)=>b.date.localeCompare(a.date));
+ return heading('AUDIT TRAIL','Riwayat Monitoring APD','Riwayat stok, penerimaan lama, distribusi, dan pengembalian.','<button class="btn" onclick="backup()">⇩ Backup Data</button>')+'<section class="panel"><div class="table-wrap"><table class="table"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Aktivitas</th><th>Jumlah</th><th>Karyawan / Gudang</th><th>Aksi</th></tr></thead><tbody>'+(rows.map(x=>'<tr><td>'+fmt(x.date)+'</td><td>'+x.type+'</td><td>'+x.label+'</td><td>'+x.count+'</td><td>'+H(x.name)+'</td><td>'+(can()?'<button class="btn slim" onclick="'+x.call+'">✎ Edit</button>':'–')+'</td></tr>').join('')||'<tr><td colspan="6">Belum ada transaksi.</td></tr>')+'</tbody></table></div></section>';
+}
+function guidePage(){
+ const guides=[
+ ['1. Sinkronkan Manpower','Daftar karyawan aktif, keluar, jabatan, dan jobsite otomatis diambil dari Monitoring Manpower KMB.'],
+ ['2. Catat APD Lama','Buka Manpower → karyawan → Catat APD Lama. Isi kapan APD dahulu diterima, jumlah yang masih dipegang, dan kondisi layak/tidak layak. Tidak perlu stok gudang.'],
+ ['3. Tambah Stok Gudang','Buka Stok APD → Tambah Stok Masuk. Stok awal 0, catat barang yang benar-benar tersedia, baik baru maupun bekas layak.'],
+ ['4. Tambah APD kepada Karyawan','Buka detail karyawan → Tambah APD. Pilih baru/bekas layak, tanggal penerimaan, jumlah dan jatah ganti dalam bulan. Stok gudang otomatis berkurang.'],
+ ['5. Jadwal Penggantian Otomatis','Jadwal = tanggal penerimaan baru/bekas terakhir + jatah penggantian bulan. APD lama tetap stok karyawan dan tidak menentukan jadwal ganti.'],
+ ['6. Karyawan Keluar','Jika status OUT dari Manpower KMB, klik Pengembalian pada riwayat. Pilih layak pakai untuk dikembalikan sebagai stok bekas atau tidak layak untuk dimusnahkan.'],
+ ['7. Salah Input','Klik Edit pada stok masuk, APD lama, APD baru, atau pengembalian. Sistem menolak perubahan yang membuat saldo menjadi negatif.']
+ ];
+ return heading('PANDUAN','Tata Cara Monitoring APD','Dibuat sederhana dan terpisah antara milik karyawan dan stok gudang.')+'<section class="panel">'+guides.map(x=>'<div class="guide-step"><strong>'+x[0]+'</strong><p>'+x[1]+'</p></div>').join('')+'</section>';
+}
+function accessPage(){
+ if(role!=='owner')return '<div class="empty">Hanya Owner.</div>';
+ return heading('SECURITY','Pengaturan Akses','Akses APD terpisah dari Monitoring Manpower KMB.')+'<section class="panel"><h3>Tambahkan Editor / Viewer</h3><form onsubmit="addRole(event)"><div class="formgrid"><label>Email Pengguna<input name="email" type="email" required placeholder="email akun KMB"></label><label>Peran<select name="role"><option value="editor">Editor — input dan edit</option><option value="viewer">Viewer — hanya melihat</option></select></label></div><div class="formactions"><button class="btn dark" type="submit">Simpan Akses</button></div></form><p class="muted">Akun email harus sudah terdaftar di sistem login KMB. Pengaturan ini tidak mengubah akses Manpower.</p></section>';
+}
+
 document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.page)));
 el('mobileMenu').onclick=()=>el('sidebar').classList.toggle('open');
 el('authBtn').onclick=()=>user?logout():login();
