@@ -1,0 +1,18 @@
+{
+  "id": "/kmb-purchasing-logistik/monitoring-kta-tra/",
+  "name": "KMB Manpower KTA-TRA",
+  "short_name": "KTA TRA",
+  "start_url": "/kmb-purchasing-logistik/monitoring-kta-tra/",
+  "scope": "/kmb-purchasing-logistik/monitoring-kta-tra/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#172e52",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
