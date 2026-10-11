@@ -241,6 +241,97 @@ function accessPage(){
  return heading('SECURITY','Pengaturan Akses','Akses APD terpisah dari Monitoring Manpower KMB.')+'<section class="panel"><h3>Tambahkan Editor / Viewer</h3><form onsubmit="addRole(event)"><div class="formgrid"><label>Email Pengguna<input name="email" type="email" required placeholder="email akun KMB"></label><label>Peran<select name="role"><option value="editor">Editor — input dan edit</option><option value="viewer">Viewer — hanya melihat</option></select></label></div><div class="formactions"><button class="btn dark" type="submit">Simpan Akses</button></div></form><p class="muted">Akun email harus sudah terdaftar di sistem login KMB. Pengaturan ini tidak mengubah akses Manpower.</p></section>';
 }
 
+
+function modal(title,body){
+ el('modalTitle').textContent=title;el('modalBody').innerHTML=body;el('modalBack').hidden=false;
+}
+function closeModal(){el('modalBack').hidden=true;el('modalBody').innerHTML=''}
+function formButtons(label){return '<div class="formactions"><button class="btn" type="button" onclick="closeModal()">Batal</button><button class="btn dark" type="submit">'+H(label)+'</button></div>'}
+function stockForm(id){
+ if(!can())return;
+ const x=state.stockIn.find(t=>t.id===id)||{date:today(),type:'HELM',grade:'NEW',qty:1,location:'',note:''};
+ modal(id?'Edit Stok Gudang':'Tambah Stok Masuk','<div class="notice">Hanya untuk barang yang ada di gudang. <b>APD lama yang dimiliki karyawan tidak dicatat sebagai stok gudang.</b></div><form onsubmit="saveStock(event,\''+H(id||'')+'\')"><div class="formgrid"><label>Tanggal Stok Masuk<input name="date" type="date" required value="'+H(x.date)+'"></label><label>Jenis APD<select name="type">'+TYPES.map(t=>'<option '+(x.type===t?'selected':'')+'>'+t+'</option>').join('')+'</select></label><label>Kondisi Stok<select name="grade"><option value="NEW" '+(x.grade==='NEW'?'selected':'')+'>Barang Baru</option><option value="REUSE" '+(x.grade==='REUSE'?'selected':'')+'>Barang Bekas Layak (Stok Awal)</option></select></label><label>Jumlah Unit<input name="qty" type="number" min="1" step="1" required value="'+x.qty+'"></label><label>Lokasi Gudang<input name="location" value="'+H(x.location||'')+'"></label><label>Keterangan<input name="note" value="'+H(x.note||'')+'"></label></div>'+formButtons(id?'Simpan Perubahan Stok':'Simpan Stok Masuk')+'</form>');
+}
+function saveStock(e,id){
+ e.preventDefault();const f=Object.fromEntries(new FormData(e.target)),next=structuredClone(state);
+ const value={id:id||uid(),date:f.date,type:f.type,grade:f.grade,qty:Number(f.qty),location:f.location,note:f.note};
+ if(id){const i=next.stockIn.findIndex(x=>x.id===id);if(i<0)return showNotice('Transaksi stok tidak ditemukan.','error');next.stockIn[i]=value}
+ else next.stockIn.push(value);
+ persist(next,'Stok APD berhasil disimpan. Dashboard diperbarui.');
+}
+function receiptForm(personId,type,id,defaultSource){
+ if(!can())return;
+ const p=person(personId);
+ if(!p)return showNotice('Karyawan tidak ditemukan. Tekan Sinkronkan.','error');
+ const r=state.receipts.find(x=>x.id===id)||{person:personId,type,date:today(),qty:1,source:defaultSource||'OLD',condition:'BELUM DIPERIKSA',months:6,note:''};
+ modal(id?'Edit Penerimaan · '+p.name:(r.source==='OLD'?'Catat APD Lama · ':'Tambah APD · ')+p.name,
+ '<div class="notice"><b>APD LAMA:</b> Sudah dimiliki karyawan, tidak mengurangi gudang dan tidak membuat jadwal ganti. <b>APD BARU / BEKAS:</b> Diambil dari gudang, stok berkurang dan jadwal ganti otomatis.</div>'+
+ '<form onsubmit="saveReceipt(event,\''+H(id||'')+'\')"><div class="formgrid"><label>Karyawan<input readonly value="'+H(p.name)+'"><input type="hidden" name="person" value="'+H(p.id)+'"></label><label>Jobsite<input readonly value="'+H(p.site)+'"></label>'+
+ '<label>Jenis APD<select name="type">'+TYPES.map(t=>'<option '+(r.type===t?'selected':'')+'>'+t+'</option>').join('')+'</select></label>'+
+ '<label>Asal APD<select name="source" id="receiptSource" onchange="receiptMode()"><option value="OLD" '+(r.source==='OLD'?'selected':'')+'>APD Lama yang Sudah Dimiliki</option><option value="NEW" '+(r.source==='NEW'?'selected':'')+'>APD Baru dari Gudang</option><option value="REUSE" '+(r.source==='REUSE'?'selected':'')+'>APD Bekas Layak dari Gudang</option></select></label>'+
+ '<label>Tanggal Diterima<input name="date" type="date" required value="'+H(r.date)+'"></label><label>Jumlah yang Diterima<input name="qty" type="number" min="1" step="1" required value="'+r.qty+'"></label>'+
+ '<label>Kondisi APD Saat Ini<select name="condition"><option '+(r.condition==='BELUM DIPERIKSA'?'selected':'')+'>BELUM DIPERIKSA</option><option '+(r.condition==='LAYAK'?'selected':'')+'>LAYAK</option><option '+(r.condition==='TIDAK LAYAK'?'selected':'')+'>TIDAK LAYAK</option></select></label>'+
+ '<label id="monthsWrap">Jatah Penggantian (bulan)<input name="months" type="number" min="1" max="120" step="1" value="'+(r.months||6)+'"><span class="muted" style="font-size:10px">Tanggal penerimaan + jumlah bulan = jatah penggantian.</span></label>'+
+ '<label class="wide">Keterangan / Bukti<input name="note" value="'+H(r.note||'')+'"></label></div><div class="notice" id="receiptHint"></div>'+formButtons(id?'Simpan Perubahan APD':'Simpan Penerimaan APD')+'</form>');
+ receiptMode();
+}
+function receiptMode(){
+ const old=el('receiptSource')?.value==='OLD';
+ const m=el('monthsWrap'),hint=el('receiptHint');
+ if(m)m.hidden=old;
+ if(hint)hint.innerHTML=old?'APD lama menjadi <b>stok milik karyawan</b>, tanpa perlu stok gudang. Kondisi dan tanggal tetap dapat diedit.':'Stok gudang akan <b>dikurangi</b> sesuai jumlah penerimaan. Jadwal penggantian dihitung otomatis.';
+}
+function saveReceipt(e,id){
+ e.preventDefault();const f=Object.fromEntries(new FormData(e.target)),next=structuredClone(state);
+ const value={id:id||uid(),person:f.person,type:f.type,date:f.date,qty:Number(f.qty),source:f.source,months:f.source==='OLD'?0:Number(f.months||6),condition:f.condition,note:f.note};
+ if(id){const i=next.receipts.findIndex(x=>x.id===id);if(i<0)return showNotice('Riwayat APD tidak ditemukan.','error');next.receipts[i]=value}
+ else next.receipts.push(value);
+ persist(next,'Penerimaan APD tersimpan. Jumlah yang dimiliki karyawan dan jadwal ganti diperbarui.');
+}
+function returnForm(receiptId){
+ if(!can())return;
+ const r=state.receipts.find(x=>x.id===receiptId),p=person(r?.person);
+ if(!r||!p)return;
+ if(p.status!=='OUT')return showNotice('Pengembalian karena resign dilakukan setelah status karyawan OUT pada Monitoring Manpower KMB.','error');
+ const left=heldLot(r);
+ if(left<1)return showNotice('Semua unit APD dari catatan ini sudah diproses.','error');
+ modal('Pengembalian APD · '+p.name,
+ '<div class="notice"><b>LAYAK:</b> Stok APD bekas layak bertambah dan bisa dibagikan lagi. <b>TIDAK LAYAK:</b> Barang dicatat dimusnahkan, tidak menambah stok.</div>'+
+ '<form onsubmit="saveReturn(event,\''+H(r.id)+'\',\'\')"><div class="formgrid"><label>Karyawan<input readonly value="'+H(p.name)+'"></label><label>APD<input readonly value="'+r.type+'"></label>'+
+ '<label>Tanggal Kembali<input name="date" type="date" required min="'+H(r.date)+'" value="'+today()+'"></label>'+
+ '<label>Jumlah Kembali (maks '+left+')<input name="qty" type="number" min="1" max="'+left+'" step="1" required value="'+left+'"></label>'+
+ '<label>Kondisi Pemeriksaan<select name="action"><option value="REUSE">LAYAK — Masuk Gudang Bekas Layak</option><option value="DESTROY">TIDAK LAYAK — Musnahkan</option></select></label>'+
+ '<label>Keterangan<input name="note" placeholder="Hasil pemeriksaan"></label></div>'+formButtons('Simpan Pengembalian')+'</form>');
+}
+function editReturn(id){
+ if(!can())return;
+ const x=state.returns.find(a=>a.id===id),r=state.receipts.find(a=>a.id===x?.receiptId);
+ if(!x||!r)return;
+ modal('Edit Pengembalian APD','<div class="notice">Koreksi transaksi pengembalian sebelumnya. Saldo gudang akan dihitung ulang.</div>'+
+ '<form onsubmit="saveReturn(event,\''+H(r.id)+'\',\''+H(x.id)+'\')"><div class="formgrid"><label>Karyawan<input readonly value="'+H(personName(r.person))+'"></label><label>APD<input readonly value="'+r.type+'"></label>'+
+ '<label>Tanggal Kembali<input name="date" type="date" min="'+H(r.date)+'" value="'+H(x.date)+'" required></label>'+
+ '<label>Jumlah Kembali<input name="qty" type="number" min="1" step="1" value="'+x.qty+'" required></label>'+
+ '<label>Kondisi Pemeriksaan<select name="action"><option value="REUSE" '+(x.action==='REUSE'?'selected':'')+'>LAYAK — Gudang Bekas Layak</option><option value="DESTROY" '+(x.action==='DESTROY'?'selected':'')+'>TIDAK LAYAK — Musnahkan</option></select></label>'+
+ '<label>Keterangan<input name="note" value="'+H(x.note||'')+'"></label></div>'+formButtons('Simpan Perubahan Pengembalian')+'</form>');
+}
+function saveReturn(e,receiptId,id){
+ e.preventDefault();const f=Object.fromEntries(new FormData(e.target)),next=structuredClone(state);
+ const value={id:id||uid(),receiptId,date:f.date,qty:Number(f.qty),action:f.action,note:f.note};
+ if(id){const i=next.returns.findIndex(x=>x.id===id);if(i<0)return showNotice('Data kembali tidak ditemukan.','error');next.returns[i]=value}else next.returns.push(value);
+ persist(next,'Pengembalian disimpan. APD layak menjadi stok bekas, dan APD tidak layak tercatat dimusnahkan.');
+}
+async function addRole(e){
+ e.preventDefault();if(role!=='owner')return;
+ const d=Object.fromEntries(new FormData(e.target));
+ if(d.email.trim().toLowerCase()===user.email.toLowerCase()&&d.role!=='owner')return showNotice('Hak pemilik tidak boleh diturunkan.','error');
+ const {error}=await db.from('app_access_roles').upsert({app_id:'apd',email:d.email.trim().toLowerCase(),role:d.role},{onConflict:'app_id,email'});
+ if(error)showNotice('Gagal menambahkan akses: '+error.message,'error');else{e.target.reset();showNotice('Hak akses Monitoring APD berhasil disimpan.','success')}
+}
+function backup(){
+ const blob=new Blob([JSON.stringify({date:today(),state},null,2)],{type:'application/json'});
+ const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Backup_APD_KMB_'+today()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
 document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.page)));
 el('mobileMenu').onclick=()=>el('sidebar').classList.toggle('open');
 el('authBtn').onclick=()=>user?logout():login();
