@@ -4,7 +4,7 @@ const cfg=window.KMB_SUPABASE_CONFIG||{};
 const db=window.supabase&&cfg.url&&cfg.publishableKey?window.supabase.createClient(cfg.url,cfg.publishableKey):null;
 const TYPES=['HELM','KAOS','SEPATU'];
 const ART={HELM:{label:'Helm Safety',url:'helm.svg'},KAOS:{label:'Kaos Kerja',url:'kaos.svg'},SEPATU:{label:'Sepatu Safety',url:'sepatu.svg'}};
-const EMPTY=()=>({stockIn:[],receipts:[],returns:[]});
+const EMPTY=()=>({stockIn:[],receipts:[],returns:[],limits:{HELM:0,KAOS:0,SEPATU:0}});
 let state=EMPTY(),revision=0,people=[],page='dashboard',chosen='',user=null,role='',saving=false,term='',siteFilter='ALL';
 const el=id=>document.getElementById(id);
 const H=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -25,7 +25,7 @@ function addMonths(date,months){
 }
 function daysUntil(d){if(!d)return Infinity;return Math.round((new Date(d+'T00:00:00')-new Date(today()+'T00:00:00'))/86400000)}
 function showNotice(message,type){const x=el('notice');if(!x)return;x.innerHTML='<div class="notice '+(type||'')+'">'+H(message)+'</div>';window.scrollTo({top:0,behavior:'smooth'})}
-function normalize(v){return {stockIn:arr(v?.stockIn),receipts:arr(v?.receipts),returns:arr(v?.returns)}}
+function normalize(v){return {stockIn:arr(v?.stockIn),receipts:arr(v?.receipts),returns:arr(v?.returns),limits:{HELM:Math.max(0,Number(v?.limits?.HELM)||0),KAOS:Math.max(0,Number(v?.limits?.KAOS)||0),SEPATU:Math.max(0,Number(v?.limits?.SEPATU)||0)}}}
 function parsePeople(mp){
  const seen=new Set(),out=[];
  for(const [list,status] of [[arr(mp.mpActive),'AKTIF'],[arr(mp.mpOut),'OUT']]){
@@ -167,6 +167,47 @@ function schedules(){
  }
  return result.sort((a,b)=>a.d.localeCompare(b.d));
 }
+
+let dashboardPeriod='bulanan',dashboardYear=new Date().getFullYear();
+function setDashboardPeriod(value){if(['harian','mingguan','bulanan','tahunan'].includes(value)){dashboardPeriod=value;render()}}
+function setDashboardYear(value){dashboardYear=Number(value)||new Date().getFullYear();render()}
+function distributed(){return state.receipts.filter(r=>r.source==='NEW'||r.source==='REUSE')}
+function trendBuckets(){
+ const mon=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'],items=[];
+ const now=new Date(today()+'T12:00:00');
+ const iso=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+ if(dashboardPeriod==='bulanan')for(let m=0;m<12;m++){const k=dashboardYear+'-'+String(m+1).padStart(2,'0');items.push({label:mon[m],from:k+'-01',to:k+'-31'})}
+ if(dashboardPeriod==='tahunan')for(let y=dashboardYear-4;y<=dashboardYear;y++)items.push({label:String(y),from:y+'-01-01',to:y+'-12-31'});
+ if(dashboardPeriod==='harian')for(let i=9;i>=0;i--){const d=new Date(now);d.setDate(d.getDate()-i);items.push({label:d.getDate()+'/'+(d.getMonth()+1),from:iso(d),to:iso(d)})}
+ if(dashboardPeriod==='mingguan'){const mon0=new Date(now);mon0.setDate(mon0.getDate()-(mon0.getDay()+6)%7);for(let i=7;i>=0;i--){const d=new Date(mon0);d.setDate(d.getDate()-i*7);const e=new Date(d);e.setDate(e.getDate()+6);items.push({label:d.getDate()+'/'+(d.getMonth()+1),from:iso(d),to:iso(e)})}}
+ return items;
+}
+function trendChart(){
+ const b=trendBuckets(),cols={HELM:'#f7b825',KAOS:'#ff596a',SEPATU:'#753df5'},hist=distributed();
+ const series=TYPES.map(t=>({type:t,color:cols[t],values:b.map(k=>hist.filter(r=>r.type===t&&r.date>=k.from&&r.date<=k.to).reduce((a,r)=>a+qty(r.qty),0))}));
+ const max=Math.max(1,...series.flatMap(x=>x.values)),tick=Math.max(1,Math.ceil(max/4)),w=640,h=218,L=41,R=11,T=13,B=35;
+ const x=i=>L+(w-L-R)*i/Math.max(1,b.length-1),y=n=>T+(h-T-B)*(1-n/(tick*4));
+ const grid=[0,1,2,3,4].map(i=>'<line x1="'+L+'" x2="'+(w-R)+'" y1="'+y(i*tick)+'" y2="'+y(i*tick)+'" stroke="#e8eaf3" stroke-dasharray="3 4"/><text x="'+(L-8)+'" y="'+(y(i*tick)+4)+'" text-anchor="end" fill="#99a4b5" font-size="11">'+i*tick+'</text>').join('');
+ const labels=b.map((k,i)=>'<text x="'+x(i)+'" y="'+(h-8)+'" fill="#8a96aa" font-size="10" text-anchor="middle">'+k.label+'</text>').join('');
+ const lines=series.map(z=>{const pts=z.values.map((v,i)=>[x(i),y(v)]),d=pts.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' '),area=d+' L'+x(b.length-1)+' '+y(0)+' L'+x(0)+' '+y(0)+' Z';return '<path d="'+area+'" fill="url(#area-'+z.type+')" /><path d="'+d+'" fill="none" stroke="'+z.color+'" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>'+pts.map(p=>'<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.6" fill="'+z.color+'" stroke="#fff" stroke-width="2"/>').join('')}).join('');
+ return '<div class="apd-chart"><svg viewBox="0 0 '+w+' '+h+'" role="img" aria-label="Tren distribusi APD berdasarkan riwayat asli"><defs>'+series.map(z=>'<linearGradient id="area-'+z.type+'" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+z.color+'" stop-opacity=".23"/><stop offset="1" stop-color="'+z.color+'" stop-opacity="0"/></linearGradient>').join('')+'</defs>'+grid+labels+lines+'</svg></div><div class="apd-chart-legend">'+series.map(z=>'<span><i style="background:'+z.color+'"></i>'+ART[z.type].label+'</span>').join('')+'</div>';
+}
+function composition(){
+ const sums=TYPES.map(t=>distributed().filter(r=>r.type===t).reduce((a,r)=>a+qty(r.qty),0)),total=sums.reduce((a,b)=>a+b,0);
+ const colors=['#fac32f','#ff5768','#7841f6'];let parts=[],current=0;
+ if(total)sums.forEach((n,i)=>{const portion=n/total*100;if(portion){parts.push(colors[i]+' '+current+'% '+(current+portion)+'%');current+=portion}});
+ const fill=total?'conic-gradient('+parts.join(',')+')':'conic-gradient(#e9edf4 0% 100%)';
+ return '<div class="apd-donut-wrap"><div class="apd-donut" style="background:'+fill+'"><div class="apd-donut-center"><b>'+total.toLocaleString('id-ID')+'</b><small>Total Distribusi</small></div></div><div class="apd-donut-legend">'+TYPES.map((t,i)=>'<div class="apd-donut-row"><i style="background:'+colors[i]+'"></i><div><b>'+ART[t].label+'</b><small>'+sums[i]+' unit</small></div><strong>'+(total?Math.round(sums[i]/total*100):0)+'%</strong></div>').join('')+'</div></div>';
+}
+function recentActivity(){
+ const items=[];
+ state.stockIn.forEach(x=>items.push({date:x.date,title:'Stok masuk',description:x.qty+' '+ART[x.type].label+' ('+(x.grade==='NEW'?'baru':'bekas')+')',icon:'▣',color:'blue'}));
+ state.receipts.forEach(x=>items.push({date:x.date,title:x.source==='OLD'?'Pencatatan APD lama':'APD dibagikan',description:x.qty+' '+ART[x.type].label+' · '+personName(x.person),icon:'➤',color:'purple'}));
+ state.returns.forEach(x=>{const r=state.receipts.find(t=>t.id===x.receiptId);if(r)items.push({date:x.date,title:x.action==='REUSE'?'Pengembalian APD layak':'APD dimusnahkan',description:x.qty+' '+ART[r.type].label+' · '+personName(r.person),icon:'↻',color:'red'})});
+ items.sort((a,b)=>b.date.localeCompare(a.date));
+ return items.slice(0,5).map(x=>'<div class="apd-activity"><span class="apd-activity-icon '+x.color+'">'+x.icon+'</span><div><b>'+H(x.title)+'</b><small>'+H(x.description)+'</small></div><time>'+fmt(x.date)+'</time></div>').join('')||'<div class="apd-activity-empty"><strong>Belum ada aktivitas APD</strong><small>Transaksi stok dan pembagian APD akan tampil di sini otomatis.</small></div>';
+}
+
 function dashboard(){
  const totalHeld=people.reduce((a,p)=>a+held(p.id),0);
  const warehouse=TYPES.reduce((a,t)=>{const s=stock(t);return a+s.NEW+s.REUSE},0);
