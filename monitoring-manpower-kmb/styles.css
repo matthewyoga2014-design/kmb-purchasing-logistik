@@ -243,3 +243,17 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
   .dashboard-charts, .dashboard-lower { break-inside: avoid; }
   .card, .metric-card, .resume-card { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
+
+
+/* Dashboard print: size all dashboard content to ONE A4 landscape page. */
+@page { size: A4 landscape; margin: 5mm; }
+@media print {
+  html, body, .app, .main { width: 100% !important; min-height: 0 !important; height: auto !important; overflow: visible !important; }
+  .sidebar, .topbar, .footer, .modal, .toolbar { display: none !important; }
+  .app, .main { display: block !important; margin: 0 !important; padding: 0 !important; }
+  .content { display: block !important; max-width: none !important; width: 100% !important; margin: 0 !important; padding: 0 !important; }
+  #dashboard.view.active { display: block !important; width: 1500px !important; max-width: none !important; margin: 0 auto !important; padding: 0 !important; zoom: var(--dashboard-print-zoom, .42) !important; }
+  #dashboard .dashboard-resume { overflow: visible !important; max-height: none !important; }
+  #dashboard .card, #dashboard .metric-card, #dashboard .resume-card { break-inside: avoid; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  #dashboard .dashboard-charts, #dashboard .dashboard-lower { break-inside: avoid; }
+}
