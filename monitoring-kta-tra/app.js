@@ -713,3 +713,20 @@ document.addEventListener("DOMContentLoaded",()=>{
   document.getElementById("closeModal").onclick=closeModal;document.getElementById("saveModal").onclick=saveModal;
   showView("dashboard");
 });
+
+/* Fit the complete dashboard to a single A4 landscape printed page. */
+(function(){
+  function fitDashboardPrint(){
+    const dashboard=document.getElementById("dashboard");
+    if(!dashboard||!dashboard.classList.contains("active"))return;
+    dashboard.style.setProperty("--dashboard-print-zoom","1");
+    // Layout at the fixed print width first, including all recruitment rows.
+    const h=Math.max(dashboard.scrollHeight,dashboard.getBoundingClientRect().height,1);
+    const scale=Math.max(0.15,Math.min(0.67,690/h));
+    dashboard.style.setProperty("--dashboard-print-zoom",String(scale));
+  }
+  window.addEventListener("beforeprint",fitDashboardPrint);
+  window.addEventListener("afterprint",function(){
+    document.getElementById("dashboard")?.style.removeProperty("--dashboard-print-zoom");
+  });
+})();
