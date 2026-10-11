@@ -36,6 +36,6 @@ body{background:var(--appbg);color:var(--ink);font-family:Inter,"Segoe UI",Arial
 /* Dashboard APD — center objects visually within product photo panels. */
 .apd-product-card .apd-product-image{display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden;padding:8px 12px}
 .apd-product-card .apd-product-image .art{display:flex!important;align-items:center!important;justify-content:center!important;width:100%!important;height:100%!important;min-width:0;background:transparent!important;overflow:visible}
-.apd-product-card .apd-product-image .art img{display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;object-position:center center!important;transform:translateY(-23px) scale(.92)!important;transform-origin:center center!important;margin:auto!important}
-.apd-product-card.apd-product-kaos .apd-product-image .art img{transform:translateY(-24px) scale(.89)!important}
-.apd-product-card.apd-product-sepatu .apd-product-image .art img{transform:translateY(-23px) scale(.90)!important}
+.apd-product-card .apd-product-image .art img{display:block!important;width:100%!important;height:100%!important;max-width:100%!important;max-height:100%!important;object-fit:contain!important;object-position:center center!important;transform:translateY(-38px) scale(1.08)!important;transform-origin:center center!important;margin:auto!important}
+.apd-product-card.apd-product-kaos .apd-product-image .art img{transform:translateY(-40px) scale(1.07)!important}
+.apd-product-card.apd-product-sepatu .apd-product-image .art img{transform:translateY(-37px) scale(1.07)!important}
