@@ -13,6 +13,8 @@ const fmt=s=>s?new Date(String(s)+'T00:00:00').toLocaleDateString('id-ID',{day:'
 const uid=()=>crypto.randomUUID();
 const cleanName=s=>String(s||'').trim().replace(/\s+/g,' ').toLocaleUpperCase('id-ID');
 const can=()=>role==='owner'||role==='editor';
+const ownerOnly=()=>role==='owner';
+const ownerPages=['stock','images','access'];
 const arr=x=>Array.isArray(x)?x:[];
 const qty=x=>Number(x)||0;
 function addMonths(date,months){
@@ -124,6 +126,7 @@ async function login(){
 async function logout(){if(db)await db.auth.signOut();user=null;role='';state=EMPTY();people=[];page='dashboard';render()}
 async function persist(next,message){
  if(!can()||saving)return showNotice('Hanya Owner/Editor dapat menyimpan data.','error');
+ if(!ownerOnly()&&(JSON.stringify(next.stockIn)!==JSON.stringify(state.stockIn)||JSON.stringify(next.limits)!==JSON.stringify(state.limits)||JSON.stringify(next.images)!==JSON.stringify(state.images)))return showNotice('Koreksi stok gudang, stok minimum, dan gambar APD hanya boleh dilakukan Pemilik. Hubungi Pemilik untuk konfirmasi.','error');
  const issue=validate(next);if(issue)return showNotice('Tidak dapat menyimpan: '+issue,'error');
  saving=true;
  try{
@@ -135,7 +138,7 @@ async function persist(next,message){
  }catch(e){showNotice('Gagal simpan: '+e.message,'error');await loadAll()}
  finally{saving=false}
 }
-function navigate(v){page=v;chosen='';term='';siteFilter='ALL';el('sidebar').classList.remove('open');render()}
+function navigate(v){if(ownerPages.includes(v)&&!ownerOnly())return showNotice('Halaman ini khusus Pemilik. Hubungi Pemilik untuk koreksi stok atau perubahan data.','error');page=v;chosen='';term='';siteFilter='ALL';el('sidebar').classList.remove('open');render()}
 function openPerson(id){chosen=id;page='detail';render()}
 function heading(eyebrow,name,description,buttons){
  return '<div class="head"><div><span class="eyebrow">'+H(eyebrow)+'</span><h2>'+H(name)+'</h2><p>'+H(description)+'</p></div>'+(buttons||'')+'</div>';
@@ -144,7 +147,9 @@ function render(){
  el('roleText').textContent=role?(role==='owner'?'Pemilik':role==='editor'?'Editor':'Pelihat'):'Belum Masuk';
  el('userText').textContent=user?.email||'';
  el('authBtn').textContent=user?'Keluar':'Masuk';
- el('accessNav').hidden=role!=='owner';
+ document.querySelectorAll('.nav[data-page="stock"],.nav[data-page="images"],.nav[data-page="access"]').forEach(n=>n.hidden=!ownerOnly());
+ el('exportExcelBtn').hidden=!ownerOnly();
+ if(ownerPages.includes(page)&&!ownerOnly())page='dashboard';
  document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.page===page||(page==='detail'&&n.dataset.page==='people')));
  if(!user||!role){
   el('pageTitle').textContent='Monitoring APD KMB';
@@ -203,7 +208,7 @@ function composition(){
 }
 function recentActivity(){
  const items=[];
- state.stockIn.forEach(x=>items.push({date:x.date,title:'Stok masuk',description:x.qty+' '+ART[x.type].label+' ('+(x.grade==='NEW'?'baru':'bekas')+')',icon:'▣',color:'blue'}));
+ if(ownerOnly())state.stockIn.forEach(x=>items.push({date:x.date,title:'Stok masuk',description:x.qty+' '+ART[x.type].label+' ('+(x.grade==='NEW'?'baru':'bekas')+')',icon:'▣',color:'blue'}));
  state.receipts.forEach(x=>items.push({date:x.date,title:x.source==='OLD'?'Pencatatan APD lama':'APD dibagikan',description:x.qty+' '+ART[x.type].label+' · '+personName(x.person),icon:'➤',color:'purple'}));
  state.returns.forEach(x=>{const r=state.receipts.find(t=>t.id===x.receiptId);if(r)items.push({date:x.date,title:x.action==='REUSE'?'Pengembalian APD layak':'APD dimusnahkan',description:x.qty+' '+ART[r.type].label+' · '+personName(r.person),icon:'↻',color:'red'})});
  items.sort((a,b)=>b.date.localeCompare(a.date));
@@ -253,6 +258,7 @@ function detailPage(p){
  return '<div class="flex between wrap" style="margin-bottom:13px"><button class="btn" onclick="navigate(\''+(p.status==='OUT'?'out':'people')+'\')">← Kembali</button><button class="btn" onclick="loadAll()">↻ Sinkronkan</button></div><div class="personhero"><span class="eyebrow" style="color:#f4d56b">DETAIL APD KARYAWAN</span><h2>'+H(p.name)+'</h2><p>'+H(p.position)+' · '+H(p.site)+' · '+p.status+'</p><p>Jumlah APD dipegang: <b>'+held(p.id)+' unit</b>. '+(p.status==='OUT'?'Periksa APD yang dikembalikan saat resign.':'APD lama dan distribusi gudang dikelola terpisah.')+'</p></div>'+pieces;
 }
 function stockPage(){
+ if(!ownerOnly())return '<div class="empty">Halaman stok dan riwayat gudang hanya untuk Pemilik.</div>';
  const cards='<div class="cards3 warehouse-cards">'+TYPES.map(t=>{const x=stock(t);return '<div class="card product warehouse-card">'+icon(t)+'<div class="warehouse-card-info"><h3>'+ART[t].label+'</h3><div class="big">'+(x.NEW+x.REUSE)+'</div><small>Baru '+x.NEW+' · Bekas layak '+x.REUSE+' · Musnah '+x.DESTROYED+'</small><small>Minimal stok: '+Number(state.limits?.[t]||0)+'</small>'+(can()?'<button class="btn slim warehouse-edit" onclick="editWarehouseStock(\''+t+'\')">✎ Edit Stok Gudang</button>':'')+'</div></div>'}).join('')+'</div>';
  const rows=[...state.stockIn].sort((a,b)=>b.date.localeCompare(a.date)).map(x=>'<tr><td>'+fmt(x.date)+'</td><td>'+x.type+'</td><td>'+labelStatus(x.grade==='NEW'?'BARU':'LAYAK')+'</td><td><b>'+x.qty+'</b></td><td>'+H(x.location||'Gudang')+'</td><td>'+H(x.note||'—')+'</td><td>'+(can()?'<button class="btn slim" onclick="stockForm(\''+H(x.id)+'\')">✎ Edit Stok</button>':'–')+'</td></tr>').join('')||'<tr><td colspan="7">Belum ada stok masuk. Stok awal 0; input manual ketika barang diterima gudang.</td></tr>';
  return heading('INVENTORY','Stok APD Gudang','Stok gudang terpisah dari APD lama milik karyawan.',can()?'<button class="btn dark" onclick="stockForm()">+ Tambah Stok Masuk</button>':'')+cards+
@@ -260,35 +266,36 @@ function stockPage(){
 }
 function historyPage(){
  const rows=[];
- state.stockIn.forEach(x=>rows.push({date:x.date,type:x.type,label:x.grade==='NEW'?'STOK BARU MASUK':'STOK BEKAS MASUK',count:x.qty,name:x.location||'Gudang',call:"stockForm('"+H(x.id)+"')"}));
+ if(ownerOnly())state.stockIn.forEach(x=>rows.push({date:x.date,type:x.type,label:x.grade==='NEW'?'STOK BARU MASUK':'STOK BEKAS MASUK',count:x.qty,name:x.location||'Gudang',call:"stockForm('"+H(x.id)+"')"}));
  state.receipts.forEach(x=>rows.push({date:x.date,type:x.type,label:x.source==='OLD'?'APD LAMA':x.source==='NEW'?'TERIMA BARU':'TERIMA BEKAS',count:x.qty,name:personName(x.person),call:"receiptForm('"+H(x.person)+"','"+x.type+"','"+H(x.id)+"')"}));
  state.returns.forEach(x=>{const r=state.receipts.find(a=>a.id===x.receiptId);if(r)rows.push({date:x.date,type:r.type,label:x.action==='REUSE'?'KEMBALI LAYAK':'DIMUSNAHKAN',count:x.qty,name:personName(r.person),call:"editReturn('"+H(x.id)+"')"})});
  rows.sort((a,b)=>b.date.localeCompare(a.date));
- return heading('AUDIT TRAIL','Riwayat Monitoring APD','Riwayat stok, penerimaan lama, distribusi, dan pengembalian.','<button class="btn" onclick="backup()">⇩ Backup Data</button>')+'<section class="panel"><div class="table-wrap"><table class="table"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Aktivitas</th><th>Jumlah</th><th>Karyawan / Gudang</th><th>Aksi</th></tr></thead><tbody>'+(rows.map(x=>'<tr><td>'+fmt(x.date)+'</td><td>'+x.type+'</td><td>'+x.label+'</td><td>'+x.count+'</td><td>'+H(x.name)+'</td><td>'+(can()?'<button class="btn slim" onclick="'+x.call+'">✎ Edit</button>':'–')+'</td></tr>').join('')||'<tr><td colspan="6">Belum ada transaksi.</td></tr>')+'</tbody></table></div></section>';
+ return heading('AUDIT TRAIL','Riwayat Monitoring APD',ownerOnly()?'Riwayat stok, penerimaan lama, distribusi, dan pengembalian.':'Riwayat APD karyawan. Riwayat stok gudang khusus Pemilik.',ownerOnly()?'<button class="btn" onclick="backup()">⇩ Backup Data</button>':'')+'<section class="panel"><div class="table-wrap"><table class="table"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Aktivitas</th><th>Jumlah</th><th>Karyawan / Gudang</th><th>Aksi</th></tr></thead><tbody>'+(rows.map(x=>'<tr><td>'+fmt(x.date)+'</td><td>'+x.type+'</td><td>'+x.label+'</td><td>'+x.count+'</td><td>'+H(x.name)+'</td><td>'+(can()?'<button class="btn slim" onclick="'+x.call+'">✎ Edit</button>':'–')+'</td></tr>').join('')||'<tr><td colspan="6">Belum ada transaksi.</td></tr>')+'</tbody></table></div></section>';
 }
 function guidePage(){
  const guides=[
  ['1. Sinkronkan Manpower','Daftar karyawan aktif, keluar, jabatan, dan jobsite otomatis diambil dari Monitoring Manpower KMB.'],
  ['2. Catat APD Lama','Buka Manpower → karyawan → Catat APD Lama. Isi kapan APD dahulu diterima, jumlah yang masih dipegang, dan kondisi layak/tidak layak. Tidak perlu stok gudang.'],
- ['3. Tambah Stok Gudang','Buka Stok APD → Tambah Stok Masuk. Stok awal 0, catat barang yang benar-benar tersedia, baik baru maupun bekas layak.'],
+ ['3. Tambah Stok Gudang','Khusus Pemilik: Buka Stok & Riwayat Gudang → Tambah Stok Masuk. Editor harus konfirmasi ke Pemilik untuk koreksi stok.'],
  ['4. Tambah APD kepada Karyawan','Buka detail karyawan → Tambah APD. Pilih baru/bekas layak, tanggal penerimaan, jumlah dan jatah ganti dalam bulan. Stok gudang otomatis berkurang.'],
  ['5. Jadwal Penggantian Otomatis','Jadwal = tanggal penerimaan baru/bekas terakhir + jatah penggantian bulan. APD lama tetap stok karyawan dan tidak menentukan jadwal ganti.'],
  ['6. Karyawan Keluar','Jika status OUT dari Manpower KMB, klik Pengembalian pada riwayat. Pilih layak pakai untuk dikembalikan sebagai stok bekas atau tidak layak untuk dimusnahkan.'],
- ['7. Salah Input','Klik Edit pada stok masuk, APD lama, APD baru, atau pengembalian. Sistem menolak perubahan yang membuat saldo menjadi negatif.']
+ ['7. Salah Input','Koreksi stok gudang, stok minimum, dan gambar APD hanya oleh Pemilik. Editor dapat memperbarui transaksi APD karyawan sesuai akses operasionalnya.']
  ];
  return heading('PANDUAN','Tata Cara Monitoring APD','Dibuat sederhana dan terpisah antara milik karyawan dan stok gudang.')+'<section class="panel">'+guides.map(x=>'<div class="guide-step"><strong>'+x[0]+'</strong><p>'+x[1]+'</p></div>').join('')+'</section>';
 }
 function accessPage(){
  if(role!=='owner')return '<div class="empty">Pengaturan akses hanya untuk Pemilik.</div>';
  const labels={owner:'PEMILIK',editor:'EDITOR',viewer:'VIEWER'};
- const desc='<div class="access-rights"><div><strong>👑 Pemilik</strong><p>Mengatur seluruh data, gambar, hak akses, dan laporan.</p></div><div><strong>✎ Editor</strong><p>Menambah dan mengedit stok, APD karyawan, pengembalian, serta gambar; tidak dapat mengubah hak akses.</p></div><div><strong>◉ Viewer</strong><p>Melihat monitoring dan mengunduh Excel tanpa mengubah data.</p></div></div>';
+ const desc='<div class="access-rights"><div><strong>👑 Pemilik</strong><p>Mengatur seluruh data, gambar, hak akses, dan laporan.</p></div><div><strong>✎ Editor</strong><p>Mengelola APD karyawan dan pengembalian. Koreksi stok gudang, gambar, pengaturan, dan sinkron Excel hanya melalui Pemilik.</p></div><div><strong>◉ Viewer</strong><p>Melihat data monitoring tanpa mengubah data.</p></div></div>';
  const members=accessUsers.map(a=>'<tr><td>'+H(a.email)+'</td><td><span class="role-tag '+H(a.role)+'">'+(labels[a.role]||H(a.role))+'</span></td><td>'+(a.role==='owner'?'<span class="muted">Dikelola oleh Pemilik</span>':'<div class="access-change"><select aria-label="Ubah hak akses" onchange="changeAccessRole(\''+H(a.email)+'\',this.value)"><option value="editor" '+(a.role==='editor'?'selected':'')+'>Editor</option><option value="viewer" '+(a.role==='viewer'?'selected':'')+'>Viewer</option></select><button class="btn slim danger" onclick="removeAccess(\''+H(a.email)+'\')">Hapus</button></div>')+'</td></tr>').join('')||'<tr><td colspan="3">Belum ada pengguna terdaftar.</td></tr>';
  return heading('PENGATURAN PEMILIK','Pengaturan & Sinkronisasi','Sinkron Excel offline, atur akun Pemilik/Editor/Viewer, dan kelola keamanan APD.')+ownerOfflineSyncPanel()+desc+
  '<section class="panel"><div class="section-head"><div><h3>Tambahkan Editor / Viewer</h3><p>Gunakan alamat email akun KMB yang sudah terdaftar.</p></div><button class="btn" onclick="loadAccessUsers().then(render)">↻ Muat Ulang</button></div><form onsubmit="addRole(event)"><div class="formgrid"><label>Email Pengguna<input name="email" type="email" required placeholder="email akun KMB"></label><label>Hak Akses<select name="role"><option value="editor">Editor — Input dan Edit</option><option value="viewer">Viewer — Lihat dan Download Excel</option></select></label></div><div class="formactions"><button class="btn dark" type="submit">+ Simpan Akses</button></div></form></section>'+
  '<section class="panel" style="margin-top:17px"><div class="section-head"><h3>Daftar Pengguna APD ('+accessUsers.length+')</h3></div><div class="table-wrap"><table class="table"><thead><tr><th>Email</th><th>Hak Akses</th><th>Tindakan</th></tr></thead><tbody>'+members+'</tbody></table></div></section>';
 }
 function imagesPage(){
- const imgs='<div class="image-settings-grid">'+TYPES.map(t=>'<div class="panel image-settings-card"><h3>'+H(ART[t].label)+'</h3><div class="image-settings-preview">'+icon(t)+'</div><small class="muted">Gambar disimpan ke data Monitoring APD. Tampilan kartu otomatis mengikuti gambar terbaru.</small>'+(can()?'<label class="btn dark image-upload-label">↥ Pilih Gambar Baru<input type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadApdPicture(this,\''+t+'\')" hidden></label>'+(state.images?.[t]?'<button class="btn slim" onclick="centerExistingPicture(\''+t+'\')">◎ Tengahkan Gambar</button><button class="btn slim" onclick="restoreDefaultPicture(\''+t+'\')">Kembalikan Gambar Default</button>':''):'<div class="tag">Hanya dapat diedit oleh Pemilik atau Editor</div>')+'</div>').join('')+'</div>';
+ if(!ownerOnly())return '<div class="empty">Halaman gambar APD hanya untuk Pemilik.</div>';
+ const imgs='<div class="image-settings-grid">'+TYPES.map(t=>'<div class="panel image-settings-card"><h3>'+H(ART[t].label)+'</h3><div class="image-settings-preview">'+icon(t)+'</div><small class="muted">Gambar disimpan ke data Monitoring APD. Tampilan kartu otomatis mengikuti gambar terbaru.</small>'+(ownerOnly()?'<label class="btn dark image-upload-label">↥ Pilih Gambar Baru<input type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadApdPicture(this,\''+t+'\')" hidden></label>'+(state.images?.[t]?'<button class="btn slim" onclick="centerExistingPicture(\''+t+'\')">◎ Tengahkan Gambar</button><button class="btn slim" onclick="restoreDefaultPicture(\''+t+'\')">Kembalikan Gambar Default</button>':''):'<div class="tag">Hanya dapat diedit oleh Pemilik</div>')+'</div>').join('')+'</div>';
  return heading('TAMPILAN','Gambar APD Utama','Ganti gambar Helm Safety, Kaos KMB, atau Sepatu Safety kapan saja.','<button class="btn" onclick="navigate(\'dashboard\')">← Dashboard</button>')+
  '<div class="notice">Pilih foto masing-masing APD. Sistem otomatis mengecilkan gambar maksimal 720 × 720 piksel dan memberi ruang kosong agar objek tidak terpotong. Gambar yang disimpan akan muncul juga di Dashboard dan Stok APD.</div>'+imgs;
 }
@@ -330,12 +337,12 @@ async function recenterPicture(source){
  return output;
 }
 async function centerExistingPicture(type){
- if(!can()||!TYPES.includes(type)||!state.images?.[type])return;
+ if(!ownerOnly()||!TYPES.includes(type)||!state.images?.[type])return;
  try{const updated=await recenterPicture(state.images[type]);const d=structuredClone(state);d.images[type]=updated;await persist(d,'Gambar '+ART[type].label+' sudah berada di tengah.')}
  catch(e){showNotice('Gagal menengahkan gambar: '+e.message,'error')}
 }
 async function uploadApdPicture(input,type){
- if(!can()||!TYPES.includes(type))return;
+ if(!ownerOnly()||!TYPES.includes(type))return;
  const file=input.files?.[0];if(!file)return;
  if(!['image/jpeg','image/png','image/webp'].includes(file.type))return showNotice('Pilih gambar JPG, PNG, atau WEBP.','error');
  if(file.size>12*1024*1024)return showNotice('Ukuran awal gambar maksimal 12 MB.','error');
@@ -349,7 +356,7 @@ async function uploadApdPicture(input,type){
  finally{input.disabled=false}
 }
 function restoreDefaultPicture(type){
- if(!can()||!TYPES.includes(type)||!confirm('Kembalikan gambar '+ART[type].label+' ke gambar bawaan?'))return;
+ if(!ownerOnly()||!TYPES.includes(type)||!confirm('Kembalikan gambar '+ART[type].label+' ke gambar bawaan?'))return;
  const next=structuredClone(state);next.images={...next.images};delete next.images[type];persist(next,'Gambar bawaan telah dipulihkan.');
 }
 async function changeAccessRole(email,newRole){
@@ -379,7 +386,7 @@ function closeModal(){el('modalBack').hidden=true;el('modalBody').innerHTML=''}
 function formButtons(label){return '<div class="formactions"><button class="btn" type="button" onclick="closeModal()">Batal</button><button class="btn dark" type="submit">'+H(label)+'</button></div>'}
 
 function editWarehouseStock(type){
- if(!can()||!TYPES.includes(type))return;
+ if(!ownerOnly()||!TYPES.includes(type))return;
  const existing=state.stockIn.filter(t=>t.type===type).sort((a,b)=>b.date.localeCompare(a.date));
  const values=stock(type),minimum=Math.max(0,Number(state.limits?.[type]||0));
  const rows=existing.map(t=>'<div class="warehouse-edit-row"><div><strong>'+fmt(t.date)+' · '+(t.grade==='NEW'?'Barang baru':'Bekas layak')+'</strong><small>'+t.qty+' unit masuk'+(t.location?' · '+H(t.location):'')+'</small></div><button class="btn slim" onclick="stockForm(\''+H(t.id)+'\')">✎ Edit Transaksi</button></div>').join('')||'<div class="notice">Belum ada transaksi stok masuk '+ART[type].label+'. Jika ingin mengisi stok gudang, gunakan Tambah Stok Masuk.</div>';
@@ -392,7 +399,7 @@ function editWarehouseStock(type){
 }
 function saveMinimumStock(event,type){
  event.preventDefault();
- if(!can()||!TYPES.includes(type))return;
+ if(!ownerOnly()||!TYPES.includes(type))return;
  const value=Number(new FormData(event.target).get('minimum'));
  if(!Number.isSafeInteger(value)||value<0)return showNotice('Minimal stok harus bilangan bulat nol atau lebih.','error');
  const next=structuredClone(state);
@@ -401,12 +408,12 @@ function saveMinimumStock(event,type){
 }
 
 function stockForm(id,type){
- if(!can())return;
+ if(!ownerOnly())return;
  const x=state.stockIn.find(t=>t.id===id)||{date:today(),type:TYPES.includes(type)?type:'HELM',grade:'NEW',qty:1,location:'',note:''};
  modal(id?'Edit Stok Gudang':'Tambah Stok Masuk','<div class="notice">Hanya untuk barang yang ada di gudang. <b>APD lama yang dimiliki karyawan tidak dicatat sebagai stok gudang.</b></div><form onsubmit="saveStock(event,\''+H(id||'')+'\')"><div class="formgrid"><label>Tanggal Stok Masuk<input name="date" type="date" required value="'+H(x.date)+'"></label><label>Jenis APD<select name="type">'+TYPES.map(t=>'<option '+(x.type===t?'selected':'')+'>'+t+'</option>').join('')+'</select></label><label>Kondisi Stok<select name="grade"><option value="NEW" '+(x.grade==='NEW'?'selected':'')+'>Barang Baru</option><option value="REUSE" '+(x.grade==='REUSE'?'selected':'')+'>Barang Bekas Layak (Stok Awal)</option></select></label><label>Jumlah Unit<input name="qty" type="number" min="1" step="1" required value="'+x.qty+'"></label><label>Lokasi Gudang<input name="location" value="'+H(x.location||'')+'"></label><label>Keterangan<input name="note" value="'+H(x.note||'')+'"></label></div>'+formButtons(id?'Simpan Perubahan Stok':'Simpan Stok Masuk')+'</form>');
 }
 function saveStock(e,id){
- e.preventDefault();const f=Object.fromEntries(new FormData(e.target)),next=structuredClone(state);
+ e.preventDefault();if(!ownerOnly())return showNotice('Perubahan stok hanya dapat dilakukan oleh Pemilik.','error');const f=Object.fromEntries(new FormData(e.target)),next=structuredClone(state);
  const value={id:id||uid(),date:f.date,type:f.type,grade:f.grade,qty:Number(f.qty),location:f.location,note:f.note};
  if(id){const i=next.stockIn.findIndex(x=>x.id===id);if(i<0)return showNotice('Transaksi stok tidak ditemukan.','error');next.stockIn[i]=value}
  else next.stockIn.push(value);
@@ -482,6 +489,7 @@ async function addRole(e){
 }
 
 function exportOldExcel(){
+ if(!ownerOnly())return showNotice('Download Excel lengkap hanya untuk Pemilik.','error');
  if(!user||!role)return showNotice('Silakan masuk terlebih dahulu untuk download Excel.','error');
  const XLSX=window.XLSX;
  if(!XLSX?.utils||!XLSX.writeFile)return showNotice('Komponen Excel belum termuat. Periksa koneksi internet lalu refresh halaman.','error');
@@ -528,6 +536,7 @@ function exportOldExcel(){
 }
 
 function backup(){
+ if(!ownerOnly())return showNotice('Backup data lengkap hanya untuk Pemilik.','error');
  const blob=new Blob([JSON.stringify({date:today(),state},null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Backup_APD_KMB_'+today()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
