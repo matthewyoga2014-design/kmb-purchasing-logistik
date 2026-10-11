@@ -24,6 +24,7 @@ function putSheet(book,name,title,note,headers,records,widths){
  XLSX.utils.book_append_sheet(book,w,name);return w;
 }
 function exportExcel(){
+ if(!ownerOnly())return showNotice('Download Excel berisi stok dan riwayat gudang hanya untuk Pemilik.','error');
  if(!user||!role)return showNotice('Masuk dahulu untuk Download Excel.','error');
  if(!window.XLSX?.utils)return showNotice('Modul Excel belum siap. Periksa koneksi internet.','error');
  const book=XLSX.utils.book_new();
