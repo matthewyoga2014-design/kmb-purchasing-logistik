@@ -4,8 +4,8 @@ const cfg=window.KMB_SUPABASE_CONFIG||{};
 const db=window.supabase&&cfg.url&&cfg.publishableKey?window.supabase.createClient(cfg.url,cfg.publishableKey):null;
 const TYPES=['HELM','KAOS','SEPATU'];
 const ART={HELM:{label:'Helm Safety',url:'helm.svg'},KAOS:{label:'Kaos Kerja',url:'kaos.svg'},SEPATU:{label:'Sepatu Safety',url:'sepatu.svg'}};
-const EMPTY=()=>({stockIn:[],receipts:[],returns:[],limits:{HELM:0,KAOS:0,SEPATU:0}});
-let state=EMPTY(),revision=0,people=[],page='dashboard',chosen='',user=null,role='',saving=false,term='',siteFilter='ALL';
+const EMPTY=()=>({stockIn:[],receipts:[],returns:[],limits:{HELM:0,KAOS:0,SEPATU:0},images:{}});
+let state=EMPTY(),revision=0,people=[],accessUsers=[],page='dashboard',chosen='',user=null,role='',saving=false,term='',siteFilter='ALL';
 const el=id=>document.getElementById(id);
 const H=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>new Date().toLocaleDateString('sv-SE');
@@ -25,7 +25,7 @@ function addMonths(date,months){
 }
 function daysUntil(d){if(!d)return Infinity;return Math.round((new Date(d+'T00:00:00')-new Date(today()+'T00:00:00'))/86400000)}
 function showNotice(message,type){const x=el('notice');if(!x)return;x.innerHTML='<div class="notice '+(type||'')+'">'+H(message)+'</div>';window.scrollTo({top:0,behavior:'smooth'})}
-function normalize(v){return {stockIn:arr(v?.stockIn),receipts:arr(v?.receipts),returns:arr(v?.returns),limits:{HELM:Math.max(0,Number(v?.limits?.HELM)||0),KAOS:Math.max(0,Number(v?.limits?.KAOS)||0),SEPATU:Math.max(0,Number(v?.limits?.SEPATU)||0)}}}
+function normalize(v){return {stockIn:arr(v?.stockIn),receipts:arr(v?.receipts),returns:arr(v?.returns),limits:{HELM:Math.max(0,Number(v?.limits?.HELM)||0),KAOS:Math.max(0,Number(v?.limits?.KAOS)||0),SEPATU:Math.max(0,Number(v?.limits?.SEPATU)||0)},images:Object.fromEntries(TYPES.filter(t=>typeof v?.images?.[t]==='string'&&v.images[t].startsWith('data:image/')).map(t=>[t,v.images[t]]))}}
 function parsePeople(mp){
  const seen=new Set(),out=[];
  for(const [list,status] of [[arr(mp.mpActive),'AKTIF'],[arr(mp.mpOut),'OUT']]){
@@ -52,7 +52,7 @@ function stock(type,d=state){
  return v;
 }
 function labelStatus(s){const color=s==='LAYAK'||s==='AKTIF'?'good':s==='TIDAK LAYAK'||s==='OUT'||s==='MUSNAH'?'bad':s==='BELUM DIPERIKSA'||s==='SEGERA'?'warn':'blue';return '<span class="tag '+color+'">'+H(s)+'</span>'}
-function icon(type){return '<div class="art"><img src="'+ART[type].url+'" alt="'+ART[type].label+'"></div>'}
+function icon(type){return '<div class="art"><img src="'+H(state.images?.[type]||ART[type].url)+'" alt="'+H(ART[type].label)+'" loading="lazy"></div>'}
 function validate(d){
  for(const x of d.stockIn)if(!TYPES.includes(x.type)||!['NEW','REUSE'].includes(x.grade)||!Number.isInteger(Number(x.qty))||Number(x.qty)<1||!x.date)return 'Tanggal, jenis dan jumlah stok masuk harus valid (minimal 1).';
  for(const x of d.receipts){
@@ -90,8 +90,9 @@ async function loadApd(){
 }
 async function loadAll(){
  if(!user||!role)return;
- try{await Promise.all([loadPeople(),loadApd()]);render()}catch(e){showNotice(e.message,'error')}
+ try{await Promise.all([loadPeople(),loadApd(),...(role==='owner'?[loadAccessUsers()]:[])]);render()}catch(e){showNotice(e.message,'error')}
 }
+async function loadAccessUsers(){if(role!=='owner')return;const {data,error}=await db.from('app_access_roles').select('email,role').eq('app_id','apd').order('email');if(error)throw Error('Daftar akses tidak bisa dimuat: '+error.message);accessUsers=data||[]}
 async function findRole(){
  if(!user){role='';render();return}
  const {data,error}=await db.from('app_access_roles').select('role').eq('app_id','apd').eq('email',user.email.toLowerCase()).maybeSingle();
@@ -156,6 +157,7 @@ function render(){
  else if(page==='history'){el('pageTitle').textContent='Riwayat Transaksi APD';el('app').innerHTML=historyPage()}
  else if(page==='guide'){el('pageTitle').textContent='Tata Cara';el('app').innerHTML=guidePage()}
  else if(page==='access'){el('pageTitle').textContent='Pengaturan Akses';el('app').innerHTML=accessPage()}
+ else if(page==='images'){el('pageTitle').textContent='Gambar APD Utama';el('app').innerHTML=imagesPage()}
 }
 function schedules(){
  const result=[];
@@ -277,10 +279,53 @@ function guidePage(){
  return heading('PANDUAN','Tata Cara Monitoring APD','Dibuat sederhana dan terpisah antara milik karyawan dan stok gudang.')+'<section class="panel">'+guides.map(x=>'<div class="guide-step"><strong>'+x[0]+'</strong><p>'+x[1]+'</p></div>').join('')+'</section>';
 }
 function accessPage(){
- if(role!=='owner')return '<div class="empty">Hanya Owner.</div>';
- return heading('SECURITY','Pengaturan Akses','Akses APD terpisah dari Monitoring Manpower KMB.')+'<section class="panel"><h3>Tambahkan Editor / Viewer</h3><form onsubmit="addRole(event)"><div class="formgrid"><label>Email Pengguna<input name="email" type="email" required placeholder="email akun KMB"></label><label>Peran<select name="role"><option value="editor">Editor — input dan edit</option><option value="viewer">Viewer — hanya melihat</option></select></label></div><div class="formactions"><button class="btn dark" type="submit">Simpan Akses</button></div></form><p class="muted">Akun email harus sudah terdaftar di sistem login KMB. Pengaturan ini tidak mengubah akses Manpower.</p></section>';
+ if(role!=='owner')return '<div class="empty">Pengaturan akses hanya untuk Pemilik.</div>';
+ const labels={owner:'PEMILIK',editor:'EDITOR',viewer:'VIEWER'};
+ const desc='<div class="access-rights"><div><strong>👑 Pemilik</strong><p>Mengatur seluruh data, gambar, hak akses, dan laporan.</p></div><div><strong>✎ Editor</strong><p>Menambah dan mengedit stok, APD karyawan, pengembalian, serta gambar; tidak dapat mengubah hak akses.</p></div><div><strong>◉ Viewer</strong><p>Melihat monitoring dan mengunduh Excel tanpa mengubah data.</p></div></div>';
+ const members=accessUsers.map(a=>'<tr><td>'+H(a.email)+'</td><td><span class="role-tag '+H(a.role)+'">'+(labels[a.role]||H(a.role))+'</span></td><td>'+(a.role==='owner'?'<span class="muted">Dikelola oleh Pemilik</span>':'<button class="btn slim danger" onclick="removeAccess(\''+H(a.email)+'\')">Hapus Akses</button>')+'</td></tr>').join('')||'<tr><td colspan="3">Belum ada pengguna terdaftar.</td></tr>';
+ return heading('HAK AKSES','Pemilik & Editor','Atur siapa yang boleh menginput, mengedit, dan membaca Monitoring APD.')+desc+
+ '<section class="panel"><div class="section-head"><div><h3>Tambahkan Editor / Viewer</h3><p>Gunakan alamat email akun KMB yang sudah terdaftar.</p></div><button class="btn" onclick="loadAccessUsers().then(render)">↻ Muat Ulang</button></div><form onsubmit="addRole(event)"><div class="formgrid"><label>Email Pengguna<input name="email" type="email" required placeholder="email akun KMB"></label><label>Hak Akses<select name="role"><option value="editor">Editor — Input dan Edit</option><option value="viewer">Viewer — Lihat dan Download Excel</option></select></label></div><div class="formactions"><button class="btn dark" type="submit">+ Simpan Akses</button></div></form></section>'+
+ '<section class="panel" style="margin-top:17px"><div class="section-head"><h3>Daftar Pengguna APD ('+accessUsers.length+')</h3></div><div class="table-wrap"><table class="table"><thead><tr><th>Email</th><th>Hak Akses</th><th>Tindakan</th></tr></thead><tbody>'+members+'</tbody></table></div></section>';
 }
-
+function imagesPage(){
+ const imgs='<div class="image-settings-grid">'+TYPES.map(t=>'<div class="panel image-settings-card"><h3>'+H(ART[t].label)+'</h3><div class="image-settings-preview">'+icon(t)+'</div><small class="muted">Gambar disimpan ke data Monitoring APD. Tampilan kartu otomatis mengikuti gambar terbaru.</small>'+(can()?'<label class="btn dark image-upload-label">↥ Pilih Gambar Baru<input type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadApdPicture(this,\''+t+'\')" hidden></label>'+(state.images?.[t]?'<button class="btn slim" onclick="restoreDefaultPicture(\''+t+'\')">Kembalikan Gambar Default</button>':''):'<div class="tag">Hanya dapat diedit oleh Pemilik atau Editor</div>')+'</div>').join('')+'</div>';
+ return heading('TAMPILAN','Gambar APD Utama','Ganti gambar Helm Safety, Kaos KMB, atau Sepatu Safety kapan saja.','<button class="btn" onclick="navigate(\'dashboard\')">← Dashboard</button>')+
+ '<div class="notice">Pilih foto masing-masing APD. Sistem otomatis mengecilkan gambar maksimal 720 × 720 piksel dan memberi ruang kosong agar objek tidak terpotong. Gambar yang disimpan akan muncul juga di Dashboard dan Stok APD.</div>'+imgs;
+}
+async function uploadApdPicture(input,type){
+ if(!can()||!TYPES.includes(type))return;
+ const file=input.files?.[0];if(!file)return;
+ if(!['image/jpeg','image/png','image/webp'].includes(file.type))return showNotice('Pilih gambar JPG, PNG, atau WEBP.','error');
+ if(file.size>12*1024*1024)return showNotice('Ukuran file maksimal 12 MB sebelum diperkecil.','error');
+ input.disabled=true;
+ try{
+  const image=await new Promise((resolve,reject)=>{const img=new Image();const url=URL.createObjectURL(file);img.onload=()=>{URL.revokeObjectURL(url);resolve(img)};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Gambar tidak dapat dibaca.'))};img.src=url});
+  const box=document.createElement('canvas');box.width=720;box.height=720;
+  const ctx=box.getContext('2d');if(!ctx)throw Error('Perangkat tidak mendukung pengolahan gambar.');
+  ctx.clearRect(0,0,720,720);
+  const size=Math.min(580/image.width,580/image.height,1),w=Math.round(image.width*size),h=Math.round(image.height*size);
+  ctx.drawImage(image,(720-w)/2,(720-h)/2,w,h);
+  let result=box.toDataURL('image/webp',.82);
+  if(!result.startsWith('data:image/webp'))result=box.toDataURL('image/png');
+  if(result.length>700000)throw Error('Hasil gambar masih terlalu besar. Gunakan foto yang lebih sederhana.');
+  const next=structuredClone(state);next.images={...state.images,[type]:result};
+  await persist(next,'Gambar '+ART[type].label+' berhasil diperbarui.');
+ }catch(e){showNotice('Gagal memproses gambar: '+e.message,'error')}
+ finally{input.disabled=false}
+}
+function restoreDefaultPicture(type){
+ if(!can()||!TYPES.includes(type)||!confirm('Kembalikan gambar '+ART[type].label+' ke gambar bawaan?'))return;
+ const next=structuredClone(state);next.images={...next.images};delete next.images[type];persist(next,'Gambar bawaan telah dipulihkan.');
+}
+async function removeAccess(email){
+ if(role!=='owner')return;
+ const member=accessUsers.find(x=>x.email.toLowerCase()===email.toLowerCase());
+ if(!member||member.role==='owner')return showNotice('Akses Pemilik tidak dapat dicabut melalui halaman ini.','error');
+ if(!confirm('Hapus akses APD untuk '+email+'?'))return;
+ const {error}=await db.from('app_access_roles').delete().eq('app_id','apd').eq('email',email).neq('role','owner');
+ if(error)return showNotice('Gagal menghapus akses: '+error.message,'error');
+ await loadAccessUsers();render();showNotice('Akses pengguna telah dicabut.','success');
+}
 
 function modal(title,body){
  el('modalTitle').textContent=title;el('modalBody').innerHTML=body;el('modalBack').hidden=false;
@@ -365,7 +410,7 @@ async function addRole(e){
  const d=Object.fromEntries(new FormData(e.target));
  if(d.email.trim().toLowerCase()===user.email.toLowerCase()&&d.role!=='owner')return showNotice('Hak pemilik tidak boleh diturunkan.','error');
  const {error}=await db.from('app_access_roles').upsert({app_id:'apd',email:d.email.trim().toLowerCase(),role:d.role},{onConflict:'app_id,email'});
- if(error)showNotice('Gagal menambahkan akses: '+error.message,'error');else{e.target.reset();showNotice('Hak akses Monitoring APD berhasil disimpan.','success')}
+ if(error)showNotice('Gagal menambahkan akses: '+error.message,'error');else{e.target.reset();await loadAccessUsers();render();showNotice('Hak akses Monitoring APD berhasil disimpan.','success')}
 }
 function backup(){
  const blob=new Blob([JSON.stringify({date:today(),state},null,2)],{type:'application/json'});
