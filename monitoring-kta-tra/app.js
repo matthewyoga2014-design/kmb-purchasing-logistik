@@ -112,17 +112,19 @@ function ensureCandidateData(d){
   return d;
 }
 function getCandidates(r){return (data.candidates&&Array.isArray(data.candidates[vacancyKey(r)]))?data.candidates[vacancyKey(r)]:[]}
+function isActiveCandidate(c){return norm(c?.["Status Kandidat"]||"Aktif").toLowerCase()==="aktif"}
+function activeCandidates(r){return getCandidates(r).filter(isActiveCandidate)}
 function candidateProgress(c){
   if(norm(c?.["Status Kandidat"]).toLowerCase()==="hired")return {p:100,label:"HIRED"};
   return progress(c||{});
 }
 function bestCandidateProgress(r){
-  const list=getCandidates(r);
-  if(!list.length)return progress(r);
+  const list=activeCandidates(r);
+  if(!list.length)return {p:0,label:"SOURCING PELAMAR"};
   return list.map(candidateProgress).sort((a,b)=>b.p-a.p)[0]||progress(r);
 }
 function candidateBreakdown(r){
-  const list=getCandidates(r),bd={};
+  const list=activeCandidates(r),bd={};
   list.forEach(c=>{const p=candidateProgress(c);bd[p.label]=(bd[p.label]||0)+1});
   return bd;
 }
@@ -320,8 +322,8 @@ function renderKtaCharts(){
   const labels=["Sourcing","Psikotes","Interview","Offering","MCU","FU MCU","On Site","Induksi","Hired"];
   const counts=Object.fromEntries(stages.map(x=>[x,0]));
   const candidateRows=allCandidateRows();
-  candidateRows.forEach(r=>{const label=norm(r["Progress Terakhir"]).toUpperCase();if(counts[label]!==undefined)counts[label]++});
-  (data.mpp||[]).filter(r=>isVacant(r.Nama)&&getCandidates(r).length===0).forEach(r=>{const p=bestCandidateProgress(r);if(counts[p.label]!==undefined)counts[p.label]++});
+  candidateRows.filter(isActiveCandidate).forEach(r=>{const label=norm(r["Progress Terakhir"]).toUpperCase();if(counts[label]!==undefined)counts[label]++});
+  (data.mpp||[]).filter(r=>isVacant(r.Nama)&&activeCandidates(r).length===0).forEach(r=>{const p=bestCandidateProgress(r);if(counts[p.label]!==undefined)counts[p.label]++});
   ktaMakeChart("ktaPipelineChart",{
     type:"line",
     data:{labels,datasets:[{label:"Kandidat / Posisi",data:stages.map(s=>counts[s]),borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.12)",pointBackgroundColor:"#fff",pointBorderColor:"#7c3aed",pointBorderWidth:3,pointRadius:4,tension:.38,fill:true}]},
@@ -347,7 +349,7 @@ function renderVacancyResume(){
     const key=jobKey(r.Jabatan)||"belum",p=bestCandidateProgress(r),cands=getCandidates(r);
     if(!groups[key])groups[key]={label:jobLabel(r.Jabatan),items:[],candidateCount:0};
     groups[key].items.push({r,p,i});
-    groups[key].candidateCount+=cands.length;
+    groups[key].candidateCount+=cands.filter(isActiveCandidate).length;
   });
   const arr=Object.values(groups).sort((a,b)=>b.items.length-a.items.length||a.label.localeCompare(b.label));
   document.getElementById("vacancyResume").innerHTML=arr.length?arr.map(g=>{
@@ -360,12 +362,12 @@ function focusRole(role){recruitRole=role;renderRecruitment();document.getElemen
 function clearRole(){recruitRole="";renderRecruitment()}
 function renderRecruitment(){
   const rows=data.mpp.map((r,i)=>({...r,__i:i})).filter(r=>norm(r.Status).toLowerCase()==="open"&&(!recruitRole||jobKey(r.Jabatan)===recruitRole));
-  document.getElementById("recruitCount").textContent=rows.length+" OPEN • "+rows.reduce((s,r)=>s+getCandidates(r).length,0)+" PELAMAR";
+  document.getElementById("recruitCount").textContent=rows.length+" OPEN • "+rows.reduce((s,r)=>s+activeCandidates(r).length,0)+" PELAMAR";
   const fb=document.getElementById("recruitFilterBadge");
   if(recruitRole){fb.style.display="inline-flex";fb.innerHTML=esc(jobLabel(recruitRole))+' <button onclick="clearRole()">×</button>'}else fb.style.display="none";
   document.getElementById("recruitBody").innerHTML=rows.length?rows.map(r=>{
     const p=bestCandidateProgress(r),d=daysLeft(r["Due Date"]),dc=d<0?"overdue":d<=7?"warning":"",list=getCandidates(r);
-    const preview=list.map(c=>{const cp=candidateProgress(c);return '<div class="candidate-preview"><b>'+esc(c["Nama Kandidat"]||"-")+'</b><span>'+esc(cp.label)+' '+cp.p+'%</span></div>'}).join("");
+    const preview=list.map(c=>{const cp=candidateProgress(c),active=isActiveCandidate(c),status=c["Status Kandidat"]||"Aktif";return '<div class="candidate-preview" style="'+(active?"":"opacity:.55;")+'"><b>'+esc(c["Nama Kandidat"]||"-")+'</b><span>'+esc(status)+(active?" • "+esc(cp.label)+" "+cp.p+"%":" • Tidak Aktif")+"</span></div>"}).join("");
     return '<tr><td><b>'+esc(r.Jabatan)+'</b></td><td>'+fmtDate(r["Tanggal Pengajuan PTK"])+'</td><td>'+fmtDate(r["Due Date"])+'</td><td><span class="days '+dc+'">'+(d===""?"-":d)+'</span></td><td>'+badge(r.Status)+'</td><td><b>'+esc(p.label)+'</b></td><td><div style="display:flex;align-items:center;gap:8px"><div class="progress recruit-progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b></div></td><td><button class="btn candidate-btn" onclick="openCandidateList('+r.__i+')">'+list.length+' Kandidat</button>'+preview+'</td><td>'+esc(r.Keterangan||"-")+'</td></tr>'
   }).join(""):'<tr><td colspan="9" class="empty">Tidak ada PTK Open untuk filter ini.</td></tr>';
 }
