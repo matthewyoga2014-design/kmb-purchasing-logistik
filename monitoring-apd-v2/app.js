@@ -282,7 +282,7 @@ function accessPage(){
  if(role!=='owner')return '<div class="empty">Pengaturan akses hanya untuk Pemilik.</div>';
  const labels={owner:'PEMILIK',editor:'EDITOR',viewer:'VIEWER'};
  const desc='<div class="access-rights"><div><strong>👑 Pemilik</strong><p>Mengatur seluruh data, gambar, hak akses, dan laporan.</p></div><div><strong>✎ Editor</strong><p>Menambah dan mengedit stok, APD karyawan, pengembalian, serta gambar; tidak dapat mengubah hak akses.</p></div><div><strong>◉ Viewer</strong><p>Melihat monitoring dan mengunduh Excel tanpa mengubah data.</p></div></div>';
- const members=accessUsers.map(a=>'<tr><td>'+H(a.email)+'</td><td><span class="role-tag '+H(a.role)+'">'+(labels[a.role]||H(a.role))+'</span></td><td>'+(a.role==='owner'?'<span class="muted">Dikelola oleh Pemilik</span>':'<button class="btn slim danger" onclick="removeAccess(\''+H(a.email)+'\')">Hapus Akses</button>')+'</td></tr>').join('')||'<tr><td colspan="3">Belum ada pengguna terdaftar.</td></tr>';
+ const members=accessUsers.map(a=>'<tr><td>'+H(a.email)+'</td><td><span class="role-tag '+H(a.role)+'">'+(labels[a.role]||H(a.role))+'</span></td><td>'+(a.role==='owner'?'<span class="muted">Dikelola oleh Pemilik</span>':'<div class="access-change"><select aria-label="Ubah hak akses" onchange="changeAccessRole(\''+H(a.email)+'\',this.value)"><option value="editor" '+(a.role==='editor'?'selected':'')+'>Editor</option><option value="viewer" '+(a.role==='viewer'?'selected':'')+'>Viewer</option></select><button class="btn slim danger" onclick="removeAccess(\''+H(a.email)+'\')">Hapus</button></div>')+'</td></tr>').join('')||'<tr><td colspan="3">Belum ada pengguna terdaftar.</td></tr>';
  return heading('HAK AKSES','Pemilik & Editor','Atur siapa yang boleh menginput, mengedit, dan membaca Monitoring APD.')+desc+
  '<section class="panel"><div class="section-head"><div><h3>Tambahkan Editor / Viewer</h3><p>Gunakan alamat email akun KMB yang sudah terdaftar.</p></div><button class="btn" onclick="loadAccessUsers().then(render)">↻ Muat Ulang</button></div><form onsubmit="addRole(event)"><div class="formgrid"><label>Email Pengguna<input name="email" type="email" required placeholder="email akun KMB"></label><label>Hak Akses<select name="role"><option value="editor">Editor — Input dan Edit</option><option value="viewer">Viewer — Lihat dan Download Excel</option></select></label></div><div class="formactions"><button class="btn dark" type="submit">+ Simpan Akses</button></div></form></section>'+
  '<section class="panel" style="margin-top:17px"><div class="section-head"><h3>Daftar Pengguna APD ('+accessUsers.length+')</h3></div><div class="table-wrap"><table class="table"><thead><tr><th>Email</th><th>Hak Akses</th><th>Tindakan</th></tr></thead><tbody>'+members+'</tbody></table></div></section>';
@@ -316,6 +316,16 @@ async function uploadApdPicture(input,type){
 function restoreDefaultPicture(type){
  if(!can()||!TYPES.includes(type)||!confirm('Kembalikan gambar '+ART[type].label+' ke gambar bawaan?'))return;
  const next=structuredClone(state);next.images={...next.images};delete next.images[type];persist(next,'Gambar bawaan telah dipulihkan.');
+}
+async function changeAccessRole(email,newRole){
+ if(role!=='owner')return;
+ if(!['editor','viewer'].includes(newRole))return;
+ const personRole=accessUsers.find(a=>a.email.toLowerCase()===email.toLowerCase());
+ if(!personRole||personRole.role==='owner')return showNotice('Hak akses Pemilik tidak dapat diubah melalui menu ini.','error');
+ if(personRole.role===newRole)return;
+ const {error}=await db.from('app_access_roles').update({role:newRole}).eq('app_id','apd').eq('email',email).neq('role','owner');
+ if(error)return showNotice('Gagal mengganti hak akses: '+error.message,'error');
+ await loadAccessUsers();render();showNotice('Hak akses '+email+' berubah menjadi '+(newRole==='editor'?'Editor':'Viewer')+'.','success');
 }
 async function removeAccess(email){
  if(role!=='owner')return;
