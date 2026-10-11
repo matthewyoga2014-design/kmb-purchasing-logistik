@@ -253,7 +253,7 @@ function detailPage(p){
  return '<div class="flex between wrap" style="margin-bottom:13px"><button class="btn" onclick="navigate(\''+(p.status==='OUT'?'out':'people')+'\')">← Kembali</button><button class="btn" onclick="loadAll()">↻ Sinkronkan</button></div><div class="personhero"><span class="eyebrow" style="color:#f4d56b">DETAIL APD KARYAWAN</span><h2>'+H(p.name)+'</h2><p>'+H(p.position)+' · '+H(p.site)+' · '+p.status+'</p><p>Jumlah APD dipegang: <b>'+held(p.id)+' unit</b>. '+(p.status==='OUT'?'Periksa APD yang dikembalikan saat resign.':'APD lama dan distribusi gudang dikelola terpisah.')+'</p></div>'+pieces;
 }
 function stockPage(){
- const cards='<div class="cards3">'+TYPES.map(t=>{const x=stock(t);return '<div class="card product">'+icon(t)+'<div><h3>'+ART[t].label+'</h3><div class="big">'+(x.NEW+x.REUSE)+'</div><small>Baru '+x.NEW+' · Bekas layak '+x.REUSE+' · Musnah '+x.DESTROYED+'</small></div></div>'}).join('')+'</div>';
+ const cards='<div class="cards3 warehouse-cards">'+TYPES.map(t=>{const x=stock(t);return '<div class="card product warehouse-card">'+icon(t)+'<div class="warehouse-card-info"><h3>'+ART[t].label+'</h3><div class="big">'+(x.NEW+x.REUSE)+'</div><small>Baru '+x.NEW+' · Bekas layak '+x.REUSE+' · Musnah '+x.DESTROYED+'</small><small>Minimal stok: '+Number(state.limits?.[t]||0)+'</small>'+(can()?'<button class="btn slim warehouse-edit" onclick="editWarehouseStock(\''+t+'\')">✎ Edit Stok Gudang</button>':'')+'</div></div>'}).join('')+'</div>';
  const rows=[...state.stockIn].sort((a,b)=>b.date.localeCompare(a.date)).map(x=>'<tr><td>'+fmt(x.date)+'</td><td>'+x.type+'</td><td>'+labelStatus(x.grade==='NEW'?'BARU':'LAYAK')+'</td><td><b>'+x.qty+'</b></td><td>'+H(x.location||'Gudang')+'</td><td>'+H(x.note||'—')+'</td><td>'+(can()?'<button class="btn slim" onclick="stockForm(\''+H(x.id)+'\')">✎ Edit Stok</button>':'–')+'</td></tr>').join('')||'<tr><td colspan="7">Belum ada stok masuk. Stok awal 0; input manual ketika barang diterima gudang.</td></tr>';
  return heading('INVENTORY','Stok APD Gudang','Stok gudang terpisah dari APD lama milik karyawan.',can()?'<button class="btn dark" onclick="stockForm()">+ Tambah Stok Masuk</button>':'')+cards+
  '<div class="notice">APD yang <b>sudah dipakai karyawan</b> dicatat melalui Manpower → Detail → Catat APD Lama. Jangan masukkan ke stok gudang.</div><section class="panel"><div class="section-head"><h3>Riwayat Stok Masuk</h3><button class="btn" onclick="loadAll()">↻ Sinkronkan</button></div><div class="table-wrap"><table class="table"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Kondisi</th><th>Qty</th><th>Gudang</th><th>Keterangan</th><th>Aksi</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>';
@@ -377,9 +377,32 @@ function modal(title,body){
 }
 function closeModal(){el('modalBack').hidden=true;el('modalBody').innerHTML=''}
 function formButtons(label){return '<div class="formactions"><button class="btn" type="button" onclick="closeModal()">Batal</button><button class="btn dark" type="submit">'+H(label)+'</button></div>'}
-function stockForm(id){
+
+function editWarehouseStock(type){
+ if(!can()||!TYPES.includes(type))return;
+ const existing=state.stockIn.filter(t=>t.type===type).sort((a,b)=>b.date.localeCompare(a.date));
+ const values=stock(type),minimum=Math.max(0,Number(state.limits?.[type]||0));
+ const rows=existing.map(t=>'<div class="warehouse-edit-row"><div><strong>'+fmt(t.date)+' · '+(t.grade==='NEW'?'Barang baru':'Bekas layak')+'</strong><small>'+t.qty+' unit masuk'+(t.location?' · '+H(t.location):'')+'</small></div><button class="btn slim" onclick="stockForm(\''+H(t.id)+'\')">✎ Edit Transaksi</button></div>').join('')||'<div class="notice">Belum ada transaksi stok masuk '+ART[type].label+'. Jika ingin mengisi stok gudang, gunakan Tambah Stok Masuk.</div>';
+ modal('Edit Stok Gudang · '+ART[type].label,
+  '<div class="notice">Saldo gudang dihitung otomatis dari <b>stok masuk, pembagian, dan pengembalian APD</b>. Edit catatan stok masuk di bawah tanpa membuat duplikat. Pengembalian APD dikoreksi pada menu Riwayat Transaksi.</div>'+
+  '<div class="warehouse-edit-summary"><span><small>Stok Baru</small><strong>'+values.NEW+'</strong></span><span><small>Bekas Layak</small><strong>'+values.REUSE+'</strong></span><span><small>Total</small><strong>'+(values.NEW+values.REUSE)+'</strong></span></div>'+
+  '<form onsubmit="saveMinimumStock(event,\''+type+'\')" class="warehouse-min-form"><label>Minimal stok '+ART[type].label+' (unit)<input name="minimum" type="number" min="0" step="1" required value="'+minimum+'"></label><button class="btn dark" type="submit">Simpan Min. Stok</button></form>'+
+  '<div class="section-head" style="margin-top:22px"><h3>Riwayat Stok Masuk</h3><button class="btn dark slim" onclick="stockForm(null,\''+type+'\')">+ Tambah Stok Masuk</button></div>'+
+  '<div class="warehouse-edit-list">'+rows+'</div>');
+}
+function saveMinimumStock(event,type){
+ event.preventDefault();
+ if(!can()||!TYPES.includes(type))return;
+ const value=Number(new FormData(event.target).get('minimum'));
+ if(!Number.isSafeInteger(value)||value<0)return showNotice('Minimal stok harus bilangan bulat nol atau lebih.','error');
+ const next=structuredClone(state);
+ next.limits={...next.limits,[type]:value};
+ persist(next,'Minimal stok '+ART[type].label+' berhasil diperbarui.');
+}
+
+function stockForm(id,type){
  if(!can())return;
- const x=state.stockIn.find(t=>t.id===id)||{date:today(),type:'HELM',grade:'NEW',qty:1,location:'',note:''};
+ const x=state.stockIn.find(t=>t.id===id)||{date:today(),type:TYPES.includes(type)?type:'HELM',grade:'NEW',qty:1,location:'',note:''};
  modal(id?'Edit Stok Gudang':'Tambah Stok Masuk','<div class="notice">Hanya untuk barang yang ada di gudang. <b>APD lama yang dimiliki karyawan tidak dicatat sebagai stok gudang.</b></div><form onsubmit="saveStock(event,\''+H(id||'')+'\')"><div class="formgrid"><label>Tanggal Stok Masuk<input name="date" type="date" required value="'+H(x.date)+'"></label><label>Jenis APD<select name="type">'+TYPES.map(t=>'<option '+(x.type===t?'selected':'')+'>'+t+'</option>').join('')+'</select></label><label>Kondisi Stok<select name="grade"><option value="NEW" '+(x.grade==='NEW'?'selected':'')+'>Barang Baru</option><option value="REUSE" '+(x.grade==='REUSE'?'selected':'')+'>Barang Bekas Layak (Stok Awal)</option></select></label><label>Jumlah Unit<input name="qty" type="number" min="1" step="1" required value="'+x.qty+'"></label><label>Lokasi Gudang<input name="location" value="'+H(x.location||'')+'"></label><label>Keterangan<input name="note" value="'+H(x.note||'')+'"></label></div>'+formButtons(id?'Simpan Perubahan Stok':'Simpan Stok Masuk')+'</form>');
 }
 function saveStock(e,id){
