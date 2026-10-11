@@ -18,7 +18,7 @@ function buildPeople(raw){let found=new Set(),out=[];for(const [records,status] 
 function returnsFor(id,d=state){return arr(d.returns).filter(x=>x.receiptId===id).reduce((s,x)=>s+n(x.qty),0)}
 function held(r,d=state){return Math.max(0,n(r.qty)-returnsFor(r.id,d))}
 function owned(pid,type,d=state){return arr(d.receipts).filter(r=>r.person===pid&&(!type||r.type===type)).reduce((a,r)=>a+held(r,d),0)}
-function lastIssued(pid,type){return state.receipts.filter(r=>r.person===pid&&r.type===type&&r.source!=='OLD').sort((a,b)=>b.date.localeCompare(a.date)||String(b.id).localeCompare(String(a.id)))[0]}
+function lastIssued(pid,type){return state.receipts.filter(r=>r.person===pid&&r.type===type&&r.source!=='OLD'&&held(r)>0).sort((a,b)=>b.date.localeCompare(a.date)||String(b.id).localeCompare(String(a.id)))[0]}
 function nextDue(pid,type){const x=lastIssued(pid,type);return x?monthsAfter(x.date,x.months):''}
 function stock(type,d=state){const v={NEW:0,REUSE:0,destroyed:0};d.stockIn.filter(x=>x.type===type).forEach(x=>v[x.grade==='REUSE'?'REUSE':'NEW']+=n(x.qty));d.receipts.filter(x=>x.type===type&&(x.source==='NEW'||x.source==='REUSE')).forEach(x=>v[x.source]-=n(x.qty));d.returns.forEach(x=>{const receipt=d.receipts.find(r=>r.id===x.receiptId);if(receipt?.type===type){if(x.action==='REUSE')v.REUSE+=n(x.qty);else if(x.action==='DESTROY')v.destroyed+=n(x.qty)}});return v}
 function validate(d){
