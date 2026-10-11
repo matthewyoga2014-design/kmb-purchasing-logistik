@@ -288,28 +288,63 @@ function accessPage(){
  '<section class="panel" style="margin-top:17px"><div class="section-head"><h3>Daftar Pengguna APD ('+accessUsers.length+')</h3></div><div class="table-wrap"><table class="table"><thead><tr><th>Email</th><th>Hak Akses</th><th>Tindakan</th></tr></thead><tbody>'+members+'</tbody></table></div></section>';
 }
 function imagesPage(){
- const imgs='<div class="image-settings-grid">'+TYPES.map(t=>'<div class="panel image-settings-card"><h3>'+H(ART[t].label)+'</h3><div class="image-settings-preview">'+icon(t)+'</div><small class="muted">Gambar disimpan ke data Monitoring APD. Tampilan kartu otomatis mengikuti gambar terbaru.</small>'+(can()?'<label class="btn dark image-upload-label">↥ Pilih Gambar Baru<input type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadApdPicture(this,\''+t+'\')" hidden></label>'+(state.images?.[t]?'<button class="btn slim" onclick="restoreDefaultPicture(\''+t+'\')">Kembalikan Gambar Default</button>':''):'<div class="tag">Hanya dapat diedit oleh Pemilik atau Editor</div>')+'</div>').join('')+'</div>';
+ const imgs='<div class="image-settings-grid">'+TYPES.map(t=>'<div class="panel image-settings-card"><h3>'+H(ART[t].label)+'</h3><div class="image-settings-preview">'+icon(t)+'</div><small class="muted">Gambar disimpan ke data Monitoring APD. Tampilan kartu otomatis mengikuti gambar terbaru.</small>'+(can()?'<label class="btn dark image-upload-label">↥ Pilih Gambar Baru<input type="file" accept="image/png,image/jpeg,image/webp" onchange="uploadApdPicture(this,\''+t+'\')" hidden></label>'+(state.images?.[t]?'<button class="btn slim" onclick="centerExistingPicture(\''+t+'\')">◎ Tengahkan Gambar</button><button class="btn slim" onclick="restoreDefaultPicture(\''+t+'\')">Kembalikan Gambar Default</button>':''):'<div class="tag">Hanya dapat diedit oleh Pemilik atau Editor</div>')+'</div>').join('')+'</div>';
  return heading('TAMPILAN','Gambar APD Utama','Ganti gambar Helm Safety, Kaos KMB, atau Sepatu Safety kapan saja.','<button class="btn" onclick="navigate(\'dashboard\')">← Dashboard</button>')+
  '<div class="notice">Pilih foto masing-masing APD. Sistem otomatis mengecilkan gambar maksimal 720 × 720 piksel dan memberi ruang kosong agar objek tidak terpotong. Gambar yang disimpan akan muncul juga di Dashboard dan Stok APD.</div>'+imgs;
+}
+async function recenterPicture(source){
+ const picture=await new Promise((resolve,reject)=>{
+  const img=new Image();
+  img.onload=()=>resolve(img);img.onerror=()=>reject(new Error('Gambar tidak terbaca.'));
+  img.src=source;
+ });
+ const scan=document.createElement('canvas');scan.width=picture.naturalWidth||picture.width;scan.height=picture.naturalHeight||picture.height;
+ if(scan.width*scan.height>30000000)throw Error('Resolusi gambar terlalu besar.');
+ const sc=scan.getContext('2d',{willReadFrequently:true});sc.drawImage(picture,0,0,scan.width,scan.height);
+ const rgba=sc.getImageData(0,0,scan.width,scan.height).data;
+ const edge=(x,y)=>{const p=(y*scan.width+x)*4;return rgba[p+3]>100&&rgba[p]>247&&rgba[p+1]>247&&rgba[p+2]>247};
+ let whiteBorder=0,tot=0,step=Math.max(1,Math.floor(Math.min(scan.width,scan.height)/80));
+ for(let x=0;x<scan.width;x+=step){whiteBorder+=edge(x,0)?1:0;whiteBorder+=edge(x,scan.height-1)?1:0;tot+=2}
+ for(let y=0;y<scan.height;y+=step){whiteBorder+=edge(0,y)?1:0;whiteBorder+=edge(scan.width-1,y)?1:0;tot+=2}
+ const backgroundWhite=whiteBorder/tot>.60;
+ let minx=scan.width,miny=scan.height,maxx=-1,maxy=-1;
+ const stride=Math.max(1,Math.floor(Math.max(scan.width,scan.height)/900));
+ for(let y=0;y<scan.height;y+=stride)for(let x=0;x<scan.width;x+=stride){
+  const p=(y*scan.width+x)*4,a=rgba[p+3];
+  if(a<65)continue;
+  if(backgroundWhite&&rgba[p]>245&&rgba[p+1]>245&&rgba[p+2]>245)continue;
+  if(x<minx)minx=x;if(y<miny)miny=y;if(x>maxx)maxx=x;if(y>maxy)maxy=y;
+ }
+ if(maxx<0){minx=0;miny=0;maxx=scan.width-1;maxy=scan.height-1}
+ const margin=Math.max(2,Math.round(Math.max(maxx-minx,maxy-miny)*.035));
+ minx=Math.max(0,minx-margin);miny=Math.max(0,miny-margin);
+ maxx=Math.min(scan.width-1,maxx+margin);maxy=Math.min(scan.height-1,maxy+margin);
+ const cropW=maxx-minx+1,cropH=maxy-miny+1,scale=Math.min(580/cropW,580/cropH,1.8);
+ const width=Math.round(cropW*scale),height=Math.round(cropH*scale);
+ const box=document.createElement('canvas');box.width=720;box.height=720;
+ const ctx=box.getContext('2d');if(!ctx)throw Error('Canvas tidak didukung browser.');
+ ctx.drawImage(scan,minx,miny,cropW,cropH,(720-width)/2,(720-height)/2,width,height);
+ let output=box.toDataURL('image/webp',.80);
+ if(!output.startsWith('data:image/webp'))output=box.toDataURL('image/png');
+ if(output.length>650000)throw Error('Gambar masih terlalu besar. Gunakan berkas JPG/WEBP dengan resolusi lebih kecil.');
+ return output;
+}
+async function centerExistingPicture(type){
+ if(!can()||!TYPES.includes(type)||!state.images?.[type])return;
+ try{const updated=await recenterPicture(state.images[type]);const d=structuredClone(state);d.images[type]=updated;await persist(d,'Gambar '+ART[type].label+' sudah berada di tengah.')}
+ catch(e){showNotice('Gagal menengahkan gambar: '+e.message,'error')}
 }
 async function uploadApdPicture(input,type){
  if(!can()||!TYPES.includes(type))return;
  const file=input.files?.[0];if(!file)return;
  if(!['image/jpeg','image/png','image/webp'].includes(file.type))return showNotice('Pilih gambar JPG, PNG, atau WEBP.','error');
- if(file.size>12*1024*1024)return showNotice('Ukuran file maksimal 12 MB sebelum diperkecil.','error');
+ if(file.size>12*1024*1024)return showNotice('Ukuran awal gambar maksimal 12 MB.','error');
  input.disabled=true;
  try{
-  const image=await new Promise((resolve,reject)=>{const img=new Image();const url=URL.createObjectURL(file);img.onload=()=>{URL.revokeObjectURL(url);resolve(img)};img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error('Gambar tidak dapat dibaca.'))};img.src=url});
-  const box=document.createElement('canvas');box.width=720;box.height=720;
-  const ctx=box.getContext('2d');if(!ctx)throw Error('Perangkat tidak mendukung pengolahan gambar.');
-  ctx.clearRect(0,0,720,720);
-  const size=Math.min(580/image.width,580/image.height,1),w=Math.round(image.width*size),h=Math.round(image.height*size);
-  ctx.drawImage(image,(720-w)/2,(720-h)/2,w,h);
-  let result=box.toDataURL('image/webp',.82);
-  if(!result.startsWith('data:image/webp'))result=box.toDataURL('image/png');
-  if(result.length>700000)throw Error('Hasil gambar masih terlalu besar. Gunakan foto yang lebih sederhana.');
-  const next=structuredClone(state);next.images={...state.images,[type]:result};
-  await persist(next,'Gambar '+ART[type].label+' berhasil diperbarui.');
+  const raw=await new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result));reader.onerror=()=>reject(new Error('Gagal membaca berkas'));reader.readAsDataURL(file)});
+  const centered=await recenterPicture(raw);
+  const next=structuredClone(state);next.images={...next.images,[type]:centered};
+  await persist(next,'Gambar '+ART[type].label+' sudah diperkecil dan diposisikan di tengah.');
  }catch(e){showNotice('Gagal memproses gambar: '+e.message,'error')}
  finally{input.disabled=false}
 }
