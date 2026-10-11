@@ -178,3 +178,22 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
 @media(max-width:760px){
   .auth-who{display:none}.access-badge{padding:6px 8px}.auth-btn{padding:8px!important;font-size:9px!important}
 }
+
+
+/* Print layout: center the active dashboard on A4 landscape without affecting screen styling. */
+@page { size: A4 landscape; margin: 8mm; }
+@media print {
+  html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+  .app { display: block !important; min-height: 0 !important; }
+  .main { margin: 0 auto !important; width: 100% !important; max-width: none !important; }
+  .content {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 281mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+  }
+  .view.active { width: 100% !important; margin-left: auto !important; margin-right: auto !important; }
+  .dashboard-charts, .dashboard-lower { break-inside: avoid; }
+  .card, .metric-card, .resume-card { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
