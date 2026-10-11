@@ -230,3 +230,16 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
 .pct-orange{background:#ffedd5;color:#c2410c}
 .pct-yellow{background:#fef3c7;color:#a16207}
 .pct-green{background:#dcfce7;color:#15803d}
+
+
+/* Center the KMB monitoring page when printing, while leaving screen layout intact. */
+@page { size: A4 landscape; margin: 8mm; }
+@media print {
+  html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+  .app { display: block !important; min-height: 0 !important; }
+  .main { margin: 0 auto !important; width: 100% !important; max-width: none !important; }
+  .content { box-sizing: border-box !important; width: 100% !important; max-width: 281mm !important; margin: 0 auto !important; padding: 0 !important; }
+  .view.active { width: 100% !important; margin-left: auto !important; margin-right: auto !important; }
+  .dashboard-charts, .dashboard-lower { break-inside: avoid; }
+  .card, .metric-card, .resume-card { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+}
