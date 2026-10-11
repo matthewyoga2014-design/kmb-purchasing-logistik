@@ -412,6 +412,53 @@ async function addRole(e){
  const {error}=await db.from('app_access_roles').upsert({app_id:'apd',email:d.email.trim().toLowerCase(),role:d.role},{onConflict:'app_id,email'});
  if(error)showNotice('Gagal menambahkan akses: '+error.message,'error');else{e.target.reset();await loadAccessUsers();render();showNotice('Hak akses Monitoring APD berhasil disimpan.','success')}
 }
+
+function exportExcel(){
+ if(!user||!role)return showNotice('Silakan masuk terlebih dahulu untuk download Excel.','error');
+ const XLSX=window.XLSX;
+ if(!XLSX?.utils||!XLSX.writeFile)return showNotice('Komponen Excel belum termuat. Periksa koneksi internet lalu refresh halaman.','error');
+ const book=XLSX.utils.book_new();
+ const add=(title,rows,widths)=>{
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=widths.map(w=>({wch:w}));
+  if(rows.length>1)ws['!autofilter']={ref:XLSX.utils.encode_range({s:{r:0,c:0},e:{r:rows.length-1,c:rows[0].length-1}})};
+  XLSX.utils.book_append_sheet(book,ws,title);
+ };
+ const total=TYPES.reduce((n,t)=>{const s=stock(t);return n+s.NEW+s.REUSE},0);
+ add('RINGKASAN',[
+  ['MONITORING APD PT KARUNIA MANDIRI BERKARYA'],
+  ['Tanggal Ekspor',today()],
+  ['Total Manpower Aktif',people.filter(p=>p.status==='AKTIF').length],
+  ['Total Manpower Keluar',people.filter(p=>p.status==='OUT').length],
+  ['Total Stok Gudang',total],
+  [],
+  ['Jenis APD','Stok Baru','Stok Bekas Layak','Total Stok Gudang','APD Dipegang','APD Dimusnahkan','Minimal Stok','Jatuh Tempo'],
+  ...TYPES.map(t=>{const x=stock(t);return [t,x.NEW,x.REUSE,x.NEW+x.REUSE,people.reduce((n,p)=>n+held(p.id,t),0),x.DESTROYED,Number(state.limits?.[t]||0),schedules().filter(y=>y.t===t&&y.days<=0).length]})
+ ],[29,20,22,23,22,23,18,18]);
+ add('KARYAWAN',[
+  ['Nama','Jabatan','Jobsite','Status','Helm Dipegang','Helm Terakhir','Helm Ganti','Kaos Dipegang','Kaos Terakhir','Kaos Ganti','Sepatu Dipegang','Sepatu Terakhir','Sepatu Ganti'],
+  ...people.map(p=>[p.name,p.position,p.site,p.status,...TYPES.flatMap(t=>[held(p.id,t),latest(p.id,t)?.date||'',due(p.id,t)||''])])
+ ],[28,23,25,14,17,18,18,17,18,18,19,19,19]);
+ add('STOK MASUK',[
+  ['Tanggal Masuk','Jenis APD','Kondisi','Jumlah','Lokasi Gudang','Keterangan','ID Transaksi'],
+  ...state.stockIn.map(x=>[x.date,x.type,x.grade==='NEW'?'Baru':'Bekas layak',Number(x.qty),x.location||'',x.note||'',x.id])
+ ],[20,18,20,12,30,40,39]);
+ add('PENERIMAAN APD',[
+  ['Nama Karyawan','Jabatan','Jobsite','Status MP','Jenis APD','Asal APD','Tanggal Terima','Jumlah Terima','Masih Dipegang','Kondisi','Jatah Bulan','Tanggal Ganti','Keterangan','ID Transaksi'],
+  ...state.receipts.map(r=>{const p=person(r.person);return [p?.name||r.person,p?.position||'',p?.site||'',p?.status||'',r.type,r.source==='OLD'?'APD Lama':r.source==='NEW'?'Baru':'Bekas layak',r.date,Number(r.qty),heldLot(r),r.condition||'',r.source==='OLD'?'':Number(r.months||6),r.source==='OLD'?'':addMonths(r.date,r.months),r.note||'',r.id]})
+ ],[29,24,27,14,18,18,18,17,19,19,15,19,38,39]);
+ add('PENGEMBALIAN',[
+  ['Tanggal Kembali','Nama Karyawan','Jenis APD','Jumlah Kembali','Hasil Pemeriksaan','Keterangan','ID Riwayat','ID Penerimaan'],
+  ...state.returns.map(r=>{const receipt=state.receipts.find(x=>x.id===r.receiptId);return [r.date,receipt?personName(receipt.person):'',receipt?.type||'',Number(r.qty),r.action==='REUSE'?'Layak - dipakai ulang':'Tidak layak - dimusnahkan',r.note||'',r.id,r.receiptId]})
+ ],[21,28,18,20,32,40,39,39]);
+ add('JADWAL GANTI',[
+  ['Nama Karyawan','Jabatan','Jobsite','Jenis APD','Penerimaan Terakhir','Jatah Bulan','Jadwal Penggantian','Sisa Hari','Status'],
+  ...schedules().map(x=>[x.p.name,x.p.position,x.p.site,x.t,x.x.date,Number(x.x.months),x.d,x.days,x.days<=0?'JATUH TEMPO':x.days<=30?'SEGERA':'TERJADWAL'])
+ ],[29,25,27,17,22,17,25,14,20]);
+ try{XLSX.writeFile(book,'Monitoring_APD_KMB_'+today()+'.xlsx',{compression:true})}
+ catch(e){showNotice('Gagal menyiapkan file Excel: '+e.message,'error')}
+}
+
 function backup(){
  const blob=new Blob([JSON.stringify({date:today(),state},null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='Backup_APD_KMB_'+today()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
