@@ -1,0 +1,18 @@
+{
+  "id": "/kmb-purchasing-logistik/monitoring-apd/",
+  "name": "Monitoring APD KMB",
+  "short_name": "KMB APD",
+  "start_url": "/kmb-purchasing-logistik/monitoring-apd/",
+  "scope": "/kmb-purchasing-logistik/monitoring-apd/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#172e52",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
