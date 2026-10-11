@@ -23,3 +23,12 @@ body{background:var(--appbg);color:var(--ink);font-family:Inter,"Segoe UI",Arial
 @media print{.excel-btn,.image-upload-label{display:none!important}}
 
 .access-change{display:flex;gap:8px;align-items:center;justify-content:flex-start}.access-change select{width:110px;min-width:110px;padding:7px 8px;font-size:11px}.access-change .btn{white-space:nowrap}@media(max-width:620px){.access-change{flex-wrap:wrap}}
+
+/* Offline synchronization and centered APD gallery */
+.offline-sync-panel{margin-bottom:18px;border:1px solid #d8d0ff;background:linear-gradient(120deg,#fff,#faf8ff)}
+.offline-sync-actions{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-top:16px}
+.offline-file-picker{display:inline-flex;align-items:center;justify-content:center;cursor:pointer;padding:11px 16px;border-color:#ded2ff;background:#f1ebff;color:#6840d2}
+.offline-file-picker:hover{background:#e6dbff}
+.image-settings-preview,.image-settings-preview .art{display:flex!important;align-items:center!important;justify-content:center!important;overflow:hidden}
+.image-settings-preview .art img{display:block!important;width:100%!important;height:100%!important;max-height:100%!important;object-fit:contain!important;object-position:center center!important;transform:none!important}
+@media(max-width:640px){.offline-sync-actions>*{width:100%}}
