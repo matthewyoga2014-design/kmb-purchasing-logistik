@@ -77,6 +77,122 @@ function validate(d){
  return '';
 }
 
+
+async function loadPeople(){
+ const {data,error}=await db.from('app_state_public').select('data').eq('app_id','kmb').single();
+ if(error)throw Error('Tidak dapat memuat karyawan KMB: '+error.message);
+ people=parsePeople(data.data||{});
+}
+async function loadApd(){
+ const {data,error}=await db.from('apd_state').select('data,revision').eq('id','main').single();
+ if(error)throw Error('Tidak dapat memuat Monitoring APD: '+error.message);
+ state=normalize(data.data);revision=Number(data.revision)||0;
+}
+async function loadAll(){
+ if(!user||!role)return;
+ try{await Promise.all([loadPeople(),loadApd()]);render()}catch(e){showNotice(e.message,'error')}
+}
+async function findRole(){
+ if(!user){role='';render();return}
+ const {data,error}=await db.from('app_access_roles').select('role').eq('app_id','apd').eq('email',user.email.toLowerCase()).maybeSingle();
+ if(error){role='';showNotice('Gagal memeriksa akses: '+error.message,'error')}
+ else{role=data?.role||'';if(!role)showNotice('Akun belum diberi akses Monitoring APD. Hubungi pemilik.','error')}
+ render();
+}
+async function init(){
+ if(!db){el('app').innerHTML='<div class="empty">Konfigurasi Supabase belum tersedia.</div>';return}
+ try{
+  const {data,error}=await db.auth.getSession();if(error)throw error;
+  user=data.session?.user||null;
+  if(user){await findRole();if(role)await loadAll()}else render();
+  db.auth.onAuthStateChange((event,session)=>{
+   const next=session?.user||null;
+   if(next?.id!==user?.id){user=next;role='';if(user)findRole().then(()=>{if(role)loadAll()});else{state=EMPTY();people=[];render()}}
+  });
+ }catch(e){showNotice('Login bermasalah: '+e.message,'error');render()}
+}
+async function login(){
+ if(!db)return;
+ const email=prompt('Email akun KMB:');if(!email)return;
+ const password=prompt('Password akun KMB:');if(!password)return;
+ const {error}=await db.auth.signInWithPassword({email:email.trim(),password});
+ if(error)return showNotice('Gagal masuk: '+error.message,'error');
+ const {data}=await db.auth.getUser();user=data.user;
+ await findRole();if(role)await loadAll();
+}
+async function logout(){if(db)await db.auth.signOut();user=null;role='';state=EMPTY();people=[];page='dashboard';render()}
+async function persist(next,message){
+ if(!can()||saving)return showNotice('Hanya Owner/Editor dapat menyimpan data.','error');
+ const issue=validate(next);if(issue)return showNotice('Tidak dapat menyimpan: '+issue,'error');
+ saving=true;
+ try{
+  const {data,error}=await db.from('apd_state').update({data:next,revision:revision+1,updated_at:new Date().toISOString(),updated_by:user.email}).eq('id','main').eq('revision',revision).select('revision');
+  if(error)throw error;
+  if(!data?.length)throw Error('Ada perubahan dari perangkat lain. Tekan Sinkronkan lalu ulangi.');
+  state=next;revision=Number(data[0].revision);
+  closeModal();render();showNotice(message||'Data berhasil disimpan.','success');
+ }catch(e){showNotice('Gagal simpan: '+e.message,'error');await loadAll()}
+ finally{saving=false}
+}
+function navigate(v){page=v;chosen='';term='';siteFilter='ALL';el('sidebar').classList.remove('open');render()}
+function openPerson(id){chosen=id;page='detail';render()}
+function heading(eyebrow,name,description,buttons){
+ return '<div class="head"><div><span class="eyebrow">'+H(eyebrow)+'</span><h2>'+H(name)+'</h2><p>'+H(description)+'</p></div>'+(buttons||'')+'</div>';
+}
+function render(){
+ el('roleText').textContent=role?(role==='owner'?'Pemilik':role==='editor'?'Editor':'Pelihat'):'Belum Masuk';
+ el('userText').textContent=user?.email||'';
+ el('authBtn').textContent=user?'Keluar':'Masuk';
+ el('accessNav').hidden=role!=='owner';
+ document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.page===page||(page==='detail'&&n.dataset.page==='people')));
+ if(!user||!role){
+  el('pageTitle').textContent='Monitoring APD KMB';
+  el('app').innerHTML=heading('MONITORING SYSTEM','Monitoring APD KMB','Mengikuti daftar karyawan Monitoring Manpower KMB.')+'<section class="panel" style="max-width:650px;margin:34px auto;text-align:center;padding:43px 25px"><div style="font-size:50px">🪖 &nbsp; 👕 &nbsp; 🥾</div><h2>Pengelolaan APD Karyawan</h2><p class="muted" style="line-height:1.8">Kelola APD lama, stok gudang, jadwal penggantian dan pengembalian saat resign. Masuk menggunakan akun KMB.</p><button class="btn dark" onclick="login()">Masuk Akun KMB</button></section>';return;
+ }
+ if(page==='dashboard'){el('pageTitle').textContent='Dashboard Monitoring APD';el('app').innerHTML=dashboard()}
+ else if(page==='people'||page==='out'){el('pageTitle').textContent=page==='people'?'Manpower Aktif':'Manpower Keluar';el('app').innerHTML=peoplePage(page==='out')}
+ else if(page==='detail'){const p=person(chosen);el('pageTitle').textContent='Detail APD · '+(p?.name||'');el('app').innerHTML=p?detailPage(p):'<div class="empty">Karyawan tidak ditemukan; silakan sinkronkan.</div>'}
+ else if(page==='stock'){el('pageTitle').textContent='Stok APD Gudang';el('app').innerHTML=stockPage()}
+ else if(page==='history'){el('pageTitle').textContent='Riwayat Transaksi APD';el('app').innerHTML=historyPage()}
+ else if(page==='guide'){el('pageTitle').textContent='Tata Cara';el('app').innerHTML=guidePage()}
+ else if(page==='access'){el('pageTitle').textContent='Pengaturan Akses';el('app').innerHTML=accessPage()}
+}
+function schedules(){
+ const result=[];
+ for(const p of people.filter(x=>x.status==='AKTIF'))for(const t of TYPES){
+  const x=latest(p.id,t);
+  if(!x||held(p.id,t)<1)continue;
+  const d=addMonths(x.date,x.months);
+  result.push({p,t,x,d,days:daysUntil(d)});
+ }
+ return result.sort((a,b)=>a.d.localeCompare(b.d));
+}
+function dashboard(){
+ const totalHeld=people.reduce((a,p)=>a+held(p.id),0);
+ const warehouse=TYPES.reduce((a,t)=>{const s=stock(t);return a+s.NEW+s.REUSE},0);
+ const list=schedules(),overdue=list.filter(x=>x.days<=0).length,soon=list.filter(x=>x.days>0&&x.days<=30).length;
+ const metrics=[['Total Stok Gudang',warehouse,'APD siap dibagikan','▤','#2865b5','#e9f0fd'],['APD Dipegang',totalHeld,'Termasuk APD lama','♙','#158257','#e7f7ef'],['Jatuh Tempo',overdue,'Perlu penggantian APD','!','#c93c4b','#fdecef'],['Ganti ≤ 30 Hari',soon,'Jadwal mendekat','◷','#c88822','#fff1d9']];
+ const cards='<div class="kpis">'+metrics.map(m=>'<div class="card metric" style="--accent:'+m[4]+';--symbg:'+m[5]+'"><div><small>'+m[0]+'</small><b>'+m[1]+'</b><p>'+m[2]+'</p></div><span class="sym">'+m[3]+'</span></div>').join('')+'</div>';
+ const products='<div class="cards3">'+TYPES.map(t=>{const s=stock(t);return '<div class="card product">'+icon(t)+'<div><span class="eyebrow">PERLENGKAPAN APD</span><h3>'+ART[t].label+'</h3><div class="big">'+(s.NEW+s.REUSE)+'</div><small>Baru '+s.NEW+' · Bekas layak '+s.REUSE+'</small></div></div>'}).join('')+'</div>';
+ const maximum=Math.max(1,...TYPES.map(t=>{const s=stock(t);return s.NEW+s.REUSE+people.reduce((a,p)=>a+held(p.id,t),0)}));
+ const bars=TYPES.map(t=>{const s=stock(t),owned=people.reduce((a,p)=>a+held(p.id,t),0),val=s.NEW+s.REUSE;return '<div class="progress-row"><b>'+ART[t].label+'</b><div><div class="bar"><span style="width:'+(val/maximum*100)+'%"></span></div><div class="bar" style="margin-top:6px"><span class="yellow" style="width:'+(owned/maximum*100)+'%"></span></div></div><b>'+val+' / '+owned+'</b></div>'}).join('');
+ const dueRows=list.slice(0,8).map(x=>'<tr><td><button class="link" onclick="openPerson(\''+H(x.p.id)+'\')">'+H(x.p.name)+'</button></td><td>'+x.t+'</td><td>'+fmt(x.x.date)+'</td><td>'+fmt(x.d)+'</td><td>'+labelStatus(x.days<=0?'JATUH TEMPO':x.days<=30?'SEGERA':'TERJADWAL')+'</td></tr>').join('')||'<tr><td colspan="5" class="muted">Belum ada jadwal penggantian. Jadwal dibuat saat karyawan menerima APD baru/bekas dari gudang.</td></tr>';
+ return heading('OVERVIEW','Dashboard Monitoring APD','Memantau stok, kepemilikan, dan jadwal penggantian APD secara otomatis.','<div class="date-pill">● '+fmt(today())+'</div>')+cards+products+
+ '<div class="twocol"><section class="panel"><div class="section-head"><div><h3>Monitoring Stok & APD Karyawan</h3><p>Grafik atas: stok gudang · Bawah: jumlah dipegang karyawan</p></div></div>'+bars+'<div class="flex wrap"><span class="tag blue">■ Stok Gudang</span><span class="tag warn">■ Dipegang Karyawan</span></div></section>'+
+ '<section class="panel"><div class="section-head"><div><h3>Ringkasan Pengelolaan</h3><p>Data terhubung dengan Manpower KMB</p></div></div><div class="stat-row"><div class="mini-stat"><small>Aktif</small><b>'+people.filter(x=>x.status==='AKTIF').length+'</b></div><div class="mini-stat"><small>Keluar</small><b>'+people.filter(x=>x.status==='OUT').length+'</b></div><div class="mini-stat"><small>Riwayat Lama</small><b>'+state.receipts.filter(x=>x.source==='OLD').length+'</b></div><div class="mini-stat"><small>Dimusnahkan</small><b>'+state.returns.filter(x=>x.action==='DESTROY').reduce((a,x)=>a+qty(x.qty),0)+'</b></div></div><div class="notice">APD lama hanya dicatat sebagai stok yang dipegang karyawan. <b>Tidak mengurangi stok gudang dan tidak menentukan jatah penggantian.</b></div><button class="btn dark" onclick="navigate(\'people\')">Kelola APD Karyawan →</button></section></div>'+
+ '<section class="panel" style="margin-top:18px"><div class="section-head"><div><h3>Jadwal Penggantian APD</h3><p>Perhitungan menggunakan penerimaan terbaru.</p></div></div><div class="table-wrap"><table class="table"><thead><tr><th>Karyawan</th><th>APD</th><th>Terakhir Diterima</th><th>Jatah Ganti</th><th>Status</th></tr></thead><tbody>'+dueRows+'</tbody></table></div></section>';
+}
+function renderPeopleRows(out){
+ const source=people.filter(p=>p.status===(out?'OUT':'AKTIF'));
+ const current=source.filter(p=>(siteFilter==='ALL'||p.site===siteFilter)&&(!term||(p.name+' '+p.position+' '+p.site).toLowerCase().includes(term.toLowerCase())));
+ return current.map(p=>'<tr><td><button class="link" onclick="openPerson(\''+H(p.id)+'\')">'+H(p.name)+'</button><div class="muted">'+H(p.position)+'</div></td><td>'+H(p.site)+'</td><td>'+labelStatus(p.status)+'</td>'+TYPES.map(t=>'<td><b>'+held(p.id,t)+'</b><div class="muted">'+(due(p.id,t)?fmt(due(p.id,t)):'Belum dijadwalkan')+'</div></td>').join('')+'<td><button class="btn slim dark" onclick="openPerson(\''+H(p.id)+'\')">Detail & Edit</button></td></tr>').join('')||'<tr><td colspan="7">Tidak ada karyawan yang cocok.</td></tr>';
+}
+function peoplePage(out){
+ const source=people.filter(x=>x.status===(out?'OUT':'AKTIF')),sites=[...new Set(source.map(p=>p.site))].sort();
+ return heading('DATABASE',out?'Manpower Keluar & Pengembalian':'Manpower Aktif & Kepemilikan APD',out?'Periksa dan catat APD yang dikembalikan saat resign.':'Klik nama karyawan untuk mencatat APD lama atau membagikan APD baru.')+
+ '<section class="panel"><div class="section-head"><div><h3>Data Manpower KMB ('+source.length+')</h3><p>Nama, jabatan, jobsite, dan status langsung mengikuti Monitoring Manpower KMB.</p></div></div><div class="row-tools"><input id="searchPerson" placeholder="Cari nama, jabatan, jobsite…" value="'+H(term)+'"><select id="filterSite"><option value="ALL">Semua Jobsite</option>'+sites.map(x=>'<option value="'+H(x)+'" '+(siteFilter===x?'selected':'')+'>'+H(x)+'</option>').join('')+'</select><button class="btn" onclick="loadAll()">↻ Sinkronkan Manpower</button></div><div class="table-wrap"><table class="table"><thead><tr><th>Nama & Jabatan</th><th>Jobsite</th><th>Status</th><th>Helm</th><th>Kaos</th><th>Sepatu</th><th>Aksi</th></tr></thead><tbody id="personRows">'+renderPeopleRows(out)+'</tbody></table></div></section>';
+}
+
 document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>navigate(b.dataset.page)));
 el('mobileMenu').onclick=()=>el('sidebar').classList.toggle('open');
 el('authBtn').onclick=()=>user?logout():login();
