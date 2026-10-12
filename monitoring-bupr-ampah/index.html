@@ -1,1 +1,192 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Monitoring BUPR Ampah | KMB</title><style>*{box-sizing:border-box}body{margin:0;background:#f4f7fb;color:#1b304a;font:14px system-ui,Arial}nav{padding:14px 4%;background:#14283f;color:#fff;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}nav a{color:white;text-decoration:none}main{max-width:1260px;margin:25px auto;padding:0 16px}h1{margin:0 0 6px}.muted{color:#6d7c8e}.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:13px;margin:25px 0}.stat,.panel{background:white;border:1px solid #dee6ef;border-radius:12px;padding:19px}.stat strong{display:block;font-size:32px;margin-top:6px}.stat label{color:#617087}.actions{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:15px}button,.btn{background:#172f4b;color:white;border:0;border-radius:8px;padding:10px 13px;cursor:pointer;font-weight:600}button.light{background:#e9eef5;color:#14283f}input,select{border:1px solid #d1dce7;border-radius:7px;padding:8px;background:white}table{border-collapse:collapse;width:100%;min-width:850px;background:white}th{background:#eaf0f8;text-align:left;color:#19324f}th,td{border-bottom:1px solid #e6ecf2;padding:10px;white-space:nowrap}td input{width:100%;min-width:105px}.scroll{overflow-x:auto}.vacant{color:#bd2638;font-weight:700}.actual{color:#137957;font-weight:700}.panel h2{margin-top:0;font-size:18px}.note{font-size:12px;color:#66778d;margin:15px 0}footer{text-align:center;color:#607189;padding:20px}</style></head><body><nav><b>🔴 KMB | Monitoring BUPR Ampah</b><a href="../">← Kembali ke Portal Utama</a></nav><main><h1>Monitoring Manpower BUPR Ampah</h1><div class="muted">Dashboard manpower, planning, actual, vacant & progres rekrutmen</div><section class="stats"><div class="stat"><label>Manpower Planning</label><strong id="planning">0</strong></div><div class="stat"><label>Actual Manpower</label><strong id="actual">0</strong></div><div class="stat"><label>Vacant</label><strong id="vacant">0</strong></div><div class="stat"><label>Persentase Actual</label><strong id="percent">0%</strong></div></section><div class="panel"><div class="actions"><button onclick="add()">+ Tambah Posisi</button><button class="light" onclick="download()">⬇ Export CSV</button><button class="light" onclick="document.getElementById('upload').click()">⬆ Import CSV</button><input type="file" id="upload" accept=".csv,text/csv" hidden onchange="importCsv(this)"/><button class="light" onclick="window.print()">🖨 Print</button><input id="search" placeholder="Cari nama atau jabatan…" oninput="render()"/><select id="filter" onchange="render()"><option value="">Semua status</option><option>Vacant</option><option>Actual</option></select></div><div class="scroll"><table><thead><tr><th>No</th><th>Nama</th><th>Jabatan</th><th>Status</th><th>No PTK</th><th>PIC</th><th>Progress</th><th>Keterangan</th><th>Aksi</th></tr></thead><tbody id="rows"></tbody></table></div></div><p class="note">Perubahan tersimpan di browser perangkat ini (localStorage), bukan otomatis ke database bersama. Import/ekspor CSV tersedia; sinkronisasi Excel lintas pengguna memerlukan backend.</p></main><footer>© PT Karunia Mandiri Berkarya</footer><script>const key='kmb_BUPR_Ampah_v1',seed=[{"nama":"Roy","jabatan":"Superintendent","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Supervisor","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Planner","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Mekanik Senior","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Mekanik Senior","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Mekanik Senior","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Mekanik Middle","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Mekanik Middle","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Mekanik Junior","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Mekanik Junior","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Mekanik Junior","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Mekanik Junior","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Mekanik Junior","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Mekanik Junior","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Welder","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Welder","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Helper Mekanik","ptk":"","pic":"","progress":"","keterangan":""},{"nama":"Vacant","jabatan":"Helper Mekanik","ptk":"","pic":"","progress":"","keterangan":""}];let data;try{data=JSON.parse(localStorage.getItem(key))||seed}catch(e){data=seed}function save(){localStorage.setItem(key,JSON.stringify(data));render()}function clean(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}function render(){let n=data.length,a=data.filter(x=>x.nama&&x.nama.toLowerCase()!=='vacant').length;document.getElementById('planning').textContent=n;document.getElementById('actual').textContent=a;document.getElementById('vacant').textContent=n-a;document.getElementById('percent').textContent=n?Math.round(a/n*100)+'%':'0%';const q=document.getElementById('search').value.toLowerCase(),f=document.getElementById('filter').value;document.getElementById('rows').innerHTML=data.map((x,i)=>({...x,i})).filter(x=>(x.nama+' '+x.jabatan).toLowerCase().includes(q)&&(!f||(f==='Vacant'?(x.nama||'').toLowerCase()==='vacant':(x.nama||'').toLowerCase()!=='vacant'))).map(x=>'<tr><td>'+(x.i+1)+'</td>'+['nama','jabatan'].map(k=>'<td><input aria-label="'+k+'" value="'+clean(x[k])+'" onchange="edit('+x.i+',\''+k+'\',this.value)"></td>').join('')+'<td class="'+((x.nama||'').toLowerCase()==='vacant'?'vacant':'actual')+'">'+((x.nama||'').toLowerCase()==='vacant'?'VACANT':'ACTUAL')+'</td>'+['ptk','pic','progress','keterangan'].map(k=>'<td><input aria-label="'+k+'" value="'+clean(x[k])+'" onchange="edit('+x.i+',\''+k+'\',this.value)"></td>').join('')+'<td><button class="light" onclick="removeRow('+x.i+')">Hapus</button></td></tr>').join('')}function edit(i,k,v){data[i][k]=v;save()}function add(){data.push({nama:'Vacant',jabatan:'',ptk:'',pic:'',progress:'',keterangan:''});save()}function removeRow(i){if(confirm('Hapus baris ini?')){data.splice(i,1);save()}}function download(){let keys=['nama','jabatan','ptk','pic','progress','keterangan'],t=[keys.join(','),...data.map(x=>keys.map(k=>'"'+String(x[k]||'').replace(/"/g,'""')+'"').join(','))].join('\r\n');let url=URL.createObjectURL(new Blob(['\uFEFF'+t],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='monitoring-bupr-ampah.csv';a.click();URL.revokeObjectURL(url)}function importCsv(el){let f=el.files[0];if(!f)return;let reader=new FileReader();reader.onload=()=>{let lines=reader.result.replace(/^\uFEFF/,'').trim().split(/\r?\n/),keys=['nama','jabatan','ptk','pic','progress','keterangan'];data=lines.slice(1).filter(Boolean).map(l=>{let values=l.match(/("(?:[^"]|"")*"|[^,]*)(,|$)/g)||[];let obj={};keys.forEach((k,i)=>obj[k]=(values[i]||'').replace(/,$/,'').replace(/^"|"$/g,'').replace(/""/g,'"'));return obj});save()};reader.readAsText(f)}render();</script></body></html>
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#6d28d9">
+<title>Monitoring Manpower BUPR Ampah</title>
+<link rel="stylesheet" href="styles.css?v=25">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+</head>
+<body>
+<div class="app">
+<aside class="sidebar" id="sidebar">
+  <div class="brand"><div class="mark">KMB</div><div><b>Monitoring Manpower<br>BUPR Ampah</b></div></div>
+  <div class="group">Ringkasan</div>
+  <button class="nav active" data-view="dashboard" data-title="Monitoring Manpower BUPR Ampah" onclick="showView('dashboard')">▦ &nbsp; Dashboard</button>
+  <div class="group">Monitoring</div>
+  <button class="nav" data-view="mpp" data-title="MPP BUPR Ampah" onclick="showView('mpp')">▤ &nbsp; MPP BUPR Ampah</button>
+  <button class="nav" data-view="mp" data-title="MP Aktif & MP Out" onclick="showView('mp')">👥 &nbsp; MP Aktif & MP Out</button>
+  <button class="nav" data-view="unit-population" data-title="Populasi Unit BUPR Ampah" onclick="showView('unit-population')">▦ &nbsp; Populasi Unit</button>
+  <div class="group">Sistem</div>
+  <button class="nav" data-view="settings" data-title="Pengaturan" onclick="showView('settings')">⚙ &nbsp; Pengaturan</button>
+</aside>
+
+<main class="main">
+<header class="topbar">
+  <div style="display:flex;align-items:center;gap:10px">
+    <button class="btn hamb" id="menuBtn">☰</button>
+    <div><div class="app-name">Monitoring Manpower BUPR Ampah</div><h1 id="topTitle">Monitoring Manpower BUPR Ampah</h1></div>
+  </div>
+  <div class="top-actions"><span class="access-badge role-viewer" id="accessBadge">Pelihat</span><span class="auth-who" id="authWho"></span><button class="btn back-dashboard-btn" id="backDashboard" onclick="goDashboard()" style="display:none">← Kembali ke Dashboard</button><button class="btn" onclick="window.print()">Print</button></div>
+</header>
+
+<div class="content"><div class="notice" style="margin-bottom:12px">Data project ini tersimpan lokal pada browser dan belum tersinkronisasi antarpengguna. Portal: <a href="../">Kembali ke beranda KMB</a></div>
+<section class="view active" id="dashboard">
+  <div class="dashboard-title-row">
+    <div>
+      <span class="eyebrow">OVERVIEW</span>
+      <h2>Dashboard Manpower BUPR Ampah</h2>
+      <p>Monitoring MPP, actual, vacant, kandidat dan progress rekrutmen dalam satu lokasi.</p>
+    </div>
+    <div class="dashboard-date"><span>●</span><div><small>Update Hari Ini</small><b id="today"></b></div></div>
+  </div>
+
+  <div class="kpis modern-kpis">
+    <div class="card metric-card metric-purple">
+      <div class="metric-icon">◎</div><div><div class="kpi-label">Manpower Planning</div><div class="kpi-value" id="kPlanning">0</div><div class="kpi-sub">Seluruh posisi MPP</div></div>
+    </div>
+    <div class="card metric-card metric-blue">
+      <div class="metric-icon">✓</div><div><div class="kpi-label">Manpower Actual</div><div class="kpi-value" id="kActual">0</div><div class="kpi-sub">Posisi yang sudah terisi</div></div>
+    </div>
+    <div class="card metric-card metric-coral">
+      <div class="metric-icon">!</div><div><div class="kpi-label">Vacant / Kekosongan</div><div class="kpi-value" id="kVacant">0</div><div class="kpi-sub">Posisi yang belum terisi</div></div>
+    </div>
+    <div class="card metric-card metric-orange">
+      <div class="metric-icon">%</div><div><div class="kpi-label">% Actual terhadap Planning</div><div class="kpi-value" id="kPct">0%</div><div class="kpi-sub">Actual terhadap planning</div></div>
+    </div>
+  </div>
+
+  <div class="dashboard-charts">
+    <div class="card chart-card chart-main">
+      <div class="section-head">
+        <div><span class="eyebrow">RECRUITMENT PIPELINE</span><h3>Progress Kandidat & Rekrutmen</h3><p class="section-sub">Jumlah kandidat/posisi berdasarkan tahap terakhir.</p></div>
+        <span class="chart-dot">LIVE DATA</span>
+      </div>
+      <div class="chart-canvas tall"><canvas id="ktaPipelineChart"></canvas></div>
+    </div>
+    <div class="card chart-card">
+      <div class="section-head"><div><span class="eyebrow">COMPOSITION</span><h3>Pemenuhan MPP</h3><p class="section-sub">Actual dibandingkan vacant.</p></div></div>
+      <div class="chart-canvas donut"><canvas id="ktaCompositionChart"></canvas></div>
+      <div class="donut-legend"><span><i class="legend-purple"></i>Actual</span><span><i class="legend-coral"></i>Vacant</span></div>
+    </div>
+  </div>
+
+  <div class="dashboard-lower">
+    <div class="card chart-card">
+      <div class="section-head"><div><span class="eyebrow">VACANCY</span><h3>Vacant per Jabatan</h3><p class="section-sub">Kebutuhan kosong berdasarkan posisi.</p></div><span class="pill" id="vacantTotal">0 vacant</span></div>
+      <div class="chart-canvas medium"><canvas id="ktaVacancyChart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="section-head"><div><span class="eyebrow">VACANT DETAIL</span><h3>Resume Vacant per Jabatan</h3><p class="section-sub">Klik jabatan untuk melihat kandidat terkait.</p></div></div>
+      <div class="resume-grid dashboard-resume" id="vacancyResume"></div>
+    </div>
+  </div>
+
+  <div class="card recruitment-card" id="recruitmentCard">
+    <div class="section-head">
+      <div><span class="eyebrow">RECRUITMENT</span><h3>Summary Progress Rekrutmen</h3><p class="section-sub">Data PTK Open dari MPP BUPR Ampah.</p></div>
+      <div style="display:flex;gap:7px;align-items:center"><span class="filter-badge" id="recruitFilterBadge"></span><span class="badge open" id="recruitCount">0 OPEN</span></div>
+    </div>
+    <div class="table-wrap">
+      <table class="table recruitment-table">
+        <thead><tr><th>Jabatan</th><th>Tanggal Pengajuan</th><th>Due Date</th><th>Hari Tersisa</th><th>Status</th><th>Progress Terakhir</th><th>Progress</th><th>Kandidat</th><th>Keterangan</th></tr></thead>
+        <tbody id="recruitBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="grid2 dashboard-summary-grid">
+    <div class="card"><div class="section-head"><div><span class="eyebrow">STATUS</span><h3>Status PTK</h3></div></div><div class="stats modern-stats" id="statusCards"></div></div>
+    <div class="card"><div class="section-head"><div><span class="eyebrow">DUE DATE</span><h3>Due Date PTK</h3></div></div><div class="stats modern-stats" id="dueCards"></div></div>
+  </div>
+
+  <div class="card units-modern">
+    <div class="section-head"><div><span class="eyebrow">POPULASI UNIT</span><h3>Populasi Unit BUPR Ampah</h3><p class="section-sub">Jumlah unit operasional sesuai data Dashboard Excel BUPR Ampah.</p></div><span class="pill" id="unitTotal">0 unit</span></div>
+    <div class="units-grid" id="unitSummary"></div>
+  </div>
+</section>
+<section class="view" id="mpp">
+  <div class="page-head">
+    <div><h2>MPP BUPR Ampah</h2><p>Planning manpower dan monitoring PTK/rekrutmen.</p></div>
+    <div class="toolbar"><input class="input" id="mppSearch" placeholder="Cari nama / jabatan / kandidat..."><select class="select" id="mppStatus"><option value="">Semua Status</option><option>Open</option><option>Continue</option><option>Close</option></select><button class="btn yellow" id="addMPP">+ Tambah Data</button><button class="btn" id="exportMPP">Export CSV</button></div>
+  </div>
+  <div id="mppStats"></div>
+  <div id="mppTable"></div>
+</section>
+
+<section class="view" id="mp">
+  <div class="page-head">
+    <div><h2 id="mpTitle">MP Aktif</h2><p>Database manpower BUPR Ampah. Data lengkap dapat disinkronkan dari Excel.</p></div>
+    <div class="toolbar"><input class="input" id="mpSearch" placeholder="Cari nama / jabatan..."><label class="btn yellow">Sinkronkan Excel<input type="file" accept=".xlsx,.xls" hidden onchange="syncExcel(this)"></label><button class="btn" id="mpFullBtn">Semua Kolom</button><button class="btn" id="addMP">+ Tambah Data</button><button class="btn" id="exportMP">Export CSV</button></div>
+  </div>
+  <div class="mp-tabs"><button class="mp-tab active" data-mode="active">MP Aktif</button><button class="mp-tab" data-mode="out">MP Out</button><span class="pill" id="mpCount">0 data</span></div>
+  <div class="notice"><b>MP Aktif → MP Out terhubung.</b> Gunakan tombol MP OUT pada data aktif untuk memindahkan data ke MP Out sekaligus membuat posisi yang sesuai di MPP menjadi Vacant.</div>
+  <div style="height:12px"></div>
+  <div id="mpTable"></div>
+</section>
+
+<section class="view" id="unit-population">
+  <div class="page-head">
+    <div><h2>Populasi Unit BUPR Ampah</h2><p>Daftar populasi unit operasional BUPR Ampah sesuai data monitoring.</p></div>
+    <div class="toolbar"><span class="unit-total-pill" id="unitPageTotal">0 unit</span><button class="btn yellow" onclick="openKtaUnitForm(null)">+ Tambah Jenis Unit</button></div>
+  </div>
+  <div class="card">
+    <div class="section-head"><div><span class="eyebrow">POPULASI UNIT</span><h3>Daftar Unit BUPR Ampah</h3><p class="section-sub">Terhubung dengan data unit pada Dashboard.</p></div></div>
+    <div class="units-grid" id="unitPageSummary"></div>
+  </div>
+</section>
+
+<section class="view" id="settings">
+  <div class="page-head"><div><h2>Pengaturan</h2><p>Pemilik, editor, sinkronisasi, backup, dan download Excel.</p></div></div>
+  <div id="settingsContent"></div>
+</section>
+
+<div class="footer">Monitoring Manpower BUPR Ampah</div>
+</div>
+</main>
+</div>
+
+<div class="modal" id="modal">
+  <div class="modal-card">
+    <div class="modal-head"><h3 id="modalTitle">Edit Data</h3><button class="btn" id="closeModal">✕</button></div>
+    <div class="formgrid" id="formFields"></div>
+    <div class="modal-actions"><button class="btn" onclick="closeModal()">Batal</button><button class="btn primary" id="saveModal">Simpan Perubahan</button></div>
+  </div>
+</div>
+
+
+<div class="modal" id="authModal">
+  <div class="modal-card auth-card">
+    <div class="modal-head"><h3>Masuk Pemilik / Editor</h3><button class="btn" id="closeAuthModal">✕</button></div>
+    <div class="auth-copy">Pelihat dapat membuka web tanpa login. <b>Hanya email yang sudah didaftarkan oleh Pemilik sebagai Editor pada web ini</b> yang akan mendapat akses edit saat login.</div>
+    <div class="formgrid">
+      <div class="field"><label>Email</label><input id="authEmail" type="email" autocomplete="email" placeholder="nama@email.com"></div>
+      <div class="field"><label>Password</label><input id="authPassword" type="password" autocomplete="current-password" placeholder="Minimal 8 karakter"></div>
+    </div>
+    <div class="notice" style="margin-top:10px">Jika email Anda sudah didaftarkan sebagai Editor pada web ini dan belum memiliki akun, pilih <b>Aktifkan Akun Owner / Editor</b> satu kali. Email yang tidak terdaftar pada web ini tetap berstatus Pelihat.</div>
+    <div class="modal-actions auth-actions">
+      <button class="btn" onclick="cloudSignupPassword()">Aktifkan Akun Owner / Editor</button>
+      <button class="btn primary" onclick="cloudLoginPassword()">Masuk</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="data_mpp1.js?v=8"></script>
+<script src="data_mpp2.js?v=8"></script>
+<script src="data_mpp3.js?v=8"></script>
+<script src="data_active.js?v=8"></script>
+<script src="data_out.js?v=8"></script>
+<script src="data_units.js?v=8"></script>
+<script src="app.js?v=28"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+
+</body>
+</html>
