@@ -1,9 +1,9 @@
 (function(){
   "use strict";
 
-  const isKta=location.pathname.includes("monitoring-kta-tra");
-  const appId=isKta?"kta-tra":"kmb";
-  const localStateKey=isKta?"kta_tra_monitoring_v1":"kmb_monitoring_web_v1";
+  const path=location.pathname;
+  const appId=path.includes("monitoring-kta-tra")?"kta-tra":path.includes("monitoring-mbj")?"mbj":path.includes("monitoring-bupr-ampah")?"bupr-ampah":"kmb";
+  const localStateKey=appId==="kta-tra"?"kta_tra_monitoring_v1":appId==="mbj"?"kmb_mbj_monitoring_v2":appId==="bupr-ampah"?"kmb_bupr_monitoring_v2":"kmb_monitoring_web_v1";
   const migrationBackupKey=localStateKey+"_precloud_backup";
   const hadLocalBeforeCloud=!!localStorage.getItem(localStateKey);
   if(hadLocalBeforeCloud&&!localStorage.getItem(migrationBackupKey)){
