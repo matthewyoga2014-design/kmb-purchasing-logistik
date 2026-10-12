@@ -20,6 +20,8 @@
 .detail-mpp .detail-graph{margin:15px 0}.detail-mpp .detail-line{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12px}.detail-mpp .detail-label{width:145px;flex-shrink:0}.detail-mpp .detail-track{flex:1;display:flex;height:15px;background:#e5eaf2;border-radius:5px;overflow:hidden}.detail-mpp .detail-blue{background:#3275d3}.detail-mpp .detail-red{background:#e95b62}.detail-mpp .detail-n{width:70px;text-align:right}
 .detail-mpp .detail-table-wrap{overflow:auto}.detail-mpp table{border-collapse:collapse;width:100%;min-width:650px;font-size:12px}.detail-mpp th,.detail-mpp td{padding:9px;border-bottom:1px solid #e9edf2;text-align:left}.detail-mpp th{background:#e9edf3;color:#29394e}.detail-mpp td:nth-child(1),.detail-mpp td:nth-child(4){text-align:center}.detail-mpp .detail-vacant{background:#ffe6e7;color:#b91c1c;font-weight:800}.detail-mpp .detail-group td{background:#192f4b;color:white;font-weight:750}.detail-mpp .detail-total td{background:#e8edf4;font-weight:800}
 @media(max-width:650px){.detail-mpp{padding:13px}.detail-mpp .detail-label{width:90px;font-size:10px}.detail-mpp .detail-n{width:59px;font-size:10px}}
+</style><style>
+.detail-mpp .detail-chips{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 24px}.detail-mpp .detail-chip{font-size:12px;font-weight:700;color:#b42332;background:#fff0f1;border-radius:9px;padding:8px 11px}.detail-mpp .detail-overall{margin:15px 0 25px}.detail-mpp .detail-overall .detail-track{height:12px}.detail-mpp .detail-overall small{display:block;text-align:right;margin-top:6px;color:#66758a}.detail-mpp h3{font-size:16px;margin:20px 0 13px}.detail-mpp .detail-sub{margin-top:24px}.detail-mpp .detail-sub h4{background:#192f4b;color:white;padding:11px;border-radius:8px 8px 0 0;margin:0;font-size:13px}.detail-mpp .detail-sub h4 small{color:#cbd5e1}.detail-mpp .detail-table-wrap table td:nth-child(n+2){text-align:left}.detail-mpp .detail-sub table td:nth-child(1),.detail-mpp .detail-sub table td:nth-child(4){text-align:center}.detail-mpp .detail-sub .detail-vacant{color:#b42332}.detail-mpp .detail-graph{margin-top:23px}.detail-mpp .detail-stat{border:1px solid #e5eaf0}.detail-mpp .detail-n{font-variant-numeric:tabular-nums}
 </style></head>
 <body>
 <div class="app">
@@ -118,7 +120,7 @@
     <div class="section-head"><div><span class="eyebrow">POPULASI UNIT</span><h3>Populasi Unit KTA - TRA</h3><p class="section-sub">Jumlah unit operasional sesuai data Dashboard Excel KTA - TRA.</p></div><span class="pill" id="unitTotal">0 unit</span></div>
     <div class="units-grid" id="unitSummary"></div>
   </div>
-<div class="detail-mpp" id="detailMPP"><h3>Summary Detail Manpower Planning & Vacant</h3><p>Rincian seluruh posisi MPP (Sheet 2), status pengisian, dan grafik per jabatan. Otomatis mengikuti data monitoring.</p><div id="detailMPPBody">Menyiapkan rincian MPP…</div></div></section>
+<div class="detail-mpp" id="detailMPP"><h3>Summary Detail Manpower Planning & Vacant</h3><p>Ringkasan live dari MPP / Sheet 2, termasuk posisi Vacant dan grafik pemenuhan. Mengikuti perubahan data pada website.</p><div id="detailMPPBody">Menyiapkan rincian MPP…</div></div></section>
 <section class="view" id="mpp">
   <div class="page-head">
     <div><h2>MPP KTA - TRA</h2><p>Planning manpower dan monitoring PTK/rekrutmen.</p></div>
@@ -202,25 +204,33 @@
 <script>
 (function(){
 "use strict";
-const host=document.getElementById("detailMPPBody");if(!host)return;
-const E=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const vacant=x=>!String(x??"").trim()||String(x).trim().toLowerCase()==="vacant";
-function render(){
+const target=document.getElementById("detailMPPBody");if(!target)return;
+const safe=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const isEmpty=v=>!String(v??"").trim()||String(v).trim().toLowerCase()==="vacant";
+let lastFingerprint="", lastRun=0;
+function summary(rows){let vac=0;const roles=new Map();for(const r of rows){const job=String(r.Jabatan||"Tanpa Jabatan").trim()||"Tanpa Jabatan",name=r.Nama;const key=job.toLocaleLowerCase("id-ID");if(!roles.has(key))roles.set(key,{job,plan:0,vac:0});let cur=roles.get(key);cur.plan++;if(isEmpty(name)){cur.vac++;vac++}}return {plan:rows.length,actual:rows.length-vac,vac,roles:[...roles.values()]}}
+function roleTable(rows){let all=summary(rows),data=all.roles.sort((a,b)=>b.vac-a.vac||b.plan-a.plan);return '<div class="detail-table-wrap"><table><thead><tr><th>JABATAN / POSISI</th><th>PLANNING</th><th>ACTUAL</th><th>VACANT</th></tr></thead><tbody>'+data.map(r=>'<tr><td>'+safe(r.job)+'</td><td>'+r.plan+'</td><td>'+(r.plan-r.vac)+'</td><td class="'+(r.vac?'detail-vacant':'')+'">'+r.vac+'</td></tr>').join('')+'</tbody></table></div>'}
+function chart(rows){const all=summary(rows);return '<div class="detail-graph"><h3>Grafik Pemenuhan Manpower per Jabatan</h3>'+all.roles.sort((a,b)=>b.vac-a.vac||b.plan-a.plan).map(r=>'<div class="detail-line"><span class="detail-label" title="'+safe(r.job)+'">'+safe(r.job)+'</span><div class="detail-track"><div class="detail-blue" style="width:'+((r.plan-r.vac)/r.plan*100)+'%"></div><div class="detail-red" style="width:'+(r.vac/r.plan*100)+'%"></div></div><span class="detail-n">'+(r.plan-r.vac)+' / '+r.vac+' / '+r.plan+'</span></div>').join('')+'<p>■ Biru: Actual · ■ Merah: Vacant (Actual / Vacant / Planning)</p></div>'}
+function positionTable(rows,label){return '<div class="detail-table-wrap"><table><thead><tr><th>NO.</th><th>JABATAN</th><th>NAMA</th><th>JUMLAH</th><th>KETERANGAN</th></tr></thead><tbody><tr class="detail-group"><td colspan="5">'+safe(label)+'</td></tr>'+rows.map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+safe(r.Jabatan||"-")+'</td><td class="'+(isEmpty(r.Nama)?'detail-vacant':'')+'">'+safe(isEmpty(r.Nama)?"Vacant":r.Nama)+'</td><td>1</td><td>'+safe(r.Keterangan||"")+'</td></tr>').join('')+'</tbody></table></div>'}
+function render(force=false){
 try{
 const d=typeof data!=="undefined"?data:null;if(!d)return;
-const groups=d.sites&&typeof d.sites==="object"?Object.entries(d.sites).map(([k,rows])=>({title:d.siteLabels?.[k]||k,rows:Array.isArray(rows)?rows:[]})):[{title:document.title.replace("Monitoring Manpower ",""),rows:Array.isArray(d.mpp)?d.mpp:[]}];
-const all=groups.flatMap(g=>g.rows);const n=all.length,v=all.filter(r=>vacant(r.Nama)).length;
-const map=new Map();for(const r of all){const label=String(r.Jabatan||"Tanpa Jabatan").trim(),key=label.toLowerCase();if(!map.has(key))map.set(key,{label,n:0,v:0});const x=map.get(key);x.n++;if(vacant(r.Nama))x.v++}
-const stats='<div class="detail-flex"><div class="detail-stat"><span>Manpower Planning</span><b>'+n+'</b></div><div class="detail-stat"><span>Manpower Actual</span><b>'+(n-v)+'</b></div><div class="detail-stat"><span>Vacant</span><b>'+v+'</b></div><div class="detail-stat"><span>% Actual</span><b>'+(n?Math.round((n-v)/n*100):0)+'%</b></div></div>';
-const graph='<div class="detail-graph"><h3>Grafik Planning / Actual / Vacant per Jabatan</h3>'+[...map.values()].map(x=>'<div class="detail-line"><span class="detail-label">'+E(x.label)+'</span><div class="detail-track"><div class="detail-blue" style="width:'+(x.n?(x.n-x.v)/x.n*100:0)+'%"></div><div class="detail-red" style="width:'+(x.n?x.v/x.n*100:0)+'%"></div></div><span class="detail-n">'+(x.n-x.v)+' / '+x.v+' / '+x.n+'</span></div>').join('')+'<p>■ Biru: Actual &nbsp; ■ Merah: Vacant &nbsp; (Actual / Vacant / Planning)</p></div>';
-const table='<div class="detail-table-wrap"><table><thead><tr><th>NO.</th><th>JABATAN</th><th>NAMA</th><th>JUMLAH</th><th>KETERANGAN</th></tr></thead><tbody>'+groups.map(g=>'<tr class="detail-group"><td colspan="5">'+E(g.title)+'</td></tr>'+g.rows.map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+E(r.Jabatan)+'</td><td class="'+(vacant(r.Nama)?'detail-vacant':'')+'">'+E(vacant(r.Nama)?'Vacant':r.Nama)+'</td><td>1</td><td>'+E(r.Keterangan)+'</td></tr>').join('')).join('')+'<tr class="detail-total"><td colspan="3">TOTAL PLANNING: '+n+' | ACTUAL: '+(n-v)+' | VACANT: '+v+'</td><td>'+n+'</td><td></td></tr></tbody></table></div>';
-host.innerHTML=stats+graph+table;
-}catch(e){console.warn("Detail MPP",e);host.textContent="Belum dapat menampilkan detail MPP."}
+const groups=d.sites&&typeof d.sites==="object"?Object.entries(d.sites).map(([key,rows])=>({label:d.siteLabels?.[key]||key,rows:Array.isArray(rows)?rows:[]})):[{label:document.title.replace("Monitoring Manpower ",""),rows:Array.isArray(d.mpp)?d.mpp:[]}];
+const all=groups.flatMap(g=>g.rows);
+const stamp=JSON.stringify(all.map(r=>[r.Nama,r.Jabatan,r.Keterangan]))+JSON.stringify(groups.map(g=>g.label));if(!force&&stamp===lastFingerprint)return;lastFingerprint=stamp;
+const s=summary(all),pct=s.plan?Math.round(s.actual/s.plan*100):0;
+const cards='<div class="detail-flex"><div class="detail-stat"><span>Planning</span><b>'+s.plan+'</b></div><div class="detail-stat"><span>Actual</span><b>'+s.actual+'</b></div><div class="detail-stat"><span>Vacant</span><b style="color:#c72c3b">'+s.vac+'</b></div><div class="detail-stat"><span>Pemenuhan</span><b>'+pct+'%</b></div></div>';
+const bar='<div class="detail-overall"><div class="detail-track"><div class="detail-blue" style="width:'+pct+'%"></div><div class="detail-red" style="width:'+(100-pct)+'%"></div></div><small>'+pct+'% terpenuhi</small></div>';
+const chips=s.roles.filter(r=>r.vac>0).sort((a,b)=>b.vac-a.vac).map(r=>'<span class="detail-chip">'+safe(r.job)+' · '+r.vac+'</span>').join('')||'<span>Seluruh posisi sudah terisi</span>';
+const sections=groups.map(g=>'<div class="detail-sub"><h4>'+safe(g.label)+' <small>('+g.rows.length+' posisi)</small></h4>'+positionTable(g.rows,g.label)+'</div>').join('');
+target.innerHTML=cards+bar+'<h3>Posisi yang Masih Vacant</h3><div class="detail-chips">'+chips+'</div><h3>Rincian Manpower Planning per Jabatan</h3>'+roleTable(all)+chart(all)+'<h3>Detail MPP / Sheet 2</h3>'+sections;
+}catch(e){console.error("MPP summary",e);target.textContent="Rincian MPP belum dapat dimuat."}
 }
-document.addEventListener("DOMContentLoaded",render);window.addEventListener("focus",render);
-const observer=new MutationObserver(()=>{if(!document.hidden)render()});
-const status=document.getElementById("kPlanning");if(status)observer.observe(status,{childList:true,characterData:true,subtree:true});
-window.refreshDetailMPP=render;
+window.refreshDetailMPP=()=>render(true);
+document.addEventListener("DOMContentLoaded",()=>render(true));window.addEventListener("pageshow",()=>render(true));window.addEventListener("focus",()=>render());
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)render()});
+const el=document.getElementById("kPlanning");if(el)new MutationObserver(()=>render()).observe(el,{childList:true,characterData:true,subtree:true});
+setInterval(()=>{if(!document.hidden)render()},5000);
 })();
 </script></body>
 </html>
