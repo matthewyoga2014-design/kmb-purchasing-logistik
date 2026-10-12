@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 570" role="img" aria-label="Ilustrasi excavator tambang">
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#e8f5ff"/><stop offset="1" stop-color="#fffdfa"/></linearGradient><linearGradient id="steel" x2="0" y2="1"><stop stop-color="#617d9a"/><stop offset=".62" stop-color="#253c55"/><stop offset="1" stop-color="#111f33"/></linearGradient><linearGradient id="yellow" x2=".1" y2=".0" x1=".8" y1="1"><stop stop-color="#ffe797"/><stop offset=".42" stop-color="#ffc43b"/><stop offset="1" stop-color="#d77e0a"/></linearGradient><linearGradient id="glass" x2="0" y2="0" x1="1" y1="1"><stop stop-color="#90d4f4"/><stop offset="1" stop-color="#244765"/></linearGradient><filter id="shadow"><feDropShadow dx="0" dy="14" stdDeviation="13" flood-color="#24415b" flood-opacity=".22"/></filter></defs>
+<rect width="960" height="570" rx="30" fill="url(#sky)"/>
+<circle cx="790" cy="116" r="74" fill="#fff4bf" opacity=".68"/>
+<path d="M0 330 94 265 174 297 289 183 384 271 476 213 589 290 704 181 846 275 960 200V570H0Z" fill="#c4d8e9" opacity=".65"/>
+<path d="m0 400 100-97 99 60 126-96 125 106 98-62 94 54 152-117 166 96V570H0Z" fill="#9cb7cc" opacity=".37"/>
+<path d="M0 464c171-73 365-48 531-27 156 19 301-11 429-59v192H0Z" fill="#c49c7b"/>
+<path d="M0 510c229-48 520-26 960-67v127H0Z" fill="#d2b394" opacity=".37"/>
+<g fill="#9a8878" opacity=".62"><ellipse cx="124" cy="499" rx="36" ry="11"/><ellipse cx="716" cy="508" rx="45" ry="13"/><ellipse cx="840" cy="463" rx="21" ry="8"/></g>
+<g filter="url(#shadow)"><g><rect x="316" y="418" width="381" height="94" rx="47" fill="#203043" stroke="#0f2035" stroke-width="10"/><rect x="336" y="431" width="341" height="68" rx="34" fill="#455b6e" stroke="#8c9eaa" stroke-width="6"/><path d="M346 421v88" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M381.6666666666667 421v88" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M417.3333333333333 421v88" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M453 421v88" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M488.66666666666663 421v88" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M524.3333333333334 421v88" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M560 421v88" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M595.6666666666666 421v88" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M631.3333333333333 421v88" stroke="#778692" stroke-width="5" opacity=".85"/></g>
+<path d="M352 414 335 354l95-44 203 5 44 96Z" fill="url(#yellow)" stroke="#8c611f" stroke-width="8"/>
+<path d="M465 310V206l65-55 90 13 36 145Z" fill="#e0a124" stroke="#8b611c" stroke-width="10"/>
+<path d="m486 212 56-40 58 7 22 112H487Z" fill="url(#glass)" stroke="#283b4f" stroke-width="12"/><path d="M545 180v120" stroke="#334758" stroke-width="9"/>
+<path d="M380 320 276 228 197 145" fill="none" stroke="#8e6225" stroke-width="48" stroke-linejoin="round"/>
+<path d="M380 320 276 228 197 145" fill="none" stroke="#ffbc32" stroke-width="35" stroke-linejoin="round"/>
+<path d="M197 145 108 308 82 380" fill="none" stroke="#b47e22" stroke-width="38"/><path d="M197 145 108 308 82 380" fill="none" stroke="#ffca49" stroke-width="26"/>
+<path d="M65 357q-19 61 48 106l44-89-67-28Z" fill="#d18c22" stroke="#82521c" stroke-width="9"/>
+<path d="M222 184 274 224l-44 68" fill="none" stroke="#8b9aab" stroke-width="15" stroke-linecap="round"/>
+<circle cx="384" cy="316" r="24" fill="#273e54" stroke="#ffdd7e" stroke-width="9"/><circle cx="200" cy="146" r="18" fill="#29405a" stroke="#ffd266" stroke-width="7"/>
+<path d="M367 355h94M364 383h280" stroke="#fff5bc" stroke-width="9" opacity=".65"/>
+</g></svg>
