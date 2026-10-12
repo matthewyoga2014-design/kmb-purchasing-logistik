@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 570" role="img" aria-label="Ilustrasi helm dan alat pelindung diri">
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#dff4ef"/><stop offset="1" stop-color="#f9fffc"/></linearGradient><linearGradient id="steel" x2="0" y2="1"><stop stop-color="#617d9a"/><stop offset=".62" stop-color="#253c55"/><stop offset="1" stop-color="#111f33"/></linearGradient><linearGradient id="yellow" x2=".1" y2=".0" x1=".8" y1="1"><stop stop-color="#ffe797"/><stop offset=".42" stop-color="#ffc43b"/><stop offset="1" stop-color="#d77e0a"/></linearGradient><linearGradient id="glass" x2="0" y2="0" x1="1" y1="1"><stop stop-color="#90d4f4"/><stop offset="1" stop-color="#244765"/></linearGradient><filter id="shadow"><feDropShadow dx="0" dy="14" stdDeviation="13" flood-color="#24415b" flood-opacity=".22"/></filter></defs>
+<rect width="960" height="570" rx="30" fill="url(#sky)"/>
+<circle cx="790" cy="116" r="74" fill="#fff4bf" opacity=".68"/>
+<path d="M0 330 94 265 174 297 289 183 384 271 476 213 589 290 704 181 846 275 960 200V570H0Z" fill="#c4d8e9" opacity=".65"/>
+<path d="m0 400 100-97 99 60 126-96 125 106 98-62 94 54 152-117 166 96V570H0Z" fill="#9cb7cc" opacity=".37"/>
+<path d="M0 464c171-73 365-48 531-27 156 19 301-11 429-59v192H0Z" fill="#b7c4b2"/>
+<path d="M0 510c229-48 520-26 960-67v127H0Z" fill="#d2b394" opacity=".37"/>
+<g fill="#9a8878" opacity=".62"><ellipse cx="124" cy="499" rx="36" ry="11"/><ellipse cx="716" cy="508" rx="45" ry="13"/><ellipse cx="840" cy="463" rx="21" ry="8"/></g>
+<g filter="url(#shadow)"><path d="M201 421q-7-19 35-36l90-19 92 10q31 9 31 39v29H215Z" fill="#344e64"/><path d="M236 356c2-107 67-193 163-207 121-13 218 60 234 196l-7 25H237Z" fill="url(#yellow)" stroke="#cc891c" stroke-width="10"/>
+<path d="M300 337q19-145 129-167" fill="none" stroke="#ffecad" stroke-width="24" opacity=".7"/><path d="M428 174v178" stroke="#b36d08" stroke-width="13" opacity=".45"/>
+<path d="M220 356h445q45 0 63 34l-12 16H194l-16-14q4-27 42-36Z" fill="#ffc432" stroke="#b67b24" stroke-width="9"/>
+<rect x="365" y="273" width="110" height="60" rx="12" fill="#c42235" stroke="#fff2dc" stroke-width="5"/><text x="420" y="314" font-family="Arial" font-weight="900" text-anchor="middle" font-size="36" fill="white">KMB</text>
+<g transform="translate(555 365) rotate(10)"><rect width="244" height="88" rx="36" fill="#273e50" stroke="#132837" stroke-width="11"/><rect x="16" y="13" width="91" height="57" rx="22" fill="#96d9ef" fill-opacity=".8" stroke="#dceef5" stroke-width="8"/><rect x="134" y="13" width="91" height="57" rx="22" fill="#96d9ef" fill-opacity=".8" stroke="#dceef5" stroke-width="8"/><path d="M105 42q14-14 29 0" stroke="#d8e6ec" stroke-width="9" fill="none"/></g>
+<g transform="translate(129 441) rotate(-16)"><path d="M0 53V0q9-14 22-9L38 26V-14q10-11 24 0l8 44V-9q12-9 21 1l8 40 3-22q13-9 22 8l4 79-64 19Z" fill="#ffd23e" stroke="#aa791c" stroke-width="8"/></g>
+</g></svg>
