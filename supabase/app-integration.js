@@ -2,6 +2,7 @@
   "use strict";
 
   const path=location.pathname;
+  const isKta=path.includes("monitoring-kta-tra")||path.includes("monitoring-mbj")||path.includes("monitoring-bupr-ampah");
   const appId=path.includes("monitoring-kta-tra")?"kta-tra":path.includes("monitoring-mbj")?"mbj":path.includes("monitoring-bupr-ampah")?"bupr-ampah":"kmb";
   const localStateKey=appId==="kta-tra"?"kta_tra_monitoring_v1":appId==="mbj"?"kmb_mbj_monitoring_v2":appId==="bupr-ampah"?"kmb_bupr_monitoring_v2":"kmb_monitoring_web_v1";
   const migrationBackupKey=localStateKey+"_precloud_backup";
