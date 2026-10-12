@@ -1,0 +1,1 @@
+window.KTA_TRA_UNITS=[];
