@@ -6,10 +6,10 @@
 <meta name="theme-color" content="#6d28d9">
 <title>Monitoring Manpower MBJ</title>
 <link rel="stylesheet" href="styles.css?v=25">
-<link rel="manifest" href="manifest.webmanifest">
+
 <link rel="icon" type="image/svg+xml" href="icon.svg">
 <link rel="apple-touch-icon" href="icon.svg">
-<meta name="apple-mobile-web-app-capable" content="yes">
+
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head>
 <body>
@@ -32,10 +32,10 @@
     <button class="btn hamb" id="menuBtn">☰</button>
     <div><div class="app-name">Monitoring Manpower MBJ</div><h1 id="topTitle">Monitoring Manpower MBJ</h1></div>
   </div>
-  <div class="top-actions"><span class="access-badge role-viewer" id="accessBadge">Pelihat</span><span class="auth-who" id="authWho"></span><button class="btn back-dashboard-btn" id="backDashboard" onclick="goDashboard()" style="display:none">← Kembali ke Dashboard</button><button class="btn" onclick="window.print()">Print</button></div>
+  <div class="top-actions"><span class="access-badge role-viewer" id="accessBadge">Pelihat</span><span class="auth-who" id="authWho"></span><button class="btn auth-btn" id="authBtn" onclick="openAuthModal()">Masuk untuk Edit</button><button class="btn back-dashboard-btn" id="backDashboard" onclick="goDashboard()" style="display:none">← Kembali ke Dashboard</button><button class="btn" onclick="window.print()">Print</button></div>
 </header>
 
-<div class="content"><div class="notice" style="margin-bottom:12px">Data project ini tersimpan lokal pada browser dan belum tersinkronisasi antarpengguna. Portal: <a href="../">Kembali ke beranda KMB</a></div>
+<div class="content"><div class="notice" style="margin-bottom:12px">◂ <a href="../" style="font-weight:700">Portal Utama KMB</a> — Data monitoring MBJ tersimpan terpisah.</div>
 <section class="view active" id="dashboard">
   <div class="dashboard-title-row">
     <div>
@@ -184,9 +184,11 @@
 <script src="data_active.js?v=8"></script>
 <script src="data_out.js?v=8"></script>
 <script src="data_units.js?v=8"></script>
-<script src="app.js?v=28"></script>
+<script src="app.js?v=31"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+<script src="../supabase/config.js?v=1"></script>
+<script src="../supabase/cloud-access.js?v=6"></script>
+<script src="../supabase/app-integration.js?v=12"></script>
 
 </body>
 </html>
