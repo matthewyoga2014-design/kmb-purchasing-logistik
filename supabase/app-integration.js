@@ -146,28 +146,18 @@
     const email=(document.getElementById("authEmail")?.value||"").trim().toLowerCase();
     const password=document.getElementById("authPassword")?.value||"";
     if(!email||!password){alert("Isi email dan password.");return}
+    if(!window.KMBCloud){alert("Koneksi login belum siap. Muat ulang halaman.");return}
     try{
-      await window.KMBCloud.signInPassword(email,password);
+      const result=await window.KMBCloud.signInPassword(email,password);
+      if(result.role!=="owner"&&result.role!=="editor"){
+        closeAuthModal();
+        alert("Akun masuk, tetapi email belum memiliki hak Pemilik atau Editor untuk monitoring ini. Hubungi pemilik untuk mendaftarkan email.");
+        return;
+      }
       closeAuthModal();
     }catch(e){
       const msg=String(e?.message||e||"");
-      const knownRole = email==="matthewyoga2014@gmail.com" || getEditors().map(x=>String(x).toLowerCase()).includes(email);
-      if(knownRole && /invalid login credentials|email not confirmed|user not found/i.test(msg)){
-        try{
-          const r=await window.KMBCloud.signUpPassword(email,password);
-          if(r.session){
-            closeAuthModal();
-            alert("Akun berhasil diaktifkan. Silakan coba edit kembali.");
-          }else{
-            alert("Akun berhasil dibuat. Cek email "+email+" lalu klik konfirmasi satu kali. Setelah itu kembali ke web ini dan tekan Masuk lagi.");
-          }
-          return;
-        }catch(signErr){
-          alert("Aktivasi akun gagal: "+(signErr.message||signErr));
-          return;
-        }
-      }
-      alert("Login gagal: "+msg);
+      alert(/invalid login credentials/i.test(msg)?"Email atau password salah, atau akun belum diaktifkan. Gunakan email pemilik/editor yang terdaftar.":"Gagal masuk: "+msg);
     }
   };
 
@@ -283,6 +273,9 @@
       }
     }catch(e){console.error("Cloud load failed",e)}
     renderAll();
+    if(isKta && typeof showView==="function" && document.getElementById("dashboard")?.classList.contains("active")){
+      requestAnimationFrame(()=>{ if(typeof renderDashboard==="function")renderDashboard(); });
+    }
   }
 
   const originalRenderSettings=window.renderSettings;
