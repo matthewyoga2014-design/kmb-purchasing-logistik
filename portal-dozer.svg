@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 570" role="img" aria-label="Ilustrasi bulldozer tambang">
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#fff0d3"/><stop offset="1" stop-color="#fffbf5"/></linearGradient><linearGradient id="steel" x2="0" y2="1"><stop stop-color="#617d9a"/><stop offset=".62" stop-color="#253c55"/><stop offset="1" stop-color="#111f33"/></linearGradient><linearGradient id="yellow" x2=".1" y2=".0" x1=".8" y1="1"><stop stop-color="#ffe797"/><stop offset=".42" stop-color="#ffc43b"/><stop offset="1" stop-color="#d77e0a"/></linearGradient><linearGradient id="glass" x2="0" y2="0" x1="1" y1="1"><stop stop-color="#90d4f4"/><stop offset="1" stop-color="#244765"/></linearGradient><filter id="shadow"><feDropShadow dx="0" dy="14" stdDeviation="13" flood-color="#24415b" flood-opacity=".22"/></filter></defs>
+<rect width="960" height="570" rx="30" fill="url(#sky)"/>
+<circle cx="790" cy="116" r="74" fill="#fff4bf" opacity=".68"/>
+<path d="M0 330 94 265 174 297 289 183 384 271 476 213 589 290 704 181 846 275 960 200V570H0Z" fill="#c4d8e9" opacity=".65"/>
+<path d="m0 400 100-97 99 60 126-96 125 106 98-62 94 54 152-117 166 96V570H0Z" fill="#9cb7cc" opacity=".37"/>
+<path d="M0 464c171-73 365-48 531-27 156 19 301-11 429-59v192H0Z" fill="#cfae87"/>
+<path d="M0 510c229-48 520-26 960-67v127H0Z" fill="#d2b394" opacity=".37"/>
+<g fill="#9a8878" opacity=".62"><ellipse cx="124" cy="499" rx="36" ry="11"/><ellipse cx="716" cy="508" rx="45" ry="13"/><ellipse cx="840" cy="463" rx="21" ry="8"/></g>
+<g filter="url(#shadow)"><g><rect x="229" y="396" width="449" height="101" rx="50.5" fill="#203043" stroke="#0f2035" stroke-width="10"/><rect x="249" y="409" width="409" height="75" rx="37.5" fill="#455b6e" stroke="#8c9eaa" stroke-width="6"/><path d="M259 399v95" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M302.22222222222223 399v95" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M345.44444444444446 399v95" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M388.66666666666663 399v95" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M431.8888888888889 399v95" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M475.1111111111111 399v95" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M518.3333333333333 399v95" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M561.5555555555555 399v95" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M604.7777777777778 399v95" stroke="#778692" stroke-width="5" opacity=".85"/></g>
+<path d="M287 391V310h315l98 77Z" fill="url(#yellow)" stroke="#7d5928" stroke-width="11"/>
+<path d="M413 319V179h187l45 163" fill="#ffd050" stroke="#99651f" stroke-width="11"/>
+<path d="m442 203 135-1 30 109H440Z" fill="url(#glass)" stroke="#263e54" stroke-width="10"/><path d="M522 202v112" stroke="#273d51" stroke-width="10"/>
+<path d="M260 315h194l19 66H239Z" fill="#e9a723" stroke="#a9741c" stroke-width="9"/>
+<path d="M688 363h65q16 12 29 28l-18 26-74-10Z" fill="#f9bc30" stroke="#87561e" stroke-width="9"/>
+<path d="M773 358c61-2 99 28 87 87l-50 52-106-8-6-81Z" fill="#e5a02d" stroke="#8c601f" stroke-width="12"/>
+<path d="M705 408 861 422 814 483 699 475Z" fill="#ffd14a" stroke="#b87b1e" stroke-width="10"/>
+<path d="M384 303h-72" stroke="#4b5961" stroke-width="9"/><path d="M339 282v-68" stroke="#4b5961" stroke-width="16"/><path d="M305 352h280" stroke="#fff2ad" stroke-width="8"/>
+</g></svg>
