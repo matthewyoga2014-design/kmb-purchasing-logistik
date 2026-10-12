@@ -278,3 +278,7 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
     margin-right: auto !important;
   }
 }
+
+/* Vacant follows MPP name automatically; works in preview and print */
+.table .vacant-name,.detail-mpp .detail-vacant{color:#c52232 !important;font-weight:800 !important}
+@media print{.table .vacant-name,.detail-mpp .detail-vacant{color:#c52232 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
