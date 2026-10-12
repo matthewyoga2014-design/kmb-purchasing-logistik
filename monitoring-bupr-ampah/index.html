@@ -11,7 +11,16 @@
 <link rel="apple-touch-icon" href="icon.svg">
 
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-</head>
+<style>
+.detail-mpp{margin-top:22px;background:white;border:1px solid #e5e7eb;border-radius:16px;padding:20px;box-shadow:0 5px 18px #0f172a0c}
+.detail-mpp h3{margin:0 0 7px;color:#172235}.detail-mpp p{font-size:12px;color:#65758c}
+.detail-mpp .detail-flex{display:flex;gap:14px;flex-wrap:wrap;margin:16px 0}
+.detail-mpp .detail-stat{flex:1;min-width:135px;border-radius:11px;background:#f3f5fa;padding:14px}
+.detail-stat b{display:block;font-size:25px;color:#18243c}.detail-stat span{font-size:11px;color:#68758a}
+.detail-mpp .detail-graph{margin:15px 0}.detail-mpp .detail-line{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12px}.detail-mpp .detail-label{width:145px;flex-shrink:0}.detail-mpp .detail-track{flex:1;display:flex;height:15px;background:#e5eaf2;border-radius:5px;overflow:hidden}.detail-mpp .detail-blue{background:#3275d3}.detail-mpp .detail-red{background:#e95b62}.detail-mpp .detail-n{width:70px;text-align:right}
+.detail-mpp .detail-table-wrap{overflow:auto}.detail-mpp table{border-collapse:collapse;width:100%;min-width:650px;font-size:12px}.detail-mpp th,.detail-mpp td{padding:9px;border-bottom:1px solid #e9edf2;text-align:left}.detail-mpp th{background:#e9edf3;color:#29394e}.detail-mpp td:nth-child(1),.detail-mpp td:nth-child(4){text-align:center}.detail-mpp .detail-vacant{background:#ffe6e7;color:#b91c1c;font-weight:800}.detail-mpp .detail-group td{background:#192f4b;color:white;font-weight:750}.detail-mpp .detail-total td{background:#e8edf4;font-weight:800}
+@media(max-width:650px){.detail-mpp{padding:13px}.detail-mpp .detail-label{width:90px;font-size:10px}.detail-mpp .detail-n{width:59px;font-size:10px}}
+</style></head>
 <body>
 <div class="app">
 <aside class="sidebar" id="sidebar">
@@ -109,7 +118,7 @@
     <div class="section-head"><div><span class="eyebrow">POPULASI UNIT</span><h3>Populasi Unit BUPR Ampah</h3><p class="section-sub">Jumlah unit operasional sesuai data Dashboard Excel BUPR Ampah.</p></div><span class="pill" id="unitTotal">0 unit</span></div>
     <div class="units-grid" id="unitSummary"></div>
   </div>
-</section>
+<div class="detail-mpp" id="detailMPP"><h3>Summary Detail Manpower Planning & Vacant</h3><p>Rincian seluruh posisi MPP (Sheet 2), status pengisian, dan grafik per jabatan. Otomatis mengikuti data monitoring.</p><div id="detailMPPBody">Menyiapkan rincian MPP…</div></div></section>
 <section class="view" id="mpp">
   <div class="page-head">
     <div><h2>MPP BUPR Ampah</h2><p>Planning manpower dan monitoring PTK/rekrutmen.</p></div>
@@ -190,5 +199,28 @@
 <script src="../supabase/cloud-access.js?v=6"></script>
 <script src="../supabase/app-integration.js?v=16"></script>
 
-</body>
+<script>
+(function(){
+"use strict";
+const host=document.getElementById("detailMPPBody");if(!host)return;
+const E=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const vacant=x=>!String(x??"").trim()||String(x).trim().toLowerCase()==="vacant";
+function render(){
+try{
+const d=typeof data!=="undefined"?data:null;if(!d)return;
+const groups=d.sites&&typeof d.sites==="object"?Object.entries(d.sites).map(([k,rows])=>({title:d.siteLabels?.[k]||k,rows:Array.isArray(rows)?rows:[]})):[{title:document.title.replace("Monitoring Manpower ",""),rows:Array.isArray(d.mpp)?d.mpp:[]}];
+const all=groups.flatMap(g=>g.rows);const n=all.length,v=all.filter(r=>vacant(r.Nama)).length;
+const map=new Map();for(const r of all){const label=String(r.Jabatan||"Tanpa Jabatan").trim(),key=label.toLowerCase();if(!map.has(key))map.set(key,{label,n:0,v:0});const x=map.get(key);x.n++;if(vacant(r.Nama))x.v++}
+const stats='<div class="detail-flex"><div class="detail-stat"><span>Manpower Planning</span><b>'+n+'</b></div><div class="detail-stat"><span>Manpower Actual</span><b>'+(n-v)+'</b></div><div class="detail-stat"><span>Vacant</span><b>'+v+'</b></div><div class="detail-stat"><span>% Actual</span><b>'+(n?Math.round((n-v)/n*100):0)+'%</b></div></div>';
+const graph='<div class="detail-graph"><h3>Grafik Planning / Actual / Vacant per Jabatan</h3>'+[...map.values()].map(x=>'<div class="detail-line"><span class="detail-label">'+E(x.label)+'</span><div class="detail-track"><div class="detail-blue" style="width:'+(x.n?(x.n-x.v)/x.n*100:0)+'%"></div><div class="detail-red" style="width:'+(x.n?x.v/x.n*100:0)+'%"></div></div><span class="detail-n">'+(x.n-x.v)+' / '+x.v+' / '+x.n+'</span></div>').join('')+'<p>■ Biru: Actual &nbsp; ■ Merah: Vacant &nbsp; (Actual / Vacant / Planning)</p></div>';
+const table='<div class="detail-table-wrap"><table><thead><tr><th>NO.</th><th>JABATAN</th><th>NAMA</th><th>JUMLAH</th><th>KETERANGAN</th></tr></thead><tbody>'+groups.map(g=>'<tr class="detail-group"><td colspan="5">'+E(g.title)+'</td></tr>'+g.rows.map((r,i)=>'<tr><td>'+(i+1)+'</td><td>'+E(r.Jabatan)+'</td><td class="'+(vacant(r.Nama)?'detail-vacant':'')+'">'+E(vacant(r.Nama)?'Vacant':r.Nama)+'</td><td>1</td><td>'+E(r.Keterangan)+'</td></tr>').join('')).join('')+'<tr class="detail-total"><td colspan="3">TOTAL PLANNING: '+n+' | ACTUAL: '+(n-v)+' | VACANT: '+v+'</td><td>'+n+'</td><td></td></tr></tbody></table></div>';
+host.innerHTML=stats+graph+table;
+}catch(e){console.warn("Detail MPP",e);host.textContent="Belum dapat menampilkan detail MPP."}
+}
+document.addEventListener("DOMContentLoaded",render);window.addEventListener("focus",render);
+const observer=new MutationObserver(()=>{if(!document.hidden)render()});
+const status=document.getElementById("kPlanning");if(status)observer.observe(status,{childList:true,characterData:true,subtree:true});
+window.refreshDetailMPP=render;
+})();
+</script></body>
 </html>
