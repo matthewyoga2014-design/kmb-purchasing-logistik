@@ -440,6 +440,8 @@ async function deleteCandidate(mppIndex,candidateIndex){
   const key=vacancyKey(r),list=getCandidates(r),cand=list[candidateIndex];if(!cand)return;
   if(!confirm("Hapus pelamar "+(cand["Nama Kandidat"]||"ini")+"?"))return;
   window.__candidateDeleteBusy=true;
+  const modalTitle=document.getElementById("modalTitle");
+  if(modalTitle)modalTitle.textContent="Menyimpan penghapusan pelamar...";
   const previous=list.slice();
   try{
     list.splice(candidateIndex,1);
