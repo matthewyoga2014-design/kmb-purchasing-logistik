@@ -174,6 +174,8 @@ async function deleteKmbCandidate(siteKey,rowIndex,candidateIndex){
   const key=kmbCandidateKey(siteKey,row),list=getKmbCandidates(siteKey,row),cand=list[candidateIndex];if(!cand)return;
   if(!confirm("Hapus pelamar "+(cand["Nama Kandidat"]||"ini")+"?"))return;
   window.__candidateDeleteBusy=true;
+  const modalTitle=document.getElementById("modalTitle");
+  if(modalTitle)modalTitle.textContent="Menyimpan penghapusan pelamar...";
   const previous=list.slice();
   try{
     list.splice(candidateIndex,1);
