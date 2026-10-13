@@ -294,16 +294,27 @@
 
   const originalSave=window.saveData;
   if(typeof originalSave==="function"){
+    // Return a save result so destructive actions can wait for confirmed cloud persistence.
+    // Other existing callers may continue to call saveData() without awaiting it.
     window.saveData=function(){
       originalSave.apply(this,arguments);
-      if(!applyingRemote&&window.KMBCloud?.canEdit?.()){
-        const snapshot=JSON.parse(JSON.stringify(data));
-        pendingCloudSaves++;
-        saveQueue=saveQueue
-          .then(()=>window.KMBCloud.saveState(snapshot))
-          .catch(e=>console.error("Cloud save failed",e))
-          .finally(()=>{pendingCloudSaves=Math.max(0,pendingCloudSaves-1)});
+      if(applyingRemote)return Promise.resolve({saved:true,localOnly:true});
+      if(!window.KMBCloud?.canEdit?.()){
+        return Promise.resolve({saved:false,error:new Error("Silakan masuk sebagai Pemilik atau Editor.")});
       }
+      const snapshot=JSON.parse(JSON.stringify(data));
+      pendingCloudSaves++;
+      saveQueue=saveQueue
+        .then(async()=>{
+          await window.KMBCloud.saveState(snapshot);
+          return {saved:true};
+        })
+        .catch(error=>{
+          console.error("Cloud save failed",error);
+          return {saved:false,error};
+        })
+        .finally(()=>{pendingCloudSaves=Math.max(0,pendingCloudSaves-1)});
+      return saveQueue;
     };
   }
 
