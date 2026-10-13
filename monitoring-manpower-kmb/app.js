@@ -168,12 +168,33 @@ function openKmbCandidateForm(siteKey,rowIndex,candidateIndex=null){if(!editOnly
   document.getElementById("formFields").innerHTML='<div class="candidate-back"><button class="btn" type="button" onclick="openKmbCandidateList(decodeURIComponent(\''+encodeURIComponent(siteKey)+'\'),'+rowIndex+')">← Daftar Pelamar</button><span>'+(data.siteLabels?.[siteKey]||siteKey)+' • Posisi #'+esc(row.No||"")+'</span></div>'+CANDIDATE_FIELDS.map(f=>candidateFieldHtml(f,cand)).join("");
   document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
 }
-function deleteKmbCandidate(siteKey,rowIndex,candidateIndex){if(!editOnly())return;
+async function deleteKmbCandidate(siteKey,rowIndex,candidateIndex){
+  if(!editOnly()||window.__candidateDeleteBusy)return;
   const row=data.sites?.[siteKey]?.[rowIndex];if(!row)return;
-  const list=getKmbCandidates(siteKey,row),cand=list[candidateIndex];if(!cand)return;
+  const key=kmbCandidateKey(siteKey,row),list=getKmbCandidates(siteKey,row),cand=list[candidateIndex];if(!cand)return;
   if(!confirm("Hapus pelamar "+(cand["Nama Kandidat"]||"ini")+"?"))return;
-  list.splice(candidateIndex,1);data.candidates[kmbCandidateKey(siteKey,row)]=list;
-  saveData();renderSite(siteKey);openKmbCandidateList(siteKey,rowIndex);
+  window.__candidateDeleteBusy=true;
+  const previous=list.slice();
+  try{
+    list.splice(candidateIndex,1);
+    data.candidates[key]=list;
+    const outcome=await saveData();
+    if(!outcome?.saved){
+      data.candidates[key]=previous;
+      localStorage.setItem(KEY,JSON.stringify(data));
+      renderDashboard();renderSite(siteKey);openKmbCandidateList(siteKey,rowIndex);
+      alert("Pelamar BELUM terhapus dari database. Periksa koneksi dan login Pemilik / Editor, lalu coba lagi. "+(outcome?.error?.message||""));
+      return;
+    }
+    renderSite(siteKey);openKmbCandidateList(siteKey,rowIndex);
+  }catch(error){
+    data.candidates[key]=previous;
+    localStorage.setItem(KEY,JSON.stringify(data));
+    renderSite(siteKey);openKmbCandidateList(siteKey,rowIndex);
+    alert("Penghapusan pelamar gagal: "+(error?.message||error));
+  }finally{
+    window.__candidateDeleteBusy=false;
+  }
 }
 
 function normalizedMP(row){
