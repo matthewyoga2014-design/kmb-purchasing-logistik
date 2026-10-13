@@ -104,7 +104,7 @@ function ensureCandidateData(d){
   (d.mpp||[]).forEach(r=>{
     if(!isVacant(r.Nama))return;
     const key=vacancyKey(r);
-    if(!Array.isArray(d.candidates[key])||!d.candidates[key].length){
+    if(!Array.isArray(d.candidates[key])){
       const seeded=seedCandidatesFromText(r);
       if(seeded.length)d.candidates[key]=seeded;
     }
@@ -168,7 +168,7 @@ function renumberMPP(){
   (data.mpp||[]).forEach((r,i)=>{
     const oldKey="MPP-"+norm(r.No),list=oldCandidates[oldKey];
     r.No=String(i+1);
-    if(Array.isArray(list)&&list.length)next["MPP-"+r.No]=list;
+    if(Array.isArray(list))next["MPP-"+r.No]=list;
   });
   data.candidates=next;
 }
@@ -434,10 +434,33 @@ function openCandidateForm(mppIndex,candidateIndex=null){if(!editOnly())return;
   document.getElementById("formFields").innerHTML='<div class="candidate-back"><button class="btn" type="button" onclick="openCandidateList('+mppIndex+')">← Daftar Pelamar</button><span>Vacant #'+esc(r.No)+' • '+esc(r.PTK||"PTK belum diisi")+'</span></div>'+CANDIDATE_FIELDS.map(f=>candidateFieldHTML(f,row)).join("");
   document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
 }
-function deleteCandidate(mppIndex,candidateIndex){if(!editOnly())return;
-  const r=data.mpp[mppIndex],list=getCandidates(r),cand=list[candidateIndex];if(!cand)return;
+async function deleteCandidate(mppIndex,candidateIndex){
+  if(!editOnly()||window.__candidateDeleteBusy)return;
+  const r=data.mpp?.[mppIndex];if(!r)return;
+  const key=vacancyKey(r),list=getCandidates(r),cand=list[candidateIndex];if(!cand)return;
   if(!confirm("Hapus pelamar "+(cand["Nama Kandidat"]||"ini")+"?"))return;
-  list.splice(candidateIndex,1);data.candidates[vacancyKey(r)]=list;saveData();renderMPP();openCandidateList(mppIndex);
+  window.__candidateDeleteBusy=true;
+  const previous=list.slice();
+  try{
+    list.splice(candidateIndex,1);
+    data.candidates[key]=list; // An empty array explicitly means no applicants: do not re-seed from MPP notes.
+    const outcome=await saveData();
+    if(!outcome?.saved){
+      data.candidates[key]=previous;
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+      renderDashboard();renderMPP();openCandidateList(mppIndex);
+      alert("Pelamar BELUM terhapus dari database. Periksa koneksi dan login Pemilik / Editor, lalu coba lagi. "+(outcome?.error?.message||""));
+      return;
+    }
+    renderMPP();openCandidateList(mppIndex);
+  }catch(error){
+    data.candidates[key]=previous;
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    renderMPP();openCandidateList(mppIndex);
+    alert("Penghapusan pelamar gagal: "+(error?.message||error));
+  }finally{
+    window.__candidateDeleteBusy=false;
+  }
 }
 function deleteMPP(index){if(!editOnly())return;
   const row=data.mpp[index];if(!row)return;
