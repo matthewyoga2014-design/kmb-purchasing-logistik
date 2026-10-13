@@ -4,7 +4,7 @@ const cfg=window.KMB_SUPABASE_CONFIG||{};
 const db=window.supabase&&cfg.url&&cfg.publishableKey?window.supabase.createClient(cfg.url,cfg.publishableKey):null;
 const TYPES=['HELM','KAOS','SEPATU'];
 const ART={HELM:{label:'Helm Safety',url:'helm.svg'},KAOS:{label:'Kaos Kerja',url:'kaos.svg'},SEPATU:{label:'Sepatu Safety',url:'sepatu.svg'}};
-const EMPTY=()=>({stockIn:[],receipts:[],returns:[],limits:{HELM:0,KAOS:0,SEPATU:0},images:{}});
+const EMPTY=()=>({stockIn:[],receipts:[],returns:[],limits:{HELM:0,KAOS:0,SEPATU:0},images:{},personOverrides:{}});
 let state=EMPTY(),revision=0,people=[],accessUsers=[],page='dashboard',chosen='',user=null,role='',saving=false,term='',siteFilter='ALL';
 const el=id=>document.getElementById(id);
 const H=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -27,7 +27,7 @@ function addMonths(date,months){
 }
 function daysUntil(d){if(!d)return Infinity;return Math.round((new Date(d+'T00:00:00')-new Date(today()+'T00:00:00'))/86400000)}
 function showNotice(message,type){const x=el('notice');if(!x)return;x.innerHTML='<div class="notice '+(type||'')+'">'+H(message)+'</div>';window.scrollTo({top:0,behavior:'smooth'})}
-function normalize(v){return {stockIn:arr(v?.stockIn),receipts:arr(v?.receipts),returns:arr(v?.returns),limits:{HELM:Math.max(0,Number(v?.limits?.HELM)||0),KAOS:Math.max(0,Number(v?.limits?.KAOS)||0),SEPATU:Math.max(0,Number(v?.limits?.SEPATU)||0)},images:Object.fromEntries(TYPES.filter(t=>typeof v?.images?.[t]==='string'&&v.images[t].startsWith('data:image/')).map(t=>[t,v.images[t]]))}}
+function normalize(v){return {stockIn:arr(v?.stockIn),receipts:arr(v?.receipts),returns:arr(v?.returns),limits:{HELM:Math.max(0,Number(v?.limits?.HELM)||0),KAOS:Math.max(0,Number(v?.limits?.KAOS)||0),SEPATU:Math.max(0,Number(v?.limits?.SEPATU)||0)},images:Object.fromEntries(TYPES.filter(t=>typeof v?.images?.[t]==='string'&&v.images[t].startsWith('data:image/')).map(t=>[t,v.images[t]])),personOverrides:v?.personOverrides&&typeof v.personOverrides==='object'&&!Array.isArray(v.personOverrides)?v.personOverrides:{}}}
 function parsePeople(mp){
  const seen=new Set(),out=[];
  for(const [list,status] of [[arr(mp.mpActive),'AKTIF'],[arr(mp.mpOut),'OUT']]){
@@ -38,6 +38,31 @@ function parsePeople(mp){
  }
  return out.sort((a,b)=>a.name.localeCompare(b.name,'id'));
 }
+
+function applyPersonOverrides(){
+ const overrides=state.personOverrides||{};
+ people=people.map(p=>{
+  const v=overrides[p.id];
+  return v?{...p,name:String(v.name||p.name),position:String(v.position||p.position),site:String(v.site||p.site),status:v.status==='OUT'?'OUT':v.status==='AKTIF'?'AKTIF':p.status}:p;
+ });
+}
+function personEditForm(id){
+ if(!can())return showNotice('Hanya Pemilik/Editor yang dapat mengubah data manpower.','error');
+ const p=person(id);if(!p)return showNotice('Manpower tidak ditemukan.','error');
+ modal('Edit Data Manpower · '+p.name,'<div class="notice">Perubahan ini berlaku untuk Monitoring APD saja dan tidak mengubah database Monitoring Manpower KMB.</div><form onsubmit="savePersonEdit(event,\''+H(p.id)+'\')"><div class="formgrid"><label>Nama Karyawan<input name="name" value="'+H(p.name)+'" required></label><label>Jabatan<input name="position" value="'+H(p.position)+'" required></label><label>Jobsite<input name="site" value="'+H(p.site)+'" required></label><label>Status<select name="status"><option value="AKTIF" '+(p.status==='AKTIF'?'selected':'')+'>Aktif</option><option value="OUT" '+(p.status==='OUT'?'selected':'')+'>Tidak Aktif / Keluar</option></select></label></div>'+formButtons('Simpan Perubahan Manpower')+'</form>');
+}
+async function savePersonEdit(e,id){
+ e.preventDefault();if(!can())return;
+ const p=person(id);if(!p)return showNotice('Manpower tidak ditemukan.','error');
+ const f=Object.fromEntries(new FormData(e.target));
+ const name=String(f.name||'').trim(),position=String(f.position||'').trim(),site=String(f.site||'').trim();
+ if(!name||!position||!site||!['AKTIF','OUT'].includes(f.status))return showNotice('Data manpower belum lengkap.','error');
+ const next=structuredClone(state);
+ next.personOverrides={...(next.personOverrides||{}),[id]:{name,position,site,status:f.status}};
+ await persist(next,'Data manpower berhasil diperbarui di Monitoring APD.');
+ applyPersonOverrides();render();
+}
+
 function person(id){return people.find(x=>x.id===id)}
 function personName(id){return person(id)?.name||id}
 function personSite(id){return person(id)?.site||'—'}
@@ -92,7 +117,7 @@ async function loadApd(){
 }
 async function loadAll(){
  if(!user||!role)return;
- try{await Promise.all([loadPeople(),loadApd(),...(role==='owner'?[loadAccessUsers()]:[])]);render()}catch(e){showNotice(e.message,'error')}
+ try{await Promise.all([loadPeople(),loadApd(),...(role==='owner'?[loadAccessUsers()]:[])]);applyPersonOverrides();render()}catch(e){showNotice(e.message,'error')}
 }
 async function loadAccessUsers(){if(role!=='owner')return;const {data,error}=await db.from('app_access_roles').select('email,role').eq('app_id','apd').order('email');if(error)throw Error('Daftar akses tidak bisa dimuat: '+error.message);accessUsers=data||[]}
 async function findRole(){
@@ -232,12 +257,12 @@ function dashboard(){
 function renderPeopleRows(out){
  const source=people.filter(p=>p.status===(out?'OUT':'AKTIF'));
  const current=source.filter(p=>(siteFilter==='ALL'||p.site===siteFilter)&&(!term||(p.name+' '+p.position+' '+p.site).toLowerCase().includes(term.toLowerCase())));
- return current.map(p=>'<tr><td><button class="link" onclick="openPerson(\''+H(p.id)+'\')">'+H(p.name)+'</button><div class="muted">'+H(p.position)+'</div></td><td>'+H(p.site)+'</td><td>'+labelStatus(p.status)+'</td>'+TYPES.map(t=>'<td><b>'+held(p.id,t)+'</b><div class="muted">'+(due(p.id,t)?fmt(due(p.id,t)):'Belum dijadwalkan')+'</div></td>').join('')+'<td><button class="btn slim dark" onclick="openPerson(\''+H(p.id)+'\')">Detail & Edit</button></td></tr>').join('')||'<tr><td colspan="7">Tidak ada karyawan yang cocok.</td></tr>';
+ return current.map(p=>'<tr><td><button class="link" onclick="openPerson(\''+H(p.id)+'\')">'+H(p.name)+'</button><div class="muted">'+H(p.position)+'</div></td><td>'+H(p.site)+'</td><td>'+labelStatus(p.status)+'</td>'+TYPES.map(t=>'<td><b>'+held(p.id,t)+'</b><div class="muted">'+(due(p.id,t)?fmt(due(p.id,t)):'Belum dijadwalkan')+'</div></td>').join('')+'<td><button class="btn slim dark" onclick="openPerson(\''+H(p.id)+'\')">Detail APD</button> <button class="btn slim" onclick="personEditForm(\''+H(p.id)+'\')">Edit Manpower</button></td></tr>').join('')||'<tr><td colspan="7">Tidak ada karyawan yang cocok.</td></tr>';
 }
 function peoplePage(out){
  const source=people.filter(x=>x.status===(out?'OUT':'AKTIF')),sites=[...new Set(source.map(p=>p.site))].sort();
  return heading('DATABASE',out?'Manpower Keluar & Pengembalian':'Manpower Aktif & Kepemilikan APD',out?'Periksa dan catat APD yang dikembalikan saat resign.':'Klik nama karyawan untuk mencatat APD lama atau membagikan APD baru.')+
- '<section class="panel"><div class="section-head"><div><h3>Data Manpower KMB ('+source.length+')</h3><p>Nama, jabatan, jobsite, dan status langsung mengikuti Monitoring Manpower KMB.</p></div></div><div class="row-tools"><input id="searchPerson" placeholder="Cari nama, jabatan, jobsite…" value="'+H(term)+'"><select id="filterSite"><option value="ALL">Semua Jobsite</option>'+sites.map(x=>'<option value="'+H(x)+'" '+(siteFilter===x?'selected':'')+'>'+H(x)+'</option>').join('')+'</select><button class="btn" onclick="loadAll()">↻ Sinkronkan Manpower</button></div><div class="table-wrap"><table class="table"><thead><tr><th>Nama & Jabatan</th><th>Jobsite</th><th>Status</th><th>Helm</th><th>Kaos</th><th>Sepatu</th><th>Aksi</th></tr></thead><tbody id="personRows">'+renderPeopleRows(out)+'</tbody></table></div></section>';
+ '<section class="panel"><div class="section-head"><div><h3>Data Manpower KMB ('+source.length+')</h3><p>Data awal mengikuti Monitoring Manpower KMB; Pemilik/Editor dapat mengubah data khusus APD.</p></div></div><div class="row-tools"><input id="searchPerson" placeholder="Cari nama, jabatan, jobsite…" value="'+H(term)+'"><select id="filterSite"><option value="ALL">Semua Jobsite</option>'+sites.map(x=>'<option value="'+H(x)+'" '+(siteFilter===x?'selected':'')+'>'+H(x)+'</option>').join('')+'</select><button class="btn" onclick="loadAll()">↻ Sinkronkan Manpower</button></div><div class="table-wrap"><table class="table"><thead><tr><th>Nama & Jabatan</th><th>Jobsite</th><th>Status</th><th>Helm</th><th>Kaos</th><th>Sepatu</th><th>Aksi</th></tr></thead><tbody id="personRows">'+renderPeopleRows(out)+'</tbody></table></div></section>';
 }
 
 
@@ -274,7 +299,7 @@ function historyPage(){
 }
 function guidePage(){
  const guides=[
- ['1. Sinkronkan Manpower','Daftar karyawan aktif, keluar, jabatan, dan jobsite otomatis diambil dari Monitoring Manpower KMB.'],
+ ['1. Sinkronkan & Edit Manpower','Data awal diambil dari Monitoring Manpower KMB. Klik Edit Manpower untuk mengubah nama, jabatan, jobsite, atau status Aktif/Tidak Aktif khusus di Monitoring APD.'],
  ['2. Catat APD Lama','Buka Manpower → karyawan → Catat APD Lama. Isi kapan APD dahulu diterima, jumlah yang masih dipegang, dan kondisi layak/tidak layak. Tidak perlu stok gudang.'],
  ['3. Tambah Stok Gudang','Khusus Pemilik: Buka Stok & Riwayat Gudang → Tambah Stok Masuk. Editor harus konfirmasi ke Pemilik untuk koreksi stok.'],
  ['4. Tambah APD kepada Karyawan','Buka detail karyawan → Tambah APD. Pilih baru/bekas layak, tanggal penerimaan, jumlah dan jatah ganti dalam bulan. Stok gudang otomatis berkurang.'],
