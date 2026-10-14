@@ -181,7 +181,7 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
 
 
 /* Print layout: center the active dashboard on A4 landscape without affecting screen styling. */
-@page { size: A4 landscape; margin: 8mm; }
+@page { margin: 8mm; }
 @media print {
   html, body { margin: 0 !important; padding: 0 !important; width: 100% !important; }
   .app { display: block !important; min-height: 0 !important; }
@@ -200,7 +200,7 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
 
 
 /* Dashboard print: size all dashboard content to ONE A4 landscape page. */
-@page { size: A4 landscape; margin: 5mm; }
+@page { margin: 5mm; }
 @media print {
   html, body, .app, .main { width: 100% !important; min-height: 0 !important; height: auto !important; overflow: visible !important; }
   .sidebar, .topbar, .footer, .modal, .toolbar { display: none !important; }
@@ -236,3 +236,10 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
 /* Vacant follows MPP name automatically; works in preview and print */
 .table .vacant-name,.detail-mpp .detail-vacant{color:#c52232 !important;font-weight:800 !important}
 @media print{.table .vacant-name,.detail-mpp .detail-vacant{color:#c52232 !important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+
+/* Print manually: portrait, landscape and scaling are chosen by the browser/printer. */
+@media print {
+ #dashboard.view.active {zoom:1!important;width:100%!important;max-width:100%!important;min-width:0!important;transform:none!important;align-self:stretch!important;margin:0 auto!important}
+ .main>.content{display:block!important;width:100%!important}
+ #dashboard .dashboard-resume{max-height:none!important;overflow:visible!important}
+}
