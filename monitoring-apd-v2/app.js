@@ -13,6 +13,11 @@ function variantStocks(t,d=state){const z={};[...VARIANTS[t],'BELUM DIISI'].forE
 
 const ART={HELM:{label:'Helm Safety',url:'helm.svg'},KAOS:{label:'Kaos Kerja',url:'kaos.svg'},SEPATU:{label:'Sepatu Safety',url:'sepatu.svg'}};
 const EMPTY=()=>({stockIn:[],receipts:[],returns:[],limits:{HELM:0,KAOS:0,SEPATU:0},images:{},personOverrides:{}});
+let editingDashboardLayout=false,layoutDraft=null;
+const DASH_SECTIONS=['kpi','trend','composition','products','activity','schedule'];
+const DASH_NAMES={kpi:'Kartu Ringkasan',trend:'Diagram Tren Distribusi',composition:'Diagram Komposisi',products:'Kartu Stok APD',activity:'Aktivitas Terbaru',schedule:'Tabel Jadwal Penggantian'};
+const defaultLayout=()=>DASH_SECTIONS.map(id=>({id,wide:id==='kpi'||id==='schedule'}));
+function normalizedLayout(v){const data=Array.isArray(v)?v:[];const ordered=data.filter(x=>x&&DASH_SECTIONS.includes(x.id)).map(x=>({id:x.id,wide:!!x.wide}));for(const item of defaultLayout())if(!ordered.some(x=>x.id===item.id))ordered.push(item);return ordered}
 let state=EMPTY(),revision=0,people=[],deleteAudit=[],accessUsers=[],page='dashboard',chosen='',user=null,role='',saving=false,term='',siteFilter='ALL';
 const el=id=>document.getElementById(id);
 const H=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -35,7 +40,7 @@ function addMonths(date,months){
 }
 function daysUntil(d){if(!d)return Infinity;return Math.round((new Date(d+'T00:00:00')-new Date(today()+'T00:00:00'))/86400000)}
 function showNotice(message,type){const x=el('notice');if(!x)return;x.innerHTML='<div class="notice '+(type||'')+'">'+H(message)+'</div>';window.scrollTo({top:0,behavior:'smooth'})}
-function normalize(v){return {stockIn:arr(v?.stockIn),receipts:arr(v?.receipts),returns:arr(v?.returns),limits:{HELM:Math.max(0,Number(v?.limits?.HELM)||0),KAOS:Math.max(0,Number(v?.limits?.KAOS)||0),SEPATU:Math.max(0,Number(v?.limits?.SEPATU)||0)},images:Object.fromEntries(TYPES.filter(t=>typeof v?.images?.[t]==='string'&&v.images[t].startsWith('data:image/')).map(t=>[t,v.images[t]])),personOverrides:v?.personOverrides&&typeof v.personOverrides==='object'&&!Array.isArray(v.personOverrides)?v.personOverrides:{}}}
+function normalize(v){return {stockIn:arr(v?.stockIn),receipts:arr(v?.receipts),returns:arr(v?.returns),limits:{HELM:Math.max(0,Number(v?.limits?.HELM)||0),KAOS:Math.max(0,Number(v?.limits?.KAOS)||0),SEPATU:Math.max(0,Number(v?.limits?.SEPATU)||0)},images:Object.fromEntries(TYPES.filter(t=>typeof v?.images?.[t]==='string'&&v.images[t].startsWith('data:image/')).map(t=>[t,v.images[t]])),personOverrides:v?.personOverrides&&typeof v.personOverrides==='object'&&!Array.isArray(v.personOverrides)?v.personOverrides:{},dashboardLayout:normalizedLayout(v?.dashboardLayout)}}
 function parsePeople(mp){
  const seen=new Set(),out=[];
  for(const [list,status] of [[arr(mp.mpActive),'AKTIF'],[arr(mp.mpOut),'OUT']]){
@@ -161,6 +166,7 @@ async function login(){
 async function logout(){if(db)await db.auth.signOut();user=null;role='';state=EMPTY();people=[];page='dashboard';render()}
 async function persist(next,message){
  if(!can()||saving)return showNotice('Hanya Owner/Editor dapat menyimpan data.','error');
+ if(!ownerOnly()&&JSON.stringify(next.dashboardLayout)!==JSON.stringify(state.dashboardLayout))return showNotice('Hanya Pemilik dapat mengubah layout Dashboard.','error');
  if(!ownerOnly()&&(JSON.stringify(next.stockIn)!==JSON.stringify(state.stockIn)||JSON.stringify(next.limits)!==JSON.stringify(state.limits)||JSON.stringify(next.images)!==JSON.stringify(state.images)))return showNotice('Koreksi stok gudang, stok minimum, dan gambar APD hanya boleh dilakukan Pemilik. Hubungi Pemilik untuk konfirmasi.','error');
  const issue=validate(next);if(issue)return showNotice('Tidak dapat menyimpan: '+issue,'error');
  saving=true;
@@ -191,7 +197,7 @@ function render(){
   el('app').innerHTML=heading('MONITORING SYSTEM','Monitoring APD KMB','Mengikuti daftar karyawan Monitoring Manpower KMB.')+'<section class="panel" style="max-width:650px;margin:34px auto;text-align:center;padding:43px 25px"><div style="font-size:50px">🪖 &nbsp; 👕 &nbsp; 🥾</div><h2>Pengelolaan APD Karyawan</h2><p class="muted" style="line-height:1.8">Kelola APD lama, stok gudang, jadwal penggantian dan pengembalian saat resign. Masuk menggunakan akun KMB.</p><button class="btn dark" onclick="login()">Masuk Akun KMB</button></section>';return;
  }
  if(page==='deleted'){el('pageTitle').textContent='Riwayat Hapus APD';el('app').innerHTML=deletedPage()}
- else if(page==='dashboard'){el('pageTitle').textContent='Dashboard Monitoring APD';el('app').innerHTML=dashboard()}
+ else if(page==='dashboard'){el('pageTitle').textContent='Dashboard Monitoring APD';el('app').innerHTML=dashboard();setupDashboardLayout()}
  else if(page==='people'||page==='out'){el('pageTitle').textContent=page==='people'?'Manpower Aktif':'Manpower Keluar';el('app').innerHTML=peoplePage(page==='out')}
  else if(page==='detail'){const p=person(chosen);el('pageTitle').textContent='Detail APD · '+(p?.name||'');el('app').innerHTML=p?detailPage(p):'<div class="empty">Karyawan tidak ditemukan; silakan sinkronkan.</div>'}
  else if(page==='stock'){el('pageTitle').textContent='Stok APD Gudang';el('app').innerHTML=stockPage()}
@@ -251,6 +257,37 @@ function recentActivity(){
  return items.slice(0,5).map(x=>'<div class="apd-activity"><span class="apd-activity-icon '+x.color+'">'+x.icon+'</span><div><b>'+H(x.title)+'</b><small>'+H(x.description)+'</small></div><time>'+fmt(x.date)+'</time></div>').join('')||'<div class="apd-activity-empty"><strong>Belum ada aktivitas APD</strong><small>Transaksi stok dan pembagian APD akan tampil di sini otomatis.</small></div>';
 }
 
+function toggleDashboardLayout(){
+ if(!ownerOnly())return;
+ if(editingDashboardLayout){editingDashboardLayout=false;layoutDraft=null}
+ else{editingDashboardLayout=true;layoutDraft=normalizedLayout(state.dashboardLayout)}
+ render();
+}
+function moveDash(id,change){if(!ownerOnly()||!editingDashboardLayout)return;const i=layoutDraft.findIndex(x=>x.id===id),j=i+change;if(i<0||j<0||j>=layoutDraft.length)return;[layoutDraft[i],layoutDraft[j]]=[layoutDraft[j],layoutDraft[i]];render()}
+function wideDash(id){if(!ownerOnly()||!editingDashboardLayout)return;const x=layoutDraft.find(x=>x.id===id);if(x){x.wide=!x.wide;render()}}
+function resetDash(){if(!ownerOnly()||!editingDashboardLayout)return;if(confirm('Kembalikan susunan dashboard ke awal? Perubahan belum disimpan.')){layoutDraft=defaultLayout();render()}}
+async function saveDash(){if(!ownerOnly()||!editingDashboardLayout)return;const d=structuredClone(state);d.dashboardLayout=normalizedLayout(layoutDraft);await persist(d,'Layout Dashboard berhasil disimpan untuk semua pengguna.');if(JSON.stringify(state.dashboardLayout)===JSON.stringify(d.dashboardLayout)){editingDashboardLayout=false;layoutDraft=null;render()}}
+function setupDashboardLayout(){
+ const root=document.querySelector('.apd-dashboard');if(!root)return;
+ const selectors={kpi:'.apd-gradient-kpis',trend:'.apd-trend-panel',composition:'.apd-composition-panel',products:'.apd-product-panel',activity:'.apd-activities-panel',schedule:'.apd-schedules'};
+ const parts={};for(const [id,selector] of Object.entries(selectors)){parts[id]=root.querySelector(selector);if(!parts[id])return}
+ const layout=editingDashboardLayout&&ownerOnly()?normalizedLayout(layoutDraft):normalizedLayout(state.dashboardLayout);
+ const toolbar=document.createElement('div');toolbar.className='apd-layout-toolbar';
+ if(ownerOnly()){toolbar.innerHTML=editingDashboardLayout?'<strong>Mode Edit Layout</strong><span>Geser komponen atau gunakan tombol panah. Klik Simpan setelah selesai.</span><button class="btn slim" onclick="resetDash()">Reset</button><button class="btn slim" onclick="toggleDashboardLayout()">Batal</button><button class="btn slim dark" onclick="saveDash()">Simpan Layout</button>':'<button class="btn dark" onclick="toggleDashboardLayout()">✎ Edit Layout Dashboard</button>';root.insertBefore(toolbar,root.children[1])}
+ const grid=document.createElement('div');grid.className='apd-editable-layout'+(editingDashboardLayout&&ownerOnly()?' is-editing':'');root.appendChild(grid);
+ layout.forEach((cfg,i)=>{
+  const item=document.createElement('div');item.className='apd-layout-item'+(cfg.wide?' apd-layout-wide':'');item.dataset.section=cfg.id;
+  if(editingDashboardLayout&&ownerOnly()){
+   item.draggable=true;
+   item.ondragstart=e=>{e.dataTransfer.setData('text/plain',cfg.id);e.dataTransfer.effectAllowed='move'};
+   item.ondragover=e=>{e.preventDefault();e.dataTransfer.dropEffect='move'};
+   item.ondrop=e=>{e.preventDefault();const from=e.dataTransfer.getData('text/plain');if(!DASH_SECTIONS.includes(from)||from===cfg.id)return;const a=layoutDraft.findIndex(x=>x.id===from),b=layoutDraft.findIndex(x=>x.id===cfg.id);if(a<0||b<0)return;layoutDraft.splice(b,0,layoutDraft.splice(a,1)[0]);render()};
+   const ctrl=document.createElement('div');ctrl.className='apd-layout-controls';ctrl.innerHTML='<b>⠿ '+DASH_NAMES[cfg.id]+'</b><span><button class="btn slim" onclick="moveDash(\''+cfg.id+'\',-1)" '+(i===0?'disabled':'')+'>↑</button><button class="btn slim" onclick="moveDash(\''+cfg.id+'\',1)" '+(i===layout.length-1?'disabled':'')+'>↓</button><button class="btn slim" onclick="wideDash(\''+cfg.id+'\')">'+(cfg.wide?'½ Lebar':'Lebar Penuh')+'</button></span>';item.appendChild(ctrl);
+  }
+  item.appendChild(parts[cfg.id]);grid.appendChild(item);
+ });
+ root.querySelectorAll('.apd-analytics,.apd-bottom-panels').forEach(x=>{if(!x.children.length)x.remove()});
+}
 function dashboard(){
  const w=TYPES.reduce((a,t)=>{const z=stock(t);return a+z.NEW+z.REUSE},0);
  const count=distributed().reduce((a,t)=>a+qty(t.qty),0),dueCount=schedules().filter(x=>x.days<=0).length,active=people.filter(p=>p.status==='AKTIF').length;
