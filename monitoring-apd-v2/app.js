@@ -275,7 +275,7 @@ function detailPage(p){
    const back=state.returns.filter(x=>x.receiptId===r.id);
    const source=r.source==='OLD'?'APD LAMA':r.source==='NEW'?'APD BARU':'APD BEKAS LAYAK';
    const history=back.map(x=>'<small>↳ '+fmt(x.date)+' · '+x.qty+' unit '+(x.action==='REUSE'?'dikembalikan layak → stok bekas':'tidak layak → musnah')+(can()?'<button class="btn slim" onclick="editReturn(\''+H(x.id)+'\')">Edit</button>':'')+'</small>').join('');
-   return '<div class="lot"><div style="flex:1"><strong>'+source+' · '+fmt(r.date)+' · '+r.qty+' unit '+labelStatus(r.condition||'BELUM DIPERIKSA')+'</strong><small>Masih dimiliki: <b>'+remain+' unit</b>'+(r.source==='OLD'?' · APD lama tidak menjadi acuan tanggal ganti':' · Jatah '+r.months+' bulan · Jadwal '+fmt(addMonths(r.date,r.months)))+'</small><small>'+H(r.note||'')+'</small>'+history+'</div><div class="toolbarend">'+(can()?'<button class="btn slim" onclick="receiptForm(\''+H(p.id)+'\',\''+t+'\',\''+H(r.id)+'\')">✎ Edit APD</button>':'')+(can()&&p.status==='OUT'&&remain>0?'<button class="btn slim dark" onclick="returnForm(\''+H(r.id)+'\')">↩ Pengembalian</button>':'')+'</div></div>';
+   return '<div class="lot"><div style="flex:1"><strong>'+source+' · '+fmt(r.date)+' · '+r.qty+' unit '+labelStatus(r.condition||'BELUM DIPERIKSA')+'</strong><small>Masih dimiliki: <b>'+remain+' unit</b>'+(r.source==='OLD'?' · APD lama tidak menjadi acuan tanggal ganti':' · Jatah '+r.months+' bulan · Jadwal '+fmt(addMonths(r.date,r.months)))+'</small><small>'+H(r.note||'')+'</small>'+history+'</div><div class="toolbarend">'+(can()?'<button class="btn slim" onclick="receiptForm(\''+H(p.id)+'\',\''+t+'\',\''+H(r.id)+'\')">✎ Edit APD</button>':'')+(ownerOnly()?'<button class="btn slim danger" onclick="deleteApdRecord(\'receipt\',\''+H(r.id)+'\')">Hapus</button>':'')+(can()&&p.status==='OUT'&&remain>0?'<button class="btn slim dark" onclick="returnForm(\''+H(r.id)+'\')">↩ Pengembalian</button>':'')+'</div></div>';
   }).join('')||'<div class="notice">Belum ada riwayat. Gunakan Catat APD Lama untuk APD yang telah dimiliki, atau Bagikan APD untuk stok gudang.</div>';
   return '<section class="panel" style="margin-bottom:16px"><div class="section-head"><div><h3>'+(t==='HELM'?'🪖':t==='KAOS'?'👕':'🥾')+' '+ART[t].label+'</h3><p>Dipegang '+held(p.id,t)+' unit · Stok lama '+oldStock+' unit</p></div><div class="toolbarend">'+(can()?'<button class="btn slim" onclick="receiptForm(\''+H(p.id)+'\',\''+t+'\',\'\',\'OLD\')">+ Catat APD Lama</button><button class="btn slim dark" onclick="receiptForm(\''+H(p.id)+'\',\''+t+'\',\'\',\'NEW\')">+ Tambah APD</button>':'')+'</div></div>'+
   '<div class="stat-row"><div class="mini-stat"><small>Total Dipegang</small><b>'+held(p.id,t)+'</b></div><div class="mini-stat"><small>Stok APD Lama</small><b>'+oldStock+'</b></div><div class="mini-stat"><small>Terakhir Terima Baru/Bekas</small><b style="font-size:13px">'+fmt(latestDist?.date)+'</b></div><div class="mini-stat"><small>Jadwal Ganti</small><b style="font-size:13px">'+fmt(lastDate)+'</b></div></div><div class="lot-list">'+rows+'</div></section>';
@@ -285,7 +285,7 @@ function detailPage(p){
 function stockPage(){
  if(!ownerOnly())return '<div class="empty">Halaman stok dan riwayat gudang hanya untuk Pemilik.</div>';
  const cards='<div class="cards3 warehouse-cards">'+TYPES.map(t=>{const x=stock(t);return '<div class="card product warehouse-card">'+icon(t)+'<div class="warehouse-card-info"><h3>'+ART[t].label+'</h3><div class="big">'+(x.NEW+x.REUSE)+'</div><small>Baru '+x.NEW+' · Bekas layak '+x.REUSE+' · Musnah '+x.DESTROYED+'</small><small>Minimal stok: '+Number(state.limits?.[t]||0)+'</small>'+(can()?'<button class="btn slim warehouse-edit" onclick="editWarehouseStock(\''+t+'\')">✎ Edit Stok Gudang</button>':'')+'</div></div>'}).join('')+'</div>';
- const rows=[...state.stockIn].sort((a,b)=>b.date.localeCompare(a.date)).map(x=>'<tr><td>'+fmt(x.date)+'</td><td>'+x.type+'</td><td>'+labelStatus(x.grade==='NEW'?'BARU':'LAYAK')+'</td><td><b>'+x.qty+'</b></td><td>'+H(x.location||'Gudang')+'</td><td>'+H(x.note||'—')+'</td><td>'+(can()?'<button class="btn slim" onclick="stockForm(\''+H(x.id)+'\')">✎ Edit Stok</button>':'–')+'</td></tr>').join('')||'<tr><td colspan="7">Belum ada stok masuk. Stok awal 0; input manual ketika barang diterima gudang.</td></tr>';
+ const rows=[...state.stockIn].sort((a,b)=>b.date.localeCompare(a.date)).map(x=>'<tr><td>'+fmt(x.date)+'</td><td>'+x.type+'</td><td>'+labelStatus(x.grade==='NEW'?'BARU':'LAYAK')+'</td><td><b>'+x.qty+'</b></td><td>'+H(x.location||'Gudang')+'</td><td>'+H(x.note||'—')+'</td><td>'+(ownerOnly()?'<button class="btn slim" onclick="stockForm(\''+H(x.id)+'\')">✎ Edit Stok</button> <button class="btn slim danger" onclick="deleteApdRecord(\'stock\',\''+H(x.id)+'\')">Hapus</button>':'–')+'</td></tr>').join('')||'<tr><td colspan="7">Belum ada stok masuk. Stok awal 0; input manual ketika barang diterima gudang.</td></tr>';
  return heading('INVENTORY','Stok APD Gudang','Stok gudang terpisah dari APD lama milik karyawan.',can()?'<button class="btn dark" onclick="stockForm()">+ Tambah Stok Masuk</button>':'')+cards+
  '<div class="notice">APD yang <b>sudah dipakai karyawan</b> dicatat melalui Manpower → Detail → Catat APD Lama. Jangan masukkan ke stok gudang.</div><section class="panel"><div class="section-head"><h3>Riwayat Stok Masuk</h3><button class="btn" onclick="loadAll()">↻ Sinkronkan</button></div><div class="table-wrap"><table class="table"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Kondisi</th><th>Qty</th><th>Gudang</th><th>Keterangan</th><th>Aksi</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>';
 }
@@ -404,6 +404,24 @@ async function removeAccess(email){
  await loadAccessUsers();render();showNotice('Akses pengguna telah dicabut.','success');
 }
 
+// Penghapusan transaksi dibatasi untuk Pemilik; perubahan saldo dicek ulang oleh validate().
+async function deleteApdRecord(kind,id){
+ if(!ownerOnly())return showNotice('Hanya Pemilik yang dapat menghapus data APD.','error');
+ const collection={stock:'stockIn',receipt:'receipts',return:'returns'}[kind];
+ if(!collection)return;
+ const record=state[collection].find(x=>x.id===id);
+ if(!record)return showNotice('Data tidak ditemukan. Sinkronkan halaman terlebih dahulu.','error');
+ if(kind==='receipt'&&state.returns.some(x=>x.receiptId===id))
+  return showNotice('APD ini memiliki pengembalian. Hapus transaksi pengembaliannya terlebih dahulu melalui Riwayat Transaksi.','error');
+ const label=kind==='stock'?'stok masuk':kind==='receipt'?'penerimaan APD':'pengembalian APD';
+ const desc=(kind==='return'?'':kind==='stock'?'':personName(record.person)+' · ')+(record.type||state.receipts.find(x=>x.id===record.receiptId)?.type||'APD')+' · '+fmt(record.date)+' · '+record.qty+' unit';
+ if(!confirm('Hapus permanen '+label+'?\\n'+desc+'\\n\\nSaldo stok, jumlah kepemilikan dan dashboard akan dihitung ulang. Tindakan ini tidak dapat dibatalkan.'))return;
+ const next=structuredClone(state);
+ next[collection]=next[collection].filter(x=>x.id!==id);
+ const issue=validate(next);
+ if(issue)return showNotice('Tidak dapat menghapus karena akan membuat data stok tidak valid: '+issue,'error');
+ await persist(next,'Data '+label+' berhasil dihapus. Dashboard dan stok telah dihitung ulang.');
+}
 function modal(title,body){
  el('modalTitle').textContent=title;el('modalBody').innerHTML=body;el('modalBack').hidden=false;
 }
