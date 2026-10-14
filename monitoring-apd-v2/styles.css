@@ -117,3 +117,16 @@ body{background:var(--appbg);color:var(--ink);font-family:Inter,"Segoe UI",Arial
  .apd-product-grid{grid-template-columns:repeat(3,minmax(0,1fr))!important}
  .apd-chart-controls,.apd-chart-actions,.apd-select-year{display:none!important}
 }
+
+/* FINAL: browser/driver owns printing size, orientation and scale. */
+@media print{
+ html,body,.shell,.main,.content,#app,.apd-dashboard{box-sizing:border-box!important;display:block!important;width:100%!important;min-width:0!important;max-width:none!important;height:auto!important;margin:0!important;padding:0!important;overflow:visible!important;zoom:1!important;transform:none!important}
+ .side,.top-right,.hamburger,.footer,.modalback,.btn,.apd-layout-toolbar,.apd-layout-controls,.row-tools{display:none!important}
+ .apd-editable-layout{display:grid!important;grid-template-columns:minmax(0,1fr)!important;gap:12px!important}
+ .apd-layout-item,.apd-layout-wide{grid-column:1/-1!important;width:100%!important;min-width:0!important}
+ .apd-gradient-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .apd-product-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+ .apd-layout-item .panel{width:100%!important;max-width:none!important}
+ .table-wrap{overflow:visible!important;width:100%!important}
+ table{width:100%!important;min-width:0!important}
+}
