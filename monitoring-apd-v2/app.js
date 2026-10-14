@@ -480,14 +480,14 @@ async function deleteApdRecord(kind,id){
  await persist(next,'Data '+label+' berhasil dihapus. Dashboard dan stok telah dihitung ulang.');
 }
 /* Pengaturan cetak manual seperti monitoring KTA-TRA, tidak mengubah layout tersimpan. */
-let apdPrintScale=70,apdPrintOrientation='landscape',apdPrintOnePage=true;
+let apdPrintScale=100,apdPrintOrientation='landscape',apdPrintOnePage=false;
 function openPrintSettings(){
  if(!user||!role)return showNotice('Silakan login sebelum mencetak.','error');
  modal('Pengaturan Print Monitoring APD',
  '<div class="notice">Atur tampilan khusus cetak. Pengaturan ini tidak mengubah susunan Dashboard yang disimpan.</div>'+
  '<div class="formgrid"><label>Orientasi Kertas<select id="apdPrintOrientation"><option value="landscape" '+(apdPrintOrientation==='landscape'?'selected':'')+'>Landscape / Mendatar</option><option value="portrait" '+(apdPrintOrientation==='portrait'?'selected':'')+'>Portrait / Tegak</option></select></label>'+
  '<label>Skala Dashboard (%)<input id="apdPrintScale" type="number" min="25" max="100" step="5" value="'+apdPrintScale+'"></label>'+
- '<label class="wide"><input id="apdPrintOnePage" type="checkbox" '+(apdPrintOnePage?'checked':'')+'> Usahakan muat 1 lembar untuk Dashboard</label></div>'+
+ '<label class="wide"><input id="apdPrintOnePage" type="checkbox" '+(apdPrintOnePage?'checked':'')+'> Kecilkan otomatis agar muat 1 lembar (tampilan bisa menjadi kecil)</label></div>'+
  '<div class="formactions"><button type="button" class="btn" onclick="closeModal()">Batal</button><button type="button" class="btn dark" onclick="startApdPrint()">Terapkan & Print</button></div>');
 }
 function startApdPrint(){
@@ -497,20 +497,22 @@ function startApdPrint(){
  apdPrintOnePage=!!el('apdPrintOnePage')?.checked;
  const old=document.getElementById('apd-print-settings');if(old)old.remove();
  const style=document.createElement('style');style.id='apd-print-settings';
- const pageWidth=apdPrintOrientation==='landscape'?277:190;
- const pageHeight=apdPrintOrientation==='landscape'?190:277;
+ const landscape=apdPrintOrientation==='landscape';
  const dashboard=document.querySelector('.apd-dashboard');
- const baseWidth=Math.max(dashboard?.scrollWidth||0,1050);
- const h=Math.max(dashboard?.scrollHeight||0,900);
+ // Use the natural paper width; don't zoom out a fixed-width 1050px dashboard.
+ // Only apply shrinking when the user explicitly enables fit-to-one-page.
+ const screenHeight=dashboard?.scrollHeight||0;
+ const paperHeightPx=landscape?710:1035;
  const requested=apdPrintScale/100;
- const fit=apdPrintOnePage&&page==='dashboard'?Math.min(requested,pageWidth/277,(pageHeight*3.7795)/h):requested;
- const zoom=Math.max(.20,fit);
+ const fit=apdPrintOnePage&&page==='dashboard'&&screenHeight>0?
+   Math.min(requested,Math.max(.25,(paperHeightPx-50)/screenHeight)):requested;
+ const zoom=fit.toFixed(3);
  style.textContent='@page{size:A4 '+apdPrintOrientation+';margin:8mm}'+
- '@media print{.apd-dashboard{zoom:'+zoom+'!important;width:'+baseWidth+'px!important;max-width:none!important;margin:0 auto!important}'+
+ '@media print{#app{display:block!important;width:100%!important;max-width:100%!important}'+
+ '.apd-dashboard{zoom:'+zoom+'!important;width:'+Math.round(100/fit)+'%!important;max-width:none!important;margin:0 auto!important}'+
  '.apd-editable-layout{grid-template-columns:repeat(2,minmax(0,1fr))!important}'+
  '.apd-editable-layout .apd-layout-wide{grid-column:1/-1!important}'+
- '.apd-gradient-kpis{grid-template-columns:repeat(4,minmax(0,1fr))!important}'+
- '#app{display:flex!important;justify-content:center!important}}';
+ '.apd-gradient-kpis{grid-template-columns:repeat(4,minmax(0,1fr))!important}}';
  document.head.appendChild(style);
  closeModal();window.print();
 }
