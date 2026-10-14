@@ -9,7 +9,7 @@ const vLabel=t=>t==='HELM'?'Warna Helm (All Size)':t==='KAOS'?'Ukuran Kaos':'Uku
 const vOptions=(t,v)=>'<option value="">Pilih '+vLabel(t)+'</option>'+VARIANTS[t].map(z=>'<option value="'+z+'" '+(z===v?'selected':'')+'>'+z+'</option>').join('')+(v==='BELUM DIISI'?'<option value="BELUM DIISI" selected>Belum diisi (data lama)</option>':'');
 const vForm=(t,v)=>'<label id="variantWrap">'+vLabel(t)+'<select name="variant" id="apdVariant" required>'+vOptions(t,v)+'</select></label>';
 function syncVariant(){const t=el('apdTypeSelect')?.value,x=el('apdVariant'),w=el('variantWrap');if(!x)return;w.firstChild.textContent=vLabel(t);x.innerHTML=vOptions(t,'')}
-function variantStocks(t,d=state){const z={};[...VARIANTS[t],'BELUM DIISI'].forEach(v=>z[v]={NEW:0,REUSE:0});d.stockIn.filter(x=>x.type===t).forEach(x=>z[variant(x)][x.grade]+=qty(x.qty));d.receipts.filter(x=>x.type===t&&x.source!=='OLD').forEach(x=>z[variant(x)][x.source]-=qty(x.qty));d.returns.filter(x=>x.action==='REUSE').forEach(x=>{const r=d.receipts.find(y=>y.id===x.receiptId);if(r?.type===t)z[variant(r)].REUSE+=qty(x.qty)});return z}
+function variantStocks(t,d=state){const z={};[...VARIANTS[t],'BELUM DIISI'].forEach(v=>z[v]={NEW:0,REUSE:0});d.stockIn.filter(x=>x.type===t).forEach(x=>z[variant(x)][x.grade]+=qty(x.qty));d.receipts.filter(x=>x.type===t&&(x.source==='NEW'||x.source==='REUSE')).forEach(x=>z[variant(x)][x.source]-=qty(x.qty));d.returns.filter(x=>x.action==='REUSE').forEach(x=>{const r=d.receipts.find(y=>y.id===x.receiptId);if(r?.type===t)z[variant(r)].REUSE+=qty(x.qty)});return z}
 
 const ART={HELM:{label:'Helm Safety',url:'helm.svg'},KAOS:{label:'Kaos Kerja',url:'kaos.svg'},SEPATU:{label:'Sepatu Safety',url:'sepatu.svg'}};
 const EMPTY=()=>({stockIn:[],receipts:[],returns:[],limits:{HELM:0,KAOS:0,SEPATU:0},images:{},personOverrides:{}});
@@ -91,7 +91,7 @@ function icon(type){return '<div class="art"><img src="'+H(state.images?.[type]|
 function validate(d){
  for(const x of d.stockIn)if(!TYPES.includes(x.type)||!['NEW','REUSE'].includes(x.grade)||!Number.isInteger(Number(x.qty))||Number(x.qty)<1||!x.date)return 'Tanggal, jenis dan jumlah stok masuk harus valid (minimal 1).';
  for(const x of d.receipts){
-  if(!TYPES.includes(x.type)||!['OLD','NEW','REUSE'].includes(x.source)||!Number.isInteger(Number(x.qty))||Number(x.qty)<1||!x.date||!x.person)return 'Data penerimaan APD belum lengkap.';
+  if(!TYPES.includes(x.type)||!['OLD','NEW','REUSE','EXTERNAL'].includes(x.source)||!Number.isInteger(Number(x.qty))||Number(x.qty)<1||!x.date||!x.person)return 'Data penerimaan APD belum lengkap.';
   if(x.source!=='OLD'&&(!Number.isInteger(Number(x.months))||Number(x.months)<1||Number(x.months)>120))return 'Jatah penggantian harus 1–120 bulan.';
  }
  for(const x of [...d.stockIn,...d.receipts])if(x.variant&&x.variant!=='BELUM DIISI'&&!VARIANTS[x.type]?.includes(x.variant))return 'Ukuran atau warna APD tidak valid.';
@@ -284,7 +284,7 @@ function detailPage(p){
   const rows=lots.map(r=>{
    const remain=heldLot(r);
    const back=state.returns.filter(x=>x.receiptId===r.id);
-   const source=r.source==='OLD'?'APD LAMA':r.source==='NEW'?'APD BARU':'APD BEKAS LAYAK';
+   const source=r.source==='OLD'?'APD LAMA':r.source==='NEW'?'APD BARU':r.source==='EXTERNAL'?'APD DARI PIHAK LUAR':'APD BEKAS LAYAK';
    const history=back.map(x=>'<small>↳ '+fmt(x.date)+' · '+x.qty+' unit '+(x.action==='REUSE'?'dikembalikan layak → stok bekas':'tidak layak → musnah')+(can()?'<button class="btn slim" onclick="editReturn(\''+H(x.id)+'\')">Edit</button>':'')+(can()?'<button class="btn slim danger" onclick="deleteApdRecord(\'return\',\''+H(x.id)+'\')">Hapus</button>':'')+'</small>').join('');
    return '<div class="lot"><div style="flex:1"><strong>'+source+' · '+fmt(r.date)+' · '+r.qty+' unit · '+H(variant(r))+' '+labelStatus(r.condition||'BELUM DIPERIKSA')+'</strong><small>Masih dimiliki: <b>'+remain+' unit</b>'+(r.source==='OLD'?' · APD lama tidak menjadi acuan tanggal ganti':' · Jatah '+r.months+' bulan · Jadwal '+fmt(addMonths(r.date,r.months)))+'</small><small>Asal Gudang: '+H(r.source==='OLD'?'APD lama / stok pribadi':r.warehouse||'Belum dicatat')+'</small><small>'+H(r.note||'')+'</small>'+history+'</div><div class="toolbarend">'+(can()?'<button class="btn slim" onclick="receiptForm(\''+H(p.id)+'\',\''+t+'\',\''+H(r.id)+'\')">✎ Edit APD</button>':'')+(can()?'<button class="btn slim danger" onclick="deleteApdRecord(\'receipt\',\''+H(r.id)+'\')">Hapus</button>':'')+(can()&&p.status==='OUT'&&remain>0?'<button class="btn slim dark" onclick="returnForm(\''+H(r.id)+'\')">↩ Pengembalian</button>':'')+'</div></div>';
   }).join('')||'<div class="notice">Belum ada riwayat. Gunakan Catat APD Lama untuk APD yang telah dimiliki, atau Bagikan APD untuk stok gudang.</div>';
@@ -312,7 +312,7 @@ function deletedPage(){
 function historyPage(){
  const rows=[];
  if(ownerOnly())state.stockIn.forEach(x=>rows.push({date:x.date,type:x.type,label:x.grade==='NEW'?'STOK BARU MASUK':'STOK BEKAS MASUK',count:x.qty,name:x.location||'Gudang',warehouse:x.location||'Gudang',kind:'stock',id:x.id,call:"stockForm('"+H(x.id)+"')"}));
- state.receipts.forEach(x=>rows.push({date:x.date,type:x.type,label:x.source==='OLD'?'APD LAMA':x.source==='NEW'?'TERIMA BARU':'TERIMA BEKAS',count:x.qty,name:personName(x.person),warehouse:x.source==='OLD'?'APD lama / stok pribadi':x.warehouse||'Belum dicatat',kind:'receipt',id:x.id,call:"receiptForm('"+H(x.person)+"','"+x.type+"','"+H(x.id)+"')"}));
+ state.receipts.forEach(x=>rows.push({date:x.date,type:x.type,label:x.source==='OLD'?'APD LAMA':x.source==='EXTERNAL'?'TERIMA EKSTERNAL':x.source==='NEW'?'TERIMA BARU':'TERIMA BEKAS',count:x.qty,name:personName(x.person),warehouse:x.source==='OLD'?'APD lama / stok pribadi':x.warehouse||'Belum dicatat',kind:'receipt',id:x.id,call:"receiptForm('"+H(x.person)+"','"+x.type+"','"+H(x.id)+"')"}));
  state.returns.forEach(x=>{const r=state.receipts.find(a=>a.id===x.receiptId);if(r)rows.push({date:x.date,type:r.type,label:x.action==='REUSE'?'KEMBALI LAYAK':'DIMUSNAHKAN',count:x.qty,name:personName(r.person),warehouse:r.warehouse||'Belum dicatat',kind:'return',id:x.id,call:"editReturn('"+H(x.id)+"')"})});
  rows.sort((a,b)=>b.date.localeCompare(a.date));
  return heading('AUDIT TRAIL','Riwayat Monitoring APD',ownerOnly()?'Riwayat stok, penerimaan lama, distribusi, dan pengembalian.':'Riwayat APD karyawan. Riwayat stok gudang khusus Pemilik.',ownerOnly()?'<button class="btn" onclick="backup()">⇩ Backup Data</button>':'')+'<section class="panel"><div class="table-wrap"><table class="table"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Aktivitas</th><th>Jumlah</th><th>Karyawan / Gudang</th><th>Asal Gudang</th><th>Aksi</th></tr></thead><tbody>'+(rows.map(x=>'<tr><td>'+fmt(x.date)+'</td><td>'+x.type+'</td><td>'+x.label+'</td><td>'+x.count+'</td><td>'+H(x.name)+'</td><td>'+H(x.warehouse||'—')+'</td><td>'+(can()?'<button class="btn slim" onclick="'+x.call+'">✎ Edit</button>':'')+(can()?'<button class="btn slim danger" onclick="deleteApdRecord(\''+x.kind+'\',\''+H(x.id)+'\')">Hapus</button>':'')+(!can()?'–':'')+'</td></tr>').join('')||'<tr><td colspan="7">Belum ada transaksi.</td></tr>')+'</tbody></table></div></section>';
@@ -488,11 +488,11 @@ function receiptForm(personId,type,id,defaultSource){
  if(!p)return showNotice('Karyawan tidak ditemukan. Tekan Sinkronkan.','error');
  const r=state.receipts.find(x=>x.id===id)||{person:personId,type,date:today(),qty:1,source:defaultSource||'OLD',condition:'BELUM DIPERIKSA',months:6,note:'',variant:'',warehouse:''};
  modal(id?'Edit Penerimaan · '+p.name:(r.source==='OLD'?'Catat APD Lama · ':'Tambah APD · ')+p.name,
- '<div class="notice"><b>APD LAMA:</b> Sudah dimiliki karyawan, tidak mengurangi gudang dan tidak membuat jadwal ganti. <b>APD BARU / BEKAS:</b> Diambil dari gudang, stok berkurang dan jadwal ganti otomatis.</div>'+
+ '<div class="notice"><b>APD LAMA:</b> Sudah dimiliki karyawan, tidak mengurangi gudang dan tidak membuat jadwal ganti. <b>APD BARU / BEKAS GUDANG:</b> Mengurangi stok gudang. <b>PT. KKA / Toko Lainnya:</b> Tercatat sebagai penerimaan tanpa mengurangi stok.</div>'+
  '<form onsubmit="saveReceipt(event,\''+H(id||'')+'\')"><div class="formgrid"><label>Karyawan<input readonly value="'+H(p.name)+'"><input type="hidden" name="person" value="'+H(p.id)+'"></label><label>Jobsite<input readonly value="'+H(p.site)+'"></label>'+
  '<label>Jenis APD<select name="type" id="apdTypeSelect" onchange="syncVariant()">'+TYPES.map(t=>'<option '+(r.type===t?'selected':'')+'>'+t+'</option>').join('')+'</select></label>'+vForm(r.type,r.variant||(id?'BELUM DIISI':''))+
- '<label>Asal APD<select name="source" id="receiptSource" onchange="receiptMode()"><option value="OLD" '+(r.source==='OLD'?'selected':'')+'>APD Lama yang Sudah Dimiliki</option><option value="NEW" '+(r.source==='NEW'?'selected':'')+'>APD Baru dari Gudang</option><option value="REUSE" '+(r.source==='REUSE'?'selected':'')+'>APD Bekas Layak dari Gudang</option></select></label>'+
- '<label id="warehouseReceiptWrap">Asal Gudang<input name="warehouse" id="warehouseReceipt" list="receiptWarehouseList" value="'+H(r.warehouse||'')+'" placeholder="Contoh: Workshop"><datalist id="receiptWarehouseList"><option value="Workshop"></option>'+[...new Set(state.stockIn.map(x=>x.location).filter(Boolean))].map(x=>'<option value="'+H(x)+'"></option>').join('')+'</datalist></label>'+
+ '<label>Asal APD<select name="source" id="receiptSource" onchange="receiptMode()"><option value="OLD" '+(r.source==='OLD'?'selected':'')+'>APD Lama yang Sudah Dimiliki</option><option value="NEW" '+(r.source==='NEW'?'selected':'')+'>APD Baru dari Gudang</option><option value="REUSE" '+(r.source==='REUSE'?'selected':'')+'>APD Bekas Layak dari Gudang</option><option value="EXTERNAL" '+(r.source==='EXTERNAL'?'selected':'')+'>APD Langsung dari Pihak Luar</option></select></label>'+
+ '<label id="warehouseReceiptWrap"><span id="receiptWarehouseLabel">Asal Gudang</span><input name="warehouse" id="warehouseReceipt" list="receiptWarehouseList" value="'+H(r.warehouse||'')+'" placeholder="Contoh: Workshop"><datalist id="receiptWarehouseList"><option value="Workshop"></option><option value="PT. KKA"></option><option value="Toko Lainnya"></option>'+[...new Set(state.stockIn.map(x=>x.location).filter(Boolean))].map(x=>'<option value="'+H(x)+'"></option>').join('')+'</datalist></label>'+
  '<label>Tanggal Diterima<input name="date" type="date" required value="'+H(r.date)+'"></label><label>Jumlah yang Diterima<input name="qty" type="number" min="1" step="1" required value="'+r.qty+'"></label>'+
  '<label>Kondisi APD Saat Ini<select name="condition"><option '+(r.condition==='BELUM DIPERIKSA'?'selected':'')+'>BELUM DIPERIKSA</option><option '+(r.condition==='LAYAK'?'selected':'')+'>LAYAK</option><option '+(r.condition==='TIDAK LAYAK'?'selected':'')+'>TIDAK LAYAK</option></select></label>'+
  '<label id="monthsWrap">Jatah Penggantian (bulan)<input name="months" type="number" min="1" max="120" step="1" value="'+(r.months||6)+'"><span class="muted" style="font-size:10px">Tanggal penerimaan + jumlah bulan = jatah penggantian.</span></label>'+
@@ -500,16 +500,19 @@ function receiptForm(personId,type,id,defaultSource){
  receiptMode();
 }
 function receiptMode(){
- const old=el('receiptSource')?.value==='OLD';
+ const source=el('receiptSource')?.value,old=source==='OLD',external=source==='EXTERNAL';
  const m=el('monthsWrap'),hint=el('receiptHint'),w=el('warehouseReceiptWrap');
  if(w)w.hidden=old;
+ if(el('receiptWarehouseLabel'))el('receiptWarehouseLabel').textContent=external?'Asal APD Eksternal':'Asal Gudang';
+ if(el('warehouseReceipt'))el('warehouseReceipt').placeholder=external?'Pilih PT. KKA atau Toko Lainnya':'Contoh: Workshop';
  if(el('warehouseReceipt'))el('warehouseReceipt').required=!old;
  if(m)m.hidden=old;
- if(hint)hint.innerHTML=old?'APD lama menjadi <b>stok milik karyawan</b>, tanpa perlu stok gudang. Kondisi dan tanggal tetap dapat diedit.':'Stok gudang akan <b>dikurangi</b> sesuai jumlah penerimaan. Jadwal penggantian dihitung otomatis.';
+ if(hint)hint.innerHTML=old?'APD lama tidak mengurangi stok gudang.':external?'APD dari pihak luar tidak mengurangi stok gudang; jadwal dan riwayat penerimaan tetap dicatat.':'Stok gudang akan dikurangi sesuai penerimaan.';
 }
 function saveReceipt(e,id){
  e.preventDefault();const f=Object.fromEntries(new FormData(e.target)),next=structuredClone(state);
- if(f.source!=='OLD'&&!String(f.warehouse||'').trim())return showNotice('Pilih Asal Gudang untuk pembagian APD.','error');
+ if(f.source!=='OLD'&&!String(f.warehouse||'').trim())return showNotice('Pilih asal APD untuk pembagian.','error');
+ if(f.source==='EXTERNAL'&&!['PT. KKA','Toko Lainnya'].includes(String(f.warehouse||'').trim()))return showNotice('Pilih PT. KKA atau Toko Lainnya sebagai sumber APD eksternal.','error');
  const value={id:id||uid(),person:f.person,type:f.type,date:f.date,qty:Number(f.qty),source:f.source,warehouse:f.source==='OLD'?'':String(f.warehouse||'').trim(),variant:f.variant,months:f.source==='OLD'?0:Number(f.months||6),condition:f.condition,note:f.note};
  if(id){const i=next.receipts.findIndex(x=>x.id===id);if(i<0)return showNotice('Riwayat APD tidak ditemukan.','error');next.receipts[i]=value}
  else next.receipts.push(value);
