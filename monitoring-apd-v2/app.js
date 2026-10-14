@@ -5,7 +5,7 @@ const db=window.supabase&&cfg.url&&cfg.publishableKey?window.supabase.createClie
 const TYPES=['HELM','KAOS','SEPATU'];
 const ART={HELM:{label:'Helm Safety',url:'helm.svg'},KAOS:{label:'Kaos Kerja',url:'kaos.svg'},SEPATU:{label:'Sepatu Safety',url:'sepatu.svg'}};
 const EMPTY=()=>({stockIn:[],receipts:[],returns:[],limits:{HELM:0,KAOS:0,SEPATU:0},images:{},personOverrides:{}});
-let state=EMPTY(),revision=0,people=[],accessUsers=[],page='dashboard',chosen='',user=null,role='',saving=false,term='',siteFilter='ALL';
+let state=EMPTY(),revision=0,people=[],deleteAudit=[],accessUsers=[],page='dashboard',chosen='',user=null,role='',saving=false,term='',siteFilter='ALL';
 const el=id=>document.getElementById(id);
 const H=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const today=()=>new Date().toLocaleDateString('sv-SE');
@@ -14,7 +14,7 @@ const uid=()=>crypto.randomUUID();
 const cleanName=s=>String(s||'').trim().replace(/\s+/g,' ').toLocaleUpperCase('id-ID');
 const can=()=>role==='owner'||role==='editor';
 const ownerOnly=()=>role==='owner';
-const ownerPages=['stock','images','access'];
+const ownerPages=['stock','images','access','deleted'];
 const arr=x=>Array.isArray(x)?x:[];
 const qty=x=>Number(x)||0;
 function addMonths(date,months){
@@ -117,8 +117,9 @@ async function loadApd(){
 }
 async function loadAll(){
  if(!user||!role)return;
- try{await Promise.all([loadPeople(),loadApd(),...(role==='owner'?[loadAccessUsers()]:[])]);applyPersonOverrides();render()}catch(e){showNotice(e.message,'error')}
+ try{await Promise.all([loadPeople(),loadApd(),...(role==='owner'?[loadAccessUsers(),loadDeleteAudit()]:[])]);applyPersonOverrides();render()}catch(e){showNotice(e.message,'error')}
 }
+async function loadDeleteAudit(){if(!ownerOnly())return;const {data,error}=await db.from('apd_delete_audit').select('kind,record_id,record_data,deleted_by,deleted_at').order('deleted_at',{ascending:false}).limit(1000);if(error)throw Error('Riwayat hapus tidak dapat dimuat: '+error.message);deleteAudit=data||[]}
 async function loadAccessUsers(){if(role!=='owner')return;const {data,error}=await db.from('app_access_roles').select('email,role').eq('app_id','apd').order('email');if(error)throw Error('Daftar akses tidak bisa dimuat: '+error.message);accessUsers=data||[]}
 async function findRole(){
  if(!user){role='';render();return}
@@ -172,7 +173,7 @@ function render(){
  el('roleText').textContent=role?(role==='owner'?'Pemilik':role==='editor'?'Editor':'Pelihat'):'Belum Masuk';
  el('userText').textContent=user?.email||'';
  el('authBtn').textContent=user?'Keluar':'Masuk';
- document.querySelectorAll('.nav[data-page="stock"],.nav[data-page="images"],.nav[data-page="access"]').forEach(n=>n.hidden=!ownerOnly());
+ document.querySelectorAll('.nav[data-page="stock"],.nav[data-page="images"],.nav[data-page="access"],.nav[data-page="deleted"]').forEach(n=>n.hidden=!ownerOnly());
  el('exportExcelBtn').hidden=!ownerOnly();
  if(ownerPages.includes(page)&&!ownerOnly())page='dashboard';
  document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.page===page||(page==='detail'&&n.dataset.page==='people')));
@@ -180,7 +181,8 @@ function render(){
   el('pageTitle').textContent='Monitoring APD KMB';
   el('app').innerHTML=heading('MONITORING SYSTEM','Monitoring APD KMB','Mengikuti daftar karyawan Monitoring Manpower KMB.')+'<section class="panel" style="max-width:650px;margin:34px auto;text-align:center;padding:43px 25px"><div style="font-size:50px">🪖 &nbsp; 👕 &nbsp; 🥾</div><h2>Pengelolaan APD Karyawan</h2><p class="muted" style="line-height:1.8">Kelola APD lama, stok gudang, jadwal penggantian dan pengembalian saat resign. Masuk menggunakan akun KMB.</p><button class="btn dark" onclick="login()">Masuk Akun KMB</button></section>';return;
  }
- if(page==='dashboard'){el('pageTitle').textContent='Dashboard Monitoring APD';el('app').innerHTML=dashboard()}
+ if(page==='deleted'){el('pageTitle').textContent='Riwayat Hapus APD';el('app').innerHTML=deletedPage()}
+ else if(page==='dashboard'){el('pageTitle').textContent='Dashboard Monitoring APD';el('app').innerHTML=dashboard()}
  else if(page==='people'||page==='out'){el('pageTitle').textContent=page==='people'?'Manpower Aktif':'Manpower Keluar';el('app').innerHTML=peoplePage(page==='out')}
  else if(page==='detail'){const p=person(chosen);el('pageTitle').textContent='Detail APD · '+(p?.name||'');el('app').innerHTML=p?detailPage(p):'<div class="empty">Karyawan tidak ditemukan; silakan sinkronkan.</div>'}
  else if(page==='stock'){el('pageTitle').textContent='Stok APD Gudang';el('app').innerHTML=stockPage()}
@@ -274,8 +276,8 @@ function detailPage(p){
    const remain=heldLot(r);
    const back=state.returns.filter(x=>x.receiptId===r.id);
    const source=r.source==='OLD'?'APD LAMA':r.source==='NEW'?'APD BARU':'APD BEKAS LAYAK';
-   const history=back.map(x=>'<small>↳ '+fmt(x.date)+' · '+x.qty+' unit '+(x.action==='REUSE'?'dikembalikan layak → stok bekas':'tidak layak → musnah')+(can()?'<button class="btn slim" onclick="editReturn(\''+H(x.id)+'\')">Edit</button>':'')+(ownerOnly()?'<button class="btn slim danger" onclick="deleteApdRecord(\'return\',\''+H(x.id)+'\')">Hapus</button>':'')+'</small>').join('');
-   return '<div class="lot"><div style="flex:1"><strong>'+source+' · '+fmt(r.date)+' · '+r.qty+' unit '+labelStatus(r.condition||'BELUM DIPERIKSA')+'</strong><small>Masih dimiliki: <b>'+remain+' unit</b>'+(r.source==='OLD'?' · APD lama tidak menjadi acuan tanggal ganti':' · Jatah '+r.months+' bulan · Jadwal '+fmt(addMonths(r.date,r.months)))+'</small><small>'+H(r.note||'')+'</small>'+history+'</div><div class="toolbarend">'+(can()?'<button class="btn slim" onclick="receiptForm(\''+H(p.id)+'\',\''+t+'\',\''+H(r.id)+'\')">✎ Edit APD</button>':'')+(ownerOnly()?'<button class="btn slim danger" onclick="deleteApdRecord(\'receipt\',\''+H(r.id)+'\')">Hapus</button>':'')+(can()&&p.status==='OUT'&&remain>0?'<button class="btn slim dark" onclick="returnForm(\''+H(r.id)+'\')">↩ Pengembalian</button>':'')+'</div></div>';
+   const history=back.map(x=>'<small>↳ '+fmt(x.date)+' · '+x.qty+' unit '+(x.action==='REUSE'?'dikembalikan layak → stok bekas':'tidak layak → musnah')+(can()?'<button class="btn slim" onclick="editReturn(\''+H(x.id)+'\')">Edit</button>':'')+(can()?'<button class="btn slim danger" onclick="deleteApdRecord(\'return\',\''+H(x.id)+'\')">Hapus</button>':'')+'</small>').join('');
+   return '<div class="lot"><div style="flex:1"><strong>'+source+' · '+fmt(r.date)+' · '+r.qty+' unit '+labelStatus(r.condition||'BELUM DIPERIKSA')+'</strong><small>Masih dimiliki: <b>'+remain+' unit</b>'+(r.source==='OLD'?' · APD lama tidak menjadi acuan tanggal ganti':' · Jatah '+r.months+' bulan · Jadwal '+fmt(addMonths(r.date,r.months)))+'</small><small>'+H(r.note||'')+'</small>'+history+'</div><div class="toolbarend">'+(can()?'<button class="btn slim" onclick="receiptForm(\''+H(p.id)+'\',\''+t+'\',\''+H(r.id)+'\')">✎ Edit APD</button>':'')+(can()?'<button class="btn slim danger" onclick="deleteApdRecord(\'receipt\',\''+H(r.id)+'\')">Hapus</button>':'')+(can()&&p.status==='OUT'&&remain>0?'<button class="btn slim dark" onclick="returnForm(\''+H(r.id)+'\')">↩ Pengembalian</button>':'')+'</div></div>';
   }).join('')||'<div class="notice">Belum ada riwayat. Gunakan Catat APD Lama untuk APD yang telah dimiliki, atau Bagikan APD untuk stok gudang.</div>';
   return '<section class="panel" style="margin-bottom:16px"><div class="section-head"><div><h3>'+(t==='HELM'?'🪖':t==='KAOS'?'👕':'🥾')+' '+ART[t].label+'</h3><p>Dipegang '+held(p.id,t)+' unit · Stok lama '+oldStock+' unit</p></div><div class="toolbarend">'+(can()?'<button class="btn slim" onclick="receiptForm(\''+H(p.id)+'\',\''+t+'\',\'\',\'OLD\')">+ Catat APD Lama</button><button class="btn slim dark" onclick="receiptForm(\''+H(p.id)+'\',\''+t+'\',\'\',\'NEW\')">+ Tambah APD</button>':'')+'</div></div>'+
   '<div class="stat-row"><div class="mini-stat"><small>Total Dipegang</small><b>'+held(p.id,t)+'</b></div><div class="mini-stat"><small>Stok APD Lama</small><b>'+oldStock+'</b></div><div class="mini-stat"><small>Terakhir Terima Baru/Bekas</small><b style="font-size:13px">'+fmt(latestDist?.date)+'</b></div><div class="mini-stat"><small>Jadwal Ganti</small><b style="font-size:13px">'+fmt(lastDate)+'</b></div></div><div class="lot-list">'+rows+'</div></section>';
@@ -289,13 +291,21 @@ function stockPage(){
  return heading('INVENTORY','Stok APD Gudang','Stok gudang terpisah dari APD lama milik karyawan.',can()?'<button class="btn dark" onclick="stockForm()">+ Tambah Stok Masuk</button>':'')+cards+
  '<div class="notice">APD yang <b>sudah dipakai karyawan</b> dicatat melalui Manpower → Detail → Catat APD Lama. Jangan masukkan ke stok gudang.</div><section class="panel"><div class="section-head"><h3>Riwayat Stok Masuk</h3><button class="btn" onclick="loadAll()">↻ Sinkronkan</button></div><div class="table-wrap"><table class="table"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Kondisi</th><th>Qty</th><th>Gudang</th><th>Keterangan</th><th>Aksi</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>';
 }
+function deletedPage(){
+ if(!ownerOnly())return '<div class="empty">Riwayat Hapus hanya dapat dilihat Pemilik.</div>';
+ const labels={stock:'Stok Masuk',receipt:'Penerimaan APD',return:'Pengembalian APD'};
+ const rows=deleteAudit.map(x=>{const d=x.record_data||{};const date=new Date(x.deleted_at).toLocaleString('id-ID',{timeZone:'Asia/Jakarta',day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+ return '<tr><td>'+H(date)+' WIB</td><td>'+H(x.deleted_by)+'</td><td>'+H(labels[x.kind]||x.kind)+'</td><td>'+H(d.type||'—')+'</td><td>'+H(x.kind==='receipt'?personName(d.person):x.kind==='stock'?(d.location||'Gudang'):'Referensi '+d.receiptId)+'</td><td>'+H(d.qty??'—')+'</td><td>'+H(fmt(d.date))+'</td><td>'+H(d.note||'—')+'</td></tr>'}).join('')||'<tr><td colspan="8">Belum ada data yang dihapus.</td></tr>';
+ return heading('AUDIT KHUSUS PEMILIK','Riwayat Hapus APD','Catatan penghapusan permanen: siapa yang menghapus, kapan, dan data yang terhapus. Editor tidak dapat mengakses halaman ini.','<button class="btn" onclick="loadDeleteAudit().then(render).catch(e=>showNotice(e.message,\'error\'))">↻ Perbarui</button>')+
+ '<section class="panel"><div class="table-wrap"><table class="table"><thead><tr><th>Tanggal Hapus</th><th>Dihapus Oleh</th><th>Jenis Transaksi</th><th>APD</th><th>Karyawan / Gudang</th><th>Qty</th><th>Tanggal Data</th><th>Keterangan</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>';
+}
 function historyPage(){
  const rows=[];
  if(ownerOnly())state.stockIn.forEach(x=>rows.push({date:x.date,type:x.type,label:x.grade==='NEW'?'STOK BARU MASUK':'STOK BEKAS MASUK',count:x.qty,name:x.location||'Gudang',kind:'stock',id:x.id,call:"stockForm('"+H(x.id)+"')"}));
  state.receipts.forEach(x=>rows.push({date:x.date,type:x.type,label:x.source==='OLD'?'APD LAMA':x.source==='NEW'?'TERIMA BARU':'TERIMA BEKAS',count:x.qty,name:personName(x.person),kind:'receipt',id:x.id,call:"receiptForm('"+H(x.person)+"','"+x.type+"','"+H(x.id)+"')"}));
  state.returns.forEach(x=>{const r=state.receipts.find(a=>a.id===x.receiptId);if(r)rows.push({date:x.date,type:r.type,label:x.action==='REUSE'?'KEMBALI LAYAK':'DIMUSNAHKAN',count:x.qty,name:personName(r.person),kind:'return',id:x.id,call:"editReturn('"+H(x.id)+"')"})});
  rows.sort((a,b)=>b.date.localeCompare(a.date));
- return heading('AUDIT TRAIL','Riwayat Monitoring APD',ownerOnly()?'Riwayat stok, penerimaan lama, distribusi, dan pengembalian.':'Riwayat APD karyawan. Riwayat stok gudang khusus Pemilik.',ownerOnly()?'<button class="btn" onclick="backup()">⇩ Backup Data</button>':'')+'<section class="panel"><div class="table-wrap"><table class="table"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Aktivitas</th><th>Jumlah</th><th>Karyawan / Gudang</th><th>Aksi</th></tr></thead><tbody>'+(rows.map(x=>'<tr><td>'+fmt(x.date)+'</td><td>'+x.type+'</td><td>'+x.label+'</td><td>'+x.count+'</td><td>'+H(x.name)+'</td><td>'+(can()?'<button class="btn slim" onclick="'+x.call+'">✎ Edit</button>':'')+(ownerOnly()?'<button class="btn slim danger" onclick="deleteApdRecord(\''+x.kind+'\',\''+H(x.id)+'\')">Hapus</button>':'')+(!can()?'–':'')+'</td></tr>').join('')||'<tr><td colspan="6">Belum ada transaksi.</td></tr>')+'</tbody></table></div></section>';
+ return heading('AUDIT TRAIL','Riwayat Monitoring APD',ownerOnly()?'Riwayat stok, penerimaan lama, distribusi, dan pengembalian.':'Riwayat APD karyawan. Riwayat stok gudang khusus Pemilik.',ownerOnly()?'<button class="btn" onclick="backup()">⇩ Backup Data</button>':'')+'<section class="panel"><div class="table-wrap"><table class="table"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Aktivitas</th><th>Jumlah</th><th>Karyawan / Gudang</th><th>Aksi</th></tr></thead><tbody>'+(rows.map(x=>'<tr><td>'+fmt(x.date)+'</td><td>'+x.type+'</td><td>'+x.label+'</td><td>'+x.count+'</td><td>'+H(x.name)+'</td><td>'+(can()?'<button class="btn slim" onclick="'+x.call+'">✎ Edit</button>':'')+(can()?'<button class="btn slim danger" onclick="deleteApdRecord(\''+x.kind+'\',\''+H(x.id)+'\')">Hapus</button>':'')+(!can()?'–':'')+'</td></tr>').join('')||'<tr><td colspan="6">Belum ada transaksi.</td></tr>')+'</tbody></table></div></section>';
 }
 function guidePage(){
  const guides=[
@@ -406,7 +416,7 @@ async function removeAccess(email){
 
 // Penghapusan transaksi dibatasi untuk Pemilik; perubahan saldo dicek ulang oleh validate().
 async function deleteApdRecord(kind,id){
- if(!ownerOnly())return showNotice('Hanya Pemilik yang dapat menghapus data APD.','error');
+ if(!can())return showNotice('Hanya Pemilik dan Editor yang dapat menghapus data APD.','error');
  const collection={stock:'stockIn',receipt:'receipts',return:'returns'}[kind];
  if(!collection)return;
  const record=state[collection].find(x=>x.id===id);
