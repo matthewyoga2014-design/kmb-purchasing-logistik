@@ -469,7 +469,7 @@ function renderKMBCharts(){
       if(list.some(isActiveCandidate)){
         list.filter(isActiveCandidate).forEach(cand=>{const p=candidateProgress(cand);if(counts[p.label]!==undefined)counts[p.label]++});
       }else{
-        const p=progress(r);if(counts[p.label]!==undefined)counts[p.label]++;
+        if(isVacantName(r.Nama))counts["SOURCING KANDIDAT"]++;
       }
     });
   });
@@ -571,7 +571,7 @@ function renderSite(key){
   const rows=all.map((r,i)=>({...r,__i:i})).filter(r=>(!q||JSON.stringify(r).toLowerCase().includes(q)||JSON.stringify(getKmbCandidates(key,r)).toLowerCase().includes(q))&&(!st||r.Status===st));
   let body=rows.map(r=>{
     const vacant=isVacantName(r.Nama),list=vacant?getKmbCandidates(key,r):[],p=vacant?bestKmbCandidateProgress(key,r):progress(r);
-    const pelamar=vacant?'<button class="btn candidate-btn" onclick="openKmbCandidateList(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">'+list.length+' Pelamar</button>'+(list.length?list.map(x=>{const cp=candidateProgress(x);return '<div class="candidate-preview"><b>'+esc(x["Nama Kandidat"]||"-")+'</b><span>'+esc(cp.label)+' '+cp.p+'%</span></div>'}).join(""):""):'<span class="badge neutral">-</span>';
+    const pelamar=vacant?'<button class="btn candidate-btn" onclick="openKmbCandidateList(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">'+list.length+' Pelamar</button>'+(list.length?list.map(x=>{const active=isActiveCandidate(x),cp=candidateProgress(x);return '<div class="candidate-preview" style="'+(active?"":"opacity:.55;")+'"><b>'+esc(x["Nama Kandidat"]||"-")+'</b><span>'+(active?esc(cp.label)+" "+cp.p+"%":"Tidak Aktif")+'</span></div>'}).join(""):""):'<span class="badge neutral">-</span>';
     const action=vacant
       ? '<button class="btn" onclick="openSiteForm(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">Edit</button> <button class="btn yellow" onclick="openKmbCandidateList(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">Pelamar</button> <button class="btn danger" onclick="removeSiteRow(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">Hapus Posisi</button>'
       : '<button class="btn" onclick="openSiteForm(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">Edit</button> <button class="btn danger" onclick="openExitFromSite(decodeURIComponent(\''+encodeURIComponent(key)+'\'),'+r.__i+')">MP OUT</button>';
@@ -847,7 +847,7 @@ function buildDashboardAOA(){
   for(const [k,rows] of Object.entries(data.sites)){const m=siteMetrics(rows);aoa.push([data.siteLabels[k]||k,m.planning,m.actual,m.vacant,m.open,m.cont,m.close,m.due])}
   aoa.push([],["RESUME VACANT"],["Jabatan","Jumlah Vacant","Progress Tertinggi","Breakdown"]);
   const groups={};
-  for(const rows of Object.values(data.sites))for(const r of rows)if(isVacantName(r.Nama)){const key=canonicalJob(r.Jabatan),p=progress(r);if(!groups[key])groups[key]={label:canonicalJobLabel(r.Jabatan),items:[]};groups[key].items.push(p)}
+  for(const rows of Object.values(data.sites))for(const r of rows)if(isVacantName(r.Nama)){const key=canonicalJob(r.Jabatan),site=Object.keys(data.sites).find(k=>(data.sites[k]||[]).includes(r)),p=bestKmbCandidateProgress(site,r);if(!groups[key])groups[key]={label:canonicalJobLabel(r.Jabatan),items:[]};groups[key].items.push(p)}
   for(const g of Object.values(groups)){const best=g.items.slice().sort((a,b)=>b.p-a.p)[0],bd={};g.items.forEach(x=>bd[x.label]=(bd[x.label]||0)+1);aoa.push([g.label,g.items.length,best.label+" "+best.p+"%",Object.entries(bd).map(x=>x[1]+"x "+x[0]).join(" • ")])}
   return aoa;
 }
