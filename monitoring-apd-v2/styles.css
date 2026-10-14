@@ -62,3 +62,22 @@ body{background:var(--appbg);color:var(--ink);font-family:Inter,"Segoe UI",Arial
 .warehouse-edit-row small{display:block;color:#8690a0;font-size:11px;margin-top:5px}
 .warehouse-edit-list{max-height:260px;overflow:auto}
 @media(max-width:640px){.warehouse-cards .warehouse-card{min-height:150px}.warehouse-min-form>.btn{width:100%}.warehouse-min-form input{max-width:none}}
+
+/* Tampilan cetak Monitoring APD: konten terpusat dan tanpa navigasi */
+@media print {
+ @page {size:A4 landscape; margin:10mm}
+ html,body{margin:0!important;padding:0!important;background:#fff!important;color:#111!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ .shell,.main,.content{display:block!important;width:100%!important;max-width:none!important;margin:0!important;padding:0!important;overflow:visible!important;min-height:0!important}
+ .side,.sidebar,.top-right,.hamburger,.footer,#notice,.modalback,.nav,.btn,.apd-link,.row-tools,.toolbarend,.formactions,.icon-btn{display:none!important}
+ header.top{position:static!important;box-shadow:none!important;border:0!important;padding:0 0 8mm!important;background:#fff!important}
+ .top-left{width:100%!important;justify-content:center!important;text-align:center!important}
+ #pageTitle{text-align:center!important;color:#111!important}
+ #app{width:100%!important;margin:0 auto!important;overflow:visible!important}
+ .panel,.card,.mini-stat,.lot,.apd-product-card{break-inside:avoid;page-break-inside:avoid;box-shadow:none!important}
+ .table-wrap{overflow:visible!important;max-width:none!important}
+ table{width:100%!important;border-collapse:collapse!important;font-size:9px!important}
+ tr{break-inside:avoid}
+ thead{display:table-header-group}
+ .apd-dashboard{width:100%!important;max-width:none!important}
+ .cards3,.stat-row,.apd-bottom-panels{break-inside:avoid}
+}
