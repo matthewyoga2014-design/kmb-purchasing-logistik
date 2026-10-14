@@ -81,3 +81,25 @@ body{background:var(--appbg);color:var(--ink);font-family:Inter,"Segoe UI",Arial
  .apd-dashboard{width:100%!important;max-width:none!important}
  .cards3,.stat-row,.apd-bottom-panels{break-inside:avoid}
 }
+
+/* Editor layout Dashboard: urutan dan lebar komponen disimpan oleh Pemilik */
+.apd-layout-toolbar{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:9px;margin:14px 0}
+.apd-layout-toolbar strong{margin-right:auto;color:#15233a}
+.apd-layout-toolbar span{font-size:12px;color:#6a7890}
+.apd-editable-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:stretch}
+.apd-layout-item{min-width:0}
+.apd-layout-wide{grid-column:1/-1}
+.apd-layout-item>.panel,.apd-layout-item>.apd-gradient-kpis{height:100%;width:100%;min-width:0}
+.apd-layout-item>.apd-gradient-kpis{grid-template-columns:repeat(4,minmax(0,1fr))}
+.apd-editable-layout .apd-trend-panel,.apd-editable-layout .apd-composition-panel,.apd-editable-layout .apd-product-panel,.apd-editable-layout .apd-activities-panel{width:100%;min-width:0}
+.apd-editable-layout .apd-product-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+.apd-layout-item:not(.apd-layout-wide) .apd-product-grid{grid-template-columns:repeat(auto-fit,minmax(130px,1fr))}
+.apd-editable-layout.is-editing .apd-layout-item{border:2px dashed #aabbd1;border-radius:13px;padding:9px;background:#f9fbff}
+.apd-editable-layout.is-editing .apd-layout-item[draggable="true"]{cursor:grab}
+.apd-layout-controls{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap;margin-bottom:10px}
+.apd-layout-controls b{font-size:12px;color:#172849}
+.apd-layout-controls span{display:flex;gap:5px;flex-wrap:wrap}
+.apd-layout-controls .btn{padding:5px 9px}
+@media(max-width:960px){.apd-editable-layout{grid-template-columns:minmax(0,1fr)}.apd-layout-wide{grid-column:auto}.apd-layout-item>.apd-gradient-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:540px){.apd-layout-item>.apd-gradient-kpis{grid-template-columns:minmax(0,1fr)}.apd-editable-layout .apd-product-grid{grid-template-columns:minmax(0,1fr)}}
+@media print{.apd-layout-toolbar,.apd-layout-controls{display:none!important}.apd-editable-layout.is-editing .apd-layout-item{border:0!important;padding:0!important;background:transparent!important}}
