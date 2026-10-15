@@ -460,8 +460,7 @@ async function deleteCandidate(mppIndex,candidateIndex){
  try{
    if(!window.KMBCloud?.canEdit?.())throw new Error("Masuk sebagai Pemilik atau Editor.");
    data.candidates[key]=previous.filter((_,i)=>i!==candidateIndex);
-   const outcome=await window.KMBCloudSaveQueued(JSON.parse(JSON.stringify(data)));
-      if(!outcome?.saved)throw outcome?.error||new Error("Data belum tersimpan ke server.");
+   await window.KMBCloud.saveState(JSON.parse(JSON.stringify(data)));
    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
    renderMPP();openCandidateList(mppIndex);
    if(typeof window.KMBDeleteCandidateAttachments==="function"){
@@ -602,8 +601,7 @@ async async function saveModal(){if(!editOnly())return;
     try{
       if(!window.KMBCloud?.canEdit?.())throw new Error("Masuk sebagai Pemilik atau Editor.");
       data.candidates[key]=next;
-      const outcome=await window.KMBCloudSaveQueued(JSON.parse(JSON.stringify(data)));
-      if(!outcome?.saved)throw outcome?.error||new Error("Data belum tersimpan ke server.");
+      await window.KMBCloud.saveState(JSON.parse(JSON.stringify(data)));
       localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
       renderMPP();openCandidateList(editState.mppIndex);
     }catch(error){
