@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 570" role="img" aria-label="Ilustrasi haul truck tambang">
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#d9eaff"/><stop offset="1" stop-color="#f8fbff"/></linearGradient><linearGradient id="steel" x2="0" y2="1"><stop stop-color="#617d9a"/><stop offset=".62" stop-color="#253c55"/><stop offset="1" stop-color="#111f33"/></linearGradient><linearGradient id="yellow" x2=".1" y2=".0" x1=".8" y1="1"><stop stop-color="#ffe797"/><stop offset=".42" stop-color="#ffc43b"/><stop offset="1" stop-color="#d77e0a"/></linearGradient><linearGradient id="glass" x2="0" y2="0" x1="1" y1="1"><stop stop-color="#90d4f4"/><stop offset="1" stop-color="#244765"/></linearGradient><filter id="shadow"><feDropShadow dx="0" dy="14" stdDeviation="13" flood-color="#24415b" flood-opacity=".22"/></filter></defs>
+<rect width="960" height="570" rx="30" fill="url(#sky)"/>
+<circle cx="790" cy="116" r="74" fill="#fff4bf" opacity=".68"/>
+<path d="M0 330 94 265 174 297 289 183 384 271 476 213 589 290 704 181 846 275 960 200V570H0Z" fill="#c4d8e9" opacity=".65"/>
+<path d="m0 400 100-97 99 60 126-96 125 106 98-62 94 54 152-117 166 96V570H0Z" fill="#9cb7cc" opacity=".37"/>
+<path d="M0 464c171-73 365-48 531-27 156 19 301-11 429-59v192H0Z" fill="#b2a59a"/>
+<path d="M0 510c229-48 520-26 960-67v127H0Z" fill="#d2b394" opacity=".37"/>
+<g fill="#9a8878" opacity=".62"><ellipse cx="124" cy="499" rx="36" ry="11"/><ellipse cx="716" cy="508" rx="45" ry="13"/><ellipse cx="840" cy="463" rx="21" ry="8"/></g>
+<g filter="url(#shadow)"><path d="M149 155h555l125 221-469 32-110-75Z" fill="url(#yellow)" stroke="#986321" stroke-width="12"/><path d="M192 181h480l96 151-415 25-99-54Z" fill="#da920d" opacity=".53"/>
+<path d="M340 318h501v109H247l32-92Z" fill="#e9a321" stroke="#855818" stroke-width="12"/>
+<path d="M661 286h111l68 125H617Z" fill="#ffc235" stroke="#785a26" stroke-width="9"/>
+<path d="m674 292 78 4 43 91H666Z" fill="url(#glass)" stroke="#2a425c" stroke-width="9"/><path d="M721 295v92" stroke="#2a4058" stroke-width="9"/>
+<path d="M256 312h410M255 347h409" stroke="#fbe598" stroke-width="11"/><path d="M592 238h116" stroke="#4a4b45" stroke-width="8" opacity=".5"/>
+<g><circle cx="353" cy="433" r="87" fill="#13263b" stroke="#304258" stroke-width="13"/><circle cx="353" cy="433" r="52.36000000000001" fill="#263749" stroke="#8497a6" stroke-width="10"/><circle cx="353" cy="433" r="25.41" fill="#e0e9ed" stroke="#4b6377" stroke-width="6"/><circle cx="353" cy="433" r="10.01" fill="#364d64"/></g><g><circle cx="578" cy="433" r="87" fill="#13263b" stroke="#304258" stroke-width="13"/><circle cx="578" cy="433" r="52.36000000000001" fill="#263749" stroke="#8497a6" stroke-width="10"/><circle cx="578" cy="433" r="25.41" fill="#e0e9ed" stroke="#4b6377" stroke-width="6"/><circle cx="578" cy="433" r="10.01" fill="#364d64"/></g><g><circle cx="752" cy="438" r="65" fill="#13263b" stroke="#304258" stroke-width="13"/><circle cx="752" cy="438" r="37.400000000000006" fill="#263749" stroke="#8497a6" stroke-width="10"/><circle cx="752" cy="438" r="18.150000000000002" fill="#e0e9ed" stroke="#4b6377" stroke-width="6"/><circle cx="752" cy="438" r="7.15" fill="#364d64"/></g>
+<rect x="663" y="406" width="86" height="25" rx="4" fill="#172c43"/><path d="M648 396h52" stroke="#fff1b4" stroke-width="13"/><rect x="273" y="317" width="87" height="29" rx="4" fill="#203c54"/><text x="315" y="337" font-size="21" text-anchor="middle" fill="white" font-family="Arial" font-weight="bold">KMB</text>
+</g></svg>

@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 570" role="img" aria-label="Ilustrasi drill rig pertambangan">
+<defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#e2ebff"/><stop offset="1" stop-color="#fcfdff"/></linearGradient><linearGradient id="steel" x2="0" y2="1"><stop stop-color="#617d9a"/><stop offset=".62" stop-color="#253c55"/><stop offset="1" stop-color="#111f33"/></linearGradient><linearGradient id="yellow" x2=".1" y2=".0" x1=".8" y1="1"><stop stop-color="#ffe797"/><stop offset=".42" stop-color="#ffc43b"/><stop offset="1" stop-color="#d77e0a"/></linearGradient><linearGradient id="glass" x2="0" y2="0" x1="1" y1="1"><stop stop-color="#90d4f4"/><stop offset="1" stop-color="#244765"/></linearGradient><filter id="shadow"><feDropShadow dx="0" dy="14" stdDeviation="13" flood-color="#24415b" flood-opacity=".22"/></filter></defs>
+<rect width="960" height="570" rx="30" fill="url(#sky)"/>
+<circle cx="790" cy="116" r="74" fill="#fff4bf" opacity=".68"/>
+<path d="M0 330 94 265 174 297 289 183 384 271 476 213 589 290 704 181 846 275 960 200V570H0Z" fill="#c4d8e9" opacity=".65"/>
+<path d="m0 400 100-97 99 60 126-96 125 106 98-62 94 54 152-117 166 96V570H0Z" fill="#9cb7cc" opacity=".37"/>
+<path d="M0 464c171-73 365-48 531-27 156 19 301-11 429-59v192H0Z" fill="#b5becd"/>
+<path d="M0 510c229-48 520-26 960-67v127H0Z" fill="#d2b394" opacity=".37"/>
+<g fill="#9a8878" opacity=".62"><ellipse cx="124" cy="499" rx="36" ry="11"/><ellipse cx="716" cy="508" rx="45" ry="13"/><ellipse cx="840" cy="463" rx="21" ry="8"/></g>
+<g filter="url(#shadow)"><g><rect x="279" y="412" width="471" height="84" rx="42" fill="#203043" stroke="#0f2035" stroke-width="10"/><rect x="299" y="425" width="431" height="58" rx="29" fill="#455b6e" stroke="#8c9eaa" stroke-width="6"/><path d="M309 415v78" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M354.6666666666667 415v78" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M400.3333333333333 415v78" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M446 415v78" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M491.66666666666663 415v78" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M537.3333333333334 415v78" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M583 415v78" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M628.6666666666667 415v78" stroke="#778692" stroke-width="5" opacity=".85"/><path d="M674.3333333333333 415v78" stroke="#778692" stroke-width="5" opacity=".85"/></g>
+<path d="M330 400V316l314-23 84 111Z" fill="url(#yellow)" stroke="#876026" stroke-width="10"/>
+<rect x="499" y="308" width="180" height="100" rx="18" fill="#f7f5eb" stroke="#6b8295" stroke-width="12"/><path d="M594 314v88" stroke="#c6d0d8" stroke-width="9"/>
+<path d="M340 313V192h132l28 132Z" fill="#e5edf1" stroke="#546d81" stroke-width="11"/><path d="m358 209 97-1 18 86H356Z" fill="url(#glass)" stroke="#2c4865" stroke-width="8"/>
+<path d="M515 310V90h62v225" fill="#7f92a1" stroke="#3a5368" stroke-width="12"/><path d="M525 108h41M525 161h41M525 217h41M525 269h41" stroke="#d5dde3" stroke-width="12"/><path d="M546 89V34" stroke="#30475b" stroke-width="13"/><path d="M546 298V517" stroke="#596879" stroke-width="15"/><path d="m539 515 7 29 9-29" fill="#314052"/>
+<rect x="595" y="342" width="65" height="39" rx="7" fill="#bc2738"/><text x="628" y="370" font-family="Arial" font-weight="900" text-anchor="middle" font-size="24" fill="#fff">KMB</text>
+<path d="M304 401h450" stroke="#e9b651" stroke-width="12"/>
+</g></svg>

@@ -1,0 +1,51 @@
+/* Read-only four-manpower live dashboard; scoped to portal only */
+.live-wrap{margin-top:28px;scroll-margin-top:20px}
+.live-head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin:0 0 16px}
+.live-eyebrow{font-size:11px;letter-spacing:.12em;font-weight:800;color:#6a43bd}
+.live-head h2{font-size:clamp(22px,3vw,29px);margin:7px 0;color:#16263e}
+.live-sub{color:#68788e;margin:0;font-size:13px;line-height:1.6}
+.live-actions{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.live-status{background:#fff;border:1px solid #dae3ed;border-radius:999px;padding:8px 11px;font-size:12px;color:#516680;font-weight:700}
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#94a3b8;margin-right:5px}
+.live-dot.ok{background:#1b9869}.live-dot.warn{background:#d69c19}.live-dot.error{background:#b91c31}
+.live-refresh{background:#14283f;border:0;border-radius:9px;color:white;padding:10px 13px;cursor:pointer;font-weight:750;font-size:12px}
+.live-refresh:disabled{opacity:.5;cursor:wait}
+.live-timestamp{font-size:12px;color:#718096;margin:5px 0 17px}
+.live-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:12px}
+.live-kpi{background:white;border:1px solid #e0e7ee;border-radius:12px;padding:17px}
+.live-kpi span{font-size:11px;color:#61748c;text-transform:uppercase;font-weight:700;letter-spacing:.03em}
+.live-kpi b{display:block;font-size:28px;color:#132941;margin-top:6px}
+.live-kpi.vac b{color:#b52b39}
+.live-info{font-size:12px;color:#69798a;line-height:1.5;margin:3px 0 19px}
+.live-panels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+.live-panel{background:#fff;border:1px solid #e0e7ee;border-radius:15px;padding:19px;min-width:0;box-shadow:0 5px 20px #1534530b}
+.live-panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.live-panel h3{font-size:18px;line-height:1.2;margin:0 0 5px}
+.live-panel-link{font-size:12px;font-weight:750;text-decoration:none;color:#2c5b8b;white-space:nowrap}
+.live-panel-meta{font-size:11px;color:#758598;margin:0 0 15px}
+.live-numbers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.live-number{background:#f5f7fb;border-radius:9px;padding:11px 8px;text-align:center}
+.live-number small{display:block;font-size:10px;color:#66768b}
+.live-number strong{font-size:24px;display:block;color:#192e48;margin:5px 0 0}
+.live-number.alert strong{color:#bf283c}
+.live-bar{height:9px;background:#fbe6e9;border-radius:99px;overflow:hidden;margin:12px 0 4px}
+.live-bar-fill{height:100%;background:#3178b9;border-radius:99px;transition:width .3s}
+.live-ratio{font-size:11px;color:#60728a;text-align:right;margin-bottom:15px}
+.live-label{font-size:12px;font-weight:800;color:#233a55;margin:12px 0 8px}
+.live-vacant-list{display:flex;flex-wrap:wrap;gap:6px}
+.live-chip{padding:6px 9px;border-radius:7px;background:#fff0f2;color:#af273b;font-size:11px;font-weight:750}
+.live-chip.empty{background:#e9f7f0;color:#178252}
+.live-details{border-top:1px solid #e8edf3;margin-top:15px;padding-top:12px}
+.live-details summary{font-weight:800;color:#263c58;font-size:12px;cursor:pointer;list-style:revert}
+.live-tablewrap{overflow-x:auto;margin-top:10px}
+.live-table{border-collapse:collapse;width:100%;font-size:12px;min-width:330px}
+.live-table th{color:#687990;background:#f6f8fb;font-size:11px;text-align:left;white-space:nowrap}
+.live-table td,.live-table th{padding:9px 8px;border-bottom:1px solid #eef1f5}
+.live-table td:first-child{overflow-wrap:anywhere}
+.live-table td:nth-child(n+2),.live-table th:nth-child(n+2){text-align:right;white-space:nowrap}
+.live-table .v{font-weight:800;color:#b2273a}
+.live-group-title{background:#eaf0f6;color:#203d5e;font-weight:800;font-size:11px}
+.live-error{border:1px solid #f3cbd0;background:#fff6f7;color:#9a2739;padding:13px;border-radius:10px;font-size:12px;margin:10px 0}
+.live-loading{border:1px dashed #d6e0eb;border-radius:11px;padding:23px;color:#687c93;font-size:12px}
+@media(max-width:720px){.live-panels{grid-template-columns:1fr}.live-kpis{gap:7px}.live-kpi{padding:11px}.live-kpi b{font-size:23px}.live-panel{padding:14px}.live-head h2{font-size:23px}}
+@media print{.live-actions{display:none!important}.live-panel{box-shadow:none;break-inside:avoid}.live-details{display:block}.live-details>*{display:block!important}}
