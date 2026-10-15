@@ -418,6 +418,9 @@ td .cc-files { margin-top: 0; min-width: 150px; }
   .orgwrap { overflow: visible !important; background: none; padding: 8px 0; }
   .orgcard { border: 0; }
 }
+.onode[data-rsec], .gtitle[data-rgrp] { cursor: pointer; }
+.onode[data-rsec]:hover { filter: brightness(1.08); }
+.gtitle[data-rgrp]:hover { text-decoration: underline; }
 .edf { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .edf input { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
 .edl { display: grid; gap: 6px; }
@@ -2134,9 +2137,9 @@ function orgChart(D) {
     const frames = s.groups.map((g) => {
       const fl = g.list.filter((p) => freeSet.has(p.uid)); if (!fl.length) return '';
       const titled = g.name !== s.name;
-      return `<div class="gframe">${titled ? `<div class="gtitle">${esc(g.name)}<span>${g.list.length} posisi</span></div>` : ''}${tiersHtml(fl, M)}</div>`;
+      return `<div class="gframe">${titled ? `<div class="gtitle" ${CAN_EDIT ? `data-rgrp="${esc(s.name)}" data-g="${esc(g.name)}" role="button" tabindex="0" title="Klik untuk ganti nama sub-section"` : ''}>${esc(g.name)}<span>${g.list.length} posisi</span></div>` : ''}${tiersHtml(fl, M)}</div>`;
     }).join('');
-    return `<li><div class="onode sec"><b>${esc(s.name)}</b><span>${all.length} posisi${vac ? ` · ${vac} vacant` : ''}</span></div>${frames ? `<div class="glist">${frames}</div>` : ''}</li>`;
+    return `<li><div class="onode sec" ${CAN_EDIT ? `data-rsec="${esc(s.name)}" role="button" tabindex="0" title="Klik untuk ganti nama section"` : ''}><b>${esc(s.name)}</b><span>${all.length} posisi${vac ? ` · ${vac} vacant` : ''}</span></div>${frames ? `<div class="glist">${frames}</div>` : ''}</li>`;
   };
   const secRow = body.length ? `<ul class="tier secs">${body.map(secLi).join('')}</ul>` : '';
   if (ui.osec !== 'semua') return `<div class="org">${tiersHtml([], M, secRow)}</div>`;
@@ -2211,10 +2214,38 @@ mppForm = function (idx) {
   FORM.onSave = (v) => {
     const at = (document.getElementById('f_atasan') || {}).value || null;
     const _c = commit;
-    commit = (mut, msg) => { commit = _c; return _c((S) => { mut(S); const pos = p ? S.positions.find((x) => x.uid === p.uid) : S.positions.find((x) => !x.uid); if (pos) { if (!pos.uid) pos.uid = newUid(); pos.atasan = at; } S.positions.forEach((x) => { if (!x.uid) x.uid = newUid(); }); }, msg); };
+    commit = (mut, msg) => { commit = _c; return _c((S) => { mut(S); const pos = p ? S.positions.find((x) => x.uid === p.uid) : S.positions.find((x) => !x.uid); if (pos) { if (!pos.uid) pos.uid = newUid(); pos.atasan = at; if (p && (pos.section !== p.section || pos.group !== p.group)) cascadeSection(S, pos); } S.positions.forEach((x) => { if (!x.uid) x.uid = newUid(); }); }, msg); };
     try { return save(v); } finally { commit = _c; }
   };
 };
+
+// subordinates (atasan chain) follow their leader's section / sub-section
+function cascadeSection(S, pos) {
+  const q = [pos.uid], seen = new Set(q);
+  while (q.length) {
+    const u = q.shift();
+    S.positions.forEach((x) => { if (x.atasan === u && !seen.has(x.uid)) { seen.add(x.uid); x.section = pos.section; x.group = pos.group; q.push(x.uid); } });
+  }
+}
+// rename a whole section / sub-section
+function renameForm(kind, sec, grp) {
+  const old = kind === 'sec' ? sec : grp;
+  const n = DATA.positions.filter((p) => kind === 'sec' ? p.section === sec : (p.section === sec && (p.group || p.section) === grp)).length;
+  openForm({ eyebrow: 'Struktur Organisasi', title: `Ganti nama ${kind === 'sec' ? 'section' : 'sub-section'}`, submit: 'Simpan',
+    intro: `${n} posisi di <b>${esc(old)}</b> ikut berubah.${kind === 'grp' ? ` (Section: ${esc(sec)})` : ''}`,
+    values: { nm: old }, fields: [{ k: 'nm', label: kind === 'sec' ? 'Nama section' : 'Nama sub-section', req: true, full: true, list: kind === 'sec' ? SEC_OPTS() : GRP_OPTS() }],
+    onSave: (v) => { const nv = String(v.nm).trim(); if (!nv || nv === old) return true; return commit((S) => {
+      S.positions.forEach((p) => {
+        if (kind === 'sec' && p.section === sec) { if ((p.group || p.section) === sec) p.group = nv; p.section = nv; }
+        if (kind === 'grp' && p.section === sec && (p.group || p.section) === grp) p.group = nv;
+      });
+    }, `${kind === 'sec' ? 'Section' : 'Sub-section'} diganti menjadi ${nv}.`); } });
+}
+document.addEventListener('click', (e) => {
+  if (!CAN_EDIT) return;
+  const r = e.target.closest('[data-rsec]'); if (r) { renameForm('sec', r.dataset.rsec); return; }
+  const g = e.target.closest('[data-rgrp]'); if (g) { renameForm('grp', g.dataset.rgrp, g.dataset.g); }
+});
 
 // ================= WEB: standalone mode (GitHub Pages + Supabase, no Claude) =================
 const WEB_CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
