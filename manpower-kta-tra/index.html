@@ -2822,11 +2822,18 @@ let PS = null;
 function secOrderOf(S) { const names = []; S.positions.forEach((p) => { const s = p.section || 'Lainnya'; if (!names.includes(s)) names.push(s); }); const cur = S.orgSecOrder || []; return [...cur.filter((n) => names.includes(n)), ...names.filter((n) => !cur.includes(n))]; }
 function sTarget(el) {
   if (PS.kind === 'box') return null;
-  const sn = el.closest('.onode.sec');
-  if (sn && sn.dataset.dsec !== PS.sec) { const z = zone(sn, PX, .5); return { el: sn, kind: 'spos', sec: sn.dataset.dsec, where: z === 'before' ? 'before' : 'after', cls: z === 'before' ? 'dropbefore' : 'dropafter' }; }
   const out = el.closest('.orgroot.out'); if (out && !secOut(PS.sec)) return { el: out, kind: 'sout' };
-  const main = el.closest('.orgroot:not(.out)'); if (main && secOut(PS.sec)) return { el: main, kind: 'sin' };
-  return null;
+  const root = el.closest('.orgroot') || (el.closest('#orgWrap') && document.querySelector('#orgWrap .orgroot:not(.out)'));
+  if (!root) return null;
+  const isOut = root.classList.contains('out');
+  if (!isOut && secOut(PS.sec) && !el.closest('.onode.sec')) return { el: root, kind: 'sin' };
+  // nearest section box in this area (by horizontal distance) — drop anywhere in the row
+  const nodes = [...root.querySelectorAll('.onode.sec')].filter((n) => n.dataset.dsec !== PS.sec && n.closest('.orgroot') === root);
+  if (!nodes.length) return isOut ? null : { el: root, kind: 'sin' };
+  let best = null, bd = Infinity;
+  nodes.forEach((n) => { const r = n.getBoundingClientRect(); const d = Math.abs(PX - (r.left + r.width / 2)); if (d < bd) { bd = d; best = n; } });
+  const r = best.getBoundingClientRect(); const before = PX < r.left + r.width / 2;
+  return { el: best, kind: 'spos', sec: best.dataset.dsec, where: before ? 'before' : 'after', cls: before ? 'dropbefore' : 'dropafter' };
 }
 document.addEventListener('pointerdown', (e) => {
   if (e.button !== 0 || !CAN_EDIT) return;
