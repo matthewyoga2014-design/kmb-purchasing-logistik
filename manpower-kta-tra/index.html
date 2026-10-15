@@ -2861,9 +2861,14 @@ const zoneY = (el, y, edge) => { const r = el.getBoundingClientRect(); const rel
 gTarget = function (el, key) {
   let fr = el.closest('.gframe'), forced = null;
   if (!fr) { const gl = el.closest('.glist'); if (gl) { let bd = Infinity; [...gl.children].forEach((n) => { const f = n.querySelector(':scope > .gframe'); if (!f) return; const r = f.getBoundingClientRect(); const d = PY < r.top ? r.top - PY : PY > r.bottom ? PY - r.bottom : 0; if (d < bd) { bd = d; fr = f; forced = PY < r.top + r.height / 2 ? 'before' : 'after'; } }); } }
+  if (fr && forced) { const r = fr.getBoundingClientRect(); if (PX > r.right + 8 && PY >= r.top && PY <= r.bottom) { const k0 = GK(fr.dataset.dsec, fr.dataset.dg); if (k0 !== key && !gIsUnder(gmap(DATA), k0, key)) return { el: fr, kind: 'gpos', where: 'after', cls: 'dropafter', setLay: 'h', key: k0, sec: fr.dataset.dsec, g: fr.dataset.dg, lbl: `Sejajar ke samping · sesudah ${fr.dataset.dg}` }; } }
   if (fr) {
     const k = GK(fr.dataset.dsec, fr.dataset.dg); if (k === key || gIsUnder(gmap(DATA), k, key)) return null;
     const vert = !!fr.parentElement.closest('.glist') && !fr.parentElement.closest('ul.gul');
+    if (vert) {
+      const r = fr.getBoundingClientRect(), side = PX < r.left + r.width * .15 ? 'before' : PX > r.right - r.width * .15 ? 'after' : null;
+      if (side) return { el: fr, kind: 'gpos', where: side, cls: side === 'before' ? 'dropbefore' : 'dropafter', setLay: 'h', key: k, sec: fr.dataset.dsec, g: fr.dataset.dg, lbl: `Sejajar ke samping · ${side === 'before' ? 'sebelum' : 'sesudah'} ${fr.dataset.dg}` };
+    }
     const z = forced || (vert ? zoneY(fr, PY, .3) : zone(fr, PX, .22));
     const cls = z === 'mid' ? 'dropok' : vert ? (z === 'before' ? 'droptop' : 'dropbottom') : (z === 'before' ? 'dropbefore' : 'dropafter');
     return { el: fr, kind: z === 'mid' ? 'grp' : 'gpos', where: z, cls, key: k, sec: fr.dataset.dsec, g: fr.dataset.dg };
@@ -2881,7 +2886,8 @@ document.addEventListener('pointerup', async () => {
     const m = { ...gmap(S) }; const nk = GK(t.sec, g); const tp = m[t.key]; if (tp) m[nk] = tp; else delete m[nk]; S.orgGroups = m;
     const ord = grpOrderOf(S, t.sec).filter((n) => n !== g); const i = ord.indexOf(t.g); ord.splice(t.where === 'before' ? i : i + 1, 0, g);
     S.orgGrpOrder = { ...(S.orgGrpOrder || {}), [t.sec]: ord };
-  }, `${g} dipindah ${t.where === 'before' ? 'sebelum' : 'sesudah'} ${t.g}.`);
+    if (t.setLay) S.orgSecLay = { ...(S.orgSecLay || {}), [t.sec]: 'h' };
+  }, t.setLay ? `${g} sekarang sejajar di samping ${t.g}.` : `${g} dipindah ${t.where === 'before' ? 'sebelum' : 'sesudah'} ${t.g}.`);
 }, true);
 
 // ---------- sections (kotak ungu) and the Di luar SO box ----------
