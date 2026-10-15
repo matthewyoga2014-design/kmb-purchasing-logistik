@@ -285,6 +285,19 @@
     };
   }
 
+  // Read-only recovery for an initially empty KTA display. Never upload empty local data.
+  if(isKta){
+    window.KTAEnsureLoaded=async function(){
+      if(Array.isArray(data?.mpp)&&data.mpp.length)return true;
+      if(!window.KMBCloud)return false;
+      const record=await window.KMBCloud.loadState();
+      if(!Array.isArray(record?.data?.mpp)||!record.data.mpp.length)throw new Error("Data MPP belum tersedia dari database.");
+      persistRemoteLocally(record.data);
+      renderAll();
+      return true;
+    };
+  }
+
   const originalSave=window.saveData;
   if(typeof originalSave==="function"){
     // Return a save result so destructive actions can wait for confirmed cloud persistence.
