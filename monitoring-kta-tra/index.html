@@ -71,7 +71,38 @@
 @media print{body:has(#so.view.active) .so7-paper{min-width:0!important;width:100%;zoom:.7}body:has(#so.view.active) .so7-sections{gap:6px!important}body:has(#so.view.active) .so7-scopes{gap:4px!important}@page{size:landscape;margin:6mm}}
 </style><style id="som-ui">
 .som-toolbar{display:flex;gap:10px;margin-bottom:18px}.som-sheet{background:white;padding:22px;min-height:300px}.som-sheet header{text-align:center;line-height:1.8;margin-bottom:35px;font-size:13px}.som-sheet header b{letter-spacing:3px;font-size:16px}.som-scroll{overflow:auto;padding:0 12px 32px}.som-tree,.som-tree ul{display:flex;justify-content:center;gap:15px;list-style:none;margin:0;padding:35px 0 0;position:relative}.som-tree li{position:relative;flex:0 0 auto;min-width:150px;text-align:center}.som-tree li:before,.som-tree li:after{content:"";position:absolute;top:-35px;right:50%;width:50%;height:35px;border-top:1px solid #85a2c3}.som-tree li:after{left:50%;right:auto;border-left:1px solid #85a2c3}.som-tree li:only-child:before,.som-tree li:only-child:after,.som-tree>li:before,.som-tree>li:after{display:none}.som-tree li:first-child:before,.som-tree li:last-child:after{border:0}.som-tree ul:before{content:"";height:35px;position:absolute;top:0;left:50%;border-left:1px solid #85a2c3}.som-card{border:1px solid #708fae;min-width:150px;max-width:240px;background:white;font-size:12px}.som-role{padding:8px;border-bottom:1px solid #708fae}.som-person{padding:8px}.som-vacant{color:#cf1828;font-weight:700}.som-edit{border:1px solid #c6d5e4;background:white;border-radius:5px;padding:2px 10px;margin:5px;font-size:11px;cursor:pointer}.som-editor{margin:18px 0;padding:18px;background:white;border:1px solid #ccd7e5;border-radius:10px;display:grid;gap:9px;max-width:600px}.som-editor select,.som-editor input{width:100%;min-height:40px;padding:8px;border:1px solid #bdc9d8;border-radius:6px}.som-editor label{font-size:12px;font-weight:600}.som-buttons{display:flex;gap:8px;flex-wrap:wrap}.som-info,.som-empty{font-size:12px;color:#64748b}@media print{body:has(#so.view.active) .som-toolbar,body:has(#so.view.active) .som-editor,body:has(#so.view.active) .som-edit,body:has(#so.view.active) .som-info{display:none!important}body:has(#so.view.active) .som-scroll{overflow:visible}@page{size:landscape;margin:8mm}}
-</style><style id="som-employee-select">#soContent .som-inline{width:100%;border:0;background:transparent;padding:7px 4px;text-align:center;font:inherit;font-size:12px;color:#233047;cursor:pointer}#soContent .som-vacant .som-inline{color:#c90013;font-weight:bold}#soContent .som-person{padding:0!important}body:has(#so.view.active) .som-inline{max-width:100%}@media print{#soContent .som-inline{appearance:none!important;border:0!important;color:inherit!important}}</style></head>
+</style><style id="som-employee-select">#soContent .som-inline{width:100%;border:0;background:transparent;padding:7px 4px;text-align:center;font:inherit;font-size:12px;color:#233047;cursor:pointer}#soContent .som-vacant .som-inline{color:#c90013;font-weight:bold}#soContent .som-person{padding:0!important}body:has(#so.view.active) .som-inline{max-width:100%}@media print{#soContent .som-inline{appearance:none!important;border:0!important;color:inherit!important}}</style><style id="sa-smartart">
+#soContent{padding:0!important;background:#f8fafc!important}
+.sa-layout{display:grid;grid-template-columns:315px minmax(0,1fr);gap:14px;align-items:start}
+.sa-panel{background:#fff;border:1px solid #c7d2e2;border-radius:9px;padding:13px;position:sticky;top:10px;max-height:85vh;overflow:auto}
+.sa-panel-title{display:flex;flex-direction:column;gap:4px;color:#173b64}.sa-panel-title small{color:#64748b}
+.sa-help{font-size:11px;color:#475569;margin:10px 0;border:1px solid #e2e8f0;padding:7px;border-radius:5px}
+.sa-outline{border:1px solid #a6b7cc;min-height:240px;max-height:380px;overflow:auto;background:#fff;padding:7px}
+.sa-outline-row{display:flex;gap:5px;margin:5px 0 5px calc(var(--indent)*13px);padding:5px;border:1px solid transparent;border-radius:5px;min-width:0}
+.sa-outline-row.sa-selected{background:#eff6ff;border-color:#91b7ea}
+.sa-pick{align-self:start;background:transparent;border:0;color:#1e5c93;cursor:pointer}
+.sa-row-fields{display:grid;gap:4px;min-width:0;flex:1}
+.sa-row-fields select{width:100%;min-width:0;padding:6px 3px;font-size:11px;border:1px solid #cbd5e1;border-radius:4px;background:white}
+.sa-controls{display:flex;gap:5px;flex-wrap:wrap;margin:12px 0}.sa-controls .btn{font-size:11px;padding:7px}
+.sa-footnote{color:#64748b;font-size:11px}
+.sa-sheet{background:#fff;overflow:hidden;min-height:540px;border:1px solid #dbe4ef;padding:19px}
+.sa-heading{text-align:center;line-height:1.8;font-size:12px;margin-bottom:25px}.sa-heading strong{font-size:15px;letter-spacing:3px}
+.sa-chart-scroll{overflow:auto;padding:18px 12px 40px}
+.sa-tree,.sa-tree ul{display:flex;justify-content:center;gap:20px;padding:38px 0 0;margin:0;list-style:none;position:relative}
+.sa-tree>li:before,.sa-tree>li:after{display:none}
+.sa-tree li{position:relative;flex:0 0 auto;min-width:175px;text-align:center}
+.sa-tree li:before,.sa-tree li:after{content:"";position:absolute;top:-38px;right:50%;height:38px;width:50%;border-top:1px solid #8aa5c0}
+.sa-tree li:after{right:auto;left:50%;border-left:1px solid #8aa5c0}
+.sa-tree li:only-child:before,.sa-tree li:only-child:after{display:none}
+.sa-tree li:first-child:before,.sa-tree li:last-child:after{border:0}
+.sa-tree li:first-child:after,.sa-tree li:last-child:before{border-top:1px solid #8aa5c0}
+.sa-tree ul:before{content:"";position:absolute;top:0;left:50%;height:38px;border-left:1px solid #8aa5c0}
+.sa-card{min-width:170px;max-width:235px;border:1px solid #6e91ad;cursor:pointer;background:white}
+.sa-card-role,.sa-card-name{padding:7px 10px;font-size:11px}.sa-card-role{border-bottom:1px solid #6e91ad;background:#dae3ed}.sa-card-name.sa-vacant{color:#c91e2d;font-weight:bold}
+.sa-empty{font-size:13px;color:#64748b;text-align:center;padding:50px}
+@media(max-width:900px){.sa-layout{grid-template-columns:1fr}.sa-panel{position:static;max-height:none}.sa-outline{max-height:260px}}
+@media print{body:has(#so.view.active) .sa-panel{display:none!important}body:has(#so.view.active) .sa-layout{display:block!important}body:has(#so.view.active) .sa-sheet{border:0!important}body:has(#so.view.active) .sa-chart-scroll{overflow:visible!important}body:has(#so.view.active) .sa-tree{gap:5px}body:has(#so.view.active) .sa-tree ul{gap:5px}@page{size:landscape;margin:7mm}}
+</style></head>
 <body>
 <div class="app">
 <aside class="sidebar" id="sidebar">
@@ -247,7 +278,7 @@
 <script src="data_out.js?v=8"></script>
 <script src="data_units.js?v=8"></script>
 <script src="app.js?v=20261015-restore-mpp8"></script>
-<script src="so.js?v=20261015-manual-mpactive9"></script>
+<script src="so.js?v=20261015-smartart10"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase/config.js?v=1"></script>
 <script src="../supabase/cloud-access.js?v=6"></script>
