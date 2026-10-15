@@ -292,6 +292,20 @@
     };
   }
 
+  // Serialize candidate saves/deletes with all other app writes to avoid stale snapshots overwriting updates.
+  window.KMBCloudSaveQueued=function(snapshot){
+    if(!window.KMBCloud?.canEdit?.())return Promise.resolve({saved:false,error:new Error("Silakan masuk sebagai Pemilik atau Editor.")});
+    const copy=JSON.parse(JSON.stringify(snapshot));
+    pendingCloudSaves++;
+    saveQueue=saveQueue.then(async()=>{
+      await window.KMBCloud.saveState(copy);
+      return {saved:true};
+    }).catch(error=>{
+      console.error("Cloud save failed",error);
+      return {saved:false,error};
+    }).finally(()=>{pendingCloudSaves=Math.max(0,pendingCloudSaves-1)});
+    return saveQueue;
+  };
   const originalSave=window.saveData;
   if(typeof originalSave==="function"){
     // Return a save result so destructive actions can wait for confirmed cloud persistence.
@@ -302,19 +316,7 @@
       if(!window.KMBCloud?.canEdit?.()){
         return Promise.resolve({saved:false,error:new Error("Silakan masuk sebagai Pemilik atau Editor.")});
       }
-      const snapshot=JSON.parse(JSON.stringify(data));
-      pendingCloudSaves++;
-      saveQueue=saveQueue
-        .then(async()=>{
-          await window.KMBCloud.saveState(snapshot);
-          return {saved:true};
-        })
-        .catch(error=>{
-          console.error("Cloud save failed",error);
-          return {saved:false,error};
-        })
-        .finally(()=>{pendingCloudSaves=Math.max(0,pendingCloudSaves-1)});
-      return saveQueue;
+      return window.KMBCloudSaveQueued(data);
     };
   }
 
