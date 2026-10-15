@@ -320,10 +320,30 @@ function renderKtaCharts(){
 
   const stages=["SOURCING PELAMAR","PSIKOLOGI TEST","INTERVIEW USER","OFFERING","MCU","FU MCU","ON SITE","INDUKSI","HIRED"];
   const labels=["Sourcing","Psikotes","Interview","Offering","MCU","FU MCU","On Site","Induksi","Hired"];
+  // Only applicants connected to currently Open MPP positions, one final stage per applicant.
   const counts=Object.fromEntries(stages.map(x=>[x,0]));
-  const candidateRows=allCandidateRows();
-  candidateRows.filter(isActiveCandidate).forEach(r=>{const label=norm(r["Progress Terakhir"]).toUpperCase();if(counts[label]!==undefined)counts[label]++});
-  (data.mpp||[]).filter(r=>isVacant(r.Nama)&&activeCandidates(r).length===0).forEach(r=>{const p=bestCandidateProgress(r);if(counts[p.label]!==undefined)counts[p.label]++});
+  const statusCounts={total:0,active:0,rejected:0,noResponse:0,declined:0,hired:0,other:0};
+  (data.mpp||[]).filter(r=>norm(r.Status).toLowerCase()==="open").forEach(position=>{
+    getCandidates(position).forEach(candidate=>{
+      statusCounts.total++;
+      const status=norm(candidate["Status Kandidat"]||"Aktif").toLowerCase();
+      if(status==="aktif")statusCounts.active++;
+      else if(status==="hired"||status==="diterima")statusCounts.hired++;
+      else if(/no\\s*response|tidak\\s*ada\\s*respon/.test(status))statusCounts.noResponse++;
+      else if(/tolak|menolak|declined|withdraw/.test(status)&&!/tidak\\s*lolos/.test(status))statusCounts.declined++;
+      else if(/tidak\\s*lolos|gagal|rejected/.test(status))statusCounts.rejected++;
+      else statusCounts.other++;
+      const progressInfo=candidateProgress(candidate);
+      const stage=(statusCounts.hired&&["hired","diterima"].includes(status))?"HIRED":norm(progressInfo.label).toUpperCase();
+      if(counts[stage]!==undefined)counts[stage]++;
+      else counts["SOURCING PELAMAR"]++;
+    });
+  });
+  const statusHost=document.getElementById("ktaCandidateStatusSummary");
+  if(statusHost){
+    const cards=[["Total Kandidat",statusCounts.total],["Aktif / Proses",statusCounts.active],["Tidak Lolos",statusCounts.rejected],["No Response",statusCounts.noResponse],["Menolak",statusCounts.declined],["Hired",statusCounts.hired]];
+    statusHost.innerHTML=cards.map(([label,value])=>'<div style="border:1px solid #eceaf5;border-radius:10px;padding:10px 12px;background:#faf9fd"><b style="font-size:20px;color:#372260">'+value+'</b><div style="font-size:11px;color:#777189">'+label+'</div></div>').join("");
+  }
   ktaMakeChart("ktaPipelineChart",{
     type:"line",
     data:{labels,datasets:[{label:"Kandidat / Posisi",data:stages.map(s=>counts[s]),borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.12)",pointBackgroundColor:"#fff",pointBorderColor:"#7c3aed",pointBorderWidth:3,pointRadius:4,tension:.38,fill:true}]},
