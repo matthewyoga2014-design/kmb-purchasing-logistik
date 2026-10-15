@@ -219,16 +219,31 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
 .pelamar-docs-panel p{color:#667085;font-size:13px}
 
 /* KTA dashboard 2026-10-15: visual hierarchy only; no metric changes */
-#dashboard #manpowerRoleRecap tbody tr:not(:last-child) td:first-child{font-weight:750;color:#5332a3}
-#dashboard #manpowerRoleRecap tbody tr:not(:last-child):nth-child(4n+1) td:first-child{color:#1d4ed8;background:#eff6ff}
-#dashboard #manpowerRoleRecap tbody tr:not(:last-child):nth-child(4n+2) td:first-child{color:#6d28d9;background:#f5f3ff}
-#dashboard #manpowerRoleRecap tbody tr:not(:last-child):nth-child(4n+3) td:first-child{color:#047857;background:#ecfdf5}
-#dashboard #manpowerRoleRecap tbody tr:not(:last-child):nth-child(4n+4) td:first-child{color:#b45309;background:#fffbeb}
-#dashboard #manpowerRoleRecap td:first-child{border-left:3px solid transparent}
-#dashboard #manpowerRoleRecap tbody tr:not(:last-child):nth-child(4n+1) td:first-child{border-left-color:#60a5fa}
-#dashboard #manpowerRoleRecap tbody tr:not(:last-child):nth-child(4n+2) td:first-child{border-left-color:#a78bfa}
-#dashboard #manpowerRoleRecap tbody tr:not(:last-child):nth-child(4n+3) td:first-child{border-left-color:#34d399}
-#dashboard #manpowerRoleRecap tbody tr:not(:last-child):nth-child(4n+4) td:first-child{border-left-color:#fbbf24}
+/* Distinct role colors, one hue per position (up to 24 distinct roles). */
+#dashboard #manpowerRoleRecap tbody tr:nth-child(1) td:first-child{color:hsl(0 72% 28%);background:hsl(0 82% 96%);border-left:4px solid hsl(0 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(2) td:first-child{color:hsl(15 72% 28%);background:hsl(15 82% 96%);border-left:4px solid hsl(15 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(3) td:first-child{color:hsl(30 72% 28%);background:hsl(30 82% 96%);border-left:4px solid hsl(30 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(4) td:first-child{color:hsl(45 72% 28%);background:hsl(45 82% 96%);border-left:4px solid hsl(45 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(5) td:first-child{color:hsl(60 72% 28%);background:hsl(60 82% 96%);border-left:4px solid hsl(60 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(6) td:first-child{color:hsl(75 72% 28%);background:hsl(75 82% 96%);border-left:4px solid hsl(75 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(7) td:first-child{color:hsl(90 72% 28%);background:hsl(90 82% 96%);border-left:4px solid hsl(90 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(8) td:first-child{color:hsl(105 72% 28%);background:hsl(105 82% 96%);border-left:4px solid hsl(105 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(9) td:first-child{color:hsl(120 72% 28%);background:hsl(120 82% 96%);border-left:4px solid hsl(120 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(10) td:first-child{color:hsl(135 72% 28%);background:hsl(135 82% 96%);border-left:4px solid hsl(135 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(11) td:first-child{color:hsl(150 72% 28%);background:hsl(150 82% 96%);border-left:4px solid hsl(150 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(12) td:first-child{color:hsl(165 72% 28%);background:hsl(165 82% 96%);border-left:4px solid hsl(165 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(13) td:first-child{color:hsl(180 72% 28%);background:hsl(180 82% 96%);border-left:4px solid hsl(180 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(14) td:first-child{color:hsl(195 72% 28%);background:hsl(195 82% 96%);border-left:4px solid hsl(195 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(15) td:first-child{color:hsl(210 72% 28%);background:hsl(210 82% 96%);border-left:4px solid hsl(210 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(16) td:first-child{color:hsl(225 72% 28%);background:hsl(225 82% 96%);border-left:4px solid hsl(225 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(17) td:first-child{color:hsl(240 72% 28%);background:hsl(240 82% 96%);border-left:4px solid hsl(240 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(18) td:first-child{color:hsl(255 72% 28%);background:hsl(255 82% 96%);border-left:4px solid hsl(255 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(19) td:first-child{color:hsl(270 72% 28%);background:hsl(270 82% 96%);border-left:4px solid hsl(270 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(20) td:first-child{color:hsl(285 72% 28%);background:hsl(285 82% 96%);border-left:4px solid hsl(285 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(21) td:first-child{color:hsl(300 72% 28%);background:hsl(300 82% 96%);border-left:4px solid hsl(300 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(22) td:first-child{color:hsl(315 72% 28%);background:hsl(315 82% 96%);border-left:4px solid hsl(315 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(23) td:first-child{color:hsl(330 72% 28%);background:hsl(330 82% 96%);border-left:4px solid hsl(330 73% 53%);font-weight:750}
+#dashboard #manpowerRoleRecap tbody tr:nth-child(24) td:first-child{color:hsl(345 72% 28%);background:hsl(345 82% 96%);border-left:4px solid hsl(345 73% 53%);font-weight:750}
 #dashboard #statusCards .mini,#dashboard #dueCards .mini{border:1px solid transparent;border-radius:13px;box-shadow:none}
 #dashboard #statusCards .mini:nth-child(1){background:#fff1f2;border-color:#fecdd3}
 #dashboard #statusCards .mini:nth-child(1) b{color:#dc2626}
