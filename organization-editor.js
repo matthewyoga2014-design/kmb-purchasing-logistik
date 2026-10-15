@@ -17,6 +17,7 @@ function mppItems(){
 }
 function displayName(n){
  if(n.sectionHeading||["bupr-maint","bupr-tyre"].includes(n.id))return "";
+ if(n.extraPosition)return /^vacant\\b/i.test(String(n.name||""))?"VACANT":(n.name||"VACANT");
  const item=mppItems().find(x=>x.key===String(n.mppKey||""));
  if(item)return !item.name||/^vacant$/i.test(item.name)?"VACANT":item.name;
  return /^vacant\b/i.test(String(n.name||""))?"VACANT":(n.name||"VACANT");
@@ -59,7 +60,7 @@ async function save(){
  if(error){notice("Gagal simpan: "+error.message);return}
  dirty=false;notice("Tersimpan ke database. Perubahan bisa dilihat di perangkat lain.");
 }
-function add(){if(!staff())return;const max=nodes.reduce((a,n)=>Math.max(a,Number(n.y)||0),0);const id=crypto.randomUUID();nodes.push({id,name:"VACANT",role:"Jabatan Baru",parent:"",x:120+(nodes.length%4)*250,y:max?max+150:55});editing=true;dirty=true;selected=id;draw();editPanel()}
+function add(){if(!staff())return;const max=nodes.reduce((a,n)=>Math.max(a,Number(n.y)||0),0);const id=crypto.randomUUID();nodes.push({id,name:"VACANT",role:"Jabatan Baru",extraPosition:true,parent:"",x:120+(nodes.length%4)*250,y:max?max+150:55});editing=true;dirty=true;selected=id;draw();editPanel()}
 function fitChart(){
  const scroller=document.querySelector(".so-scroller"),stage=document.getElementById("soStage");if(!scroller||!stage)return;
  const w=parseFloat(stage.style.width)||1000,h=parseFloat(stage.style.height)||500;
@@ -116,12 +117,30 @@ function editPanel(){
  const n=nodes.find(x=>x.id===selected);
  if(!n||!staff()){box.hidden=true;return}
  box.hidden=false;
- const options=mppItems();
- box.innerHTML='<h3>Edit Posisi</h3><label>Link ke posisi MPP<select id="soMPP"><option value="">Tidak terhubung (manual)</option>'+options.map(x=>'<option value="'+safe(x.key)+'" '+(String(n.mppKey||"")===x.key?'selected':'')+'>'+safe(x.label)+'</option>').join('')+'</select></label><label>Jabatan<input id="soRole" value="'+safe(n.role)+'"></label><label>Nama<input id="soName" value="'+safe(n.name)+'"></label><label>Atasan langsung<select id="soParent"><option value="">Tidak ada / Pimpinan utama</option>'+nodes.filter(x=>x.id!==n.id).map(x=>'<option value="'+safe(x.id)+'" '+(x.id===n.parent?'selected':'')+'>'+safe(x.role)+' — '+safe(x.name)+'</option>').join('')+'</select></label><div class="so-edit-actions"><button type="button" id="soUpdate">Terapkan</button><button type="button" id="soDelete" class="so-danger">Hapus Posisi</button></div>';
+ const mapped=mppItems().find(x=>x.key===String(n.mppKey||""));
+ const section=!!n.sectionHeading||["bupr-maint","bupr-tyre"].includes(n.id);
+ box.innerHTML='<h3>Edit Struktur & Letak</h3>'+
+ '<div class="so-edit-info">Nama dari MPP: <b>'+safe(section?"Judul Section":mapped?displayName(n):"Belum terhubung / jabatan tambahan")+'</b></div>'+
+ '<label>Jenis posisi<select id="soType"><option value="mpp" '+(!n.extraPosition?'selected':'')+'>Posisi sesuai MPP</option><option value="extra" '+(n.extraPosition?'selected':'')+'>Jabatan tambahan di luar MPP</option></select></label>'+
+ '<label>Jabatan / Judul Kotak<input id="soRole" value="'+safe(n.role)+'"></label>'+
+ '<label id="soExtraNameWrap" '+(!n.extraPosition?'hidden':'')+'>Nama untuk jabatan tambahan<input id="soName" value="'+safe(n.name||"VACANT")+'"></label>'+
+ '<label>Atasan langsung<select id="soParent"><option value="">Tidak ada / Pimpinan utama</option>'+nodes.filter(x=>x.id!==n.id).map(x=>'<option value="'+safe(x.id)+'" '+(x.id===n.parent?'selected':'')+'>'+safe(x.role)+' — '+safe(displayName(x))+'</option>').join('')+'</select></label>'+
+ '<h4 style="margin:12px 0 5px">Pengaturan Letak Kotak</h4><p style="font-size:11px;color:#64748b;margin:0 0 8px">Geser kotak langsung di bagan atau isi koordinat di bawah.</p>'+
+ '<label>Posisi horizontal (X) — kiri / kanan<input type="number" min="0" step="10" id="soX" value="'+Math.round(+n.x||0)+'"></label>'+
+ '<label>Posisi vertikal (Y) — atas / bawah<input type="number" min="0" step="10" id="soY" value="'+Math.round(+n.y||0)+'"></label>'+
+ '<div class="so-edit-actions"><button type="button" id="soUpdate">Terapkan</button><button type="button" id="soDelete" class="so-danger">Hapus Posisi</button></div>';
+ document.getElementById("soType").onchange=e=>{document.getElementById("soExtraNameWrap").hidden=e.target.value!=="extra"};
  document.getElementById("soUpdate").onclick=()=>{
  const par=document.getElementById("soParent").value;let ancestor=par;
  while(ancestor){if(ancestor===n.id){alert("Hubungan atasan tidak boleh membentuk lingkaran.");return}ancestor=nodes.find(x=>x.id===ancestor)?.parent||""}
- n.mppKey=document.getElementById("soMPP").value;n.name=document.getElementById("soName").value.trim()||"VACANT";n.role=document.getElementById("soRole").value.trim()||"Jabatan";n.parent=par;dirty=true;draw();editPanel();notice("Perubahan belum disimpan. Klik Simpan Struktur.");
+ const extra=document.getElementById("soType").value==="extra";
+ n.extraPosition=extra;
+ if(extra){n.mppKey="";n.name=document.getElementById("soName").value.trim()||"VACANT"}
+ n.role=document.getElementById("soRole").value.trim()||"Jabatan";
+ n.parent=par;
+ n.x=Math.max(0,Number(document.getElementById("soX").value)||0);
+ n.y=Math.max(0,Number(document.getElementById("soY").value)||0);
+ dirty=true;draw();editPanel();notice("Letak dan jabatan diperbarui. Klik Simpan Struktur.");
  };
  document.getElementById("soDelete").onclick=()=>{if(!confirm("Hapus posisi ini dari struktur organisasi?"))return;nodes=nodes.filter(x=>x.id!==n.id);nodes.forEach(x=>{if(x.parent===n.id)x.parent=""});selected=null;dirty=true;draw();editPanel();notice("Posisi dihapus dari bagan. Klik Simpan Struktur.")};
 }
@@ -139,7 +158,7 @@ function setup(){
  load();
 }
 const css=document.createElement("style");css.textContent=`
-.so-zoom-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:white;border:1px solid #e3e6ef;border-radius:10px;padding:8px 12px;margin-top:12px;font-size:12px;color:#58677c}.so-zoom-bar button{border:1px solid #d6dded;border-radius:7px;background:#f6f3ff;color:#5b21b6;padding:6px 12px;cursor:pointer;font-weight:800}.so-zoom-bar input{width:155px;accent-color:#7c3aed}.so-zoom-bar strong{min-width:43px;text-align:center;color:#17243b}.so-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.so-head h2{margin:5px 0}.so-head p{font-size:13px;color:#68758a}.so-tools{display:flex;gap:8px;flex-wrap:wrap}.so-message{margin:12px 0;font-size:12px;color:#596e8c}.so-layout{display:flex;gap:14px;align-items:start}.so-scroller{background:#fbfcff;border:1px solid #e3e6ef;border-radius:14px;overflow:auto;flex:1;min-width:0;min-height:540px;max-height:75vh}.so-stage{position:relative;min-width:1000px;min-height:500px}.so-lines{position:absolute;inset:0;pointer-events:none}.so-node{position:absolute;width:210px;min-height:82px;padding:12px 9px;text-align:center;background:#fff;border:2px solid #d7dded;border-top:5px solid #7c3aed;border-radius:11px;box-shadow:0 4px 14px #1d2a4615;cursor:grab;touch-action:none;user-select:none}.so-node.selected{border-color:#8b5cf6}.so-node.vacant{border-top-color:#dc2626;background:#fff6f6}.so-role{font-size:13px;font-weight:800;color:#273348}.so-name{font-size:12px;margin-top:5px;color:#5e6b81}.so-node.vacant .so-name{color:#b91c1c;font-weight:750}.so-editor{padding:15px;width:260px;flex-shrink:0;background:white;border:1px solid #e1e5ec;border-radius:12px}.so-editor h3{margin:0 0 12px;font-size:16px}.so-editor label{display:block;font-size:12px;color:#58677c;margin:9px 0}.so-editor input,.so-editor select{display:block;width:100%;margin-top:5px;padding:10px;border:1px solid #d7ddea;border-radius:8px;background:white;color:#17243b}.so-edit-actions{display:flex;gap:7px}.so-edit-actions button{border:0;background:#7c3aed;color:white;padding:9px;border-radius:8px;cursor:pointer}.so-edit-actions .so-danger{background:#fee2e2;color:#b91c1c}@media(max-width:720px){.so-layout{flex-direction:column}.so-scroller,.so-editor{width:100%}}@media print{body:has(#organization.view.active) .sidebar,body:has(#organization.view.active) .topbar,body:has(#organization.view.active) .so-tools,body:has(#organization.view.active) .so-editor{display:none!important}body:has(#organization.view.active) .view:not(#organization){display:none!important}body:has(#organization.view.active) .so-scroller{overflow:visible!important;max-height:none!important;border:0!important}body:has(#organization.view.active) .so-stage{transform-origin:top left;zoom:.72}body:has(#organization.view.active) .main{margin:0!important;width:100%!important}}`;
+.so-zoom-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:white;border:1px solid #e3e6ef;border-radius:10px;padding:8px 12px;margin-top:12px;font-size:12px;color:#58677c}.so-zoom-bar button{border:1px solid #d6dded;border-radius:7px;background:#f6f3ff;color:#5b21b6;padding:6px 12px;cursor:pointer;font-weight:800}.so-zoom-bar input{width:155px;accent-color:#7c3aed}.so-zoom-bar strong{min-width:43px;text-align:center;color:#17243b}.so-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.so-head h2{margin:5px 0}.so-head p{font-size:13px;color:#68758a}.so-tools{display:flex;gap:8px;flex-wrap:wrap}.so-message{margin:12px 0;font-size:12px;color:#596e8c}.so-layout{display:flex;gap:14px;align-items:start}.so-scroller{background:#fbfcff;border:1px solid #e3e6ef;border-radius:14px;overflow:auto;flex:1;min-width:0;min-height:540px;max-height:75vh}.so-stage{position:relative;min-width:1000px;min-height:500px}.so-lines{position:absolute;inset:0;pointer-events:none}.so-node{position:absolute;width:210px;min-height:82px;padding:12px 9px;text-align:center;background:#fff;border:2px solid #d7dded;border-top:5px solid #7c3aed;border-radius:11px;box-shadow:0 4px 14px #1d2a4615;cursor:grab;touch-action:none;user-select:none}.so-node.selected{border-color:#8b5cf6}.so-node.vacant{border-top-color:#dc2626;background:#fff6f6}.so-role{font-size:13px;font-weight:800;color:#273348}.so-name{font-size:12px;margin-top:5px;color:#5e6b81}.so-node.vacant .so-name{color:#b91c1c;font-weight:750}.so-editor{padding:15px;width:260px;flex-shrink:0;background:white;border:1px solid #e1e5ec;border-radius:12px}.so-editor h3{margin:0 0 12px;font-size:16px}.so-edit-info{padding:9px;background:#f1f5fd;border-radius:8px;font-size:11px;color:#42526c}.so-editor label{display:block;font-size:12px;color:#58677c;margin:9px 0}.so-editor input,.so-editor select{display:block;width:100%;margin-top:5px;padding:10px;border:1px solid #d7ddea;border-radius:8px;background:white;color:#17243b}.so-edit-actions{display:flex;gap:7px}.so-edit-actions button{border:0;background:#7c3aed;color:white;padding:9px;border-radius:8px;cursor:pointer}.so-edit-actions .so-danger{background:#fee2e2;color:#b91c1c}@media(max-width:720px){.so-layout{flex-direction:column}.so-scroller,.so-editor{width:100%}}@media print{body:has(#organization.view.active) .sidebar,body:has(#organization.view.active) .topbar,body:has(#organization.view.active) .so-tools,body:has(#organization.view.active) .so-editor{display:none!important}body:has(#organization.view.active) .view:not(#organization){display:none!important}body:has(#organization.view.active) .so-scroller{overflow:visible!important;max-height:none!important;border:0!important}body:has(#organization.view.active) .so-stage{transform-origin:top left;zoom:.72}body:has(#organization.view.active) .main{margin:0!important;width:100%!important}}`;
 document.head.append(css);
 document.addEventListener("DOMContentLoaded",setup);
 window.addEventListener("resize",()=>{if(document.getElementById("organization")?.classList.contains("active"))fitChart()});
