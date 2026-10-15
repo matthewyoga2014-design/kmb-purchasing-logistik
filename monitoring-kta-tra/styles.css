@@ -322,3 +322,13 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
 #dashboard #unitSummary .unit-card:before{content:none!important;display:none!important}
 #dashboard #unitSummary .unit-card .kta-unit-icon{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:37px;height:37px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--unit-accent);color:white}
 #dashboard #unitSummary .unit-card .kta-unit-svg{display:block;width:25px;height:25px;flex:none}
+
+/* Subtle OPEN watermark on Track Record Pelamar — MPP Open */
+#dashboard #ktaOpenCandidateTrack{position:relative;isolation:isolate}
+#dashboard #ktaOpenCandidateTrack::after{
+ content:"";position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+ width:min(52%,500px);aspect-ratio:640/560;
+ background:url("./open-stamp.svg") center/contain no-repeat;
+ opacity:.10;pointer-events:none;z-index:2;
+}
+@media print{#dashboard #ktaOpenCandidateTrack::after{opacity:.08}}
