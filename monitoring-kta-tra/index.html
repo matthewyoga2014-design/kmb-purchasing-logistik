@@ -111,7 +111,6 @@
   <button class="nav active" data-view="dashboard" data-title="Monitoring Manpower KTA - TRA" onclick="showView('dashboard')">▦ &nbsp; Dashboard</button>
   <div class="group">Monitoring</div>
   <button class="nav" data-view="mpp" data-title="MPP KTA - TRA" onclick="showView('mpp')">▤ &nbsp; MPP KTA - TRA</button>
-  <button class="nav" data-view="so" data-title="Struktur Organisasi KTA - TRA" onclick="showView('so')">♧ &nbsp; Struktur Organisasi</button>
   <button class="nav" data-view="mp" data-title="MP Aktif & MP Out" onclick="showView('mp')">👥 &nbsp; MP Aktif & MP Out</button>
   <button class="nav" data-view="unit-population" data-title="Populasi Unit KTA - TRA" onclick="showView('unit-population')">▦ &nbsp; Populasi Unit</button>
   <div class="group">Sistem</div>
@@ -211,7 +210,6 @@
   <div id="mppTable"></div>
 </section>
 
-<section class="view" id="so"><div class="page-head"><div><h2>Struktur Organisasi KTA - TRA</h2><p>Membaca otomatis data MPP yang paling terbaru di website.</p></div><button class="btn" onclick="renderKtaSO()">Refresh</button></div><div id="soContent"></div></section>
 <section class="view" id="mp">
   <div class="page-head">
     <div><h2 id="mpTitle">MP Aktif</h2><p>Database manpower KTA - TRA. Data lengkap dapat disinkronkan dari Excel.</p></div>
@@ -278,7 +276,7 @@
 <script src="data_out.js?v=8"></script>
 <script src="data_units.js?v=8"></script>
 <script src="app.js?v=20261015-direct-delete20"></script>
-<script src="so.js?v=20261015-so-seed13"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase/config.js?v=1"></script>
 <script src="../supabase/cloud-access.js?v=6"></script>
