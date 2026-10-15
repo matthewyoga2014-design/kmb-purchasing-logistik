@@ -453,6 +453,7 @@ function openCandidateForm(mppIndex,candidateIndex=null){if(!editOnly())return;
 }
 async function deleteCandidate(mppIndex,candidateIndex){
  if(!editOnly()||window.__candidateDeleteBusy)return;
+ if(!data.mpp?.length){alert("Data MPP belum dimuat. Tidak ada data yang dihapus.");return}
  const record=data.mpp?.[mppIndex];if(!record)return;
  const key=vacancyKey(record),previous=clone(getCandidates(record)),candidate=previous[candidateIndex];
  if(!candidate)return;
@@ -582,6 +583,7 @@ function vacateMPP(rec){
 }
 function closeModal(){document.getElementById("modal").classList.remove("show");setModalSave(true);editState=null}
 async async function saveModal(){if(!editOnly())return;
+  if(!data.mpp?.length){alert("Data MPP belum dimuat. Muat ulang setelah data 36 posisi muncul; penyimpanan diblokir untuk melindungi database.");return}
   if(!editState)return;const vals={};document.querySelectorAll("#formFields [data-f]").forEach(el=>vals[el.dataset.f]=el.value);
   if(editState.type==="mpp"){
     if(vals["Atasan No"] && String(vals["Atasan No"])===String(data.mpp[editState.index]?.No||"")){alert("Posisi tidak dapat menjadi atasan dirinya sendiri.");return}
