@@ -489,32 +489,32 @@ function openCandidateForm(mppIndex,candidateIndex=null){if(!editOnly())return;
   document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
 }
 async function deleteCandidate(mppIndex,candidateIndex){
-  if(!editOnly()||window.__candidateDeleteBusy)return;
-  const r=data.mpp?.[mppIndex];if(!r)return;
-  const key=vacancyKey(r),list=getCandidates(r),cand=list[candidateIndex];if(!cand)return;
-  if(!confirm("Hapus pelamar "+(cand["Nama Kandidat"]||"ini")+"?"))return;
-  window.__candidateDeleteBusy=true;
-  const previous=list.slice();
-  try{
-    list.splice(candidateIndex,1);
-    data.candidates[key]=list; // An empty array explicitly means no applicants: do not re-seed from MPP notes.
-    const outcome=await saveData();
-    if(!outcome?.saved){
-      data.candidates[key]=previous;
-      localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
-      renderDashboard();renderMPP();openCandidateList(mppIndex);
-      alert("Pelamar BELUM terhapus dari database. Periksa koneksi dan login Pemilik / Editor, lalu coba lagi. "+(outcome?.error?.message||""));
-      return;
-    }
-    renderMPP();openCandidateList(mppIndex);
-  }catch(error){
-    data.candidates[key]=previous;
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
-    renderMPP();openCandidateList(mppIndex);
-    alert("Penghapusan pelamar gagal: "+(error?.message||error));
-  }finally{
-    window.__candidateDeleteBusy=false;
-  }
+ if(!editOnly()||window.__candidateDeleteBusy)return;
+ const position=data.mpp?.[mppIndex];if(!position)return;
+ const key=vacancyKey(position),before=clone(getCandidates(position)),candidate=before[candidateIndex];
+ if(!candidate)return;
+ if(!confirm("Hapus pelamar "+(candidate["Nama Kandidat"]||"ini")+" secara permanen dari data pelamar?"))return;
+ window.__candidateDeleteBusy=true;
+ try{
+   if(!window.KMBCloud?.canEdit?.())throw new Error("Silakan masuk sebagai Pemilik atau Editor.");
+   data.candidates[key]=before.filter((_,i)=>i!==candidateIndex);
+   await window.KMBCloud.saveState(JSON.parse(JSON.stringify(data)));
+   localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+   try{renderDashboard()}catch(e){console.warn("Dashboard refresh",e)}
+   try{renderMPP()}catch(e){console.warn("MPP refresh",e)}
+   if(typeof window.refreshPelamarSheet==="function")window.refreshPelamarSheet();
+   const modal=document.getElementById("modal");
+   if(modal?.classList.contains("show"))openCandidateList(mppIndex);
+   if(typeof window.KMBDeleteCandidateAttachments==="function"){
+     const files=await window.KMBDeleteCandidateAttachments("kta-tra",key,candidate["Nama Kandidat"]||"");
+     if(!files.ok)alert("Data pelamar terhapus, tetapi pembersihan dokumennya gagal: "+files.error);
+   }
+ }catch(e){
+   data.candidates[key]=before;
+   localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+   if(typeof window.refreshPelamarSheet==="function")window.refreshPelamarSheet();
+   alert("Penghapusan pelamar belum berhasil disimpan: "+(e?.message||e));
+ }finally{window.__candidateDeleteBusy=false}
 }
 function deleteMPP(index){if(!editOnly())return;
   const row=data.mpp[index];if(!row)return;
