@@ -318,10 +318,11 @@ function renderKtaCharts(){
     })
   });
 
-  const stages=["SOURCING PELAMAR","PSIKOLOGI TEST","INTERVIEW USER","OFFERING","MCU","FU MCU","ON SITE","INDUKSI","HIRED"];
-  const labels=["Sourcing","Psikotes","Interview","Offering","MCU","FU MCU","On Site","Induksi","Hired"];
+  const stages=["SOURCING PELAMAR","PSIKOLOGI TEST","INTERVIEW USER","OFFERING","MCU","FU MCU","ON SITE","INDUKSI"];
+  const labels=["Sourcing","Psikotes","Interview","Offering","MCU","FU MCU","On Site","Induksi"];
   // Only applicants connected to currently Open MPP positions, one final stage per applicant.
   const counts=Object.fromEntries(stages.map(x=>[x,0]));
+  const inactiveCounts=Object.fromEntries(stages.map(x=>[x,0]));
   const statusCounts={total:0,active:0,passed:0,rejected:0,noResponse:0,declined:0,hired:0,other:0};
   const track=[];
   const pastSelection=new Set(["OFFERING","MCU","FU MCU","ON SITE","INDUKSI"]);
@@ -343,10 +344,15 @@ function renderKtaCharts(){
       statusCounts.total++;tally.total++;
       statusCounts[type]++;tally[type]++;
       if(stageInfo.p>highest.p)highest=stageInfo;
-      if(type==="active"){
+      if(type==="active"||norm(candidate["Status Kandidat"]).toLowerCase()==="hold"){
         if(pastSelection.has(stage)){statusCounts.passed++;tally.passed++}
         if(counts[stage]!==undefined)counts[stage]++;
+        else if(stage==="HIRED")counts["INDUKSI"]++;
         else counts["SOURCING PELAMAR"]++;
+      }else{
+        if(inactiveCounts[stage]!==undefined)inactiveCounts[stage]++;
+        else if(stage==="HIRED")inactiveCounts["INDUKSI"]++;
+        else inactiveCounts["SOURCING PELAMAR"]++;
       }
     });
     track.push({position,tally,highest});
@@ -362,11 +368,18 @@ function renderKtaCharts(){
     const lines=track.map(({position,tally,highest})=>'<tr><td><b>'+esc(position.Jabatan||"-")+'</b><div style="font-size:11px;color:#777">MPP #'+esc(position.No)+'</div></td>'+[tally.total,tally.active,tally.passed,tally.rejected,tally.noResponse,tally.declined,tally.hired].map(v=>'<td style="text-align:center">'+v+'</td>').join("")+'<td>'+esc(tally.total?highest.label:"Belum ada pelamar")+'</td></tr>').join("");
     recap.innerHTML='<div class="table-wrap"><table class="table"><thead><tr>'+cols.map(c=>'<th>'+c+'</th>').join("")+'</tr></thead><tbody>'+lines+'</tbody></table></div>';
   }
+  const activeSum=stages.reduce((sum,key)=>sum+counts[key],0);
+  const inactiveSum=stages.reduce((sum,key)=>sum+inactiveCounts[key],0);
+  const legend=document.getElementById("ktaPipelineLegend");
+  if(legend)legend.innerHTML='<span style="color:#6d28d9">●</span> Aktif / Hold <b>'+activeSum+'</b> &nbsp;&nbsp; <span style="color:#ef666b">●</span> Tidak Aktif <b>'+inactiveSum+'</b> &nbsp;&nbsp; <span style="color:#7b729a">Total '+(activeSum+inactiveSum)+' pelamar PTK Open</span>';
   ktaMakeChart("ktaPipelineChart",{
     type:"line",
-    data:{labels,datasets:[{label:"Kandidat / Posisi",data:stages.map(s=>counts[s]),borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.12)",pointBackgroundColor:"#fff",pointBorderColor:"#7c3aed",pointBorderWidth:3,pointRadius:4,tension:.38,fill:true}]},
+    data:{labels,datasets:[
+      {label:"Aktif / Hold",data:stages.map(k=>counts[k]),borderColor:"#7333ed",backgroundColor:"rgba(124,58,237,.14)",pointBackgroundColor:"#fff",pointBorderColor:"#7333ed",pointBorderWidth:3,pointRadius:5,borderWidth:3,tension:.38,fill:true},
+      {label:"Tidak Aktif",data:stages.map(k=>inactiveCounts[k]),borderColor:"#ef666b",backgroundColor:"transparent",pointBackgroundColor:"#fff",pointBorderColor:"#ef666b",pointBorderWidth:3,pointRadius:5,borderWidth:3,borderDash:[9,6],tension:.38,fill:false}
+    ]},
     plugins:[ktaInlineValueLabels],
-    options:ktaChartOptions({layout:{padding:{top:22}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
+    options:ktaChartOptions({layout:{padding:{top:22}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}})
   });
 }
 function renderManpowerByRole(){
