@@ -9,7 +9,7 @@ function nodeHTML(n,byParent,depth,visiting){
  const seen=new Set(visiting);seen.add(id);
  const children=(byParent.get(id)||[]).slice().sort((a,b)=>Number(a.r["Urutan SO"]||a.i)-Number(b.r["Urutan SO"]||b.i));
  const label=vacant(r.Nama)?"VACANT":r.Nama;
- return '<li><div class="tree-person"><span class="'+(vacant(r.Nama)?"tree-vacant":"")+'">'+esc(label)+'</span><small>'+esc(r.Jabatan||"-")+'</small></div><div class="tree-scope">'+esc(r["Scope Job"]||r["Sub Section Job"]||r.Job||r["Section Job"]||"")+'</div>'+ (children.length?'<ul>'+children.map(c=>nodeHTML(c,byParent,depth+1,seen)).join("")+'</ul>':"")+'</li>';
+ return '<li><div class="tree-person"><div class="tree-position">'+esc(r.Jabatan||"-")+'</div><div class="tree-employee '+(vacant(r.Nama)?"tree-vacant":"")+'">'+esc(label)+'</div></div><div class="tree-scope">'+esc(r["Scope Job"]||r["Sub Section Job"]||r.Job||r["Section Job"]||"")+'</div>'+ (children.length?'<ul>'+children.map(c=>nodeHTML(c,byParent,depth+1,seen)).join("")+'</ul>':"")+'</li>';
 }
 function render(){
  const h=document.getElementById("soContent");if(!h||typeof data==="undefined")return;
