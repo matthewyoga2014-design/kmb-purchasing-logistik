@@ -457,25 +457,23 @@ async function deleteCandidate(mppIndex,candidateIndex){
  const key=vacancyKey(record),previous=clone(getCandidates(record)),candidate=previous[candidateIndex];
  if(!candidate)return;
  window.__candidateDeleteBusy=true;
- const revised=previous.filter((_,i)=>i!==candidateIndex);
- data.candidates[key]=revised;
- renderMPP();openCandidateList(mppIndex);
- const heading=document.getElementById("modalTitle");
- if(heading)heading.textContent="Menyimpan penghapusan...";
  try{
-   if(!window.KMBCloud?.canEdit?.())throw new Error("Masuk sebagai Pemilik atau Editor terlebih dahulu.");
+   if(!window.KMBCloud?.canEdit?.())throw new Error("Masuk sebagai Pemilik atau Editor.");
+   data.candidates[key]=previous.filter((_,i)=>i!==candidateIndex);
    await window.KMBCloud.saveState(JSON.parse(JSON.stringify(data)));
    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
    renderMPP();openCandidateList(mppIndex);
    if(typeof window.KMBDeleteCandidateAttachments==="function"){
-     const attachmentResult=await window.KMBDeleteCandidateAttachments("kta-tra",key,candidate["Nama Kandidat"]||"");
-     if(!attachmentResult.ok)alert("Pelamar sudah dihapus dari database, tetapi dokumen lampiran belum berhasil dibersihkan: "+attachmentResult.error);
+     try{
+       const files=await window.KMBDeleteCandidateAttachments("kta-tra",key,candidate["Nama Kandidat"]||"");
+       if(!files.ok)console.warn("Lampiran kandidat belum dibersihkan:",files.error);
+     }catch(e){console.warn("Lampiran kandidat belum dibersihkan:",e)}
    }
  }catch(error){
    data.candidates[key]=previous;
    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
    renderMPP();openCandidateList(mppIndex);
-   alert("Gagal menghapus pelamar. Data dikembalikan: "+(error?.message||String(error)));
+   alert("Hapus pelamar gagal disimpan: "+(error?.message||String(error)));
  }finally{window.__candidateDeleteBusy=false}
 }
 function deleteMPP(index){if(!editOnly())return;
