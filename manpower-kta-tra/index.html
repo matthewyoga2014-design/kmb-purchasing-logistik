@@ -383,8 +383,8 @@ td .cc-files { margin-top: 0; min-width: 150px; }
 .org ul { display: flex; justify-content: center; margin: 0; padding: 20px 0 0; position: relative; list-style: none; }
 .org ul::before { content: ""; position: absolute; top: 0; left: 50%; height: 20px; border-left: 2px solid var(--ol); }
 .org .tiers > ul:not(:last-child)::after { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; border-left: 2px solid var(--ol); z-index: 0; }
-.org > .tiers > ul:first-child { padding-top: 0; }
-.org > .tiers > ul:first-child::before { display: none; }
+.orgroot > .tiers > ul:first-child { padding-top: 0; }
+.orgroot > .tiers > ul:first-child::before { display: none; }
 .org li { position: relative; padding: 20px 6px 0; display: flex; flex-direction: column; align-items: center; }
 .org li::before, .org li::after { content: ""; position: absolute; top: 0; right: 50%; width: 50%; height: 20px; border-top: 2px solid var(--ol); }
 .org li::after { right: auto; left: 50%; border-left: 2px solid var(--ol); }
@@ -393,8 +393,8 @@ td .cc-files { margin-top: 0; min-width: 150px; }
 .org li:first-child::before, .org li:last-child::after { border: 0 none; }
 .org li:last-child::before { border-right: 2px solid var(--ol); border-radius: 0 8px 0 0; }
 .org li:first-child::after { border-radius: 8px 0 0 0; }
-.org > .tiers > ul:first-child > li { padding-top: 0; }
-.org > .tiers > ul:first-child > li::before, .org > .tiers > ul:first-child > li::after { display: none; }
+.orgroot > .tiers > ul:first-child > li { padding-top: 0; }
+.orgroot > .tiers > ul:first-child > li::before, .orgroot > .tiers > ul:first-child > li::after { display: none; }
 .ocard { position: relative; z-index: 1; width: 140px; border-radius: 10px; overflow: hidden; background: var(--card); border: 1.5px solid var(--oc); box-shadow: 0 2px 6px rgba(30,27,58,.08); text-align: center; }
 .ocard[data-epos] { cursor: pointer; }
 .ocard[data-epos]:hover { box-shadow: 0 0 0 3px var(--ocb), 0 4px 10px rgba(30,27,58,.12); }
@@ -480,6 +480,9 @@ body.ofull .mhead .eyebrow, body.ofull .mhead p { display: none; }
 body.ofull .mhead h1 { font-size: 18px; }
 body.ofull .orgwrap { height: calc(100vh - 128px); }
 @media print { .orgwrap { height: auto !important; } }
+.org { display: flex; align-items: flex-start; gap: 70px; }
+.orgroot.out { position: relative; padding: 14px 18px 18px; border: 2px dashed #C4BFE0; border-radius: 18px; background: rgba(255,255,255,.55); }
+.outlbl { text-align: center; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
 .edf { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .edf input { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
 .edl { display: grid; gap: 6px; }
@@ -2607,7 +2610,8 @@ function orgChart(D) {
   const secs = orgSections(P);
   const isTop = (s) => /penanggung|pjo|manajemen|management/i.test(s.name);
   const top = secs.filter(isTop).flatMap((s) => s.groups.flatMap((g) => g.list)).filter((p) => freeSet.has(p.uid));
-  const body = secs.filter((s) => !isTop(s)).filter((s) => ui.osec === 'semua' || s.name === ui.osec);
+  const allBody = secs.filter((s) => !isTop(s)).filter((s) => ui.osec === 'semua' || s.name === ui.osec);
+  const body = allBody.filter((s) => !secOut(s.name)), outs = allBody.filter((s) => secOut(s.name));
   const secLi = (s) => {
     const all = s.groups.flatMap((g) => g.list), vac = all.filter(isVacant).length, mpa = all.length - vac;
     const names = new Set(s.groups.map((g) => g.name));
@@ -2626,9 +2630,11 @@ function orgChart(D) {
     return `<li><div class="onode sec" data-dsec="${esc(s.name)}" ${CAN_EDIT ? `data-rsec="${esc(s.name)}" role="button" tabindex="0" title="Klik untuk ganti nama section"` : ''}><b>${esc(s.name)}</b><span>${all.length} MPP · ${mpa} MPA · ${all.length ? Math.round(mpa / all.length * 100) : 0}%</span></div>${frames}</li>`;
   };
   const secRow = body.length ? `<ul class="tier secs">${body.map(secLi).join('')}</ul>` : '';
-  if (ui.osec !== 'semua') return `<div class="org">${tiersHtml([], M, secRow)}</div>`;
-  return `<div class="org">${top.length ? tiersHtml(top, M, secRow) : `<div class="tiers">${secRow}</div>`}</div>`;
+  const outBlk = outs.length ? `<div class="orgroot out"><div class="outlbl">Di luar Struktur Organisasi (SO)</div><div class="tiers"><ul class="tier secs">${outs.map(secLi).join('')}</ul></div></div>` : '';
+  const main = ui.osec !== 'semua' ? (secRow ? `<div class="orgroot">${tiersHtml([], M, secRow)}</div>` : '') : `<div class="orgroot">${top.length ? tiersHtml(top, M, secRow) : `<div class="tiers">${secRow}</div>`}</div>`;
+  return `<div class="org">${main}${outBlk}</div>`;
 }
+function secOut(name, S) { const m = ((S || DATA).orgSecMode) || {}; return m[name] ? m[name] === 'out' : /luar\s*so|non[\s-]*so/i.test(name || ''); }
 
 // move a group (and its nested groups) to another section, keeping the nesting
 function moveGroupSection(S, key, newSec) {
@@ -2644,8 +2650,10 @@ function renameForm(kind, sec, grp) {
   const n = DATA.positions.filter((p) => kind === 'sec' ? p.section === sec : (p.section === sec && (p.group || p.section) === grp)).length;
   openForm({ eyebrow: 'Struktur Organisasi', title: `Ganti nama ${kind === 'sec' ? 'section' : 'sub-section'}`, submit: 'Simpan',
     intro: `${n} posisi di <b>${esc(old)}</b> ikut berubah.${kind === 'grp' ? ` (Section: ${esc(sec)})` : ''}`,
-    values: { nm: old }, fields: [{ k: 'nm', label: kind === 'sec' ? 'Nama section' : 'Nama sub-section', req: true, full: true, list: kind === 'sec' ? SEC_OPTS() : GRP_OPTS() }],
-    onSave: (v) => { const nv = String(v.nm).trim(); if (!nv || nv === old) return true; return commit((S) => {
+    values: { nm: old, out: kind === 'sec' && secOut(sec) }, fields: [{ k: 'nm', label: kind === 'sec' ? 'Nama section' : 'Nama sub-section', req: true, full: true, list: kind === 'sec' ? SEC_OPTS() : GRP_OPTS() }].concat(kind === 'sec' ? [{ k: 'out', label: 'Tampilkan terpisah — di luar Struktur Organisasi (tidak tersambung ke atasan)', type: 'check' }] : []),
+    onSave: (v) => { const nv = String(v.nm).trim(); const modeChanged = kind === 'sec' && !!v.out !== secOut(sec); if (!nv || (nv === old && !modeChanged)) return true; return commit((S) => {
+      if (kind === 'sec') { const m = { ...(S.orgSecMode || {}) }; delete m[sec]; m[nv] = v.out ? 'out' : 'in'; S.orgSecMode = m; }
+      if (nv === old) return;
       S.positions.forEach((p) => {
         if (kind === 'sec' && p.section === sec) { if ((p.group || p.section) === sec) p.group = nv; p.section = nv; }
         if (kind === 'grp' && p.section === sec && (p.group || p.section) === grp) p.group = nv;
@@ -2654,7 +2662,7 @@ function renameForm(kind, sec, grp) {
       const fix = (k) => { if (!k) return k; const [s2, g2] = k.split('›'); if (kind === 'sec' && s2 === sec) return GK(nv, g2 === sec ? nv : g2); if (kind === 'grp' && s2 === sec && g2 === grp) return GK(sec, nv); return k; };
       Object.entries(map).forEach(([k, v]) => { next[fix(k)] = fix(v); });
       S.orgGroups = next;
-    }, `${kind === 'sec' ? 'Section' : 'Sub-section'} diganti menjadi ${nv}.`); } });
+    }, nv === old ? (v.out ? `${sec} ditampilkan terpisah (di luar SO).` : `${sec} disambungkan ke struktur.`) : `${kind === 'sec' ? 'Section' : 'Sub-section'} diganti menjadi ${nv}.`); } });
 }
 
 // ---------- drag a whole sub-section by its title ----------
