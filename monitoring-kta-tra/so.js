@@ -43,7 +43,7 @@ function draw(){
  const head=rows.filter(r=>/^SECTION\s*HEAD/.test(upper(r.Jabatan))).sort(order);
  const regular=rows.filter(r=>!dept.includes(r)&&!head.includes(r));
  const sections=["MAINTENANCE SECTION","PLANNER SECTION","TYRE SECTION"];
- const allSections=[...sections,...new Set(regular.map(section))].values()].filter((x,i,a)=>a.indexOf(x)===i);
+ const allSections=[...sections,...new Set(regular.map(section))].filter((x,i,a)=>a.indexOf(x)===i);
  const body=allSections.map(sec=>{
   const entries=regular.filter(r=>section(r)===sec).sort(order);
   if(!entries.length)return "";
