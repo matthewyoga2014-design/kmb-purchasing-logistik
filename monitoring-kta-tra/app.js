@@ -142,8 +142,8 @@ function loadData(){
   try{
     const raw=localStorage.getItem(STORAGE_KEY);
     const d=raw?JSON.parse(raw):clone(BASE);
-    d.mpp=Array.isArray(d.mpp)?d.mpp:clone(BASE.mpp);
-    d.mpActive=Array.isArray(d.mpActive)?d.mpActive:clone(BASE.mpActive);
+    d.mpp=Array.isArray(d.mpp)&&d.mpp.length?d.mpp:clone(BASE.mpp);
+    d.mpActive=Array.isArray(d.mpActive)&&d.mpActive.length?d.mpActive:clone(BASE.mpActive);
     d.mpOut=Array.isArray(d.mpOut)?d.mpOut:clone(BASE.mpOut);
     d.units=Array.isArray(d.units)?d.units:clone(BASE.units);
     d.deletedMPP=Array.isArray(d.deletedMPP)?d.deletedMPP:[];
