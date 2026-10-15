@@ -45,7 +45,7 @@ const VIEWER_KEY="kmb_viewers";
 const SOURCE_SYNC_KEY="kmb_excel_sync_monitoring6_v1";
 let data=loadData(),editState=null,mpMode="active",mpFullView=false,recruitRoleFilter="";
 
-const SITE_FIELDS=["No","Nama","Jabatan","Section Job","Job","Keterangan","PIC","Judul","Awal Rekrutmen","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi","Due Date","Status","Tanggal Close"];
+const SITE_FIELDS=["No","Nama","Jabatan","Section Job","Job","Sub Section Job","Keterangan","PIC","Judul","Awal Rekrutmen","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi","Due Date","Status","Tanggal Close"];
 const SITE_IMPORT_FIELDS=[...SITE_FIELDS,"Keterangan PTK","Lama Closing (Hari)","Open Index"];
 const MP_SCHEMA_ACTIVE=[
 "No.","NIP (KARYAWAN)","NIK KTP","NO.KK","Nama","NO. NPWP","Nomor HP","Jabatan","Departemen","Level",
