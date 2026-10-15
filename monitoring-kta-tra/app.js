@@ -418,6 +418,9 @@ function openMPPForm(index=null){if(!editOnly())return;
   editState={type:"mpp",index};const row=index===null?{}:data.mpp[index];
   document.getElementById("modalTitle").textContent=index===null?"Tambah MPP KTA - TRA":"Edit MPP KTA - TRA";
   document.getElementById("formFields").innerHTML=MPP_FIELDS.map(f=>fieldHTML(f,row,"mpp")).join("");
+  const currentIndex=index===null?-1:index;
+  const leaderOptions=(data.mpp||[]).map((r,i)=>({r,i})).filter(x=>x.i!==currentIndex).map(x=>'<option value="'+esc(String(x.r.No))+'" '+(String(row["Atasan No"]||"")===String(x.r.No)?"selected":"")+'>'+esc(String(x.r.No)+" — "+(x.r.Nama||"VACANT")+" ("+(x.r.Jabatan||"-")+")")+'</option>').join("");
+  document.getElementById("formFields").insertAdjacentHTML("beforeend",'<div class="field"><label>Urutan SO (1 = Paling Atas)</label><input type="number" min="1" data-f="Urutan SO" value="'+esc(row["Urutan SO"]??(index===null?data.mpp.length+1:index+1))+'"></div><div class="field"><label>Atasan Langsung (berdasarkan nomor MPP)</label><select data-f="Atasan No"><option value="">— Paling atas / tidak punya atasan —</option>'+leaderOptions+'</select><small>Untuk posisi yang setingkat, pilih atasan yang sama. Untuk bawahan, pilih nomor posisi atasannya.</small></div><div class="field"><label>Scope Job (Kelompok / Tim)</label><input data-f="Scope Job" value="'+esc(row["Scope Job"]||row["Job"]||"")+'" placeholder="Contoh: Maintenance / Unscheduled MTC"></div>');
   document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
 }
 function openCandidateList(mppIndex){
@@ -579,6 +582,7 @@ function closeModal(){document.getElementById("modal").classList.remove("show");
 function saveModal(){if(!editOnly())return;
   if(!editState)return;const vals={};document.querySelectorAll("#formFields [data-f]").forEach(el=>vals[el.dataset.f]=el.value);
   if(editState.type==="mpp"){
+    if(vals["Atasan No"] && String(vals["Atasan No"])===String(data.mpp[editState.index]?.No||"")){alert("Posisi tidak dapat menjadi atasan dirinya sendiri.");return}
     if(editState.index===null){vals.No="";computeMPP(vals);data.mpp.push(vals)}
     else{vals.No=data.mpp[editState.index]?.No||"";computeMPP(vals);data.mpp[editState.index]={...data.mpp[editState.index],...vals}}
     renumberMPP();saveData();renderMPP();closeModal();return;
