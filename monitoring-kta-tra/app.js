@@ -156,7 +156,7 @@ function loadData(){
   }catch(e){return clone(BASE)}
 }
 ensureKtaRuntime();renumberKtaAll();
-function saveData(){ensureKtaRuntime();renumberKtaAll();localStorage.setItem(STORAGE_KEY,JSON.stringify(data));renderDashboard();renderSettings();if(typeof window.renderKtaSO==="function")window.renderKtaSO()}
+function saveData(){ensureKtaRuntime();renumberKtaAll();localStorage.setItem(STORAGE_KEY,JSON.stringify(data));renderDashboard();renderSettings()}
 function ktaRestoreKey(rec){return [nameKey(rec?.Nama),jobKey(rec?.Jabatan),norm(rec?.SITE||"TRA").toLowerCase()].join("|")}
 function ensureKtaRuntime(){
   if(!Array.isArray(data.deletedMPP))data.deletedMPP=[];
@@ -583,7 +583,7 @@ function vacateMPP(rec){
   if(row){row.Nama="Vacant";row.Keterangan="MP OUT - "+rec.Nama;row.PIC=row.PIC||"";if(!row.PTK){row.Status="";row["Keterangan PTK"]="TIDAK ADA PENGAJUAN"}}
 }
 function closeModal(){document.getElementById("modal").classList.remove("show");setModalSave(true);editState=null}
-async function saveModal(){if(!editOnly())return;
+async async function saveModal(){if(!editOnly())return;
   if(!editState)return;const vals={};document.querySelectorAll("#formFields [data-f]").forEach(el=>vals[el.dataset.f]=el.value);
   if(editState.type==="mpp"){
     if(vals["Atasan No"] && String(vals["Atasan No"])===String(data.mpp[editState.index]?.No||"")){alert("Posisi tidak dapat menjadi atasan dirinya sendiri.");return}
@@ -597,14 +597,19 @@ async function saveModal(){if(!editOnly())return;
     if(!norm(clean["Nama Kandidat"])){alert("Nama kandidat wajib diisi.");return}
     if(editState.candidateIndex===null)list.push(clean);else list[editState.candidateIndex]={...list[editState.candidateIndex],...clean};
     const btn=document.getElementById("saveModal");
+    const previous=clone(data.candidates[key]||[]);
+    const next=list.map(x=>({...x}));
     if(btn){btn.disabled=true;btn.textContent="Menyimpan Pelamar..."}
-    data.candidates[key]=list;
     try{
-      const outcome=await Promise.resolve(saveData());
-      if(outcome?.saved===false)throw outcome.error||new Error("Database belum menerima perubahan.");
+      if(!window.KMBCloud?.canEdit?.())throw new Error("Masuk sebagai Pemilik atau Editor.");
+      data.candidates[key]=next;
+      await window.KMBCloud.saveState(JSON.parse(JSON.stringify(data)));
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
       renderMPP();openCandidateList(editState.mppIndex);
     }catch(error){
-      alert("Pelamar belum berhasil disimpan ke database. Periksa koneksi dan akses Pemilik/Editor, lalu coba lagi. "+(error?.message||error));
+      data.candidates[key]=previous;
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+      alert("Gagal simpan pelamar: "+(error?.message||String(error)));
     }finally{
       if(btn){btn.disabled=false;btn.textContent="Simpan Pelamar"}
     }
@@ -741,7 +746,6 @@ function showView(name){
   if(target==="mpp")renderMPP();
   if(target==="mp")renderMP();
   if(target==="unit-population")renderUnits();
-  if(target==="so" && typeof window.renderKtaSO==="function")window.renderKtaSO();
   if(target==="settings")renderSettings();
   applyReadOnlyUI();
   return target;
