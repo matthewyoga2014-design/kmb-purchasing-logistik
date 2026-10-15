@@ -215,15 +215,15 @@ function render(force=false){
  const summary=new Map();
  groups.forEach(g=>g.rows.forEach(r=>{
    const role=String(r.Jabatan||"Belum Ditentukan").trim(),section=String(r["Section Job"]||"").trim(),scope=String(r["Scope Job"]||"").trim();
-   const key=[g.label,role,section,scope].join("|");
-   if(!summary.has(key))summary.set(key,{site:g.label,role,section,scope,planning:0,actual:0,vacant:0});
-   const x=summary.get(key);x.planning++;if(isVacant(r.Nama))x.vacant++;else x.actual++;
+   const key=[g.label,role].join("|");
+   if(!summary.has(key))summary.set(key,{site:g.label,role,sections:new Set(),scopes:new Set(),planning:0,actual:0,vacant:0});
+   const x=summary.get(key);if(section)x.sections.add(section);if(scope)x.scopes.add(scope);x.planning++;if(isVacant(r.Nama))x.vacant++;else x.actual++;
  }));
  const totals={planning:0,actual:0,vacant:0};
  const detailRows=Array.from(summary.values()).sort((a,b)=>a.site.localeCompare(b.site)||a.role.localeCompare(b.role));
  detailRows.forEach(x=>{totals.planning+=x.planning;totals.actual+=x.actual;totals.vacant+=x.vacant});
  const summaryTable='<div class="detail-table-wrap"><table><thead><tr><th>JOBSITE</th><th>JABATAN</th><th>SECTION JOB</th><th>SCOPE JOB</th><th>PLANNING</th><th>ACTUAL</th><th>VACANT</th></tr></thead><tbody>'+
- detailRows.map(x=>'<tr><td>'+escapeHTML(x.site)+'</td><td>'+escapeHTML(x.role)+'</td><td>'+escapeHTML(x.section||"-")+'</td><td>'+escapeHTML(x.scope||"-")+'</td><td>'+x.planning+'</td><td>'+x.actual+'</td><td class="'+(x.vacant?'detail-vacant':'')+'">'+x.vacant+'</td></tr>').join('')+
+ detailRows.map(x=>'<tr><td>'+escapeHTML(x.site)+'</td><td>'+escapeHTML(x.role)+'</td><td>'+escapeHTML([...x.sections].join(', ')||'-')+'</td><td>'+escapeHTML([...x.scopes].join(', ')||'-')+'</td><td>'+x.planning+'</td><td>'+x.actual+'</td><td class="'+(x.vacant?'detail-vacant':'')+'">'+x.vacant+'</td></tr>').join('')+
  '<tr style="font-weight:800;background:#f0f3fa"><td colspan="4">TOTAL</td><td>'+totals.planning+'</td><td>'+totals.actual+'</td><td>'+totals.vacant+'</td></tr></tbody></table></div>';
  box.innerHTML='<h4 style="margin:10px 0">Rekap Kebutuhan Manpower per Jabatan</h4><p>Planning, Actual dan Vacant dihitung otomatis dari MPP. Section Job dan Scope Job diedit melalui formulir MPP.</p>'+
  summaryTable+'<h4 style="margin:24px 0 10px">Rincian Data MPP</h4>'+
