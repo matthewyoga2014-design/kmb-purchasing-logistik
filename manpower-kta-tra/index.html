@@ -2413,7 +2413,7 @@ function pageOrg(D) {
       <button type="button" class="btn ${ui.ofull ? 'btn-p' : 'btn-g'}" id="oFull" title="Tampilkan struktur memenuhi layar (Esc untuk keluar)">${ui.ofull ? '✕ Keluar layar penuh' : '⛶ Layar penuh'}</button>
       ${DL ? '<button type="button" class="btn btn-g" data-oexp="png">Unduh PNG</button><button type="button" class="btn btn-g" data-oexp="pdf">Unduh PDF</button>' : ''}
       ${(DL || IS_TOP) ? '<button type="button" class="btn btn-g" id="printBtn">Print</button>' : ''}</div></div>
-  ${CAN_EDIT ? `<div class="ohelp"><b>Cara cepat:</b> <span>Klik kotak = atur section / sub-section / atasan (pilihan dari data MPP)</span><span><b>Anggota</b> = centang anggota tim sekaligus</span><span><b>Seret kotak orang</b>: lepas di <u>tengah</u> kotak lain = jadi bawahannya, di <u>sisi kiri/kanan</u> = sejajar (ubah urutan)</span><span><b>Seret judul sub-section ⠿</b>: tengah = masuk di bawahnya, sisi kiri/kanan = ubah urutan</span><span><b>Seret kotak ungu section</b> = ubah urutan / pindah ke Di luar SO</span><span>Klik nama section / sub-section = ganti nama</span></div>` : ''}
+  ${CAN_EDIT ? `<div class="ohelp"><b>Cara cepat:</b> <span>Klik kotak = atur section / sub-section / atasan (pilihan dari data MPP)</span><span><b>Anggota</b> = centang anggota tim sekaligus</span><span><b>Seret kotak orang</b>: lepas di <u>tengah</u> kotak lain = jadi bawahannya, di <u>sisi kiri/kanan</u> = sejajar (ubah urutan)</span><span><b>Seret judul sub-section ⠿</b>: lepas di <u>tengah</u> sub-section lain = masuk di bawahnya; di <u>tepi atas/bawah</u> (tampilan menurun) atau <u>kiri/kanan</u> (mendatar) = sejajar &amp; ubah urutan; di kotak ungu section = langsung di bawah section</span><span><b>Seret kotak ungu section</b> = ubah urutan / pindah ke Di luar SO</span><span>Klik nama section / sub-section = ganti nama</span></div>` : ''}
   <div class="card orgcard"><div class="olegend">${fams.map((f) => `<span><i style="background:${FAM_COLOR[f] || '#6D28D9'}"></i>${esc(f)}</span>`).join('')}<span><i class="v"></i>Vacant</span><span><b class="lw">⚠</b>Kontrak habis ≤ 30 hari</span><span id="oqHits" class="small"></span></div>
     <div class="orgwrap" id="orgWrap"><div class="orgsizer" id="orgSizer">${orgChart(D)}</div></div></div>
   <p class="note">Bawahan otomatis ikut pindah section / sub-section bersama atasannya. Jika kolom <b>Atasan langsung</b> dikosongkan, posisi tampil sejajar dengan jabatan yang sama di sub-section-nya.</p>`;
@@ -2567,9 +2567,9 @@ document.addEventListener('click', (e) => { const b = e.target.closest('[data-ol
 
 // ================= v16: pointer-based drag (mouse + touch) and pan =================
 let PD = null, SUPPRESS_CLICK = false, PX = 0, PY = 0;
-const DROP_CLS = ['dropok', 'dropbefore', 'dropafter'];
-function clearDrop() { document.querySelectorAll('.dragging,.dropok,.dropbefore,.dropafter').forEach((x) => x.classList.remove('dragging', ...DROP_CLS)); showDropLine(null); }
-function markDrop(t) { document.querySelectorAll('.dropok,.dropbefore,.dropafter').forEach((x) => { if (!t || x !== t.el) x.classList.remove(...DROP_CLS); }); if (t) { t.el.classList.remove(...DROP_CLS); t.el.classList.add(t.cls || 'dropok'); } showDropLine(t); }
+const DROP_CLS = ['dropok', 'dropbefore', 'dropafter', 'droptop', 'dropbottom'];
+function clearDrop() { document.querySelectorAll('.dragging,.dropok,.dropbefore,.dropafter,.droptop,.dropbottom').forEach((x) => x.classList.remove('dragging', ...DROP_CLS)); showDropLine(null); }
+function markDrop(t) { document.querySelectorAll('.dropok,.dropbefore,.dropafter,.droptop,.dropbottom').forEach((x) => { if (!t || x !== t.el) x.classList.remove(...DROP_CLS); }); if (t) { t.el.classList.remove(...DROP_CLS); t.el.classList.add(t.cls || 'dropok'); } showDropLine(t); }
 document.addEventListener('pointermove', (e) => { PX = e.clientX; PY = e.clientY; }, true);
 async function doOrgDrop(uid, t) {
   const p = posByUid(DATA, uid); if (!p || !t) return;
@@ -2657,7 +2657,8 @@ function showDropLine(t) {
   const r = t.el.getBoundingClientRect(), cls = t.cls || 'dropok';
   let lx, ly;
   L.className = '';
-  if (t.horiz) { L.className = 'h'; Object.assign(L.style, { left: r.left + 'px', top: (r.bottom + 6) + 'px', width: r.width + 'px', height: '5px' }); lx = r.left + r.width / 2; ly = r.bottom + 14; }
+  if (cls === 'droptop' || cls === 'dropbottom') { const y = cls === 'droptop' ? r.top - 10 : r.bottom + 5; Object.assign(L.style, { left: (r.left - 10) + 'px', top: y + 'px', width: (r.width + 20) + 'px', height: '5px' }); lx = r.left + r.width / 2; ly = y - 4; }
+  else if (t.horiz) { L.className = 'h'; Object.assign(L.style, { left: r.left + 'px', top: (r.bottom + 6) + 'px', width: r.width + 'px', height: '5px' }); lx = r.left + r.width / 2; ly = r.bottom + 14; }
   else if (cls === 'dropbefore' || cls === 'dropafter') {
     const x = cls === 'dropbefore' ? r.left - 9 : r.right + 4;
     Object.assign(L.style, { left: x + 'px', top: (r.top - 10) + 'px', width: '5px', height: (r.height + 20) + 'px' }); lx = x + 2; ly = r.top - 14;
@@ -2855,12 +2856,16 @@ doOrgDrop = async function (uid, t) {
 };
 
 // ---------- sub-sections: before / after (urutan) or middle (jadi di bawahnya) ----------
+const zoneY = (el, y, edge) => { const r = el.getBoundingClientRect(); const rel = (y - r.top) / Math.max(1, r.height); return rel < edge ? 'before' : rel > 1 - edge ? 'after' : 'mid'; };
 gTarget = function (el, key) {
-  const fr = el.closest('.gframe');
+  let fr = el.closest('.gframe'), forced = null;
+  if (!fr) { const gl = el.closest('.glist'); if (gl) { let bd = Infinity; [...gl.children].forEach((n) => { const f = n.querySelector(':scope > .gframe'); if (!f) return; const r = f.getBoundingClientRect(); const d = PY < r.top ? r.top - PY : PY > r.bottom ? PY - r.bottom : 0; if (d < bd) { bd = d; fr = f; forced = PY < r.top + r.height / 2 ? 'before' : 'after'; } }); } }
   if (fr) {
     const k = GK(fr.dataset.dsec, fr.dataset.dg); if (k === key || gIsUnder(gmap(DATA), k, key)) return null;
-    const z = zone(fr, PX, .22);
-    return { el: fr, kind: z === 'mid' ? 'grp' : 'gpos', where: z, cls: z === 'mid' ? 'dropok' : z === 'before' ? 'dropbefore' : 'dropafter', key: k, sec: fr.dataset.dsec, g: fr.dataset.dg };
+    const vert = !!fr.parentElement.closest('.glist') && !fr.parentElement.closest('ul.gul');
+    const z = forced || (vert ? zoneY(fr, PY, .3) : zone(fr, PX, .22));
+    const cls = z === 'mid' ? 'dropok' : vert ? (z === 'before' ? 'droptop' : 'dropbottom') : (z === 'before' ? 'dropbefore' : 'dropafter');
+    return { el: fr, kind: z === 'mid' ? 'grp' : 'gpos', where: z, cls, key: k, sec: fr.dataset.dsec, g: fr.dataset.dg };
   }
   const sn = el.closest('.onode.sec'); if (sn) return { el: sn, kind: 'sec', sec: sn.dataset.dsec };
   return null;
