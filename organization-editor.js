@@ -2,7 +2,7 @@
 (function(){
 "use strict";
 const p=location.pathname,appId=p.includes("monitoring-kta-tra")?"kta-tra":p.includes("monitoring-bupr-ampah")?"bupr-ampah":p.includes("monitoring-mbj")?"mbj":"kmb";
-let sb, nodes=[],selected=null,editing=false,ready=false,dirty=false,chartZoom=1;
+let sb, nodes=[],selected=null,editing=false,ready=false,dirty=false,chartZoom=1,zoomPercent=100;
 const clone=o=>JSON.parse(JSON.stringify(o));
 const safe=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const staff=()=>["owner","editor"].includes(window.accessMode?.());
@@ -29,10 +29,21 @@ function fitChart(){
  const w=parseFloat(stage.style.width)||1000,h=parseFloat(stage.style.height)||500;
  const availableW=Math.max(320,scroller.clientWidth-20),availableH=Math.max(320,window.innerHeight-scroller.getBoundingClientRect().top-42);
  chartZoom=Math.min(1,availableW/w,availableH/h);
- stage.style.zoom=String(chartZoom);
- scroller.style.height=Math.ceil(Math.min(h*chartZoom+16,availableH+10))+"px";
- scroller.style.minHeight="0";scroller.style.overflow="hidden";
+ zoomPercent=Math.max(10,Math.min(200,Math.round(chartZoom*100)));
+ applyZoom();
 }
+function applyZoom(){
+ const scroller=document.querySelector(".so-scroller"),stage=document.getElementById("soStage");if(!scroller||!stage)return;
+ chartZoom=zoomPercent/100;stage.style.zoom=String(chartZoom);
+ const h=parseFloat(stage.style.height)||500;
+ const availableH=Math.max(320,window.innerHeight-scroller.getBoundingClientRect().top-42);
+ scroller.style.height=Math.ceil(Math.min(h*chartZoom+16,availableH+10))+"px";
+ scroller.style.minHeight="0";scroller.style.overflow="auto";
+ const slider=document.getElementById("soZoomRange"),label=document.getElementById("soZoomLabel");
+ if(slider)slider.value=String(zoomPercent);
+ if(label)label.textContent=zoomPercent+"%";
+}
+function setZoom(n){zoomPercent=Math.max(10,Math.min(200,Math.round(n/5)*5));applyZoom()}
 function draw(){
  const svg=document.getElementById("soLines"),stage=document.getElementById("soStage");if(!svg||!stage)return;
  const old=stage.querySelectorAll(".so-node");old.forEach(n=>n.remove());
@@ -79,14 +90,19 @@ function editPanel(){
 }
 function setup(){
  const v=document.getElementById("organization");if(!v)return;
- v.innerHTML='<div class="so-head"><div><span class="eyebrow">ORGANIZATION</span><h2>Struktur Organisasi</h2><p>Klik kotak untuk mengedit. Geser kotak untuk menata posisi; garis otomatis mengikuti atasan langsung.</p></div><div id="soTools" class="so-tools"><button class="btn" id="soAdd">+ Tambah Posisi</button><button class="btn yellow" id="soSave">Simpan Struktur</button><button class="btn" id="soReload">Muat Ulang</button><button class="btn" id="soPrint">Print</button></div></div><div id="soMessage" class="so-message">Memuat struktur organisasi...</div><div class="so-layout"><div class="so-scroller"><div id="soStage" class="so-stage"><svg id="soLines" class="so-lines"></svg></div></div><aside class="so-editor" id="soEditor" hidden></aside></div>';
+ v.innerHTML='<div class="so-head"><div><span class="eyebrow">ORGANIZATION</span><h2>Struktur Organisasi</h2><p>Klik kotak untuk mengedit. Geser kotak untuk menata posisi; garis otomatis mengikuti atasan langsung.</p></div><div id="soTools" class="so-tools"><button class="btn" id="soAdd">+ Tambah Posisi</button><button class="btn yellow" id="soSave">Simpan Struktur</button><button class="btn" id="soReload">Muat Ulang</button><button class="btn" id="soPrint">Print</button></div></div><div class="so-zoom-bar"><span>Zoom</span><button type="button" id="soZoomOut" title="Perkecil">−</button><input id="soZoomRange" type="range" min="10" max="200" step="5" value="100" aria-label="Zoom struktur organisasi"><button type="button" id="soZoomIn" title="Perbesar">+</button><strong id="soZoomLabel">100%</strong><button type="button" id="soZoomFit">Pas Layar</button><button type="button" id="soZoom100">100%</button></div><div id="soMessage" class="so-message">Memuat struktur organisasi...</div><div class="so-layout"><div class="so-scroller"><div id="soStage" class="so-stage"><svg id="soLines" class="so-lines"></svg></div></div><aside class="so-editor" id="soEditor" hidden></aside></div>';
  document.getElementById("soAdd").onclick=add;document.getElementById("soSave").onclick=save;
  document.getElementById("soReload").onclick=()=>{if(dirty&&!confirm("Buang perubahan yang belum disimpan?"))return;selected=null;editPanel();load()};
  document.getElementById("soPrint").onclick=()=>window.print();
+ document.getElementById("soZoomOut").onclick=()=>setZoom(zoomPercent-10);
+ document.getElementById("soZoomIn").onclick=()=>setZoom(zoomPercent+10);
+ document.getElementById("soZoomRange").oninput=e=>setZoom(Number(e.target.value));
+ document.getElementById("soZoomFit").onclick=fitChart;
+ document.getElementById("soZoom100").onclick=()=>setZoom(100);
  load();
 }
 const css=document.createElement("style");css.textContent=`
-.so-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.so-head h2{margin:5px 0}.so-head p{font-size:13px;color:#68758a}.so-tools{display:flex;gap:8px;flex-wrap:wrap}.so-message{margin:12px 0;font-size:12px;color:#596e8c}.so-layout{display:flex;gap:14px;align-items:start}.so-scroller{background:#fbfcff;border:1px solid #e3e6ef;border-radius:14px;overflow:auto;flex:1;min-width:0;min-height:540px;max-height:75vh}.so-stage{position:relative;min-width:1000px;min-height:500px}.so-lines{position:absolute;inset:0;pointer-events:none}.so-node{position:absolute;width:210px;min-height:82px;padding:12px 9px;text-align:center;background:#fff;border:2px solid #d7dded;border-top:5px solid #7c3aed;border-radius:11px;box-shadow:0 4px 14px #1d2a4615;cursor:grab;touch-action:none;user-select:none}.so-node.selected{border-color:#8b5cf6}.so-node.vacant{border-top-color:#dc2626;background:#fff6f6}.so-role{font-size:13px;font-weight:800;color:#273348}.so-name{font-size:12px;margin-top:5px;color:#5e6b81}.so-node.vacant .so-name{color:#b91c1c;font-weight:750}.so-editor{padding:15px;width:260px;flex-shrink:0;background:white;border:1px solid #e1e5ec;border-radius:12px}.so-editor h3{margin:0 0 12px;font-size:16px}.so-editor label{display:block;font-size:12px;color:#58677c;margin:9px 0}.so-editor input,.so-editor select{display:block;width:100%;margin-top:5px;padding:10px;border:1px solid #d7ddea;border-radius:8px;background:white;color:#17243b}.so-edit-actions{display:flex;gap:7px}.so-edit-actions button{border:0;background:#7c3aed;color:white;padding:9px;border-radius:8px;cursor:pointer}.so-edit-actions .so-danger{background:#fee2e2;color:#b91c1c}@media(max-width:720px){.so-layout{flex-direction:column}.so-scroller,.so-editor{width:100%}}@media print{body:has(#organization.view.active) .sidebar,body:has(#organization.view.active) .topbar,body:has(#organization.view.active) .so-tools,body:has(#organization.view.active) .so-editor{display:none!important}body:has(#organization.view.active) .view:not(#organization){display:none!important}body:has(#organization.view.active) .so-scroller{overflow:visible!important;max-height:none!important;border:0!important}body:has(#organization.view.active) .so-stage{transform-origin:top left;zoom:.72}body:has(#organization.view.active) .main{margin:0!important;width:100%!important}}`;
+.so-zoom-bar{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:white;border:1px solid #e3e6ef;border-radius:10px;padding:8px 12px;margin-top:12px;font-size:12px;color:#58677c}.so-zoom-bar button{border:1px solid #d6dded;border-radius:7px;background:#f6f3ff;color:#5b21b6;padding:6px 12px;cursor:pointer;font-weight:800}.so-zoom-bar input{width:155px;accent-color:#7c3aed}.so-zoom-bar strong{min-width:43px;text-align:center;color:#17243b}.so-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.so-head h2{margin:5px 0}.so-head p{font-size:13px;color:#68758a}.so-tools{display:flex;gap:8px;flex-wrap:wrap}.so-message{margin:12px 0;font-size:12px;color:#596e8c}.so-layout{display:flex;gap:14px;align-items:start}.so-scroller{background:#fbfcff;border:1px solid #e3e6ef;border-radius:14px;overflow:auto;flex:1;min-width:0;min-height:540px;max-height:75vh}.so-stage{position:relative;min-width:1000px;min-height:500px}.so-lines{position:absolute;inset:0;pointer-events:none}.so-node{position:absolute;width:210px;min-height:82px;padding:12px 9px;text-align:center;background:#fff;border:2px solid #d7dded;border-top:5px solid #7c3aed;border-radius:11px;box-shadow:0 4px 14px #1d2a4615;cursor:grab;touch-action:none;user-select:none}.so-node.selected{border-color:#8b5cf6}.so-node.vacant{border-top-color:#dc2626;background:#fff6f6}.so-role{font-size:13px;font-weight:800;color:#273348}.so-name{font-size:12px;margin-top:5px;color:#5e6b81}.so-node.vacant .so-name{color:#b91c1c;font-weight:750}.so-editor{padding:15px;width:260px;flex-shrink:0;background:white;border:1px solid #e1e5ec;border-radius:12px}.so-editor h3{margin:0 0 12px;font-size:16px}.so-editor label{display:block;font-size:12px;color:#58677c;margin:9px 0}.so-editor input,.so-editor select{display:block;width:100%;margin-top:5px;padding:10px;border:1px solid #d7ddea;border-radius:8px;background:white;color:#17243b}.so-edit-actions{display:flex;gap:7px}.so-edit-actions button{border:0;background:#7c3aed;color:white;padding:9px;border-radius:8px;cursor:pointer}.so-edit-actions .so-danger{background:#fee2e2;color:#b91c1c}@media(max-width:720px){.so-layout{flex-direction:column}.so-scroller,.so-editor{width:100%}}@media print{body:has(#organization.view.active) .sidebar,body:has(#organization.view.active) .topbar,body:has(#organization.view.active) .so-tools,body:has(#organization.view.active) .so-editor{display:none!important}body:has(#organization.view.active) .view:not(#organization){display:none!important}body:has(#organization.view.active) .so-scroller{overflow:visible!important;max-height:none!important;border:0!important}body:has(#organization.view.active) .so-stage{transform-origin:top left;zoom:.72}body:has(#organization.view.active) .main{margin:0!important;width:100%!important}}`;
 document.head.append(css);
 document.addEventListener("DOMContentLoaded",setup);
 window.addEventListener("resize",()=>{if(document.getElementById("organization")?.classList.contains("active"))fitChart()});
