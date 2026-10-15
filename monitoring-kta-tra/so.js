@@ -3,7 +3,7 @@
 const KEY="kta_tra_so_smartart_v1",OLD="kta_tra_so_manual_v1";
 const v=x=>String(x??"").trim(),safe=x=>v(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const vacant=x=>!v(x)||/^vacant$/i.test(v(x));
-const editable=()=>typeof accessMode!=="function"||accessMode()!=="viewer";
+const editable=()=>{const badge=document.getElementById("accessBadge");const role=(badge?.textContent||"").toLowerCase();return role.includes("pemilik")||role.includes("editor")||(typeof accessMode==="function"&&["owner","editor"].includes(accessMode()))};
 const active=()=>typeof data!=="undefined"&&Array.isArray(data.mpActive)?data.mpActive.filter(r=>!vacant(r.Nama)&&!/^(out|keluar|resign|nonaktif)$/i.test(v(r.STATUS))):[];
 const personKey=r=>v(r["NIP (KARYAWAN)"])?"nip:"+v(r["NIP (KARYAWAN)"]):"name:"+v(r.Nama).toLowerCase();
 const roles=()=>[...new Set(active().map(r=>v(r.Jabatan)).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
@@ -44,9 +44,9 @@ function render(){
  host.querySelectorAll("[data-pick]").forEach(b=>b.onclick=()=>{selected=b.dataset.pick;host.querySelectorAll(".sa-outline-row").forEach(x=>x.classList.toggle("sa-selected",x.dataset.id===selected))});
  host.querySelectorAll("[data-role]").forEach(el=>{el.disabled=!editable();el.onfocus=()=>{selected=el.dataset.role};el.onchange=()=>{get(el.dataset.role).role=el.value;save()}});
  host.querySelectorAll("[data-name]").forEach(el=>{el.disabled=!editable();el.onfocus=()=>{selected=el.dataset.name};el.onchange=()=>{const n=get(el.dataset.name);if(el.value&&used(n.id).has(el.value)){alert("Nama ini sudah dipakai di SO.");render();return}n.employeeKey=el.value;save()}});
- const outline=document.getElementById("saOutline");outline.onkeydown=e=>{if(!editable()||e.target.tagName==="SELECT"&&e.key==="Enter")return;if(e.key==="Enter"){e.preventDefault();add(false)}else if(e.key==="Tab"){e.preventDefault();moveLevel(e.shiftKey?-1:1)}};
+ const outline=document.getElementById("saOutline");outline.onkeydown=e=>{if(!editable()||e.target.closest("select"))return;if(e.key==="Enter"){e.preventDefault();add(false)}else if(e.key==="Tab"){e.preventDefault();moveLevel(e.shiftKey?-1:1)}};
  host.querySelectorAll("[data-box]").forEach(el=>el.onclick=()=>{selected=el.dataset.box;const row=host.querySelector('.sa-outline-row[data-id="'+selected+'"]');row?.scrollIntoView({behavior:"smooth",block:"nearest"});host.querySelectorAll(".sa-outline-row").forEach(x=>x.classList.toggle("sa-selected",x===row))});
 }
 window.renderKtaSO=render;
-document.addEventListener("DOMContentLoaded",render);
+document.addEventListener("DOMContentLoaded",()=>{render();const badge=document.getElementById("accessBadge");if(badge)new MutationObserver(()=>render()).observe(badge,{childList:true,subtree:true,characterData:true})});
 })();
