@@ -112,6 +112,24 @@ function draw(){
  document.getElementById("soTools").style.display=staff()?"flex":"none";
 }
 function redrawLines(){const svg=document.getElementById("soLines");svg.replaceChildren();nodes.forEach(n=>{const par=nodes.find(x=>x.id===n.parent);if(!par)return;const x1=(+par.x||0)+105,y1=(+par.y||0)+82,x2=(+n.x||0)+105,y2=(+n.y||0),my=(y1+y2)/2;const path=document.createElementNS("http://www.w3.org/2000/svg","path");path.setAttribute("d",`M ${x1} ${y1} V ${my} H ${x2} V ${y2}`);path.setAttribute("stroke","#8b97b5");path.setAttribute("stroke-width","2");path.setAttribute("fill","none");svg.append(path)})}
+function levelOf(n,visited=new Set()){
+ if(visited.has(n.id))return 1;visited.add(n.id);
+ const parent=nodes.find(x=>x.id===n.parent);
+ return parent?Math.min(12,levelOf(parent,visited)+1):1;
+}
+function autoLayoutByGrade(){
+ if(!staff())return;
+ const groups=new Map();
+ nodes.forEach(n=>{const grade=Math.max(1,Math.min(12,Number(n.grade)||levelOf(n)));n.grade=grade;if(!groups.has(grade))groups.set(grade,[]);groups.get(grade).push(n)});
+ const maxCount=Math.max(1,...[...groups.values()].map(v=>v.length));
+ const width=Math.max(1100,maxCount*235+65);
+ [...groups].sort((a,b)=>a[0]-b[0]).forEach(([grade,group])=>{
+   const rowWidth=group.length*235;
+   const left=Math.max(20,Math.round((width-rowWidth)/2));
+   group.forEach((n,i)=>{n.x=left+i*235;n.y=30+(grade-1)*132});
+ });
+ dirty=true;draw();editPanel();notice("Bagan ditata otomatis berdasarkan grade. Klik Simpan Struktur untuk menyimpan.");
+}
 function editPanel(){
  const box=document.getElementById("soEditor");if(!box)return;
  const n=nodes.find(x=>x.id===selected);
@@ -125,6 +143,7 @@ function editPanel(){
  '<label>Jabatan / Judul Kotak<input id="soRole" value="'+safe(n.role)+'"></label>'+
  '<label id="soExtraNameWrap" '+(!n.extraPosition?'hidden':'')+'>Nama untuk jabatan tambahan<input id="soName" value="'+safe(n.name||"VACANT")+'"></label>'+
  '<label>Atasan langsung<select id="soParent"><option value="">Tidak ada / Pimpinan utama</option>'+nodes.filter(x=>x.id!==n.id).map(x=>'<option value="'+safe(x.id)+'" '+(x.id===n.parent?'selected':'')+'>'+safe(x.role)+' — '+safe(displayName(x))+'</option>').join('')+'</select></label>'+
+ '<label>Grade / Tingkat Organisasi<select id="soGrade">'+Array.from({length:12},(_,i)=>'<option value="'+(i+1)+'" '+((Number(n.grade)||levelOf(n))===i+1?'selected':'')+'>Grade '+(i+1)+'</option>').join('')+'</select></label>'+ 
  '<h4 style="margin:12px 0 5px">Pengaturan Letak Kotak</h4><p style="font-size:11px;color:#64748b;margin:0 0 8px">Geser kotak langsung di bagan atau isi koordinat di bawah.</p>'+
  '<label>Posisi horizontal (X) — kiri / kanan<input type="number" min="0" step="10" id="soX" value="'+Math.round(+n.x||0)+'"></label>'+
  '<label>Posisi vertikal (Y) — atas / bawah<input type="number" min="0" step="10" id="soY" value="'+Math.round(+n.y||0)+'"></label>'+
@@ -138,6 +157,7 @@ function editPanel(){
  if(extra){n.mppKey="";n.name=document.getElementById("soName").value.trim()||"VACANT"}
  n.role=document.getElementById("soRole").value.trim()||"Jabatan";
  n.parent=par;
+ n.grade=Number(document.getElementById("soGrade").value)||1;
  n.x=Math.max(0,Number(document.getElementById("soX").value)||0);
  n.y=Math.max(0,Number(document.getElementById("soY").value)||0);
  dirty=true;draw();editPanel();notice("Letak dan jabatan diperbarui. Klik Simpan Struktur.");
@@ -146,7 +166,8 @@ function editPanel(){
 }
 function setup(){
  const v=document.getElementById("organization");if(!v)return;
- v.innerHTML='<div class="so-head"><div><span class="eyebrow">ORGANIZATION</span><h2>Struktur Organisasi</h2><p>Klik kotak untuk mengedit. Geser kotak untuk menata posisi; garis otomatis mengikuti atasan langsung.</p></div><div id="soTools" class="so-tools"><button class="btn" id="soAdd">+ Tambah Posisi</button><button class="btn yellow" id="soSave">Simpan Struktur</button><button class="btn" id="soReload">Muat Ulang</button><button class="btn" id="soPrint">Print</button></div></div><div class="so-zoom-bar"><span>Zoom</span><button type="button" id="soZoomOut" title="Perkecil">−</button><input id="soZoomRange" type="range" min="10" max="200" step="5" value="100" aria-label="Zoom struktur organisasi"><button type="button" id="soZoomIn" title="Perbesar">+</button><strong id="soZoomLabel">100%</strong><button type="button" id="soZoomFit">Pas Layar</button><button type="button" id="soZoom100">100%</button></div><div id="soMessage" class="so-message">Memuat struktur organisasi...</div><div class="so-layout"><div class="so-scroller"><div id="soStage" class="so-stage"><svg id="soLines" class="so-lines"></svg></div></div><aside class="so-editor" id="soEditor" hidden></aside></div>';
+ v.innerHTML='<div class="so-head"><div><span class="eyebrow">ORGANIZATION</span><h2>Struktur Organisasi</h2><p>Klik kotak untuk mengedit. Geser kotak untuk menata posisi; garis otomatis mengikuti atasan langsung.</p></div><div id="soTools" class="so-tools"><button class="btn" id="soAdd">+ Tambah Posisi</button><button class="btn yellow" id="soSave">Simpan Struktur</button><button class="btn" id="soArrange">Susun Otomatis per Grade</button><button class="btn" id="soReload">Muat Ulang</button><button class="btn" id="soPrint">Print</button></div></div><div class="so-zoom-bar"><span>Zoom</span><button type="button" id="soZoomOut" title="Perkecil">−</button><input id="soZoomRange" type="range" min="10" max="200" step="5" value="100" aria-label="Zoom struktur organisasi"><button type="button" id="soZoomIn" title="Perbesar">+</button><strong id="soZoomLabel">100%</strong><button type="button" id="soZoomFit">Pas Layar</button><button type="button" id="soZoom100">100%</button></div><div id="soMessage" class="so-message">Memuat struktur organisasi...</div><div class="so-layout"><div class="so-scroller"><div id="soStage" class="so-stage"><svg id="soLines" class="so-lines"></svg></div></div><aside class="so-editor" id="soEditor" hidden></aside></div>';
+ document.getElementById("soArrange").onclick=()=>{if(confirm("Susun seluruh kotak otomatis berdasarkan Grade? Letak manual saat ini akan berubah setelah disimpan."))autoLayoutByGrade()};
  document.getElementById("soAdd").onclick=add;document.getElementById("soSave").onclick=save;
  document.getElementById("soReload").onclick=()=>{if(dirty&&!confirm("Buang perubahan yang belum disimpan?"))return;selected=null;editPanel();load()};
  document.getElementById("soPrint").onclick=()=>window.print();
