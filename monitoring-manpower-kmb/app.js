@@ -140,7 +140,7 @@ function bestKmbCandidateProgress(siteKey,row){
   return list.map(candidateProgress).sort((a,b)=>b.p-a.p)[0]||progress(row);
 }
 function candidateFieldHtml(f,row){
-  const val=row?.[f]??"";
+  const val=(f==="Job"?(row?.["Job"]??row?.["Scope Job"]??""):(row?.[f]??""));
   const dateFields=["Tanggal Lamaran","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi"];
   if(f==="Status Kandidat")return '<div class="field"><label>Status Kandidat</label><select data-f="Status Kandidat">'+["Aktif","Hold","Tidak Lolos","Menolak","No Response","Hired","Cancel"].map(x=>'<option '+(val===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
   if(f==="Keterangan")return '<div class="field"><label>Keterangan</label><textarea data-f="Keterangan">'+esc(val)+'</textarea></div>';
