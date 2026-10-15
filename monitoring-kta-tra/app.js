@@ -329,9 +329,9 @@ function renderKtaCharts(){
       const status=norm(candidate["Status Kandidat"]||"Aktif").toLowerCase();
       if(status==="aktif")statusCounts.active++;
       else if(status==="hired"||status==="diterima")statusCounts.hired++;
-      else if(/no\\s*response|tidak\\s*ada\\s*respon/.test(status))statusCounts.noResponse++;
-      else if(/tolak|menolak|declined|withdraw/.test(status)&&!/tidak\\s*lolos/.test(status))statusCounts.declined++;
-      else if(/tidak\\s*lolos|gagal|rejected/.test(status))statusCounts.rejected++;
+      else if(/no\s*response|tidak\s*ada\s*respon/.test(status))statusCounts.noResponse++;
+      else if(/tolak|menolak|declined|withdraw/.test(status)&&!/tidak\s*lolos/.test(status))statusCounts.declined++;
+      else if(/tidak\s*lolos|gagal|rejected/.test(status))statusCounts.rejected++;
       else statusCounts.other++;
       const progressInfo=candidateProgress(candidate);
       const stage=(statusCounts.hired&&["hired","diterima"].includes(status))?"HIRED":norm(progressInfo.label).toUpperCase();
