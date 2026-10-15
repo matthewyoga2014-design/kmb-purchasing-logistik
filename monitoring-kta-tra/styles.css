@@ -217,3 +217,39 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
 .pelamar-docs-panel{background:#fff;border-radius:18px;padding:22px;max-width:680px;width:100%;max-height:80vh;overflow:auto;display:flex;flex-wrap:wrap;gap:10px;box-shadow:0 20px 70px #15102b40}
 .pelamar-docs-panel h3,.pelamar-docs-panel p{width:100%;margin:0 0 6px}
 .pelamar-docs-panel p{color:#667085;font-size:13px}
+
+/* KTA dashboard 2026-10-15: visual hierarchy only; no metric changes */
+#dashboard #manpowerRoleRecap tbody tr:not(:last-child) td:first-child{font-weight:750;color:#5332a3}
+#dashboard #manpowerRoleRecap tbody tr:not(:last-child):nth-child(4n+1) td:first-child{color:#1d4ed8;background:#eff6ff}
+#dashboard #manpowerRoleRecap tbody tr:not(:last-child):nth-child(4n+2) td:first-child{color:#6d28d9;background:#f5f3ff}
+#dashboard #manpowerRoleRecap tbody tr:not(:last-child):nth-child(4n+3) td:first-child{color:#047857;background:#ecfdf5}
+#dashboard #manpowerRoleRecap tbody tr:not(:last-child):nth-child(4n+4) td:first-child{color:#b45309;background:#fffbeb}
+#dashboard #manpowerRoleRecap td:first-child{border-left:3px solid transparent}
+#dashboard #manpowerRoleRecap tbody tr:not(:last-child):nth-child(4n+1) td:first-child{border-left-color:#60a5fa}
+#dashboard #manpowerRoleRecap tbody tr:not(:last-child):nth-child(4n+2) td:first-child{border-left-color:#a78bfa}
+#dashboard #manpowerRoleRecap tbody tr:not(:last-child):nth-child(4n+3) td:first-child{border-left-color:#34d399}
+#dashboard #manpowerRoleRecap tbody tr:not(:last-child):nth-child(4n+4) td:first-child{border-left-color:#fbbf24}
+#dashboard #statusCards .mini,#dashboard #dueCards .mini{border:1px solid transparent;border-radius:13px;box-shadow:none}
+#dashboard #statusCards .mini:nth-child(1){background:#fff1f2;border-color:#fecdd3}
+#dashboard #statusCards .mini:nth-child(1) b{color:#dc2626}
+#dashboard #statusCards .mini:nth-child(2){background:#fff7ed;border-color:#fed7aa}
+#dashboard #statusCards .mini:nth-child(2) b{color:#c2410c}
+#dashboard #statusCards .mini:nth-child(3){background:#ecfdf5;border-color:#a7f3d0}
+#dashboard #statusCards .mini:nth-child(3) b{color:#15803d}
+#dashboard #dueCards .mini:nth-child(1){background:#fffbeb;border-color:#fde68a}
+#dashboard #dueCards .mini:nth-child(1) b{color:#a16207}
+#dashboard #dueCards .mini:nth-child(2){background:#fff1f2;border-color:#fecdd3}
+#dashboard #dueCards .mini:nth-child(2) b{color:#dc2626}
+#dashboard #dueCards .mini:nth-child(3){background:#ecfdf5;border-color:#a7f3d0}
+#dashboard #dueCards .mini:nth-child(3) b{color:#15803d}
+#dashboard #unitSummary .unit-card{border:1px solid transparent;border-radius:13px}
+#dashboard #unitSummary .unit-card:nth-child(5n+1){background:#eff6ff;border-color:#dbeafe}
+#dashboard #unitSummary .unit-card:nth-child(5n+1) b{color:#1d4ed8}
+#dashboard #unitSummary .unit-card:nth-child(5n+2){background:#f5f3ff;border-color:#ede9fe}
+#dashboard #unitSummary .unit-card:nth-child(5n+2) b{color:#6d28d9}
+#dashboard #unitSummary .unit-card:nth-child(5n+3){background:#ecfdf5;border-color:#d1fae5}
+#dashboard #unitSummary .unit-card:nth-child(5n+3) b{color:#047857}
+#dashboard #unitSummary .unit-card:nth-child(5n+4){background:#fff7ed;border-color:#ffedd5}
+#dashboard #unitSummary .unit-card:nth-child(5n+4) b{color:#c2410c}
+#dashboard #unitSummary .unit-card:nth-child(5n+5){background:#fdf2f8;border-color:#fce7f3}
+#dashboard #unitSummary .unit-card:nth-child(5n+5) b{color:#be185d}
