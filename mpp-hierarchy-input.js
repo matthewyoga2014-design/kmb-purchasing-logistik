@@ -31,7 +31,7 @@ function setup(){
    };
    function refreshSub(){
      const sectionName=section.value.trim(),jobName=job.value.trim();
-     const current=selector.value||saved;
+     const current=selector.value||(!selector.dataset.initialized?saved:"");
      const map=predefined[sectionName]||{};
      let options=[...(map[jobName]||[])];
      if(!options.length && jobName)options=[jobName];
@@ -39,7 +39,7 @@ function setup(){
      options=[...new Set([...options,...prior])];
      if(current&&!options.includes(current))options.unshift(current);
      selector.replaceChildren(new Option("— Pilih Sub Section Job —",""),...options.map(x=>new Option(x,x)));
-     selector.value=options.includes(current)?current:"";
+     selector.value=options.includes(current)?current:"";selector.dataset.initialized="1";
    }
    section.addEventListener("input",refreshSub);
    section.addEventListener("change",refreshSub);
