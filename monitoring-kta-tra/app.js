@@ -383,14 +383,14 @@ function setModalSave(show,label="Simpan Perubahan"){
   const b=document.getElementById("saveModal");if(!b)return;b.style.display=show?"":"none";b.textContent=label;
 }
 function fieldHTML(f,row,type){
-  const val=row?.[f]??"",empty=type==="mp"&&!norm(val);
+  const val=(f==="Job"?(row?.["Job"]??row?.["Scope Job"]??""):(row?.[f]??"")),empty=type==="mp"&&!norm(val);
   if((f==="No"&&type==="mpp")||(f==="No."&&type==="mp"))return '<div class="field"><label>'+esc(f)+'</label><input value="'+esc(val||"Otomatis")+'" readonly><small class="empty-hint">Nomor diatur otomatis oleh sistem</small></div>';
   if(f==="Status"&&type==="mpp")return '<div class="field"><label>Status</label><select data-f="Status"><option value=""></option>'+["Open","Continue","Close"].map(x=>'<option '+(val===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
   if(["Keterangan","Alamat Domisili","Alamat Lengkap"].includes(f))return '<div class="field '+(empty?"empty-field":"")+'"><label>'+esc(f)+'</label><textarea data-f="'+esc(f)+'" placeholder="'+(empty?"Belum terisi di Excel":"")+'">'+esc(val)+'</textarea>'+(empty?'<small class="empty-hint">Belum terisi di Excel</small>':'')+'</div>';
   return '<div class="field '+(empty?"empty-field":"")+'"><label>'+esc(f)+'</label><input type="'+(DATE_FIELDS.has(f)?"date":"text")+'" data-f="'+esc(f)+'" value="'+esc(val)+'" placeholder="'+(empty?"Belum terisi di Excel":"")+'">'+(empty?'<small class="empty-hint">Belum terisi di Excel</small>':'')+'</div>';
 }
 function candidateFieldHTML(f,row){
-  const val=row?.[f]??"";
+  const val=(f==="Job"?(row?.["Job"]??row?.["Scope Job"]??""):(row?.[f]??""));
   if(f==="Status Kandidat")return '<div class="field"><label>Status Kandidat</label><select data-f="Status Kandidat">'+["Aktif","Hold","Tidak Lolos","Menolak","No Response","Hired","Cancel"].map(x=>'<option '+(val===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
   if(f==="Keterangan")return '<div class="field"><label>Keterangan</label><textarea data-f="Keterangan">'+esc(val)+'</textarea></div>';
   return '<div class="field"><label>'+esc(f)+'</label><input type="'+(DATE_FIELDS.has(f)?"date":"text")+'" data-f="'+esc(f)+'" value="'+esc(val)+'"></div>';
