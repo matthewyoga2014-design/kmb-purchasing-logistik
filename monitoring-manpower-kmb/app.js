@@ -462,22 +462,25 @@ function renderKMBCharts(){
 
   const stages=["SOURCING KANDIDAT","PSIKOLOGI TEST","INTERVIEW USER","OFFERING","MCU","FU MCU","ON SITE","INDUKSI"];
   const stageLabels=["Sourcing","Psikotes","Interview","Offering","MCU","FU MCU","On Site","Induksi"];
-  const counts=Object.fromEntries(stages.map(x=>[x,0]));
+  const activeCounts=Object.fromEntries(stages.map(x=>[x,0]));
+  const inactiveCounts=Object.fromEntries(stages.map(x=>[x,0]));
   Object.entries(data.sites||{}).forEach(([siteKey,rows])=>{
     (rows||[]).filter(r=>isVacantName(r.Nama)&&normText(r.Status).toLowerCase()==="open").forEach(r=>{
-      const list=isVacantName(r.Nama)?getKmbCandidates(siteKey,r):[];
-      if(list.some(isActiveCandidate)){
-        list.filter(isActiveCandidate).forEach(cand=>{const p=candidateProgress(cand);if(counts[p.label]!==undefined)counts[p.label]++});
-      }else{
-        if(isVacantName(r.Nama))counts["SOURCING KANDIDAT"]++;
-      }
+      const list=getKmbCandidates(siteKey,r);
+      if(!list.length){activeCounts["SOURCING KANDIDAT"]++;return}
+      list.forEach(cand=>{
+        const p=candidateProgress(cand);
+        const key=p.label==="SOURCING PELAMAR"?"SOURCING KANDIDAT":p.label;
+        const counts=isActiveCandidate(cand)?activeCounts:inactiveCounts;
+        if(Object.prototype.hasOwnProperty.call(counts,key))counts[key]++;
+      });
     });
   });
   kmbMakeChart("kmbRecruitChart",{
     type:"line",
-    data:{labels:stageLabels,datasets:[{label:"Jumlah Pelamar",data:stages.map(s=>counts[s]),borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.12)",pointBackgroundColor:"#fff",pointBorderColor:"#7c3aed",pointBorderWidth:3,pointRadius:4,tension:.38,fill:true}]},
+    data:{labels:stageLabels,datasets:[{label:"Kandidat Aktif",data:stages.map(s=>activeCounts[s]),borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.10)",pointBackgroundColor:"#fff",pointBorderWidth:3,pointRadius:4,tension:.38,fill:true},{label:"Kandidat Tidak Aktif",data:stages.map(s=>inactiveCounts[s]),borderColor:"#ef6b76",backgroundColor:"rgba(239,107,118,.05)",pointBackgroundColor:"#fff",pointBorderWidth:3,pointRadius:4,tension:.3,fill:false}]},
     plugins:[kmbInlineValueLabels],
-    options:kmbChartOptions({layout:{padding:{top:22}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
+    options:kmbChartOptions({layout:{padding:{top:22}},plugins:{legend:{display:true,position:"bottom"},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
   });
 }
 function renderDashboard(){
@@ -503,10 +506,10 @@ function renderVacancyResume(){
   const groups={};
   for(const [site,rows] of Object.entries(data.sites||{})){
     (rows||[]).forEach((r,i)=>{
-      if(!isVacantName(r.Nama))return;
+      if(!isVacantName(r.Nama)||normText(r.Status).toLowerCase()!=="open")return;
       const role=canonicalJobLabel(r.Jabatan),key=canonicalJob(r.Jabatan)||"belum";
       if(!groups[key])groups[key]={role,items:[],candidates:[]};
-      const p=bestKmbCandidateProgress(site,r),list=activeKmbCandidates(site,r);
+      const p=bestKmbCandidateProgress(site,r),list=getKmbCandidates(site,r);
       groups[key].items.push({site,row:r,index:i,p});
       list.forEach((cand,ci)=>{
         const cp=candidateProgress(cand);
