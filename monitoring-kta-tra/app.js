@@ -456,27 +456,22 @@ async function deleteCandidate(mppIndex,candidateIndex){
  const record=data.mpp?.[mppIndex];if(!record)return;
  const key=vacancyKey(record),previous=clone(getCandidates(record)),candidate=previous[candidateIndex];
  if(!candidate)return;
- if(!confirm("Hapus pelamar "+(candidate["Nama Kandidat"]||"ini")+" dari posisi "+(record.Jabatan||"")+"?\n\nSetelah tersimpan, kandidat langsung hilang dari daftar pelamar dan rekap MPP. Lampiran dokumen yang sudah diunggah perlu dihapus terpisah."))return;
- const btns=document.querySelectorAll(".candidate-actions button");
  window.__candidateDeleteBusy=true;
- btns.forEach(b=>b.disabled=true);
- const title=document.getElementById("modalTitle");
- if(title)title.textContent="Menyimpan penghapusan pelamar...";
+ const revised=previous.filter((_,i)=>i!==candidateIndex);
+ data.candidates[key]=revised;
+ renderMPP();openCandidateList(mppIndex);
+ const heading=document.getElementById("modalTitle");
+ if(heading)heading.textContent="Menyimpan penghapusan...";
  try{
-  const revised=previous.filter((_,i)=>i!==candidateIndex);
-  data.candidates[key]=revised;
-  const result=await Promise.resolve(saveData());
-  if(result?.saved!==true)throw result?.error||new Error("Penyimpanan online tidak terkonfirmasi. Periksa koneksi dan hak akses.");
-  renderMPP();openCandidateList(mppIndex);
+   const result=await Promise.resolve(saveData());
+   if(result?.saved!==true)throw result?.error||new Error("Perubahan belum tersimpan ke database.");
+   renderMPP();openCandidateList(mppIndex);
  }catch(error){
-  data.candidates[key]=previous;
-  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
-  renderMPP();openCandidateList(mppIndex);
-  alert("Penghapusan dibatalkan karena gagal tersimpan ke database: "+(error?.message||String(error)));
- }finally{
-  window.__candidateDeleteBusy=false;
-  btns.forEach(b=>b.disabled=false);
- }
+   data.candidates[key]=previous;
+   localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+   renderMPP();openCandidateList(mppIndex);
+   alert("Gagal menghapus pelamar. Data dikembalikan: "+(error?.message||String(error)));
+ }finally{window.__candidateDeleteBusy=false}
 }
 function deleteMPP(index){if(!editOnly())return;
   const row=data.mpp[index];if(!row)return;
