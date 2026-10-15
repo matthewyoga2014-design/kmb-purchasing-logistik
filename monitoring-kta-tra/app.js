@@ -322,27 +322,45 @@ function renderKtaCharts(){
   const labels=["Sourcing","Psikotes","Interview","Offering","MCU","FU MCU","On Site","Induksi","Hired"];
   // Only applicants connected to currently Open MPP positions, one final stage per applicant.
   const counts=Object.fromEntries(stages.map(x=>[x,0]));
-  const statusCounts={total:0,active:0,rejected:0,noResponse:0,declined:0,hired:0,other:0};
+  const statusCounts={total:0,active:0,passed:0,rejected:0,noResponse:0,declined:0,hired:0,other:0};
+  const track=[];
+  const pastSelection=new Set(["OFFERING","MCU","FU MCU","ON SITE","INDUKSI"]);
+  const classify=c=>{
+    const status=norm(c["Status Kandidat"]||"Aktif").toLowerCase();
+    if(status==="hired"||status==="diterima")return "hired";
+    if(/tidak\s*lolos|gagal|rejected/.test(status))return "rejected";
+    if(/no\s*response|tidak\s*ada\s*respon/.test(status))return "noResponse";
+    if(/menolak|declined|withdraw|tolak/.test(status))return "declined";
+    return status==="aktif"?"active":"other";
+  };
   (data.mpp||[]).filter(r=>norm(r.Status).toLowerCase()==="open").forEach(position=>{
+    const tally={total:0,active:0,passed:0,rejected:0,noResponse:0,declined:0,hired:0,other:0};
+    let highest={p:0,label:"SOURCING PELAMAR"};
     getCandidates(position).forEach(candidate=>{
-      statusCounts.total++;
-      const status=norm(candidate["Status Kandidat"]||"Aktif").toLowerCase();
-      if(status==="aktif")statusCounts.active++;
-      else if(status==="hired"||status==="diterima")statusCounts.hired++;
-      else if(/no\s*response|tidak\s*ada\s*respon/.test(status))statusCounts.noResponse++;
-      else if(/tolak|menolak|declined|withdraw/.test(status)&&!/tidak\s*lolos/.test(status))statusCounts.declined++;
-      else if(/tidak\s*lolos|gagal|rejected/.test(status))statusCounts.rejected++;
-      else statusCounts.other++;
-      const progressInfo=candidateProgress(candidate);
-      const stage=(statusCounts.hired&&["hired","diterima"].includes(status))?"HIRED":norm(progressInfo.label).toUpperCase();
-      if(counts[stage]!==undefined)counts[stage]++;
-      else counts["SOURCING PELAMAR"]++;
+      const type=classify(candidate);
+      const stageInfo=candidateProgress(candidate);
+      const stage=norm(stageInfo.label).toUpperCase();
+      statusCounts.total++;tally.total++;
+      statusCounts[type]++;tally[type]++;
+      if(stageInfo.p>highest.p)highest=stageInfo;
+      if(type==="active"){
+        if(pastSelection.has(stage)){statusCounts.passed++;tally.passed++}
+        if(counts[stage]!==undefined)counts[stage]++;
+        else counts["SOURCING PELAMAR"]++;
+      }
     });
+    track.push({position,tally,highest});
   });
   const statusHost=document.getElementById("ktaCandidateStatusSummary");
   if(statusHost){
-    const cards=[["Total Kandidat",statusCounts.total],["Aktif / Proses",statusCounts.active],["Tidak Lolos",statusCounts.rejected],["No Response",statusCounts.noResponse],["Menolak",statusCounts.declined],["Hired",statusCounts.hired]];
+    const cards=[["Total Kandidat",statusCounts.total],["Aktif / Proses",statusCounts.active],["Lolos Tahap Seleksi",statusCounts.passed],["Tidak Lolos",statusCounts.rejected],["No Response",statusCounts.noResponse],["Menolak",statusCounts.declined],["Hired",statusCounts.hired]];
     statusHost.innerHTML=cards.map(([label,value])=>'<div style="border:1px solid #eceaf5;border-radius:10px;padding:10px 12px;background:#faf9fd"><b style="font-size:20px;color:#372260">'+value+'</b><div style="font-size:11px;color:#777189">'+label+'</div></div>').join("");
+  }
+  const recap=document.getElementById("ktaOpenCandidateTrack");
+  if(recap){
+    const cols=["Jabatan / MPP","Total","Aktif","Lolos Tahap","Tidak Lolos","No Response","Menolak","Hired","Tahap Terjauh"];
+    const lines=track.map(({position,tally,highest})=>'<tr><td><b>'+esc(position.Jabatan||"-")+'</b><div style="font-size:11px;color:#777">MPP #'+esc(position.No)+'</div></td>'+[tally.total,tally.active,tally.passed,tally.rejected,tally.noResponse,tally.declined,tally.hired].map(v=>'<td style="text-align:center">'+v+'</td>').join("")+'<td>'+esc(tally.total?highest.label:"Belum ada pelamar")+'</td></tr>').join("");
+    recap.innerHTML='<div class="table-wrap"><table class="table"><thead><tr>'+cols.map(c=>'<th>'+c+'</th>').join("")+'</tr></thead><tbody>'+lines+'</tbody></table></div>';
   }
   ktaMakeChart("ktaPipelineChart",{
     type:"line",
