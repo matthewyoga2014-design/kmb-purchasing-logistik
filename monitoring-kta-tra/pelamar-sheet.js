@@ -1,38 +1,56 @@
 (function(){
- "use strict";
- const root=document.getElementById("pelamarContent");
- if(!root)return;
- function safe(x){return String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
- function state(){try{return typeof data!=="undefined"&&data&&Array.isArray(data.mpp)?data:null}catch(e){return null}}
- function statusOf(candidate){
-   const value=String(candidate["Status Kandidat"]||"Aktif").trim();
-   return {raw:value,active:value.toLowerCase()==="aktif"};
- }
- function render(){
-   const d=state(),search=document.getElementById("pelamarSearch"),filter=document.getElementById("pelamarStatus");
-   if(!d){root.textContent="Data belum siap dimuat.";return}
-   const rows=[];
-   d.mpp.forEach((position,mi)=>{
-     const list=typeof getCandidates==="function"?getCandidates(position):d.candidates?.["MPP-"+position.No]||[];
-     list.forEach((candidate,ci)=>rows.push({position,mi,candidate,ci,status:statusOf(candidate)}));
-   });
-   const active=rows.filter(x=>x.status.active).length,inactive=rows.length-active;
-   document.getElementById("pelamarCounts").textContent="Total "+rows.length+" pelamar  •  Aktif "+active+"  •  Tidak Aktif "+inactive;
-   const q=(search?.value||"").trim().toLowerCase(),type=filter?.value||"all";
-   const shown=rows.filter(x=>(type==="all"||(type==="active"&&x.status.active)||(type==="inactive"&&!x.status.active))&&(!q||[x.candidate["Nama Kandidat"],x.position.Jabatan,x.candidate.Sumber,x.status.raw].join(" ").toLowerCase().includes(q)));
-   root.innerHTML=shown.length?'<div class="table-wrap"><table class="table"><thead><tr><th>No</th><th>Nama Pelamar</th><th>Jabatan Dilamar</th><th>Status</th><th>Sumber</th><th>Keterangan</th><th>Aksi</th></tr></thead><tbody>'+shown.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+safe(x.candidate["Nama Kandidat"]||"-")+'</td><td>'+safe(x.position.Jabatan||"-")+'</td><td><span style="font-weight:700;color:'+(x.status.active?'#15803d':'#b91c1c')+'">'+safe(x.status.raw||"Aktif")+'</span></td><td>'+safe(x.candidate.Sumber||"-")+'</td><td>'+safe(x.candidate.Keterangan||"-")+'</td><td class="action-cell"><button class="btn" data-candidate-edit="'+x.mi+':'+x.ci+'">Edit</button> <button class="btn danger" data-candidate-delete="'+x.mi+':'+x.ci+'">Hapus</button></td></tr>').join("")+'</tbody></table></div>':'<div class="empty">Belum ada pelamar yang sesuai filter.</div>';
- }
- root.addEventListener("click",event=>{
-   const edit=event.target.closest("[data-candidate-edit]"),del=event.target.closest("[data-candidate-delete]");
-   if(!edit&&!del)return;
-   const values=(edit||del).getAttribute(edit?"data-candidate-edit":"data-candidate-delete").split(":").map(Number);
-   if(edit)openCandidateForm(values[0],values[1]);
-   else deleteCandidate(values[0],values[1]);
+"use strict";
+const root=document.getElementById("pelamarContent");
+if(!root)return;
+const stages=["Tanggal Lamaran","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi"];
+const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;":"&#39;"}[c]));
+function current(){try{return typeof data!=="undefined"&&Array.isArray(data.mpp)?data:null}catch(e){return null}}
+function active(c){return String(c["Status Kandidat"]||"Aktif").trim().toLowerCase()==="aktif"}
+function records(){
+ const d=current(),rows=[];
+ if(!d)return rows;
+ d.mpp.forEach((position,mi)=>{
+   const list=typeof getCandidates==="function"?getCandidates(position):d.candidates?.["MPP-"+position.No]||[];
+   list.forEach((candidate,ci)=>rows.push({position,mi,candidate,ci}));
  });
- document.getElementById("pelamarSearch")?.addEventListener("input",render);
- document.getElementById("pelamarStatus")?.addEventListener("change",render);
- document.querySelector('[data-view="pelamar"]')?.addEventListener("click",()=>setTimeout(render,0));
- document.addEventListener("click",e=>{if(e.target.closest("#saveModal, .candidate-actions, #closeModal"))setTimeout(render,700)});
- window.refreshPelamarSheet=render;
- render();
+ return rows;
+}
+function render(){
+ const d=current();if(!d){root.textContent="Data pelamar belum dimuat.";return}
+ const rows=records(),activeCount=rows.filter(x=>active(x.candidate)).length;
+ const summary=document.getElementById("pelamarCounts");
+ if(summary)summary.textContent="Total "+rows.length+" pelamar • Aktif "+activeCount+" • Tidak Aktif "+(rows.length-activeCount);
+ const selector=document.getElementById("pelamarVacancy");
+ if(selector){
+   const selected=selector.value;
+   selector.innerHTML='<option value="">Pilih jabatan vacant untuk tambah pelamar</option>'+d.mpp.map((r,i)=>({r,i})).filter(x=>typeof isVacant==="function"&&isVacant(x.r.Nama)).map(x=>'<option value="'+x.i+'">MPP #'+esc(x.r.No)+' — '+esc(x.r.Jabatan)+'</option>').join("");
+   if([...selector.options].some(o=>o.value===selected))selector.value=selected;
+ }
+ const search=(document.getElementById("pelamarSearch")?.value||"").trim().toLowerCase(),filter=document.getElementById("pelamarStatus")?.value||"all";
+ const shown=rows.filter(x=>(filter==="all"||(filter==="active"&&active(x.candidate))||(filter==="inactive"&&!active(x.candidate)))&&(!search||[x.candidate["Nama Kandidat"],x.position.Jabatan,x.candidate.Sumber,x.candidate.Keterangan,x.candidate["Status Kandidat"]].join(" ").toLowerCase().includes(search)));
+ const headers=["No","Nama Kandidat","Jabatan","Status","Sumber",...stages,"Keterangan","Aksi"];
+ root.innerHTML=shown.length?'<div class="table-wrap"><table class="table"><thead><tr>'+headers.map(h=>'<th>'+esc(h)+'</th>').join("")+'</tr></thead><tbody>'+shown.map((x,i)=>{
+ const c=x.candidate,status=c["Status Kandidat"]||"Aktif";
+ const values=[i+1,c["Nama Kandidat"]||"-",x.position.Jabatan||"-",status,c.Sumber||"-",...stages.map(k=>c[k]||"-"),c.Keterangan||"-"];
+ return '<tr>'+values.map((v,j)=>'<td'+(j===3?' style="font-weight:700;color:'+(active(c)?"#15803d":"#b91c1c")+'"':'')+'>'+esc(v)+'</td>').join("")+'<td class="action-cell"><button class="btn" data-edit="'+x.mi+':'+x.ci+'">Edit</button> <button class="btn danger" data-delete="'+x.mi+':'+x.ci+'">Hapus</button></td></tr>';
+ }).join("")+'</tbody></table></div>':'<div class="empty">Belum ada pelamar sesuai filter.</div>';
+}
+root.addEventListener("click",event=>{
+ const edit=event.target.closest("[data-edit]"),del=event.target.closest("[data-delete]");
+ if(!edit&&!del)return;
+ const indexes=(edit||del).getAttribute(edit?"data-edit":"data-delete").split(":").map(Number);
+ if(edit)openCandidateForm(indexes[0],indexes[1]);
+ else deleteCandidate(indexes[0],indexes[1]);
+});
+document.getElementById("pelamarSearch")?.addEventListener("input",render);
+document.getElementById("pelamarStatus")?.addEventListener("change",render);
+document.getElementById("pelamarAdd")?.addEventListener("click",()=>{
+ const selected=document.getElementById("pelamarVacancy")?.value;
+ if(selected===""){alert("Pilih jabatan vacant terlebih dahulu.");return}
+ openCandidateForm(Number(selected),null);
+});
+document.querySelector('[data-view="pelamar"]')?.addEventListener("click",()=>setTimeout(render,0));
+document.addEventListener("click",e=>{if(e.target.closest("#saveModal,#closeModal,.candidate-actions"))setTimeout(render,800)});
+window.refreshPelamarSheet=render;
+render();
 })();
