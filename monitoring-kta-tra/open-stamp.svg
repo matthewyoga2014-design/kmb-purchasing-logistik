@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 560" aria-label="OPEN stamp">
+<defs><filter id="rough"><feTurbulence type="fractalNoise" baseFrequency=".034" numOctaves="3" seed="8" result="noise"/><feDisplacementMap in="SourceGraphic" in2="noise" scale="4"/></filter><mask id="wear"><rect width="640" height="560" fill="white"/><g fill="black" opacity=".65"><path d="M88 83l23 8m63-29l5 20m341 55l23 4M70 360l42-9m411 27l-35 7M200 510l25-28M320 54l21 17M430 488l32-8" stroke="black" stroke-width="4"/><circle cx="160" cy="254" r="3"/><circle cx="260" cy="112" r="4"/><circle cx="373" cy="432" r="4"/><circle cx="467" cy="251" r="4"/></g></mask></defs>
+<g transform="rotate(-13 320 280)" fill="none" stroke="#df141c" mask="url(#wear)" filter="url(#rough)">
+<circle cx="320" cy="280" r="235" stroke-width="15"/><circle cx="320" cy="280" r="216" stroke-width="4"/><circle cx="320" cy="280" r="178" stroke-width="5"/>
+<g fill="#df141c" stroke="none"><path d="M254 133l7 17 18 1-14 11 5 18-16-10-16 10 5-18-14-11 18-1z"/><path d="M319 119l8 18 20 2-16 12 6 19-18-11-18 11 6-19-16-12 20-2z"/><path d="M384 133l7 17 18 1-14 11 5 18-16-10-16 10 5-18-14-11 18-1z"/><path d="M254 385l7 17 18 1-14 11 5 18-16-10-16 10 5-18-14-11 18-1z"/><path d="M319 399l8 18 20 2-16 12 6 19-18-11-18 11 6-19-16-12 20-2z"/><path d="M384 385l7 17 18 1-14 11 5 18-16-10-16 10 5-18-14-11 18-1z"/></g>
+<rect x="19" y="201" width="602" height="152" fill="white" stroke-width="10"/>
+<text x="320" y="320" font-family="Georgia,serif" font-weight="900" font-size="124" text-anchor="middle" fill="#df141c" stroke="none" letter-spacing="8">OPEN</text>
+</g></svg>
