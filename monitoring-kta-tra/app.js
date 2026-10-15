@@ -456,7 +456,7 @@ async function deleteCandidate(mppIndex,candidateIndex){
  const record=data.mpp?.[mppIndex];if(!record)return;
  const key=vacancyKey(record),previous=clone(getCandidates(record)),candidate=previous[candidateIndex];
  if(!candidate)return;
- if(!confirm("Hapus pelamar "+(candidate["Nama Kandidat"]||"ini")+" dari posisi "+(record.Jabatan||"")+"?\\n\\nRiwayat kandidat akan dihapus dari daftar MPP. Lampiran yang telah diunggah tidak otomatis dihapus."))return;
+ if(!confirm("Hapus pelamar "+(candidate["Nama Kandidat"]||"ini")+" dari posisi "+(record.Jabatan||"")+"?\n\nSetelah tersimpan, kandidat langsung hilang dari daftar pelamar dan rekap MPP. Lampiran dokumen yang sudah diunggah perlu dihapus terpisah."))return;
  const btns=document.querySelectorAll(".candidate-actions button");
  window.__candidateDeleteBusy=true;
  btns.forEach(b=>b.disabled=true);
