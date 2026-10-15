@@ -8,11 +8,47 @@ const safe=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"
 const staff=()=>["owner","editor"].includes(window.accessMode?.());
 function connect(){if(!sb&&window.supabase?.createClient&&window.KMB_SUPABASE_CONFIG){const c=window.KMB_SUPABASE_CONFIG;sb=window.supabase.createClient(c.url,c.publishableKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}})}return sb}
 function notice(t){let e=document.getElementById("soMessage");if(e)e.textContent=t}
+function mppItems(){
+ try{
+ const source=typeof data!=="undefined"?data:null;if(!source)return [];
+ if(appId==="kmb")return Object.entries(source.sites||{}).flatMap(([site,rows])=>(rows||[]).map((r,i)=>({key:site+"|"+String(r.No??i+1),name:String(r.Nama||"").trim(),role:String(r.Jabatan||"").trim(),label:(source.siteLabels?.[site]||site)+" / #"+(r.No??i+1)+" / "+(r.Jabatan||"-"),row:r})));
+ return (source.mpp||[]).map((r,i)=>({key:String(r.No??i+1),name:String(r.Nama||"").trim(),role:String(r.Jabatan||"").trim(),label:"#"+(r.No??i+1)+" / "+(r.Jabatan||"-"),row:r}));
+ }catch(e){return []}
+}
+function displayName(n){
+ if(n.sectionHeading)return "";
+ const item=mppItems().find(x=>x.key===String(n.mppKey||""));
+ if(item)return !item.name||/^vacant$/i.test(item.name)?"VACANT":item.name;
+ return /^vacant\b/i.test(String(n.name||""))?"VACANT":(n.name||"VACANT");
+}
+function autoAssignBupr(){
+ if(appId!=="bupr-ampah")return;
+ const items=mppItems(),used=new Set(nodes.filter(n=>n.mppKey).map(n=>String(n.mppKey)));
+ const mapRole=s=>String(s||"").toLowerCase().replace(/[^a-z0-9]/g,"").replace(/junior/g,"jr").replace(/mechanic/g,"mekanik");
+ const score=(n,r)=>{
+ const a=mapRole(n.role),b=mapRole(r.role);
+ if(!a||!b)return false;
+ if(a.includes("welder"))return b.includes("welder");
+ if(a.includes("seniormekanik"))return b.includes("seniormekanik");
+ if(a.includes("middlemekanik"))return b.includes("middlemekanik")||b.includes("midlemekanik");
+ if(a.includes("jrmekanik"))return b.includes("jrmekanik");
+ if(a.includes("tyre"))return b.includes("tyre")||b.includes("tire");
+ if(a.includes("planner"))return b.includes("planner");
+ if(a.includes("superintendent"))return b.includes("superintendent")||b.includes("supervisor");
+ return false
+ };
+ nodes.forEach(n=>{
+  if(n.mppKey||n.sectionHeading)return;
+  const found=items.find(x=>!used.has(x.key)&&score(n,x));
+  if(found){n.mppKey=found.key;used.add(found.key)}
+ });
+}
+
 async function load(){
  const db=connect();if(!db){notice("Koneksi database belum tersedia.");return}
  const {data,error}=await db.from("organizational_charts").select("nodes").eq("app_id",appId).maybeSingle();
  if(error){notice("Gagal memuat: "+error.message);return}
- nodes=Array.isArray(data?.nodes)?data.nodes:[];ready=true;dirty=false;draw();notice(nodes.length?"Struktur organisasi tersinkronisasi.":"Struktur masih kosong. Klik Tambah Posisi untuk memulai.");
+ nodes=Array.isArray(data?.nodes)?data.nodes:[];if(appId==="bupr-ampah")autoAssignBupr();ready=true;dirty=false;draw();notice(nodes.length?"Struktur organisasi tersinkronisasi.":"Struktur masih kosong. Klik Tambah Posisi untuk memulai.");
 }
 async function save(){
  if(!staff()){notice("Masuk sebagai Pemilik atau Editor dahulu.");return}
@@ -23,7 +59,7 @@ async function save(){
  if(error){notice("Gagal simpan: "+error.message);return}
  dirty=false;notice("Tersimpan ke database. Perubahan bisa dilihat di perangkat lain.");
 }
-function add(){if(!staff())return;const max=nodes.reduce((a,n)=>Math.max(a,Number(n.y)||0),0);const id=crypto.randomUUID();nodes.push({id,name:"Vacant",role:"Jabatan Baru",parent:"",x:120+(nodes.length%4)*250,y:max?max+150:55});editing=true;dirty=true;selected=id;draw();editPanel()}
+function add(){if(!staff())return;const max=nodes.reduce((a,n)=>Math.max(a,Number(n.y)||0),0);const id=crypto.randomUUID();nodes.push({id,name:"VACANT",role:"Jabatan Baru",parent:"",x:120+(nodes.length%4)*250,y:max?max+150:55});editing=true;dirty=true;selected=id;draw();editPanel()}
 function fitChart(){
  const scroller=document.querySelector(".so-scroller"),stage=document.getElementById("soStage");if(!scroller||!stage)return;
  const w=parseFloat(stage.style.width)||1000,h=parseFloat(stage.style.height)||500;
@@ -59,8 +95,8 @@ function draw(){
  }
  });
  nodes.forEach(n=>{
- const el=document.createElement("div");el.className="so-node"+(selected===n.id?" selected":"")+(String(n.name).toLowerCase()==="vacant"?" vacant":"");el.style.left=(+n.x||0)+"px";el.style.top=(+n.y||0)+"px";
- el.innerHTML='<div class="so-role">'+safe(n.role)+'</div><div class="so-name">'+safe(n.name)+'</div>';
+ const el=document.createElement("div");el.className="so-node"+(selected===n.id?" selected":"")+(displayName(n)==="VACANT"?" vacant":"");el.style.left=(+n.x||0)+"px";el.style.top=(+n.y||0)+"px";
+ el.innerHTML='<div class="so-role">'+safe(n.role)+'</div><div class="so-name">'+safe(displayName(n))+'</div>';
  el.addEventListener("click",()=>{selected=n.id;draw();editPanel()});
  if(staff())el.addEventListener("pointerdown",ev=>{
   if(ev.button!==0)return;
@@ -80,11 +116,12 @@ function editPanel(){
  const n=nodes.find(x=>x.id===selected);
  if(!n||!staff()){box.hidden=true;return}
  box.hidden=false;
- box.innerHTML='<h3>Edit Posisi</h3><label>Jabatan<input id="soRole" value="'+safe(n.role)+'"></label><label>Nama<input id="soName" value="'+safe(n.name)+'"></label><label>Atasan langsung<select id="soParent"><option value="">Tidak ada / Pimpinan utama</option>'+nodes.filter(x=>x.id!==n.id).map(x=>'<option value="'+safe(x.id)+'" '+(x.id===n.parent?'selected':'')+'>'+safe(x.role)+' — '+safe(x.name)+'</option>').join('')+'</select></label><div class="so-edit-actions"><button type="button" id="soUpdate">Terapkan</button><button type="button" id="soDelete" class="so-danger">Hapus Posisi</button></div>';
+ const options=mppItems();
+ box.innerHTML='<h3>Edit Posisi</h3><label>Link ke posisi MPP<select id="soMPP"><option value="">Tidak terhubung (manual)</option>'+options.map(x=>'<option value="'+safe(x.key)+'" '+(String(n.mppKey||"")===x.key?'selected':'')+'>'+safe(x.label)+'</option>').join('')+'</select></label><label>Jabatan<input id="soRole" value="'+safe(n.role)+'"></label><label>Nama<input id="soName" value="'+safe(n.name)+'"></label><label>Atasan langsung<select id="soParent"><option value="">Tidak ada / Pimpinan utama</option>'+nodes.filter(x=>x.id!==n.id).map(x=>'<option value="'+safe(x.id)+'" '+(x.id===n.parent?'selected':'')+'>'+safe(x.role)+' — '+safe(x.name)+'</option>').join('')+'</select></label><div class="so-edit-actions"><button type="button" id="soUpdate">Terapkan</button><button type="button" id="soDelete" class="so-danger">Hapus Posisi</button></div>';
  document.getElementById("soUpdate").onclick=()=>{
  const par=document.getElementById("soParent").value;let ancestor=par;
  while(ancestor){if(ancestor===n.id){alert("Hubungan atasan tidak boleh membentuk lingkaran.");return}ancestor=nodes.find(x=>x.id===ancestor)?.parent||""}
- n.name=document.getElementById("soName").value.trim()||"Vacant";n.role=document.getElementById("soRole").value.trim()||"Jabatan";n.parent=par;dirty=true;draw();editPanel();notice("Perubahan belum disimpan. Klik Simpan Struktur.");
+ n.mppKey=document.getElementById("soMPP").value;n.name=document.getElementById("soName").value.trim()||"VACANT";n.role=document.getElementById("soRole").value.trim()||"Jabatan";n.parent=par;dirty=true;draw();editPanel();notice("Perubahan belum disimpan. Klik Simpan Struktur.");
  };
  document.getElementById("soDelete").onclick=()=>{if(!confirm("Hapus posisi ini dari struktur organisasi?"))return;nodes=nodes.filter(x=>x.id!==n.id);nodes.forEach(x=>{if(x.parent===n.id)x.parent=""});selected=null;dirty=true;draw();editPanel();notice("Posisi dihapus dari bagan. Klik Simpan Struktur.")};
 }
