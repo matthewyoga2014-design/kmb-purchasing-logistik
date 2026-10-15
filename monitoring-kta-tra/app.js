@@ -592,12 +592,12 @@ async async function saveModal(){if(!editOnly())return;
     renumberMPP();saveData();renderMPP();closeModal();return;
   }
   if(editState.type==="candidate"){
-    const r=data.mpp[editState.mppIndex],key=vacancyKey(r),list=getCandidates(r),clean={};
+    const r=data.mpp[editState.mppIndex],key=vacancyKey(r),list=getCandidates(r),originalCandidateList=clone(list),clean={};
     CANDIDATE_FIELDS.forEach(f=>clean[f]=vals[f]||"");
     if(!norm(clean["Nama Kandidat"])){alert("Nama kandidat wajib diisi.");return}
     if(editState.candidateIndex===null)list.push(clean);else list[editState.candidateIndex]={...list[editState.candidateIndex],...clean};
     const btn=document.getElementById("saveModal");
-    const previous=clone(data.candidates[key]||[]);
+    const previous=originalCandidateList;
     const next=list.map(x=>({...x}));
     if(btn){btn.disabled=true;btn.textContent="Menyimpan Pelamar..."}
     try{
