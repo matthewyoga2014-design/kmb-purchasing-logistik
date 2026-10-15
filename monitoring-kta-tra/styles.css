@@ -212,3 +212,8 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
 #manpowerRoleRecap .recap-actual-badge{display:inline-block;min-width:36px;padding:5px 12px;border-radius:999px;font-weight:800}
 #manpowerRoleRecap .recap-actual-badge.has-actual{background:#dcfce7;color:#166534}
 #manpowerRoleRecap .recap-actual-badge.no-actual{background:#f1f5f9;color:#64748b}
+
+.pelamar-docs-overlay{position:fixed;inset:0;background:#1e1b4b88;display:flex;align-items:center;justify-content:center;z-index:99999;padding:20px}
+.pelamar-docs-panel{background:#fff;border-radius:18px;padding:22px;max-width:680px;width:100%;max-height:80vh;overflow:auto;display:flex;flex-wrap:wrap;gap:10px;box-shadow:0 20px 70px #15102b40}
+.pelamar-docs-panel h3,.pelamar-docs-panel p{width:100%;margin:0 0 6px}
+.pelamar-docs-panel p{color:#667085;font-size:13px}
