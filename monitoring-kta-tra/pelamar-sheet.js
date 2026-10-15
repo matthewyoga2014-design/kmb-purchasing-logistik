@@ -28,19 +28,39 @@ function render(){
  }
  const search=(document.getElementById("pelamarSearch")?.value||"").trim().toLowerCase(),filter=document.getElementById("pelamarStatus")?.value||"all";
  const shown=rows.filter(x=>(filter==="all"||(filter==="active"&&active(x.candidate))||(filter==="inactive"&&!active(x.candidate)))&&(!search||[x.candidate["Nama Kandidat"],x.position.Jabatan,x.candidate.Sumber,x.candidate.Keterangan,x.candidate["Status Kandidat"]].join(" ").toLowerCase().includes(search)));
- const headers=["No","Nama Kandidat","Jabatan","Status","Sumber",...stages,"Keterangan","Aksi"];
+ const headers=["No","Nama Kandidat","Jabatan","Status","Sumber",...stages,"Keterangan","Dokumen Upload","Aksi"];
  root.innerHTML=shown.length?'<div class="table-wrap"><table class="table"><thead><tr>'+headers.map(h=>'<th>'+esc(h)+'</th>').join("")+'</tr></thead><tbody>'+shown.map((x,i)=>{
  const c=x.candidate,status=c["Status Kandidat"]||"Aktif";
  const values=[i+1,c["Nama Kandidat"]||"-",x.position.Jabatan||"-",status,c.Sumber||"-",...stages.map(k=>c[k]||"-"),c.Keterangan||"-"];
- return '<tr>'+values.map((v,j)=>'<td'+(j===3?' style="font-weight:700;color:'+(active(c)?"#15803d":"#b91c1c")+'"':'')+'>'+esc(v)+'</td>').join("")+'<td class="action-cell"><button class="btn" data-edit="'+x.mi+':'+x.ci+'">Edit</button> <button class="btn danger" data-delete="'+x.mi+':'+x.ci+'">Hapus</button></td></tr>';
+ return '<tr>'+values.map((v,j)=>'<td'+(j===3?' style="font-weight:700;color:'+(active(c)?"#15803d":"#b91c1c")+'"':'')+'>'+esc(v)+'</td>').join("")+'<td><button class="btn" data-docs="'+x.mi+':'+x.ci+'">📎 Lihat File</button></td><td class="action-cell"><button class="btn" data-edit="'+x.mi+':'+x.ci+'">Edit</button> <button class="btn danger" data-delete="'+x.mi+':'+x.ci+'">Hapus</button></td></tr>';
  }).join("")+'</tbody></table></div>':'<div class="empty">Belum ada pelamar sesuai filter.</div>';
 }
 root.addEventListener("click",event=>{
- const edit=event.target.closest("[data-edit]"),del=event.target.closest("[data-delete]");
- if(!edit&&!del)return;
- const indexes=(edit||del).getAttribute(edit?"data-edit":"data-delete").split(":").map(Number);
- if(edit)openCandidateForm(indexes[0],indexes[1]);
- else deleteCandidate(indexes[0],indexes[1]);
+ const edit=event.target.closest("[data-edit]"),del=event.target.closest("[data-delete]"),docs=event.target.closest("[data-docs]");
+ if(!edit&&!del&&!docs)return;
+ const btn=edit||del||docs;
+ const indexes=btn.getAttribute(edit?"data-edit":del?"data-delete":"data-docs").split(":").map(Number);
+ if(edit){openCandidateForm(indexes[0],indexes[1]);return}
+ if(del){deleteCandidate(indexes[0],indexes[1]);return}
+ const d=current(),position=d?.mpp?.[indexes[0]],candidate=position&&getCandidates(position)[indexes[1]];
+ if(!candidate)return;
+ btn.disabled=true;btn.textContent="Memuat...";
+ try{
+   const files=await window.KMBListCandidateAttachments("kta-tra","MPP-"+String(position.No).trim(),String(candidate["Nama Kandidat"]||"").trim());
+   if(!files.length){alert("Belum ada dokumen yang di-upload untuk pelamar ini.");return}
+   const overlay=document.createElement("div");overlay.className="pelamar-docs-overlay";
+   const panel=document.createElement("div");panel.className="pelamar-docs-panel";
+   const heading=document.createElement("h3");heading.textContent="Dokumen Pelamar — "+(candidate["Nama Kandidat"]||"-");panel.append(heading);
+   const notice=document.createElement("p");notice.textContent="Dokumen yang diunggah melalui form Edit Pelamar di MPP.";panel.append(notice);
+   files.forEach(file=>{
+     const link=document.createElement("button");link.type="button";link.className="btn";link.textContent="📎 "+file.filename+" • "+file.stage;
+     link.addEventListener("click",async()=>{try{await window.KMBOpenCandidateAttachment(file.object_path)}catch(e){alert("Gagal membuka dokumen: "+(e.message||e))}});
+     panel.append(link);
+   });
+   const close=document.createElement("button");close.className="btn";close.textContent="Tutup";close.onclick=()=>overlay.remove();panel.append(close);
+   overlay.append(panel);overlay.onclick=e=>{if(e.target===overlay)overlay.remove()};document.body.append(overlay);
+ }catch(error){alert("Gagal membaca dokumen pelamar: "+(error.message||error))}
+ finally{btn.disabled=false;btn.textContent="📎 Lihat File"}
 });
 document.getElementById("pelamarSearch")?.addEventListener("input",render);
 document.getElementById("pelamarStatus")?.addEventListener("change",render);
