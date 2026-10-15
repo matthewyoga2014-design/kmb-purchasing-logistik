@@ -275,3 +275,35 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
 #manpowerRoleRecap .recap-pct.pct-medium{color:#c2410c;background:#ffedd5}
 #manpowerRoleRecap .recap-pct.pct-high{color:#a16207;background:#fef9c3}
 #manpowerRoleRecap .recap-pct.pct-complete{color:#15803d;background:#dcfce7}
+
+/* Dashboard visual matching the supplied reference: saturated PTK cards, colorful unit tiles. */
+#dashboard #statusCards .mini,#dashboard #dueCards .mini{
+ position:relative;overflow:hidden;min-height:90px;border:0!important;border-radius:13px!important;
+ display:flex;flex-direction:column;justify-content:center;align-items:flex-start;
+ padding:16px 18px 14px 66px;box-shadow:none!important;color:#fff!important;
+}
+#dashboard #statusCards .mini:before,#dashboard #dueCards .mini:before{
+ content:"";position:absolute;left:16px;top:50%;transform:translateY(-50%);width:38px;height:38px;border-radius:50%;
+ background:#ffffff35;
+}
+#dashboard #statusCards .mini:after,#dashboard #dueCards .mini:after{
+ content:"";position:absolute;right:-16px;top:-35px;width:90px;height:90px;border-radius:50%;background:#ffffff2a;pointer-events:none;
+}
+#dashboard #statusCards .mini b,#dashboard #dueCards .mini b{color:white!important;font-size:28px!important;line-height:1.1}
+#dashboard #statusCards .mini span,#dashboard #dueCards .mini span{color:white!important;font-size:13px!important}
+#dashboard #statusCards .mini:nth-child(1){background:linear-gradient(120deg,#e51c4f,#fa6681)!important}
+#dashboard #statusCards .mini:nth-child(2){background:linear-gradient(120deg,#e78300,#ffbc29)!important}
+#dashboard #statusCards .mini:nth-child(3){background:linear-gradient(120deg,#059e79,#32cea0)!important}
+#dashboard #dueCards .mini:nth-child(1){background:linear-gradient(120deg,#f46a16,#ffad6d)!important}
+#dashboard #dueCards .mini:nth-child(2){background:linear-gradient(120deg,#c91922,#f47175)!important}
+#dashboard #dueCards .mini:nth-child(3){background:linear-gradient(120deg,#2165ee,#64a2fc)!important}
+#dashboard #unitSummary .unit-card{position:relative;min-height:58px;padding:14px 15px 14px 66px!important;border-radius:13px!important;border-width:1px!important;border-style:solid!important;overflow:hidden}
+#dashboard #unitSummary .unit-card:before{content:"🚚";position:absolute;left:16px;top:50%;transform:translateY(-50%);width:37px;height:37px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:var(--unit-accent);color:white;font-size:17px}
+#dashboard #unitSummary .unit-card:nth-child(7n+1){--unit-accent:#7739ef;background:#f4efff!important;border-color:#dfd0ff!important}
+#dashboard #unitSummary .unit-card:nth-child(7n+2){--unit-accent:#2464f1;background:#edf3ff!important;border-color:#caddff!important}
+#dashboard #unitSummary .unit-card:nth-child(7n+3){--unit-accent:#08968e;background:#eaf9f8!important;border-color:#bfebe7!important}
+#dashboard #unitSummary .unit-card:nth-child(7n+4){--unit-accent:#ed8000;background:#fff6ea!important;border-color:#ffe0b8!important}
+#dashboard #unitSummary .unit-card:nth-child(7n+5){--unit-accent:#e71e70;background:#fff0f7!important;border-color:#ffcce0!important}
+#dashboard #unitSummary .unit-card:nth-child(7n+6){--unit-accent:#079b65;background:#eafaf3!important;border-color:#c3efdd!important}
+#dashboard #unitSummary .unit-card:nth-child(7n+7){--unit-accent:#5547ed;background:#f0efff!important;border-color:#dad5ff!important}
+#dashboard #unitSummary .unit-card b{color:var(--unit-accent)!important;font-size:20px!important}
