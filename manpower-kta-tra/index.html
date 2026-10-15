@@ -457,6 +457,8 @@ td .cc-files { margin-top: 0; min-width: 150px; }
 .odragging, .odragging * { cursor: grabbing !important; user-select: none !important; }
 .oghost { position: fixed; z-index: 90; pointer-events: none; transform-origin: 0 0; opacity: .92; box-shadow: 0 14px 30px rgba(30,27,58,.3); margin: 0; }
 .oghost .oacts { display: none; }
+.org ul.gul > li { padding-left: 8px; padding-right: 8px; }
+.org ul.gul > li > .gframe { position: relative; z-index: 1; }
 .edf { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .edf input { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
 .edl { display: grid; gap: 6px; }
@@ -2284,7 +2286,7 @@ document.addEventListener('click', (e) => {
 });
 
 // ================= v15: Struktur Organisasi tools (tambah bawahan, anggota, drag & drop, info, cari, unduh) =================
-ui.oq = '';
+ui.oq = ''; ui.olay = (store.get('kta-olay') === 'v') ? 'v' : 'h';
 let ORG_MP = null;
 function orgMpIndex() {
   const m = DATA.aktif.map((a) => [normName(a.nama), a]);
@@ -2322,13 +2324,14 @@ function orgChart(D) {
   const body = secs.filter((s) => !isTop(s)).filter((s) => ui.osec === 'semua' || s.name === ui.osec);
   const secLi = (s) => {
     const all = s.groups.flatMap((g) => g.list), vac = all.filter(isVacant).length, mpa = all.length - vac;
-    const frames = s.groups.map((g) => {
+    const framesArr = s.groups.map((g) => {
       const fl = g.list.filter((p) => freeSet.has(p.uid));
       const titled = g.name !== s.name; const gv = g.list.filter(isVacant).length;
       if (!fl.length && !CAN_EDIT) return '';
       return `<div class="gframe" data-dsec="${esc(s.name)}" data-dg="${esc(g.name)}">${titled ? `<div class="gtitle" ${CAN_EDIT ? `data-rgrp="${esc(s.name)}" data-g="${esc(g.name)}" role="button" tabindex="0" title="Klik untuk ganti nama sub-section"` : ''}>${esc(g.name)}<span>${g.list.length} posisi${gv ? ` · <em>${gv} vacant</em>` : ''}</span></div>` : ''}${fl.length ? tiersHtml(fl, M) : '<div class="small" style="padding:8px">Semua posisi ada di bawah atasannya.</div>'}</div>`;
-    }).join('');
-    return `<li><div class="onode sec" data-dsec="${esc(s.name)}" ${CAN_EDIT ? `data-rsec="${esc(s.name)}" role="button" tabindex="0" title="Klik untuk ganti nama section"` : ''}><b>${esc(s.name)}</b><span>${all.length} MPP · ${mpa} MPA · ${all.length ? Math.round(mpa / all.length * 100) : 0}%</span></div>${frames ? `<div class="glist">${frames}</div>` : ''}</li>`;
+    }).filter(Boolean);
+    const frames = !framesArr.length ? '' : (ui.olay === 'v' || framesArr.length === 1) ? `<div class="glist">${framesArr.join('')}</div>` : `<ul class="gul">${framesArr.map((f) => `<li>${f}</li>`).join('')}</ul>`;
+    return `<li><div class="onode sec" data-dsec="${esc(s.name)}" ${CAN_EDIT ? `data-rsec="${esc(s.name)}" role="button" tabindex="0" title="Klik untuk ganti nama section"` : ''}><b>${esc(s.name)}</b><span>${all.length} MPP · ${mpa} MPA · ${all.length ? Math.round(mpa / all.length * 100) : 0}%</span></div>${frames}</li>`;
   };
   const secRow = body.length ? `<ul class="tier secs">${body.map(secLi).join('')}</ul>` : '';
   if (ui.osec !== 'semua') return `<div class="org">${tiersHtml([], M, secRow)}</div>`;
@@ -2340,6 +2343,7 @@ function pageOrg(D) {
   return `<div class="mhead"><div><div class="eyebrow">Monitoring Manpower KTA - TRA</div><h1>Struktur Organisasi</h1><p>Otomatis dari MPP KTA - TRA. Jabatan yang sama tampil sejajar, dikelompokkan per section dan sub-section.</p></div>
     <div class="mtools"><input type="search" id="oq" placeholder="Cari nama / jabatan" value="${esc(ui.oq)}" aria-label="Cari di struktur">
       <select id="oSec" aria-label="Pilih section"><option value="semua">Semua section</option>${secs.map((s) => `<option ${ui.osec === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
+      <div class="seg" role="group" aria-label="Tata letak sub-section"><button type="button" data-olay="h" aria-pressed="${ui.olay !== 'v'}" title="Sub-section berjajar ke samping">Sub-section mendatar</button><button type="button" data-olay="v" aria-pressed="${ui.olay === 'v'}" title="Sub-section bersusun ke bawah (lebih ringkas)">Menurun</button></div>
       <div class="seg" role="group" aria-label="Zoom"><button type="button" data-oz="-">−</button><button type="button" data-oz="fit" aria-pressed="${ui.oz === null}">Pas layar</button><button type="button" data-oz="+">+</button></div>
       ${DL ? '<button type="button" class="btn btn-g" data-oexp="png">Unduh PNG</button><button type="button" class="btn btn-g" data-oexp="pdf">Unduh PDF</button>' : ''}
       ${(DL || IS_TOP) ? '<button type="button" class="btn btn-g" id="printBtn">Print</button>' : ''}</div></div>
@@ -2492,6 +2496,8 @@ async function exportOrg(kind) {
   finally { btns.forEach((b) => { b.disabled = false; }); }
 }
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-oexp]'); if (b) exportOrg(b.dataset.oexp); });
+
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-olay]'); if (!b) return; ui.olay = b.dataset.olay; store.set('kta-olay', ui.olay); ui.oz = null; render(); });
 
 // ================= v16: pointer-based drag (mouse + touch) and pan =================
 let PD = null, SUPPRESS_CLICK = false;
