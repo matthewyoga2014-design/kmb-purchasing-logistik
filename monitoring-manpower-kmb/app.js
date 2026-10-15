@@ -464,7 +464,7 @@ function renderKMBCharts(){
   const stageLabels=["Sourcing","Psikotes","Interview","Offering","MCU","FU MCU","On Site","Induksi"];
   const counts=Object.fromEntries(stages.map(x=>[x,0]));
   Object.entries(data.sites||{}).forEach(([siteKey,rows])=>{
-    (rows||[]).filter(r=>isVacantName(r.Nama)||["open","continue"].includes(normText(r.Status).toLowerCase())).forEach(r=>{
+    (rows||[]).filter(r=>isVacantName(r.Nama)&&normText(r.Status).toLowerCase()==="open").forEach(r=>{
       const list=isVacantName(r.Nama)?getKmbCandidates(siteKey,r):[];
       if(list.some(isActiveCandidate)){
         list.filter(isActiveCandidate).forEach(cand=>{const p=candidateProgress(cand);if(counts[p.label]!==undefined)counts[p.label]++});
