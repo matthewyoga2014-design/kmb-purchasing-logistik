@@ -36,7 +36,24 @@ function update(){
  const writable=["owner","editor"].includes(window.accessMode?.());
  const groups=snapshot();
  host.innerHTML=groups.map((g,gi)=>{
- const sectionHtml=g.sections.map((sec,si)=>'<div class="auto-section"><div class="auto-section-title">'+esc(sec.name)+(writable?actions("section",si,0,0):"")+'</div><div class="auto-joblist">'+sec.jobs.map((job,ji)=>'<div class="auto-job"><div class="auto-job-title">'+esc(job.name)+(writable?actions("job",si,ji,0):"")+'</div>'+job.rows.map((item,ri)=>'<div class="auto-person"><b>'+esc(item.row.Jabatan||"-")+'</b><span class="'+(vacant(item.row.Nama)?"auto-vacant":"")+'">'+esc(vacant(item.row.Nama)?"VACANT":item.row.Nama)+'</span>'+(writable?actions("person",si,ji,ri):"")+'</div>').join("")+'</div>').join("")+'</div></div>').join("");
+ const personHTML=(item,si,ji,ri)=>'<div class="auto-person"><b>'+esc(item.row.Jabatan||"-")+'</b><span class="'+(vacant(item.row.Nama)?"auto-vacant":"")+'">'+esc(vacant(item.row.Nama)?"VACANT":item.row.Nama)+'</span>'+(writable?actions("person",si,ji,ri):"")+'</div>';
+ const nestedJobs=(job,si,ji)=>{
+   const tree={children:new Map(),rows:[]};
+   job.rows.forEach((item,ri)=>{
+     const path=String(item.row["Sub Section Job"]||"").split(/\s*(?:>|→)\s*/).map(x=>x.trim()).filter(Boolean);
+     let parent=tree;
+     for(const label of path){if(!parent.children.has(label))parent.children.set(label,{children:new Map(),rows:[]});parent=parent.children.get(label)}
+     parent.rows.push({item,ri});
+   });
+   const renderBranch=(branch,label)=>{
+     let html=label?'<div class="auto-sub"><div class="auto-sub-title">'+esc(label)+'</div>':'';
+     html+=branch.rows.map(({item,ri})=>personHTML(item,si,ji,ri)).join("");
+     html+=[...branch.children].map(([name,child])=>renderBranch(child,name)).join("");
+     return html+(label?'</div>':'');
+   };
+   return '<div class="auto-job"><div class="auto-job-title">'+esc(job.name)+(writable?actions("job",si,ji,0):"")+'</div>'+renderBranch(tree,"")+'</div>';
+ };
+ const sectionHtml=g.sections.map((sec,si)=>'<div class="auto-section"><div class="auto-section-title">'+esc(sec.name)+(writable?actions("section",si,0,0):"")+'</div><div class="auto-joblist">'+sec.jobs.map((job,ji)=>nestedJobs(job,si,ji)).join("")+'</div></div>').join("");
  return '<div class="auto-site" data-group="'+gi+'">'+(g.site?'<h3>'+esc(g.site)+'</h3>':"")+'<div class="auto-sections">'+sectionHtml+'</div></div>';
  }).join("");
  if(groups.every(g=>!g.rows.length))host.innerHTML='<p>Belum ada data MPP.</p>';
@@ -75,7 +92,7 @@ function setup(){
  const sys=[...nav.querySelectorAll(".group")].find(el=>/Sistem/i.test(el.textContent));
  nav.insertBefore(b,sys||null);
  const section=document.createElement("section");section.className="view";section.id="auto-org";
- section.innerHTML='<h2>Struktur Organisasi Otomatis</h2><p class="auto-note">Bagan dibuat langsung dari MPP. Untuk mengubah susunan, edit kolom <b>Section Job</b> dan <b>Job</b> pada MPP. Nama serta VACANT juga mengikuti MPP. Gunakan tombol panah pada kotak untuk mengatur urutan; urutan tersimpan sebagai data MPP.</p><div class="auto-actions"><button class="btn" type="button" id="autoRefresh">Perbarui dari MPP</button><button class="btn" type="button" id="autoPrint">Print</button></div><p id="soAutoStatus" class="auto-note"></p><div id="soAutoContent"></div>';
+ section.innerHTML='<h2>Struktur Organisasi Otomatis</h2><p class="auto-note">Bagan dibuat langsung dari MPP. Untuk mengubah susunan, edit kolom <b>Section Job</b>, <b>Job</b>, dan <b>Sub Section Job</b> pada MPP. Untuk lebih dari satu tingkat, pisahkan sub-section menggunakan tanda &gt;, misalnya <b>Mechanical &gt; Engine &gt; Overhaul</b>. Nama serta VACANT juga mengikuti MPP. Gunakan tombol panah pada kotak untuk mengatur urutan; urutan tersimpan sebagai data MPP.</p><div class="auto-actions"><button class="btn" type="button" id="autoRefresh">Perbarui dari MPP</button><button class="btn" type="button" id="autoPrint">Print</button></div><p id="soAutoStatus" class="auto-note"></p><div id="soAutoContent"></div>';
  content.append(section);
  document.getElementById("autoRefresh").onclick=update;
  document.getElementById("autoPrint").onclick=()=>window.print();
@@ -84,7 +101,7 @@ function setup(){
  update();
 }
 const style=document.createElement("style");style.textContent=`
-.so-sort-actions{display:inline-flex;gap:3px;margin-left:7px}.so-sort-actions button{cursor:pointer;border:1px solid #c2c9dd;border-radius:5px;background:white;color:#4f46e5;font-size:13px;padding:2px 6px}.so-sort-actions button:hover{background:#ede9fe}.auto-note{color:#69758b;font-size:13px;line-height:1.6}.auto-actions{display:flex;gap:8px;margin:13px 0 18px}.auto-site{margin:16px 0 28px}.auto-sections{display:flex;gap:16px;align-items:start;overflow-x:auto;padding:18px 3px}.auto-section{min-width:235px;flex:1;border:1px solid #dfe5f1;background:#f8faff;border-radius:12px;padding:11px;position:relative}.auto-section-title{background:#dfebff;border:1px solid #afc6ee;border-radius:8px;text-align:center;padding:11px;font-weight:800;color:#1d3c70}.auto-joblist{margin-top:20px;border-left:2px solid #aebfdb;margin-left:10px;padding-left:15px}.auto-job{margin:14px 0 16px;background:white;border:1px solid #dbe3ef;border-radius:9px;padding:9px;position:relative}.auto-job:before{content:"";position:absolute;left:-16px;top:18px;width:15px;border-top:2px solid #aebfdb}.auto-job-title{font-size:12px;font-weight:800;color:#4f46a5;background:#ede9fe;padding:8px;border-radius:5px;margin-bottom:8px}.auto-person{display:flex;flex-direction:column;gap:2px;border:1px solid #e3e8f1;border-radius:7px;padding:8px;margin:6px 0;font-size:11px}.auto-person b{color:#334155}.auto-person span{color:#475569}.auto-person .auto-vacant{color:#b91c1c;font-weight:850}@media print{body:has(#auto-org.view.active) .sidebar,body:has(#auto-org.view.active) .topbar,body:has(#auto-org.view.active) .auto-actions{display:none!important}body:has(#auto-org.view.active) .view:not(#auto-org){display:none!important}body:has(#auto-org.view.active) .auto-sections{overflow:visible!important}body:has(#auto-org.view.active) .main{margin:0!important;width:100%!important}}`;document.head.append(style);
+.so-sort-actions{display:inline-flex;gap:3px;margin-left:7px}.so-sort-actions button{cursor:pointer;border:1px solid #c2c9dd;border-radius:5px;background:white;color:#4f46e5;font-size:13px;padding:2px 6px}.so-sort-actions button:hover{background:#ede9fe}.auto-note{color:#69758b;font-size:13px;line-height:1.6}.auto-actions{display:flex;gap:8px;margin:13px 0 18px}.auto-site{margin:16px 0 28px}.auto-sections{display:flex;gap:16px;align-items:start;overflow-x:auto;padding:18px 3px}.auto-section{min-width:235px;flex:1;border:1px solid #dfe5f1;background:#f8faff;border-radius:12px;padding:11px;position:relative}.auto-section-title{background:#dfebff;border:1px solid #afc6ee;border-radius:8px;text-align:center;padding:11px;font-weight:800;color:#1d3c70}.auto-joblist{margin-top:20px;border-left:2px solid #aebfdb;margin-left:10px;padding-left:15px}.auto-job{margin:14px 0 16px;background:white;border:1px solid #dbe3ef;border-radius:9px;padding:9px;position:relative}.auto-job:before{content:"";position:absolute;left:-16px;top:18px;width:15px;border-top:2px solid #aebfdb}.auto-job-title{font-size:12px;font-weight:800;color:#4f46a5;background:#ede9fe;padding:8px;border-radius:5px;margin-bottom:8px}.auto-sub{margin:10px 0 8px 7px;padding-left:13px;border-left:2px solid #c4b5fd}.auto-sub-title{padding:7px 9px;border-radius:6px;background:#f5f3ff;color:#5b21b6;font-size:12px;font-weight:800;margin-bottom:8px}.auto-person{display:flex;flex-direction:column;gap:2px;border:1px solid #e3e8f1;border-radius:7px;padding:8px;margin:6px 0;font-size:11px}.auto-person b{color:#334155}.auto-person span{color:#475569}.auto-person .auto-vacant{color:#b91c1c;font-weight:850}@media print{body:has(#auto-org.view.active) .sidebar,body:has(#auto-org.view.active) .topbar,body:has(#auto-org.view.active) .auto-actions{display:none!important}body:has(#auto-org.view.active) .view:not(#auto-org){display:none!important}body:has(#auto-org.view.active) .auto-sections{overflow:visible!important}body:has(#auto-org.view.active) .main{margin:0!important;width:100%!important}}`;document.head.append(style);
 document.addEventListener("DOMContentLoaded",setup);
 window.addEventListener("kmb:data-changed",update);
 })();
