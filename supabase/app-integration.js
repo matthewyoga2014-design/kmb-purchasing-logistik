@@ -219,20 +219,9 @@
   }
 
   function renderAll(){
-    if(isKta){
-      if(typeof renderDashboard==="function")renderDashboard();
-      if(typeof renderMPP==="function")renderMPP();
-      if(typeof renderMP==="function")renderMP();
-      if(typeof renderUnits==="function")renderUnits();
-      if(typeof renderSettings==="function")renderSettings();
-    }else{
-      if(typeof makeSiteViews==="function")makeSiteViews();
-      if(typeof renderDashboard==="function")renderDashboard();
-      if(typeof renderUnits==="function")renderUnits();
-      if(typeof renderMP==="function")renderMP();
-      if(typeof renderSettings==="function")renderSettings();
-    }
-    applyAccessMode();
+    const tasks=isKta?["renderDashboard","renderMPP","renderMP","renderUnits","renderSettings"]:["makeSiteViews","renderDashboard","renderUnits","renderMP","renderSettings"];
+    for(const name of tasks){try{if(typeof window[name]==="function")window[name]()}catch(error){console.error("Render failed: "+name,error)}}
+    try{applyAccessMode()}catch(error){console.error("Access UI failed",error)}
   }
 
   async function syncFromCloud(){
@@ -241,7 +230,7 @@
       const row=await window.KMBCloud.loadState();
       const initialSeed=row?.updated_by==="initial-seed";
       if(hasRemoteData(row)){
-        if(initialSeed&&window.KMBCloud.isOwner?.()){
+        if(initialSeed&&window.KMBCloud.isOwner?.()&&!isKta){
           const backupRaw=localStorage.getItem(migrationBackupKey);
           if(backupRaw){
             try{
@@ -258,7 +247,7 @@
         }else{
           persistRemoteLocally(row.data);
         }
-      }else if(window.KMBCloud.isOwner?.()){
+      }else if(window.KMBCloud.isOwner?.()&&!isKta){
         const backupRaw=localStorage.getItem(migrationBackupKey);
         if(backupRaw){
           try{
@@ -273,6 +262,10 @@
       }
     }catch(e){console.error("Cloud load failed",e)}
     renderAll();
+    if(isKta&&(!Array.isArray(data?.mpp)||!data.mpp.length)){
+      const badge=document.getElementById("topTitle")||document.getElementById("today");
+      if(badge)badge.title="Data MPP belum termuat. Jangan melakukan sinkronisasi Excel atau penyimpanan hingga database berhasil dimuat.";
+    }
     if(isKta && typeof showView==="function" && document.getElementById("dashboard")?.classList.contains("active")){
       requestAnimationFrame(()=>{ if(typeof renderDashboard==="function")renderDashboard(); });
     }
