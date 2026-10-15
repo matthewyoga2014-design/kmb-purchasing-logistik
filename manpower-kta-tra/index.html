@@ -492,6 +492,11 @@ body.ofull .orgwrap { height: calc(100vh - 128px); }
 .outlbl[data-outmv] { cursor: grab; user-select: none; touch-action: none; }
 .outlbl .grip { font-style: normal; margin-right: 6px; color: var(--primary-2); }
 @media print { .outlbl .grip { display: none; } }
+#dropLine { position: fixed; z-index: 95; pointer-events: none; background: #10B981; border-radius: 4px; box-shadow: 0 0 0 3px rgba(16,185,129,.25), 0 0 14px rgba(16,185,129,.6); }
+#dropLine.box { background: rgba(16,185,129,.08); border: 3px solid #10B981; box-shadow: 0 0 14px rgba(16,185,129,.45); border-radius: 14px; }
+#dropLbl { position: fixed; z-index: 96; pointer-events: none; transform: translate(-50%, -100%); background: #047857; color: #fff; font-size: 12px; font-weight: 800; padding: 5px 10px; border-radius: 8px; white-space: nowrap; box-shadow: 0 6px 16px rgba(4,120,87,.35); }
+#dropLbl::after { content: ""; position: absolute; left: 50%; bottom: -5px; margin-left: -5px; border: 5px solid transparent; border-bottom: 0; border-top-color: #047857; }
+.dropbefore, .dropafter { box-shadow: none !important; }
 .edf { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .edf input { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
 .edl { display: grid; gap: 6px; }
@@ -2541,8 +2546,8 @@ document.addEventListener('click', (e) => { const b = e.target.closest('[data-ol
 // ================= v16: pointer-based drag (mouse + touch) and pan =================
 let PD = null, SUPPRESS_CLICK = false, PX = 0, PY = 0;
 const DROP_CLS = ['dropok', 'dropbefore', 'dropafter'];
-function clearDrop() { document.querySelectorAll('.dragging,.dropok,.dropbefore,.dropafter').forEach((x) => x.classList.remove('dragging', ...DROP_CLS)); }
-function markDrop(t) { document.querySelectorAll('.dropok,.dropbefore,.dropafter').forEach((x) => { if (!t || x !== t.el) x.classList.remove(...DROP_CLS); }); if (t) { t.el.classList.remove(...DROP_CLS); t.el.classList.add(t.cls || 'dropok'); } }
+function clearDrop() { document.querySelectorAll('.dragging,.dropok,.dropbefore,.dropafter').forEach((x) => x.classList.remove('dragging', ...DROP_CLS)); showDropLine(null); }
+function markDrop(t) { document.querySelectorAll('.dropok,.dropbefore,.dropafter').forEach((x) => { if (!t || x !== t.el) x.classList.remove(...DROP_CLS); }); if (t) { t.el.classList.remove(...DROP_CLS); t.el.classList.add(t.cls || 'dropok'); } showDropLine(t); }
 document.addEventListener('pointermove', (e) => { PX = e.clientX; PY = e.clientY; }, true);
 async function doOrgDrop(uid, t) {
   const p = posByUid(DATA, uid); if (!p || !t) return;
@@ -2607,6 +2612,38 @@ document.addEventListener('pointerup', (e) => {
 document.addEventListener('pointercancel', pdCleanup);
 document.addEventListener('click', (e) => { if (SUPPRESS_CLICK) { e.stopPropagation(); e.preventDefault(); SUPPRESS_CLICK = false; } }, true);
 document.addEventListener('dragstart', (e) => { if (e.target.closest && e.target.closest('#orgWrap')) e.preventDefault(); }, true);
+
+// ---------- visible drop guide (green line + label) ----------
+function dropLabel(t) {
+  const nm = (u) => { const x = posByUid(DATA, u); return x ? (isVacant(x) ? 'Vacant ' + (x.jabatan || '') : x.nama) : ''; };
+  if (t.lbl) return t.lbl;
+  if (t.leader) return `Jadi bawahan ${nm(t.leader)}`;
+  if (t.beside) return `Sejajar · ${t.where === 'before' ? 'sebelum' : 'sesudah'} ${nm(t.beside)}`;
+  if (t.kind === 'grp') return `Masuk di bawah ${t.g}`;
+  if (t.kind === 'gpos') return `Urutan · ${t.where === 'before' ? 'sebelum' : 'sesudah'} ${t.g}`;
+  if (t.kind === 'sec') return `Langsung di bawah ${t.sec}`;
+  if (t.kind === 'spos') return `Letakkan ${t.where === 'before' ? 'sebelum' : 'sesudah'} ${t.sec}`;
+  if (t.kind === 'sout') return 'Pindahkan ke Di luar SO';
+  if (t.kind === 'sin') return 'Sambungkan ke struktur utama';
+  if (t.section) return `Pindah ke ${t.group && t.group !== t.section ? t.group : t.section}`;
+  return '';
+}
+function showDropLine(t) {
+  let L = document.getElementById('dropLine'), B = document.getElementById('dropLbl');
+  if (!L) { L = document.createElement('div'); L.id = 'dropLine'; document.body.appendChild(L); B = document.createElement('div'); B.id = 'dropLbl'; document.body.appendChild(B); }
+  if (!t || !t.el) { L.hidden = true; B.hidden = true; return; }
+  const r = t.el.getBoundingClientRect(), cls = t.cls || 'dropok';
+  let lx, ly;
+  L.className = '';
+  if (t.horiz) { L.className = 'h'; Object.assign(L.style, { left: r.left + 'px', top: (r.bottom + 6) + 'px', width: r.width + 'px', height: '5px' }); lx = r.left + r.width / 2; ly = r.bottom + 14; }
+  else if (cls === 'dropbefore' || cls === 'dropafter') {
+    const x = cls === 'dropbefore' ? r.left - 9 : r.right + 4;
+    Object.assign(L.style, { left: x + 'px', top: (r.top - 10) + 'px', width: '5px', height: (r.height + 20) + 'px' }); lx = x + 2; ly = r.top - 14;
+  } else { L.className = 'box'; Object.assign(L.style, { left: (r.left - 5) + 'px', top: (r.top - 5) + 'px', width: (r.width + 10) + 'px', height: (r.height + 10) + 'px' }); lx = r.left + r.width / 2; ly = r.top - 14; }
+  L.hidden = false;
+  B.textContent = dropLabel(t); B.hidden = !B.textContent;
+  B.style.left = lx + 'px'; B.style.top = Math.max(8, ly) + 'px';
+}
 
 // ================= v17: nest / move whole sub-sections (drag the sub-section title) =================
 const GK = (sec, grp) => `${sec}›${grp}`;
@@ -2858,7 +2895,7 @@ document.addEventListener('pointermove', (e) => {
   const el = document.elementFromPoint(e.clientX, e.clientY);
   if (PS.kind === 'box') {
     const main = document.querySelector('#orgWrap .orgroot:not(.out)');
-    if (main) { const r = main.getBoundingClientRect(); PS.pos = e.clientY > r.bottom - 20 ? 'bottom' : e.clientX < r.left + r.width / 2 ? 'left' : 'right'; main.dataset.pos = PS.pos; markDrop({ el: main, cls: PS.pos === 'left' ? 'dropbefore' : PS.pos === 'right' ? 'dropafter' : 'dropok' }); }
+    if (main) { const r = main.getBoundingClientRect(); PS.pos = e.clientY > r.bottom - 20 ? 'bottom' : e.clientX < r.left + r.width / 2 ? 'left' : 'right'; main.dataset.pos = PS.pos; markDrop({ el: main, cls: PS.pos === 'left' ? 'dropbefore' : PS.pos === 'right' ? 'dropafter' : 'dropok', horiz: PS.pos === 'bottom', lbl: `Letakkan Di luar SO di ${PS.pos === 'left' ? 'kiri' : PS.pos === 'right' ? 'kanan' : 'bawah'} struktur` }); }
   } else { const t = el && el.closest('#orgWrap') ? sTarget(el) : null; PS.t = t; markDrop(t); }
   const wr = PS.wrap.getBoundingClientRect(), m = 48, sp = 14;
   if (e.clientX < wr.left + m) PS.wrap.scrollLeft -= sp; else if (e.clientX > wr.right - m) PS.wrap.scrollLeft += sp;
