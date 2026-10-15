@@ -2413,7 +2413,7 @@ function pageOrg(D) {
       <button type="button" class="btn ${ui.ofull ? 'btn-p' : 'btn-g'}" id="oFull" title="Tampilkan struktur memenuhi layar (Esc untuk keluar)">${ui.ofull ? '✕ Keluar layar penuh' : '⛶ Layar penuh'}</button>
       ${DL ? '<button type="button" class="btn btn-g" data-oexp="png">Unduh PNG</button><button type="button" class="btn btn-g" data-oexp="pdf">Unduh PDF</button>' : ''}
       ${(DL || IS_TOP) ? '<button type="button" class="btn btn-g" id="printBtn">Print</button>' : ''}</div></div>
-  ${CAN_EDIT ? `<div class="ohelp"><b>Cara cepat:</b> <span>Klik kotak = atur section / sub-section / atasan (pilihan dari data MPP)</span><span><b>Anggota</b> = centang anggota tim sekaligus</span><span><b>Seret kotak orang</b>: lepas di <u>tengah</u> kotak lain = jadi bawahannya, di <u>sisi kiri/kanan</u> = sejajar (ubah urutan)</span><span><b>Seret judul sub-section ⠿</b>: lepas di <u>tengah</u> sub-section lain = masuk di bawahnya; di <u>tepi atas/bawah</u> (tampilan menurun) atau <u>kiri/kanan</u> (mendatar) = sejajar &amp; ubah urutan; di kotak ungu section = langsung di bawah section</span><span><b>Seret kotak ungu section</b> = ubah urutan / pindah ke Di luar SO</span><span>Klik nama section / sub-section = ganti nama</span></div>` : ''}
+  ${CAN_EDIT ? `<div class="ohelp"><b>Cara cepat:</b> <span>Klik kotak = atur section / sub-section / atasan (pilihan dari data MPP)</span><span><b>Anggota</b> = centang anggota tim sekaligus</span><span><b>Seret kotak orang</b>: lepas di <u>tengah</u> kotak lain = jadi bawahannya, di <u>sisi kiri/kanan</u> = sejajar (ubah urutan)</span><span><b>Seret judul sub-section ⠿</b>: lepas di <u>tengah</u> sub-section lain = masuk di bawahnya; di <u>tepi atas/bawah</u> (tampilan menurun) atau <u>kiri/kanan</u> (mendatar) = sejajar &amp; ubah urutan; di kotak ungu section = langsung di bawah section</span><span><b>Seret kotak ungu section</b> = ubah urutan / pindah ke Di luar SO</span><span><b>Klik</b> kotak section / judul sub-section = menu <b>Atur</b>: buat sejajar, pindah ke bawah sub-section lain, urutan, tampilan sejajar ke samping / menurun</span></div>` : ''}
   <div class="card orgcard"><div class="olegend">${fams.map((f) => `<span><i style="background:${FAM_COLOR[f] || '#6D28D9'}"></i>${esc(f)}</span>`).join('')}<span><i class="v"></i>Vacant</span><span><b class="lw">⚠</b>Kontrak habis ≤ 30 hari</span><span id="oqHits" class="small"></span></div>
     <div class="orgwrap" id="orgWrap"><div class="orgsizer" id="orgSizer">${orgChart(D)}</div></div></div>
   <p class="note">Bawahan otomatis ikut pindah section / sub-section bersama atasannya. Jika kolom <b>Atasan langsung</b> dikosongkan, posisi tampil sejajar dengan jabatan yang sama di sub-section-nya.</p>`;
@@ -2685,6 +2685,7 @@ function orgChart(D) {
   const allBody = secs.filter((s) => !isTop(s)).filter((s) => ui.osec === 'semua' || s.name === ui.osec);
   const body = allBody.filter((s) => !secOut(s.name)), outs = allBody.filter((s) => secOut(s.name));
   const secLi = (s) => {
+    const lay = ((DATA.orgSecLay || {})[s.name]) || ui.olay;
     const all = s.groups.flatMap((g) => g.list), vac = all.filter(isVacant).length, mpa = all.length - vac;
     const names = new Set(s.groups.map((g) => g.name));
     const parentOf = (g) => { const pk = gParent(GM, GK(s.name, g.name)); if (!pk) return null; const [ps, pg] = pk.split('›'); return ps === s.name && names.has(pg) && pg !== g.name && !gIsUnder(GM, pk, GK(s.name, g.name)) ? pg : null; };
@@ -2696,11 +2697,11 @@ function orgChart(D) {
       if (!fl.length && !CAN_EDIT && !kids.length) return '';
       const box = `<div class="gframe" data-dsec="${esc(s.name)}" data-dg="${esc(g.name)}">${titled ? `<div class="gtitle" ${CAN_EDIT ? `data-rgrp="${esc(s.name)}" data-g="${esc(g.name)}" role="button" tabindex="0" title="Klik = ganti nama · Seret = pindahkan sub-section ini ke bawah sub-section / section lain"` : ''}>${CAN_EDIT ? '<i class="grip" aria-hidden="true">⠿</i>' : ''}${esc(g.name)}<span>${g.list.length} posisi${gv ? ` · <em>${gv} vacant</em>` : ''}</span></div>` : ''}${fl.length ? tiersHtml(fl, M) : `<div class="small" style="padding:8px">${g.list.length ? 'Semua posisi ada di bawah atasannya.' : 'Belum ada posisi.'}</div>`}</div>`;
       const kul = kids.length ? `<ul class="gul">${kids.map((k) => `<li>${k}</li>`).join('')}</ul>` : '';
-      if (ui.olay === 'v' && kul) return `<div class="gnode">${box.replace(/<\/div>$/, kul + '</div>')}</div>`;
+      if (lay === 'v' && kul) return `<div class="gnode">${box.replace(/<\/div>$/, kul + '</div>')}</div>`;
       return `<div class="gnode">${box}${kul}</div>`;
     };
     const framesArr = s.groups.filter((g) => !parentOf(g)).map(frame).filter(Boolean);
-    const frames = !framesArr.length ? '' : (ui.olay === 'v' || framesArr.length === 1) ? `<div class="glist">${framesArr.join('')}</div>` : `<ul class="gul">${framesArr.map((f) => `<li>${f}</li>`).join('')}</ul>`;
+    const frames = !framesArr.length ? '' : (lay === 'v' || framesArr.length === 1) ? `<div class="glist">${framesArr.join('')}</div>` : `<ul class="gul">${framesArr.map((f) => `<li>${f}</li>`).join('')}</ul>`;
     return `<li><div class="onode sec" data-dsec="${esc(s.name)}" ${CAN_EDIT ? `data-rsec="${esc(s.name)}" role="button" tabindex="0" title="Klik untuk ganti nama section"` : ''}><b>${esc(s.name)}</b><span>${all.length} MPP · ${mpa} MPA · ${all.length ? Math.round(mpa / all.length * 100) : 0}%</span></div>${frames}</li>`;
   };
   const secRow = body.length ? `<ul class="tier secs">${body.map(secLi).join('')}</ul>` : '';
@@ -3065,7 +3066,6 @@ document.addEventListener('click', (e) => {
   if (IS_OWNER || !CAN_EDIT) return;
   const t = e.target;
   if (t.closest('#addPos') || t.closest('[data-delpos]') || t.closest('#upBtn') || t.closest('[data-sync]') || t.closest('#rsBtn')) { e.stopPropagation(); e.preventDefault(); toast(t.closest('#addPos') || t.closest('[data-delpos]') ? OWNER_ONLY : 'Hanya Pemilik yang bisa melakukan ini.', true); return; }
-  if (!SUPPRESS_CLICK && (t.closest('[data-rsec]') || t.closest('[data-rgrp]'))) { e.stopPropagation(); toast('Ganti nama section / sub-section hanya bisa oleh Pemilik. Anda tetap bisa menyeret untuk mengatur letaknya.', true); }
 }, true);
 
 // ================= v22: Struktur Organisasi on the Dashboard (read-only, full width) =================
@@ -3093,6 +3093,59 @@ render = function () { _render18(); if (ui.page === 'dashboard') fitDashOrg(); }
 let _dzT; window.addEventListener('resize', () => { clearTimeout(_dzT); _dzT = setTimeout(() => { if (ui.page === 'dashboard') fitDashOrg(); }, 150); });
 window.addEventListener('beforeprint', () => { if (ui.page === 'dashboard') fitDashOrg(); });
 document.addEventListener('click', (e) => { if (e.target.closest('#dashOrgFull')) { ui.ofull = true; document.body.classList.add('ofull'); ui.ojump = true; go('org'); document.body.classList.add('ofull'); ui.ofull = true; render(); } });
+
+// ================= v24: "Atur" forms for section / sub-section (sejajar, induk, urutan, tampilan) =================
+function grpNamesOf(sec) { return grpOrderOf(DATA, sec).filter((g) => g !== sec); }
+renameForm = function (kind, sec, grp) {
+  const own = IS_OWNER;
+  if (kind === 'sec') {
+    const lay = (DATA.orgSecLay || {})[sec] || '';
+    openForm({ eyebrow: 'Struktur Organisasi', title: `Atur section — ${sec}`, submit: 'Simpan',
+      values: { nm: sec, lay, out: secOut(sec) },
+      fields: [
+        { k: 'nm', label: 'Nama section', req: true, full: true, hint: own ? 'Semua posisi di section ini ikut berganti nama.' : 'Hanya Pemilik yang bisa mengganti nama.' },
+        { k: 'lay', label: 'Tampilan sub-section di section ini', type: 'select', full: true, options: [['', 'Ikuti tombol tampilan (Mendatar / Menurun)'], ['h', 'Sejajar ke samping (berjajar)'], ['v', 'Bersusun ke bawah (ringkas)']] },
+        { k: 'out', label: 'Tampilkan terpisah — di luar Struktur Organisasi', type: 'check' },
+      ],
+      onSave: (v) => { const nv = own ? String(v.nm || '').trim() || sec : sec; return commit((S) => {
+        const L = { ...(S.orgSecLay || {}) }; delete L[sec]; if (v.lay) L[nv] = v.lay; S.orgSecLay = L;
+        const m = { ...(S.orgSecMode || {}) }; delete m[sec]; m[nv] = v.out ? 'out' : 'in'; S.orgSecMode = m;
+        if (nv !== sec) {
+          S.positions.forEach((p) => { if (p.section === sec) { if ((p.group || p.section) === sec) p.group = nv; p.section = nv; } });
+          const fix = (k) => { if (!k) return k; const [s2, g2] = k.split('›'); return s2 === sec ? GK(nv, g2 === sec ? nv : g2) : k; };
+          const g = {}; Object.entries(gmap(S)).forEach(([k, x]) => { g[fix(k)] = fix(x); }); S.orgGroups = g;
+          const o = { ...(S.orgGrpOrder || {}) }; if (o[sec]) { o[nv] = o[sec]; delete o[sec]; } S.orgGrpOrder = o;
+          S.orgSecOrder = (S.orgSecOrder || []).map((x) => x === sec ? nv : x);
+        }
+      }, nv !== sec ? `Section diganti menjadi ${nv}.` : `Pengaturan ${sec} disimpan.`); } });
+    if (!own) { const f = document.getElementById('f_nm'); if (f) f.disabled = true; }
+    return;
+  }
+  const map = gmap(DATA), key = GK(sec, grp), desc = new Set(gDesc(map, key));
+  const others = grpNamesOf(sec).filter((g) => g !== grp);
+  const curParent = (gParent(map, key) || '').split('›')[1] || '';
+  const ord = grpNamesOf(sec), i = ord.indexOf(grp), nextG = ord.slice(i + 1).find((g) => ((gParent(map, GK(sec, g)) || '').split('›')[1] || '') === curParent) || '';
+  openForm({ eyebrow: `Struktur Organisasi · ${sec}`, title: `Atur sub-section — ${grp}`, submit: 'Simpan',
+    values: { nm: grp, par: curParent, bef: nextG },
+    fields: [
+      { k: 'nm', label: 'Nama sub-section', req: true, full: true, hint: own ? 'Semua posisi di sub-section ini ikut berganti nama.' : 'Hanya Pemilik yang bisa mengganti nama.' },
+      { k: 'par', label: 'Letak', type: 'select', full: true, options: [['', `Sejajar — langsung di bawah ${sec}`]].concat(others.filter((g) => !desc.has(GK(sec, g))).map((g) => [g, `Di bawah sub-section ${g}`])) },
+      { k: 'bef', label: 'Urutan', type: 'select', full: true, options: [['', 'Paling akhir']].concat(others.map((g) => [g, `Sebelum ${g}`])) },
+    ],
+    onSave: (v) => { const nv = own ? String(v.nm || '').trim() || grp : grp; return commit((S) => {
+      const m = { ...gmap(S) };
+      if (v.par) m[GK(sec, grp)] = GK(sec, v.par); else delete m[GK(sec, grp)];
+      S.orgGroups = m;
+      const o = grpOrderOf(S, sec).filter((g) => g !== grp); const at = v.bef ? o.indexOf(v.bef) : -1; o.splice(at < 0 ? o.length : at, 0, grp);
+      S.orgGrpOrder = { ...(S.orgGrpOrder || {}), [sec]: o };
+      if (nv !== grp) {
+        S.positions.forEach((p) => { if (p.section === sec && (p.group || p.section) === grp) p.group = nv; });
+        const fix = (k) => k === GK(sec, grp) ? GK(sec, nv) : k; const g = {}; Object.entries(gmap(S)).forEach(([k, x]) => { g[fix(k)] = fix(x); }); S.orgGroups = g;
+        S.orgGrpOrder = { ...S.orgGrpOrder, [sec]: S.orgGrpOrder[sec].map((x) => x === grp ? nv : x) };
+      }
+    }, v.par ? `${nv} sekarang di bawah ${v.par}.` : `${nv} sejajar langsung di bawah ${sec}.`); } });
+  if (!own) { const f = document.getElementById('f_nm'); if (f) f.disabled = true; }
+};
 
 // ================= WEB: standalone mode (GitHub Pages + Supabase, no Claude) =================
 const WEB_CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
