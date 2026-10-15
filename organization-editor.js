@@ -2,7 +2,7 @@
 (function(){
 "use strict";
 const p=location.pathname,appId=p.includes("monitoring-kta-tra")?"kta-tra":p.includes("monitoring-bupr-ampah")?"bupr-ampah":p.includes("monitoring-mbj")?"mbj":"kmb";
-let sb, nodes=[],selected=null,editing=false,ready=false,dirty=false;
+let sb, nodes=[],selected=null,editing=false,ready=false,dirty=false,chartZoom=1;
 const clone=o=>JSON.parse(JSON.stringify(o));
 const safe=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const staff=()=>["owner","editor"].includes(window.accessMode?.());
@@ -24,6 +24,15 @@ async function save(){
  dirty=false;notice("Tersimpan ke database. Perubahan bisa dilihat di perangkat lain.");
 }
 function add(){if(!staff())return;const max=nodes.reduce((a,n)=>Math.max(a,Number(n.y)||0),0);const id=crypto.randomUUID();nodes.push({id,name:"Vacant",role:"Jabatan Baru",parent:"",x:120+(nodes.length%4)*250,y:max?max+150:55});editing=true;dirty=true;selected=id;draw();editPanel()}
+function fitChart(){
+ const scroller=document.querySelector(".so-scroller"),stage=document.getElementById("soStage");if(!scroller||!stage)return;
+ const w=parseFloat(stage.style.width)||1000,h=parseFloat(stage.style.height)||500;
+ const availableW=Math.max(320,scroller.clientWidth-20),availableH=Math.max(320,window.innerHeight-scroller.getBoundingClientRect().top-42);
+ chartZoom=Math.min(1,availableW/w,availableH/h);
+ stage.style.zoom=String(chartZoom);
+ scroller.style.height=Math.ceil(Math.min(h*chartZoom+16,availableH+10))+"px";
+ scroller.style.minHeight="0";scroller.style.overflow="hidden";
+}
 function draw(){
  const svg=document.getElementById("soLines"),stage=document.getElementById("soStage");if(!svg||!stage)return;
  const old=stage.querySelectorAll(".so-node");old.forEach(n=>n.remove());
@@ -46,11 +55,12 @@ function draw(){
   if(ev.button!==0)return;
   const startX=ev.clientX,startY=ev.clientY,ox=+n.x||0,oy=+n.y||0;
   el.setPointerCapture(ev.pointerId);
-  el.onpointermove=e=>{if(!el.hasPointerCapture(e.pointerId))return;n.x=Math.max(0,Math.round(ox+(e.clientX-startX)));n.y=Math.max(0,Math.round(oy+(e.clientY-startY)));el.style.left=n.x+"px";el.style.top=n.y+"px";dirty=true;redrawLines()};
+  el.onpointermove=e=>{if(!el.hasPointerCapture(e.pointerId))return;n.x=Math.max(0,Math.round(ox+(e.clientX-startX)/chartZoom));n.y=Math.max(0,Math.round(oy+(e.clientY-startY)/chartZoom));el.style.left=n.x+"px";el.style.top=n.y+"px";dirty=true;redrawLines()};
   el.onpointerup=e=>{el.onpointermove=null;el.onpointerup=null;selected=n.id;draw();editPanel()};
  });
  stage.append(el);
  });
+ fitChart();
  document.getElementById("soTools").style.display=staff()?"flex":"none";
 }
 function redrawLines(){const svg=document.getElementById("soLines");svg.replaceChildren();nodes.forEach(n=>{const par=nodes.find(x=>x.id===n.parent);if(!par)return;const x1=(+par.x||0)+105,y1=(+par.y||0)+82,x2=(+n.x||0)+105,y2=(+n.y||0),my=(y1+y2)/2;const path=document.createElementNS("http://www.w3.org/2000/svg","path");path.setAttribute("d",`M ${x1} ${y1} V ${my} H ${x2} V ${y2}`);path.setAttribute("stroke","#8b97b5");path.setAttribute("stroke-width","2");path.setAttribute("fill","none");svg.append(path)})}
@@ -79,5 +89,7 @@ const css=document.createElement("style");css.textContent=`
 .so-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.so-head h2{margin:5px 0}.so-head p{font-size:13px;color:#68758a}.so-tools{display:flex;gap:8px;flex-wrap:wrap}.so-message{margin:12px 0;font-size:12px;color:#596e8c}.so-layout{display:flex;gap:14px;align-items:start}.so-scroller{background:#fbfcff;border:1px solid #e3e6ef;border-radius:14px;overflow:auto;flex:1;min-width:0;min-height:540px;max-height:75vh}.so-stage{position:relative;min-width:1000px;min-height:500px}.so-lines{position:absolute;inset:0;pointer-events:none}.so-node{position:absolute;width:210px;min-height:82px;padding:12px 9px;text-align:center;background:#fff;border:2px solid #d7dded;border-top:5px solid #7c3aed;border-radius:11px;box-shadow:0 4px 14px #1d2a4615;cursor:grab;touch-action:none;user-select:none}.so-node.selected{border-color:#8b5cf6}.so-node.vacant{border-top-color:#dc2626;background:#fff6f6}.so-role{font-size:13px;font-weight:800;color:#273348}.so-name{font-size:12px;margin-top:5px;color:#5e6b81}.so-node.vacant .so-name{color:#b91c1c;font-weight:750}.so-editor{padding:15px;width:260px;flex-shrink:0;background:white;border:1px solid #e1e5ec;border-radius:12px}.so-editor h3{margin:0 0 12px;font-size:16px}.so-editor label{display:block;font-size:12px;color:#58677c;margin:9px 0}.so-editor input,.so-editor select{display:block;width:100%;margin-top:5px;padding:10px;border:1px solid #d7ddea;border-radius:8px;background:white;color:#17243b}.so-edit-actions{display:flex;gap:7px}.so-edit-actions button{border:0;background:#7c3aed;color:white;padding:9px;border-radius:8px;cursor:pointer}.so-edit-actions .so-danger{background:#fee2e2;color:#b91c1c}@media(max-width:720px){.so-layout{flex-direction:column}.so-scroller,.so-editor{width:100%}}@media print{body:has(#organization.view.active) .sidebar,body:has(#organization.view.active) .topbar,body:has(#organization.view.active) .so-tools,body:has(#organization.view.active) .so-editor{display:none!important}body:has(#organization.view.active) .view:not(#organization){display:none!important}body:has(#organization.view.active) .so-scroller{overflow:visible!important;max-height:none!important;border:0!important}body:has(#organization.view.active) .so-stage{transform-origin:top left;zoom:.72}body:has(#organization.view.active) .main{margin:0!important;width:100%!important}}`;
 document.head.append(css);
 document.addEventListener("DOMContentLoaded",setup);
+window.addEventListener("resize",()=>{if(document.getElementById("organization")?.classList.contains("active"))fitChart()});
+document.addEventListener("click",e=>{if(e.target.closest?.('[data-view="organization"]'))requestAnimationFrame(fitChart)});
 window.addEventListener("focus",()=>{if(!dirty&&document.getElementById("organization")?.classList.contains("active"))load()});
 })();
