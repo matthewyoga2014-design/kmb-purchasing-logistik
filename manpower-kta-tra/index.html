@@ -396,8 +396,8 @@ td .cc-files { margin-top: 0; min-width: 150px; }
 .orgroot > .tiers > ul:first-child > li { padding-top: 0; }
 .orgroot > .tiers > ul:first-child > li::before, .orgroot > .tiers > ul:first-child > li::after { display: none; }
 .ocard { position: relative; z-index: 1; width: 140px; border-radius: 10px; overflow: hidden; background: var(--card); border: 1.5px solid var(--oc); box-shadow: 0 2px 6px rgba(30,27,58,.08); text-align: center; }
-.ocard[data-epos] { cursor: pointer; }
-.ocard[data-epos]:hover { box-shadow: 0 0 0 3px var(--ocb), 0 4px 10px rgba(30,27,58,.12); }
+.ocard[data-soe] { cursor: pointer; }
+.ocard[data-soe]:hover { box-shadow: 0 0 0 3px var(--ocb), 0 4px 10px rgba(30,27,58,.12); }
 .ocard .on { background: var(--oc); color: #fff; font-weight: 800; font-size: 12.5px; line-height: 1.25; padding: 9px 8px 8px; min-height: 40px; display: grid; place-items: center; }
 .ocard .oj { background: var(--ocb); color: var(--ink); font-size: 11px; font-weight: 600; padding: 5px 6px; line-height: 1.25; }
 .ocard.vac { border: 1.5px dashed var(--crit); }
@@ -453,7 +453,7 @@ td .cc-files { margin-top: 0; min-width: 150px; }
 .oexport .ocard .oacts { display: none !important; }
 .orgwrap { cursor: grab; }
 .orgwrap.panning { cursor: grabbing; user-select: none; }
-.orgwrap .ocard[data-epos] { touch-action: none; cursor: grab; }
+.orgwrap .ocard[data-soe] { touch-action: none; cursor: grab; }
 .odragging, .odragging * { cursor: grabbing !important; user-select: none !important; }
 .oghost { position: fixed; z-index: 90; pointer-events: none; transform-origin: 0 0; opacity: .92; box-shadow: 0 14px 30px rgba(30,27,58,.3); margin: 0; }
 .oghost .oacts { display: none; }
@@ -497,6 +497,11 @@ body.ofull .orgwrap { height: calc(100vh - 128px); }
 #dropLbl { position: fixed; z-index: 96; pointer-events: none; transform: translate(-50%, -100%); background: #047857; color: #fff; font-size: 12px; font-weight: 800; padding: 5px 10px; border-radius: 8px; white-space: nowrap; box-shadow: 0 6px 16px rgba(4,120,87,.35); }
 #dropLbl::after { content: ""; position: absolute; left: 50%; bottom: -5px; margin-left: -5px; border: 5px solid transparent; border-bottom: 0; border-top-color: #047857; }
 .dropbefore, .dropafter { box-shadow: none !important; }
+.soinfo { display: grid; grid-template-columns: 1fr 1fr auto; gap: 10px; margin: 14px 0 10px; }
+.soinfo > div { background: var(--card-2); border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; }
+.soinfo span { display: block; font-size: 11px; color: var(--muted); }
+.soinfo b { font-size: 14px; }
+.combonew { margin-top: 6px; font: inherit; font-size: 13.5px; padding: 9px 11px; border: 1px dashed var(--primary-2); border-radius: 9px; width: 100%; }
 .edf { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .edf input { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
 .edl { display: grid; gap: 6px; }
@@ -2273,7 +2278,7 @@ document.addEventListener('click', (e) => {
   render();
 });
 document.addEventListener('change', (e) => { if (e.target.id === 'oSec') { ui.osec = e.target.value; ui.ojump = true; render(); } });
-document.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('ocard') && e.target.dataset.epos) { e.preventDefault(); e.target.click(); } });
+document.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('ocard') && (e.target.dataset.epos || e.target.dataset.soe)) { e.preventDefault(); e.target.click(); } });
 let _ozT; window.addEventListener('resize', () => { clearTimeout(_ozT); _ozT = setTimeout(() => { if (ui.page === 'org' && ui.oz === null) applyOrgZoom(); }, 150); });
 window.addEventListener('beforeprint', () => {
   if (ui.page !== 'org') return;
@@ -2352,9 +2357,9 @@ function ocard(p, M) {
   const ks = M.kids[p.uid] || [];
   const nk = DATA.positions.filter((x) => x.atasan === p.uid).length;
   const i = DATA.positions.indexOf(p);
-  const box = `<div class="ocard ${vac ? 'vac' : ''}" data-uid="${esc(p.uid)}" style="--oc:${c};--ocb:${tint(c, .12)}" ${CAN_EDIT ? `data-epos="${i}" role="button" tabindex="0" title="Klik untuk edit · seret ke atasan / sub-section lain untuk memindahkan"` : `title="${esc((p.section || '') + ' › ' + (p.group || ''))}"`}>
+  const box = `<div class="ocard ${vac ? 'vac' : ''}" data-uid="${esc(p.uid)}" style="--oc:${c};--ocb:${tint(c, .12)}" ${CAN_EDIT ? `data-soe="${i}" role="button" tabindex="0" title="Klik untuk atur section / sub-section / atasan · seret untuk memindahkan"` : `title="${esc((p.section || '') + ' › ' + (p.group || ''))}"`}>
     <div class="oj">${esc(p.jabatan || '-')}</div><div class="on">${esc(vac ? 'Vacant' : p.nama)}</div>${orgInfo(p)}
-    ${CAN_EDIT ? `<div class="oacts"><button type="button" data-oadd="${esc(p.uid)}" title="Tambah posisi bawahan">+ Bawahan</button><button type="button" data-omem="${esc(p.uid)}" title="Pilih anggota tim">Anggota${nk ? ` (${nk})` : ''}</button></div>` : ''}</div>`;
+    ${CAN_EDIT ? `<div class="oacts"><button type="button" data-omem="${esc(p.uid)}" title="Pilih anggota tim">Anggota${nk ? ` (${nk})` : ''}</button></div>` : ''}</div>`;
   return `<li>${box}${ks.length ? tiersHtml(ks, M) : ''}</li>`;
 }
 function orgChart(D) {
@@ -2391,7 +2396,7 @@ function pageOrg(D) {
       <button type="button" class="btn ${ui.ofull ? 'btn-p' : 'btn-g'}" id="oFull" title="Tampilkan struktur memenuhi layar (Esc untuk keluar)">${ui.ofull ? '✕ Keluar layar penuh' : '⛶ Layar penuh'}</button>
       ${DL ? '<button type="button" class="btn btn-g" data-oexp="png">Unduh PNG</button><button type="button" class="btn btn-g" data-oexp="pdf">Unduh PDF</button>' : ''}
       ${(DL || IS_TOP) ? '<button type="button" class="btn btn-g" id="printBtn">Print</button>' : ''}</div></div>
-  ${CAN_EDIT ? `<div class="ohelp"><b>Cara cepat:</b> <span>Klik kotak = edit posisi</span><span><b>+ Bawahan</b> = tambah posisi di bawahnya</span><span><b>Anggota</b> = centang anggota tim sekaligus</span><span><b>Seret kotak orang</b>: lepas di <u>tengah</u> kotak lain = jadi bawahannya, di <u>sisi kiri/kanan</u> = sejajar (ubah urutan)</span><span><b>Seret judul sub-section ⠿</b>: tengah = masuk di bawahnya, sisi kiri/kanan = ubah urutan</span><span><b>Seret kotak ungu section</b> = ubah urutan / pindah ke Di luar SO</span><span>Klik nama section / sub-section = ganti nama</span></div>` : ''}
+  ${CAN_EDIT ? `<div class="ohelp"><b>Cara cepat:</b> <span>Klik kotak = atur section / sub-section / atasan (pilihan dari data MPP)</span><span><b>Anggota</b> = centang anggota tim sekaligus</span><span><b>Seret kotak orang</b>: lepas di <u>tengah</u> kotak lain = jadi bawahannya, di <u>sisi kiri/kanan</u> = sejajar (ubah urutan)</span><span><b>Seret judul sub-section ⠿</b>: tengah = masuk di bawahnya, sisi kiri/kanan = ubah urutan</span><span><b>Seret kotak ungu section</b> = ubah urutan / pindah ke Di luar SO</span><span>Klik nama section / sub-section = ganti nama</span></div>` : ''}
   <div class="card orgcard"><div class="olegend">${fams.map((f) => `<span><i style="background:${FAM_COLOR[f] || '#6D28D9'}"></i>${esc(f)}</span>`).join('')}<span><i class="v"></i>Vacant</span><span><b class="lw">⚠</b>Kontrak habis ≤ 30 hari</span><span id="oqHits" class="small"></span></div>
     <div class="orgwrap" id="orgWrap"><div class="orgsizer" id="orgSizer">${orgChart(D)}</div></div></div>
   <p class="note">Bawahan otomatis ikut pindah section / sub-section bersama atasannya. Jika kolom <b>Atasan langsung</b> dikosongkan, posisi tampil sejajar dengan jabatan yang sama di sub-section-nya.</p>`;
@@ -2585,7 +2590,7 @@ document.addEventListener('pointermove', (e) => {
     PD.started = true; DRAG = PD.uid;
     const r = PD.card.getBoundingClientRect();
     PD.ox = PD.x - r.left; PD.oy = PD.y - r.top;
-    const g = PD.card.cloneNode(true); g.classList.add('oghost'); g.removeAttribute('data-epos');
+    const g = PD.card.cloneNode(true); g.classList.add('oghost'); g.removeAttribute('data-soe');
     g.style.width = PD.card.offsetWidth + 'px'; g.style.transform = `scale(${r.width / PD.card.offsetWidth})`;
     document.body.appendChild(g); PD.ghost = g;
     PD.card.classList.add('dragging'); document.body.classList.add('odragging');
@@ -2916,6 +2921,91 @@ document.addEventListener('pointerup', async () => {
   }, `${sec} dipindah ${t.where === 'before' ? 'sebelum' : 'sesudah'} ${t.sec}.`);
 });
 document.addEventListener('pointercancel', psCleanup);
+
+// ================= v20: SO only arranges existing MPP data; dropdowns to avoid duplicate names =================
+const uniq = (arr) => { const seen = new Map(); arr.forEach((v) => { const t = String(v || '').trim(); if (t && !seen.has(t.toLowerCase())) seen.set(t.toLowerCase(), t); }); return [...seen.values()]; };
+const secList = () => uniq(DATA.positions.map((p) => p.section));
+const grpList = (sec) => uniq(DATA.positions.filter((p) => p.section === sec).map((p) => p.group || p.section)).filter((g) => g !== sec);
+const jabList = () => uniq(DATA.positions.map((p) => p.jabatan).concat(DATA.aktif.map((p) => p.jabatan))).sort((a, b) => a.localeCompare(b));
+const canon = (v, list) => { const t = String(v || '').trim(); if (!t) return t; const hit = list.find((x) => x.toLowerCase() === t.toLowerCase()); return hit || t; };
+const optHtml = (list, cur, extra) => list.map((x) => `<option value="${esc(x)}" ${x === cur ? 'selected' : ''}>${esc(x)}</option>`).join('') + (extra || '');
+
+// ---------- SO: atur section / sub-section / atasan (hanya pilihan dari MPP) ----------
+function soForm(idx) {
+  const p = DATA.positions[idx]; if (!p) return;
+  FORM = null; MEM = null;
+  const anc = new Set(); const desc = new Set([p.uid]);
+  let ch = true; while (ch) { ch = false; DATA.positions.forEach((x) => { if (x.atasan && desc.has(x.atasan) && !desc.has(x.uid)) { desc.add(x.uid); ch = true; } }); }
+  const grpOpts = (sec, cur) => `<option value="" ${!cur || cur === sec ? 'selected' : ''}>— Langsung di bawah section —</option>` + optHtml(grpList(sec), cur);
+  const atOpts = DATA.positions.filter((x) => !desc.has(x.uid)).map((x) => `<option value="${esc(x.uid)}" ${p.atasan === x.uid ? 'selected' : ''}>No. ${x.no} · ${esc(isVacant(x) ? 'Vacant' : x.nama)} · ${esc(x.jabatan || '')} (${esc(x.group || x.section || '')})</option>`).join('');
+  document.getElementById('dialog').innerHTML = `<div class="cm-h"><h2 id="mTitle">Atur di Struktur Organisasi</h2><button type="button" class="x" id="mClose" aria-label="Tutup">×</button></div>
+    <div class="soinfo"><div><span>Jabatan</span><b>${esc(p.jabatan || '-')}</b></div><div><span>Nama</span><b class="${isVacant(p) ? 'vacn' : ''}">${esc(isVacant(p) ? 'Vacant' : p.nama)}</b></div><div><span>No. MPP</span><b>${p.no}</b></div></div>
+    <p class="small" style="margin:0 0 12px">Pilihan di bawah diambil dari data MPP, jadi tidak ada nama ganda. Nama, jabatan, dan PTK diubah lewat <b>MPP KTA - TRA</b>.</p>
+    <div class="fgrid">
+      <div class="fld"><label for="so_sec">Section</label><select id="so_sec">${optHtml(secList(), p.section)}</select></div>
+      <div class="fld"><label for="so_grp">Sub-section</label><select id="so_grp">${grpOpts(p.section, p.group)}</select></div>
+      <div class="fld full"><label for="so_at">Atasan langsung</label><select id="so_at"><option value="">Otomatis — sejajar dengan jabatan yang sama</option>${atOpts}</select><small>Bawahan orang ini ikut pindah section / sub-section bersamanya.</small></div>
+    </div>
+    <div class="factions"><button type="button" class="btn btn-g" data-gompp="${idx}">Edit nama / jabatan di MPP</button><span style="flex:1"></span><button type="button" class="btn btn-g" id="fCancel">Batal</button><button type="button" class="btn btn-p" id="soSave" data-i="${idx}">Simpan</button></div>`;
+  document.getElementById('modal').hidden = false;
+  document.getElementById('so_sec').addEventListener('change', (e) => { document.getElementById('so_grp').innerHTML = grpOpts(e.target.value, ''); });
+  document.getElementById('so_sec').focus();
+}
+document.addEventListener('click', async (e) => {
+  const c = e.target.closest('[data-soe]');
+  if (c && CAN_EDIT && !e.target.closest('button')) { soForm(+c.dataset.soe); return; }
+  const g = e.target.closest('[data-gompp]'); if (g && CAN_EDIT) { const i = +g.dataset.gompp; closeModal(); mppForm(i); return; }
+  const sv = e.target.closest('#soSave'); if (!sv || !CAN_EDIT) return;
+  const p = DATA.positions[+sv.dataset.i]; if (!p) return;
+  const sec = document.getElementById('so_sec').value, grp = document.getElementById('so_grp').value || sec, at = document.getElementById('so_at').value || null;
+  if (sec === p.section && grp === (p.group || p.section) && at === (p.atasan || null)) { closeModal(); return; }
+  const ok = await commit((S) => {
+    const pos = posByUid(S, p.uid); if (!pos) return;
+    if (at && at !== pos.atasan) { const L = posByUid(S, at); pos.atasan = at; if (L && (sec === p.section && grp === (p.group || p.section))) { pos.section = L.section; pos.group = L.group || L.section; } else { pos.section = sec; pos.group = grp; } }
+    else { pos.atasan = at; pos.section = sec; pos.group = grp; }
+    cascadeSection(S, pos);
+  }, `${nameOf(p)} diperbarui.`);
+  if (ok) closeModal();
+});
+
+// ---------- MPP form: section / sub-section / jabatan as dropdowns (+ tambah baru) ----------
+function comboize(key, list, cur, onChange) {
+  const inp = document.getElementById('f_' + key); if (!inp) return;
+  const NEW = '__new__';
+  const sel = document.createElement('select'); sel.id = 'f_' + key; sel.name = key;
+  const has = cur && list.some((x) => x === cur);
+  sel.innerHTML = (key === 'group' ? '<option value="">— Sama dengan section —</option>' : '<option value="">— Pilih —</option>') + optHtml(list, cur) + (cur && !has ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : '') + `<option value="${NEW}">➕ Tambah baru…</option>`;
+  const box = document.createElement('input'); box.type = 'text'; box.placeholder = 'Ketik nama baru'; box.hidden = true; box.className = 'combonew'; box.autocomplete = 'off';
+  inp.replaceWith(sel); sel.after(box);
+  const dl = document.getElementById('dl_' + key); if (dl) dl.remove();
+  sel.addEventListener('change', () => {
+    if (sel.value === NEW) { sel.id = 'f_' + key + '_sel'; box.id = 'f_' + key; box.hidden = false; box.focus(); }
+    if (onChange) onChange(sel.value);
+  });
+}
+const _mppForm16 = mppForm;
+mppForm = function (idx) {
+  _mppForm16(idx);
+  const p = idx == null ? null : DATA.positions[idx];
+  const secCur = (document.getElementById('f_section') || {}).value || (p && p.section) || '';
+  const grpCur = (document.getElementById('f_group') || {}).value || (p && p.group) || '';
+  const jabCur = (document.getElementById('f_jabatan') || {}).value || (p && p.jabatan) || '';
+  comboize('section', secList(), secCur, (v) => {
+    const g = document.getElementById('f_group'); if (!g || g.tagName !== 'SELECT') return;
+    g.innerHTML = '<option value="">— Sama dengan section —</option>' + optHtml(grpList(v), '') + '<option value="__new__">➕ Tambah baru…</option>';
+  });
+  comboize('group', grpList(secCur), grpCur === secCur ? '' : grpCur);
+  comboize('jabatan', jabList(), jabCur);
+  const save = FORM.onSave;
+  FORM.onSave = (v) => {
+    const fix = (k) => { const el = document.getElementById('f_' + k); if (el) v[k] = el.value === '__new__' ? '' : (el.value || '').trim() || null; };
+    ['section', 'group', 'jabatan'].forEach(fix);
+    if (!v.section) { toast('Pilih atau isi Section.', true); return false; }
+    if (!v.jabatan) { toast('Pilih atau isi Jabatan.', true); return false; }
+    v.section = canon(v.section, secList()); v.group = v.group ? canon(v.group, grpList(v.section).concat([v.section])) : null; v.jabatan = canon(v.jabatan, jabList());
+    return save(v);
+  };
+};
 
 // ================= WEB: standalone mode (GitHub Pages + Supabase, no Claude) =================
 const WEB_CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
