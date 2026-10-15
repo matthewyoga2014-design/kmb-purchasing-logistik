@@ -463,8 +463,9 @@ async function deleteCandidate(mppIndex,candidateIndex){
  const heading=document.getElementById("modalTitle");
  if(heading)heading.textContent="Menyimpan penghapusan...";
  try{
-   const result=await Promise.resolve(saveData());
-   if(result?.saved!==true)throw result?.error||new Error("Perubahan belum tersimpan ke database.");
+   if(!window.KMBCloud?.canEdit?.())throw new Error("Masuk sebagai Pemilik atau Editor terlebih dahulu.");
+   await window.KMBCloud.saveState(JSON.parse(JSON.stringify(data)));
+   localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
    renderMPP();openCandidateList(mppIndex);
    if(typeof window.KMBDeleteCandidateAttachments==="function"){
      const attachmentResult=await window.KMBDeleteCandidateAttachments("kta-tra",key,candidate["Nama Kandidat"]||"");
