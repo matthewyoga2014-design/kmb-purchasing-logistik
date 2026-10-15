@@ -206,3 +206,9 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
 #mpTable td.sisa-hari-kuning{background:#fff4c2!important;color:#805600!important;font-weight:700}
 #mpTable td.sisa-hari-oranye{background:#ffe0bf!important;color:#9c4600!important;font-weight:700}
 #mpTable td.sisa-hari-merah{background:#ffd7dc!important;color:#a41629!important;font-weight:700}
+
+/* Dashboard is view-only; editing remains available in MPP and Data Pelamar sheets. */
+#dashboard button[onclick*="openMPPForm"],#dashboard button[onclick*="openCandidateForm"],#dashboard button[onclick*="deleteCandidate"],#dashboard button[onclick*="openMPForm"],#dashboard button[onclick*="deleteMP"],#dashboard button[data-candidate-edit],#dashboard button[data-candidate-delete]{display:none!important}
+#manpowerRoleRecap .recap-actual-badge{display:inline-block;min-width:36px;padding:5px 12px;border-radius:999px;font-weight:800}
+#manpowerRoleRecap .recap-actual-badge.has-actual{background:#dcfce7;color:#166534}
+#manpowerRoleRecap .recap-actual-badge.no-actual{background:#f1f5f9;color:#64748b}
