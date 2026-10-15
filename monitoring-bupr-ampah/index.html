@@ -33,6 +33,7 @@
   <button class="nav" data-view="mpp" data-title="MPP BUPR Ampah" onclick="showView('mpp')">▤ &nbsp; MPP BUPR Ampah</button>
   <button class="nav" data-view="mp" data-title="MP Aktif & MP Out" onclick="showView('mp')">👥 &nbsp; MP Aktif & MP Out</button>
   <button class="nav" data-view="unit-population" data-title="Populasi Unit BUPR Ampah" onclick="showView('unit-population')">▦ &nbsp; Populasi Unit</button>
+  <button class="nav" data-view="organization" data-title="Struktur Organisasi" onclick="showView('organization')">♧ &nbsp; Struktur Organisasi</button>
   <div class="group">Sistem</div>
   <button class="nav" data-view="settings" data-title="Pengaturan" onclick="showView('settings')">⚙ &nbsp; Pengaturan</button>
 </aside>
@@ -46,7 +47,7 @@
   <div class="top-actions"><span class="access-badge role-viewer" id="accessBadge">Pelihat</span><span class="auth-who" id="authWho"></span><button class="btn auth-btn" id="authBtn" onclick="openAuthModal()">Masuk untuk Edit</button><button class="btn back-dashboard-btn" id="backDashboard" onclick="goDashboard()" style="display:none">← Kembali ke Dashboard</button><button class="btn" onclick="window.print()">Print</button></div>
 </header>
 
-<div class="content"><div class="notice" style="margin-bottom:12px">◂ <a href="../" style="font-weight:700">Portal Utama KMB</a> — Data monitoring BUPR Ampah tersimpan terpisah.</div>
+<div class="content"><section class="view" id="organization"></section><div class="notice" style="margin-bottom:12px">◂ <a href="../" style="font-weight:700">Portal Utama KMB</a> — Data monitoring BUPR Ampah tersimpan terpisah.</div>
 <section class="view active" id="dashboard">
   <div class="dashboard-title-row">
     <div>
@@ -235,5 +236,5 @@ const kpi=document.getElementById("kPlanning");
 if(kpi)new MutationObserver(()=>render()).observe(kpi,{childList:true,characterData:true,subtree:true});
 setInterval(()=>{if(!document.hidden)render()},5000);
 })();
-</script><script defer src="../shared-monitoring-visuals.js?v=20261015"></script><script defer src="../candidate-attachments.js?v=20261015"></script></body>
+</script><script defer src="../shared-monitoring-visuals.js?v=20261015"></script><script defer src="../candidate-attachments.js?v=20261015"></script><script defer src="../organization-editor.js?v=20261015"></script></body>
 </html>
