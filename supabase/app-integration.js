@@ -290,6 +290,11 @@
     // Return a save result so destructive actions can wait for confirmed cloud persistence.
     // Other existing callers may continue to call saveData() without awaiting it.
     window.saveData=function(){
+      if(isKta&&(!Array.isArray(data?.mpp)||data.mpp.length===0)){
+        const problem=new Error("Data KTA–TRA belum dimuat dari server. Penyimpanan diblokir agar data tidak tertimpa kosong.");
+        console.error(problem);
+        return Promise.resolve({saved:false,error:problem});
+      }
       originalSave.apply(this,arguments);
       if(applyingRemote)return Promise.resolve({saved:true,localOnly:true});
       if(!window.KMBCloud?.canEdit?.()){
