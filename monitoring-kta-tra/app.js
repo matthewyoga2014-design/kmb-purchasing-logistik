@@ -721,6 +721,7 @@ function showView(name){
   if(target==="mpp")renderMPP();
   if(target==="mp")renderMP();
   if(target==="unit-population")renderUnits();
+  if(target==="so" && typeof window.renderKtaSO==="function")window.renderKtaSO();
   if(target==="settings")renderSettings();
   applyReadOnlyUI();
   return target;
