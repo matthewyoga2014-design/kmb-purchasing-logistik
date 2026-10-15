@@ -26,8 +26,27 @@ function treeRows(){
  const depthOf=n=>{let d=0,p=n.parent,seen=new Set([n.id]);while(p&&d<20&&!seen.has(p)){d++;seen.add(p);p=nodes.find(x=>x.id===p)?.parent||""}return d};
  return nodes.map(n=>'<div class="sa-outline-row '+(selected===n.id?"sa-selected":"")+'" data-id="'+safe(n.id)+'" style="--indent:'+Math.min(depthOf(n),12)+'"><button type="button" class="sa-pick" data-pick="'+safe(n.id)+'" title="Pilih baris">●</button><div class="sa-row-fields"><select data-role="'+safe(n.id)+'" aria-label="Jabatan">'+roleOptions(n)+'</select><select data-name="'+safe(n.id)+'" aria-label="Nama dari MP Aktif">'+nameOptions(n)+'</select></div></div>').join("");
 }
+function seedFromActive(){
+ if(nodes.length||localStorage.getItem(KEY)||!active().length)return;
+ const current=active();
+ const make=(role,parent="",employeeKey="")=>{const n={id:uid(),parent,role,employeeKey};nodes.push(n);return n.id};
+ const dept=current.find(r=>/^(dept|department)\s*head/i.test(v(r.Jabatan)));
+ const sectionHead=current.find(r=>/^section\s*head/i.test(v(r.Jabatan)));
+ const root=make("Dept Head","",dept?personKey(dept):"");
+ const second=make("Section Head",root,sectionHead?personKey(sectionHead):"");
+ const maintenance=make("Maintenance Section",second),planner=make("Planner Section",second),tyre=make("Tyre Section",second);
+ for(const r of current){
+  if((dept&&personKey(r)===personKey(dept))||(sectionHead&&personKey(r)===personKey(sectionHead)))continue;
+  const j=v(r.Jabatan).toLowerCase();
+  const parent=/tyre|tire/.test(j)?tyre:/planner|admin/.test(j)?planner:maintenance;
+  make(v(r.Jabatan)||"Posisi",parent,personKey(r));
+ }
+ localStorage.setItem(KEY,JSON.stringify(nodes));
+ selected=root;
+}
 function render(){
  const host=document.getElementById("soContent");if(!host)return;
+ seedFromActive();
  if(!nodes.some(n=>n.id===selected))selected=nodes[0]?.id||"";
  const ids=new Set(nodes.map(n=>n.id)),roots=nodes.filter(n=>!n.parent||!ids.has(n.parent));
  host.innerHTML='<div class="sa-layout"><aside class="sa-panel"><div class="sa-panel-title"><b>Susunan Struktur Organisasi</b><small>Editor seperti SmartArt Word</small></div><div class="sa-help">Enter: tambah sejajar · Tab: jadikan bawahan · Shift+Tab: naik tingkat</div><div class="sa-outline" id="saOutline">'+(nodes.length?treeRows():'<p>Belum ada posisi. Klik Tambah Jabatan.</p>')+'</div><div class="sa-controls">'+(editable()?'<button class="btn yellow" id="saAdd">+ Tambah Jabatan</button><button class="btn" id="saChild">+ Bawahan</button><button class="btn" id="saIndent">→ Turunkan Level</button><button class="btn" id="saOutdent">← Naikkan Level</button><button class="btn" id="saUp">↑</button><button class="btn" id="saDown">↓</button><button class="btn danger" id="saRemove">Hapus Kotak</button>':'')+'<button class="btn" id="saPrint">Print SO</button><button class="btn" id="saExport">Backup SO</button>'+(editable()?'<label class="btn">Pulihkan SO<input id="saImport" type="file" accept=".json" hidden></label>':'')+'</div><p class="sa-footnote">Jabatan bisa berulang. Nama hanya dari MP Aktif dan tidak boleh dipakai dua kali. Jika nama belum dipilih, otomatis VACANT.</p></aside><div class="sa-sheet"><div class="sa-heading"><strong>STRUKTUR ORGANISASI</strong><div>PLANT DEPARTMENT KMB SITE KTA</div><b>TAHUN 2026</b></div>'+(nodes.length?'<div class="sa-chart-scroll"><ul class="sa-tree">'+roots.map(n=>chartNode(n)).join("")+'</ul></div>':'<p class="sa-empty">Bagan akan terbentuk otomatis ketika jabatan ditambahkan di panel kiri.</p>')+'</div></div>';
