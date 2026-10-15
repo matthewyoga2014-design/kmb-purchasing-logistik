@@ -31,6 +31,7 @@
   <button class="nav active" data-view="dashboard" data-title="Monitoring Manpower KTA - TRA" onclick="showView('dashboard')">▦ &nbsp; Dashboard</button>
   <div class="group">Monitoring</div>
   <button class="nav" data-view="mpp" data-title="MPP KTA - TRA" onclick="showView('mpp')">▤ &nbsp; MPP KTA - TRA</button>
+  <button class="nav" data-view="pelamar" data-title="Data Pelamar KTA - TRA" onclick="showView('pelamar')">▤ &nbsp; Data Pelamar</button>
   <button class="nav" data-view="mp" data-title="MP Aktif & MP Out" onclick="showView('mp')">👥 &nbsp; MP Aktif & MP Out</button>
   <button class="nav" data-view="unit-population" data-title="Populasi Unit KTA - TRA" onclick="showView('unit-population')">▦ &nbsp; Populasi Unit</button>
   <div class="group">Sistem</div>
@@ -128,6 +129,14 @@
   </div>
   <div id="mppStats"></div>
   <div id="mppTable"></div>
+</section>
+
+<section class="view" id="pelamar">
+  <div class="page-head">
+    <div><h2>Data Pelamar KTA - TRA</h2><p>Daftar seluruh pelamar Aktif dan Tidak Aktif berdasarkan riwayat rekrutmen MPP.</p></div>
+    <div class="toolbar"><input class="input" id="pelamarSearch" placeholder="Cari nama / jabatan / sumber..."><select class="select" id="pelamarStatus"><option value="all">Semua Pelamar</option><option value="active">Aktif</option><option value="inactive">Tidak Aktif</option></select></div>
+  </div>
+  <div class="card" style="padding:18px"><p id="pelamarCounts" style="font-weight:700;margin:0 0 14px">Memuat...</p><div id="pelamarContent"></div></div>
 </section>
 
 <section class="view" id="mp">
@@ -235,5 +244,5 @@ const kpi=document.getElementById("kPlanning");
 if(kpi)new MutationObserver(()=>render()).observe(kpi,{childList:true,characterData:true,subtree:true});
 setInterval(()=>{if(!document.hidden)render()},5000);
 })();
-</script></body>
+</script><script src="pelamar-sheet.js?v=20261015-pelamar-sheet1"></script></body>
 </html>
