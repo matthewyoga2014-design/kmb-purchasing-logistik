@@ -50,7 +50,26 @@
 @media print{body:has(#so.view.active) #soContent{overflow:visible!important}body:has(#so.view.active) .org-diagram{min-width:0!important;width:100%!important;padding:0!important}body:has(#so.view.active) .org-branches{gap:6px!important}body:has(#so.view.active) .org-subteams{gap:3px!important}body:has(#so.view.active) .org-title{font-size:7px!important;padding:3px!important}body:has(#so.view.active) .org-person{font-size:7px!important;grid-template-columns:minmax(0,1fr) 35px!important}body:has(#so.view.active) .org-person .org-role{font-size:6px!important}body:has(#so.view.active) .org-explain{display:none!important}@page{size:landscape;margin:6mm}}
 </style><style id="so-simple-tree">
 #soContent{background:#fff;padding:18px;overflow:auto}.tree-sheet{min-width:860px;color:#243247}.tree-header{text-align:center;font-size:13px;line-height:1.9;margin-bottom:30px}.tree-header strong{font-size:17px;letter-spacing:3px}.tree-scroll{overflow:auto;padding:12px 0 35px}.tree-chart,.tree-chart ul{display:flex;justify-content:center;gap:16px;padding-top:34px;margin:0;list-style:none;position:relative}.tree-chart>li:before,.tree-chart>li:after{display:none}.tree-chart li{position:relative;min-width:175px;max-width:260px;flex:1;text-align:center;padding:0 8px}.tree-chart li:before,.tree-chart li:after{content:"";position:absolute;top:-34px;right:50%;height:34px;width:50%;border-top:1px solid #86a5c3}.tree-chart li:after{left:50%;right:auto;border-left:1px solid #86a5c3}.tree-chart li:only-child:before,.tree-chart li:only-child:after{display:none}.tree-chart li:first-child:before,.tree-chart li:last-child:after{border:0}.tree-chart li:last-child:before{border-right:1px solid #86a5c3;border-radius:0 4px 0 0}.tree-chart li:first-child:after{border-radius:4px 0 0 0}.tree-chart ul:before{content:"";height:34px;position:absolute;top:0;left:50%;border-left:1px solid #86a5c3}.tree-person{display:grid;grid-template-columns:minmax(0,1fr) 75px;text-align:left;border:1px solid #7793ad;background:white;font-size:11px;min-height:32px}.tree-person span{padding:7px;overflow-wrap:anywhere}.tree-person small{border-left:2px solid #7793ad;padding:7px;font-size:10px;overflow-wrap:anywhere}.tree-vacant{color:#b42339;font-weight:800;background:#fff0f0}.tree-scope{font-size:10px;font-weight:600;background:#bdcada;padding:6px 4px;min-height:24px}.tree-warning{color:#b91c1c}.tree-tip{font-size:12px;color:#64748b;margin:18px 0}@media print{body:has(#so.view.active) .sidebar,body:has(#so.view.active) .topbar{display:none!important}body:has(#so.view.active) .main{margin:0!important;width:100%!important}body:has(#so.view.active) .tree-sheet{min-width:0!important}body:has(#so.view.active) .tree-person{font-size:8px!important;grid-template-columns:minmax(0,1fr) 48px!important}body:has(#so.view.active) .tree-person small{font-size:7px!important}body:has(#so.view.active) .tree-chart{gap:3px}body:has(#so.view.active) .tree-chart ul{gap:3px}body:has(#so.view.active) .tree-tip{display:none}@page{size:landscape;margin:6mm}}
-</style><style id="so-two-row-card">#soContent .tree-person{display:flex!important;flex-direction:column!important;grid-template-columns:none!important;border:1px solid #6c839a!important;min-height:0!important;background:#fff!important;text-align:center!important;font-size:12px!important}#soContent .tree-position{padding:6px 8px!important;border-bottom:1px solid #6c839a!important;font-weight:600!important;color:#1d2939!important}#soContent .tree-employee{padding:6px 8px!important;min-height:20px!important;color:#233248!important}#soContent .tree-employee.tree-vacant{color:#d00000!important;background:#fff!important;font-weight:700!important}#soContent .tree-scope{font-size:10px!important}@media print{#soContent .tree-position,#soContent .tree-employee{padding:3px!important;font-size:9px!important}}</style></head>
+</style><style id="so-two-row-card">#soContent .tree-person{display:flex!important;flex-direction:column!important;grid-template-columns:none!important;border:1px solid #6c839a!important;min-height:0!important;background:#fff!important;text-align:center!important;font-size:12px!important}#soContent .tree-position{padding:6px 8px!important;border-bottom:1px solid #6c839a!important;font-weight:600!important;color:#1d2939!important}#soContent .tree-employee{padding:6px 8px!important;min-height:20px!important;color:#233248!important}#soContent .tree-employee.tree-vacant{color:#d00000!important;background:#fff!important;font-weight:700!important}#soContent .tree-scope{font-size:10px!important}@media print{#soContent .tree-position,#soContent .tree-employee{padding:3px!important;font-size:9px!important}}</style><style id="so-visible7">
+#soContent{overflow-x:auto!important;background:#fff!important}
+.so7-paper{min-width:1100px;padding:18px;background:#fff;color:#243247}
+.so7-heading{text-align:center;line-height:1.6;margin:0 0 26px;font-size:12px}
+.so7-heading b{letter-spacing:3px;font-size:15px}
+.so7-top{width:220px;margin:0 auto}
+.so7-group-title,.so7-section-name{font-size:11px;text-align:center;background:#acbacb;border:1px solid #718fae;padding:7px}
+.so7-card{border:1px solid #718fae;border-top:0;text-align:center;background:#fff;font-size:11px}
+.so7-role,.so7-name{padding:6px;min-height:18px}.so7-role{border-bottom:1px solid #718fae}
+.so7-vacant{color:#d00000;font-weight:700}
+.so7-link{height:70px;width:1px;background:#8ca9c4;margin:0 auto;position:relative}
+.so7-link:after{content:"";position:absolute;bottom:12px;left:-350px;width:700px;border-top:1px solid #8ca9c4}
+.so7-sections{display:grid;grid-template-columns:1.3fr .75fr 1.3fr;gap:20px;align-items:start}
+.so7-section{position:relative}.so7-section:before{content:"";position:absolute;top:-12px;left:50%;height:12px;border-left:1px solid #8ca9c4}
+.so7-section-name{width:75%;margin:0 auto 27px}
+.so7-scopes{display:flex;align-items:start;justify-content:center;gap:9px}
+.so7-group{flex:1;min-width:0}.so7-people{background:#fff}
+.so7-note{font-size:11px;color:#66758a;margin-top:35px}
+@media print{body:has(#so.view.active) .so7-paper{min-width:0!important;width:100%;zoom:.7}body:has(#so.view.active) .so7-sections{gap:6px!important}body:has(#so.view.active) .so7-scopes{gap:4px!important}@page{size:landscape;margin:6mm}}
+</style></head>
 <body>
 <div class="app">
 <aside class="sidebar" id="sidebar">
@@ -226,7 +245,7 @@
 <script src="data_out.js?v=8"></script>
 <script src="data_units.js?v=8"></script>
 <script src="app.js?v=20261015-scope-dropdown5"></script>
-<script src="so.js?v=20261015-stacked6"></script>
+<script src="so.js?v=20261015-visible7"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase/config.js?v=1"></script>
 <script src="../supabase/cloud-access.js?v=6"></script>
