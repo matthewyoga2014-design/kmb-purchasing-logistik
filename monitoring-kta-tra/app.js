@@ -53,7 +53,7 @@ function applyReadOnlyUI(){
 
 let data=loadData(), editState=null, mpMode="active", mpFull=false, recruitRole="";
 
-const MPP_FIELDS=["No","Nama","Jabatan","Section Job","Job","Sub Section Job","Keterangan","PIC","PTK","Tanggal Pengajuan PTK","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi","Due Date","Status","Tanggal Close","Keterangan PTK","Lama Closing (Hari)"];
+const MPP_FIELDS=["No","Nama","Jabatan","Keterangan","PIC","PTK","Tanggal Pengajuan PTK","Psikologi Test","Interview User","Offering Latter","MCU","FU MCU","On Site","Induksi","Due Date","Status","Tanggal Close","Keterangan PTK","Lama Closing (Hari)"];
 const MP_ACTIVE_SCHEMA=["No.","NIP (KARYAWAN)","NIK KTP","NO.KK","Nama","NO. NPWP","Nomor HP","Whatsapp","Jabatan","Departemen","Level","Status Kontrak PKWT/PKWTT/Harian Lepas","Akhir Kontrak","POH","Sisa Hari","Reminder","Tanggal Masuk","Masa Kerja","Jenis Kelamin","Agama","Tempat Lahir","Tgl/Lahir","Umur","Pendidikan Terakhir","Alamat Domisili","Alamat Lengkap","Keterangan","Tempat Bekerja","SITE","No Rekening","Nama Bank","Nama Pemilik Rekening","Nomor BPJS Kesehatan","Nomor BPJS Ketenagakerjaan","Nama Ibu","Pendidikan Terakhir Ibu","Pekerjaan Ibu","Nama Ayah","Pendidikan Terakhir Ayah","Pekerjaan Ayah","Saudara Kandung (1)","Jenis Kelamin (1)","Tanggal Lahir (1)","Saudara Kandung (2)","Jenis Kelamin (2)","Tanggal Lahir (2)","Saudara Kandung (3)","Jenis Kelamin (3)","Tanggal Lahir (3)","Saudara Kandung (4)","Jenis Kelamin (4)","Tanggal Lahir (4)","Nama Emergency","Hubungan","Nomor Telepon","Whatsapp Emergency","STATUS","BLOK KAMAR"];
 const MP_OUT_SCHEMA=MP_ACTIVE_SCHEMA.slice(0,-1).concat(["Tanggal Keluar"]);
 const MP_SUMMARY=["No.","Nama","Jabatan","Departemen","Level","Status Kontrak PKWT/PKWTT/Harian Lepas","Akhir Kontrak","POH","Sisa Hari","Tanggal Masuk","Masa Kerja","Keterangan","SITE","STATUS"];
@@ -124,8 +124,8 @@ function bestCandidateProgress(r){
   return list.map(candidateProgress).sort((a,b)=>b.p-a.p)[0]||progress(r);
 }
 function candidateBreakdown(r){
-  const list=getCandidates(r),bd={};
-  list.forEach(c=>{const p=candidateProgress(c),label=(isActiveCandidate(c)?"Aktif: ":"Tidak Aktif: ")+p.label;bd[label]=(bd[label]||0)+1});
+  const list=activeCandidates(r),bd={};
+  list.forEach(c=>{const p=candidateProgress(c);bd[p.label]=(bd[p.label]||0)+1});
   return bd;
 }
 function allCandidateRows(){
@@ -142,8 +142,8 @@ function loadData(){
   try{
     const raw=localStorage.getItem(STORAGE_KEY);
     const d=raw?JSON.parse(raw):clone(BASE);
-    d.mpp=Array.isArray(d.mpp)&&d.mpp.length?d.mpp:clone(BASE.mpp);
-    d.mpActive=Array.isArray(d.mpActive)&&d.mpActive.length?d.mpActive:clone(BASE.mpActive);
+    d.mpp=Array.isArray(d.mpp)?d.mpp:clone(BASE.mpp);
+    d.mpActive=Array.isArray(d.mpActive)?d.mpActive:clone(BASE.mpActive);
     d.mpOut=Array.isArray(d.mpOut)?d.mpOut:clone(BASE.mpOut);
     d.units=Array.isArray(d.units)?d.units:clone(BASE.units);
     d.deletedMPP=Array.isArray(d.deletedMPP)?d.deletedMPP:[];
@@ -320,22 +320,15 @@ function renderKtaCharts(){
 
   const stages=["SOURCING PELAMAR","PSIKOLOGI TEST","INTERVIEW USER","OFFERING","MCU","FU MCU","ON SITE","INDUKSI","HIRED"];
   const labels=["Sourcing","Psikotes","Interview","Offering","MCU","FU MCU","On Site","Induksi","Hired"];
-  const activeCounts=Object.fromEntries(stages.map(x=>[x,0]));
-  const inactiveCounts=Object.fromEntries(stages.map(x=>[x,0]));
-  (data.mpp||[]).filter(r=>isVacant(r.Nama)&&norm(r.Status).toLowerCase()==="open").forEach(r=>{
-    const candidates=getCandidates(r);
-    if(!candidates.length){activeCounts["SOURCING PELAMAR"]++;return}
-    candidates.forEach(c=>{
-      const label=candidateProgress(c).label;
-      const counts=isActiveCandidate(c)?activeCounts:inactiveCounts;
-      if(Object.prototype.hasOwnProperty.call(counts,label))counts[label]++;
-    });
-  });
+  const counts=Object.fromEntries(stages.map(x=>[x,0]));
+  const candidateRows=allCandidateRows();
+  candidateRows.filter(isActiveCandidate).forEach(r=>{const label=norm(r["Progress Terakhir"]).toUpperCase();if(counts[label]!==undefined)counts[label]++});
+  (data.mpp||[]).filter(r=>isVacant(r.Nama)&&activeCandidates(r).length===0).forEach(r=>{const p=bestCandidateProgress(r);if(counts[p.label]!==undefined)counts[p.label]++});
   ktaMakeChart("ktaPipelineChart",{
     type:"line",
-    data:{labels,datasets:[{label:"Kandidat Aktif",data:stages.map(s=>activeCounts[s]),borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.10)",pointBackgroundColor:"#fff",pointBorderWidth:3,pointRadius:4,tension:.38,fill:true},{label:"Kandidat Tidak Aktif",data:stages.map(s=>inactiveCounts[s]),borderColor:"#ef6b76",backgroundColor:"rgba(239,107,118,.05)",pointBackgroundColor:"#fff",pointBorderWidth:3,pointRadius:4,tension:.3,fill:false}]},
+    data:{labels,datasets:[{label:"Kandidat / Posisi",data:stages.map(s=>counts[s]),borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.12)",pointBackgroundColor:"#fff",pointBorderColor:"#7c3aed",pointBorderWidth:3,pointRadius:4,tension:.38,fill:true}]},
     plugins:[ktaInlineValueLabels],
-    options:ktaChartOptions({layout:{padding:{top:22}},plugins:{legend:{display:true,position:"bottom"},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
+    options:ktaChartOptions({layout:{padding:{top:22}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
   });
 }
 function renderDashboard(){
@@ -352,11 +345,11 @@ function renderDashboard(){
 function renderVacancyResume(){
   const groups={};
   data.mpp.forEach((r,i)=>{
-    if(!isVacant(r.Nama)||norm(r.Status).toLowerCase()!=="open")return;
+    if(!isVacant(r.Nama))return;
     const key=jobKey(r.Jabatan)||"belum",p=bestCandidateProgress(r),cands=getCandidates(r);
     if(!groups[key])groups[key]={label:jobLabel(r.Jabatan),items:[],candidateCount:0};
     groups[key].items.push({r,p,i});
-    groups[key].candidateCount+=cands.length;
+    groups[key].candidateCount+=cands.filter(isActiveCandidate).length;
   });
   const arr=Object.values(groups).sort((a,b)=>b.items.length-a.items.length||a.label.localeCompare(b.label));
   document.getElementById("vacancyResume").innerHTML=arr.length?arr.map(g=>{
@@ -368,29 +361,29 @@ function renderVacancyResume(){
 function focusRole(role){recruitRole=role;renderRecruitment();document.getElementById("recruitmentCard").scrollIntoView({behavior:"smooth",block:"start"})}
 function clearRole(){recruitRole="";renderRecruitment()}
 function renderRecruitment(){
-  const rows=data.mpp.map((r,i)=>({...r,__i:i})).filter(r=>["open","close"].includes(norm(r.Status).toLowerCase())&&(!recruitRole||jobKey(r.Jabatan)===recruitRole));
-  document.getElementById("recruitCount").textContent=rows.length+" PTK OPEN/CLOSE • "+rows.reduce((s,r)=>s+getCandidates(r).length,0)+" PELAMAR";
+  const rows=data.mpp.map((r,i)=>({...r,__i:i})).filter(r=>norm(r.Status).toLowerCase()==="open"&&(!recruitRole||jobKey(r.Jabatan)===recruitRole));
+  document.getElementById("recruitCount").textContent=rows.length+" OPEN • "+rows.reduce((s,r)=>s+activeCandidates(r).length,0)+" PELAMAR";
   const fb=document.getElementById("recruitFilterBadge");
   if(recruitRole){fb.style.display="inline-flex";fb.innerHTML=esc(jobLabel(recruitRole))+' <button onclick="clearRole()">×</button>'}else fb.style.display="none";
   document.getElementById("recruitBody").innerHTML=rows.length?rows.map(r=>{
     const p=bestCandidateProgress(r),d=daysLeft(r["Due Date"]),dc=d<0?"overdue":d<=7?"warning":"",list=getCandidates(r);
-    const preview=list.map(c=>{const cp=candidateProgress(c),active=isActiveCandidate(c),status=c["Status Kandidat"]||"Aktif";return '<div class="candidate-preview" style="'+(active?"":"opacity:.55;")+'"><b>'+esc(c["Nama Kandidat"]||"-")+'</b><span>'+esc(status)+" • "+esc(cp.label)+" "+cp.p+"%"+"</span></div>"}).join("");
+    const preview=list.map(c=>{const cp=candidateProgress(c),active=isActiveCandidate(c),status=c["Status Kandidat"]||"Aktif";return '<div class="candidate-preview" style="'+(active?"":"opacity:.55;")+'"><b>'+esc(c["Nama Kandidat"]||"-")+'</b><span>'+esc(status)+(active?" • "+esc(cp.label)+" "+cp.p+"%":" • Tidak Aktif")+"</span></div>"}).join("");
     return '<tr><td><b>'+esc(r.Jabatan)+'</b></td><td>'+fmtDate(r["Tanggal Pengajuan PTK"])+'</td><td>'+fmtDate(r["Due Date"])+'</td><td><span class="days '+dc+'">'+(d===""?"-":d)+'</span></td><td>'+badge(r.Status)+'</td><td><b>'+esc(p.label)+'</b></td><td><div style="display:flex;align-items:center;gap:8px"><div class="progress recruit-progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b></div></td><td><button class="btn candidate-btn" onclick="openCandidateList('+r.__i+')">'+list.length+' Kandidat</button>'+preview+'</td><td>'+esc(r.Keterangan||"-")+'</td></tr>'
-  }).join(""):'<tr><td colspan="9" class="empty">Tidak ada PTK Open/Close untuk filter ini.</td></tr>';
+  }).join(""):'<tr><td colspan="9" class="empty">Tidak ada PTK Open untuk filter ini.</td></tr>';
 }
 
 function setModalSave(show,label="Simpan Perubahan"){
   const b=document.getElementById("saveModal");if(!b)return;b.style.display=show?"":"none";b.textContent=label;
 }
 function fieldHTML(f,row,type){
-  const val=(f==="Job"?(row?.["Job"]??row?.["Scope Job"]??""):(row?.[f]??"")),empty=type==="mp"&&!norm(val);
+  const val=row?.[f]??"",empty=type==="mp"&&!norm(val);
   if((f==="No"&&type==="mpp")||(f==="No."&&type==="mp"))return '<div class="field"><label>'+esc(f)+'</label><input value="'+esc(val||"Otomatis")+'" readonly><small class="empty-hint">Nomor diatur otomatis oleh sistem</small></div>';
   if(f==="Status"&&type==="mpp")return '<div class="field"><label>Status</label><select data-f="Status"><option value=""></option>'+["Open","Continue","Close"].map(x=>'<option '+(val===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
   if(["Keterangan","Alamat Domisili","Alamat Lengkap"].includes(f))return '<div class="field '+(empty?"empty-field":"")+'"><label>'+esc(f)+'</label><textarea data-f="'+esc(f)+'" placeholder="'+(empty?"Belum terisi di Excel":"")+'">'+esc(val)+'</textarea>'+(empty?'<small class="empty-hint">Belum terisi di Excel</small>':'')+'</div>';
   return '<div class="field '+(empty?"empty-field":"")+'"><label>'+esc(f)+'</label><input type="'+(DATE_FIELDS.has(f)?"date":"text")+'" data-f="'+esc(f)+'" value="'+esc(val)+'" placeholder="'+(empty?"Belum terisi di Excel":"")+'">'+(empty?'<small class="empty-hint">Belum terisi di Excel</small>':'')+'</div>';
 }
 function candidateFieldHTML(f,row){
-  const val=(f==="Job"?(row?.["Job"]??row?.["Scope Job"]??""):(row?.[f]??""));
+  const val=row?.[f]??"";
   if(f==="Status Kandidat")return '<div class="field"><label>Status Kandidat</label><select data-f="Status Kandidat">'+["Aktif","Hold","Tidak Lolos","Menolak","No Response","Hired","Cancel"].map(x=>'<option '+(val===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
   if(f==="Keterangan")return '<div class="field"><label>Keterangan</label><textarea data-f="Keterangan">'+esc(val)+'</textarea></div>';
   return '<div class="field"><label>'+esc(f)+'</label><input type="'+(DATE_FIELDS.has(f)?"date":"text")+'" data-f="'+esc(f)+'" value="'+esc(val)+'"></div>';
@@ -400,16 +393,6 @@ function computeMPP(r){
   if(r.Status==="Close"){r["Keterangan PTK"]="SELESAI";if(r["Tanggal Close"]&&r["Tanggal Pengajuan PTK"]){const a=new Date(r["Tanggal Pengajuan PTK"]),b=new Date(r["Tanggal Close"]);r["Lama Closing (Hari)"]=String(Math.round((b-a)/86400000))}return}
   const d=daysLeft(r["Due Date"]);r["Keterangan PTK"]=d===""?"":d<=0?"JATUH TEMPO":d<=7?"HAMPIR JATUH TEMPO":"ON TRACK";r["Lama Closing (Hari)"]="";
 }
-function mppRecruitmentNote(r){
- const list=getCandidates(r);
- if(!list.length)return norm(r.Keterangan)||"Belum ada riwayat kandidat";
- const counts={};
- list.forEach(c=>{const status=norm(c["Status Kandidat"]||"Aktif");counts[status]=(counts[status]||0)+1});
- const items=Object.entries(counts).map(([status,n])=>status+": "+n);
- const latest=list[list.length-1];
- const p=candidateProgress(latest);
- return "Total "+list.length+" kandidat | "+items.join(", ")+" | Terakhir: "+norm(latest["Nama Kandidat"]||"-")+" ("+p.label+")"+(norm(r.Keterangan)?" | Catatan: "+norm(r.Keterangan):"");
-}
 function renderMPP(){
   const stats=document.getElementById("mppStats"),table=document.getElementById("mppTable");if(!stats||!table)return;
   const q=norm(document.getElementById("mppSearch")?.value).toLowerCase(),st=norm(document.getElementById("mppStatus")?.value),m=metrics();
@@ -417,9 +400,9 @@ function renderMPP(){
   const rows=(data.mpp||[]).map((r,i)=>({...r,__i:i})).filter(r=>(!q||JSON.stringify(r).toLowerCase().includes(q)||JSON.stringify(getCandidates(r)).toLowerCase().includes(q))&&(!st||r.Status===st));
   const body=rows.length?rows.map(r=>{
     const p=isVacant(r.Nama)?bestCandidateProgress(r):progress(r),list=getCandidates(r);
-    const cand='<button class="btn candidate-btn" onclick="openCandidateList('+r.__i+')">Riwayat ('+list.length+')</button>';
-    const preview=list.length?list.slice(0,2).map(x=>{const active=isActiveCandidate(x),cp=candidateProgress(x);return '<div class="candidate-preview" style="'+(active?"":"opacity:.55;")+'"><b>'+esc(x["Nama Kandidat"]||"-")+'</b><span>'+(active?esc(cp.label)+" "+cp.p+"%":"Tidak Aktif")+'</span></div>'}).join(""):"";
-    return '<tr><td>'+esc(r.No)+'</td><td><b class="'+(isVacant(r.Nama)?"vacant-name":"")+'">'+esc(r.Nama||"Vacant")+'</b></td><td>'+esc(r.Jabatan||"-")+'</td><td>'+cand+preview+'</td><td>'+esc(r.Keterangan||"-")+'</td><td>'+esc(r.PTK||"-")+'</td><td>'+badge(r.Status)+'</td><td><div style="display:flex;align-items:center;gap:7px"><div class="progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b></div><small>'+esc(p.label)+'</small></td><td>'+fmtDate(r["Due Date"])+'</td><td>'+badge(r["Keterangan PTK"])+'</td><td class="action-cell"><button class="btn" onclick="openMPPForm('+r.__i+')">Edit</button> '+'<button class="btn yellow" onclick="openCandidateList('+r.__i+')">Riwayat Rekrutmen</button> '+'<button class="btn danger" onclick="deleteMPP('+r.__i+')">Hapus</button></td></tr>';
+    const cand=isVacant(r.Nama)?'<button class="btn candidate-btn" onclick="openCandidateList('+r.__i+')">'+list.length+' Pelamar</button>':'<span class="badge neutral">-</span>';
+    const preview=isVacant(r.Nama)&&list.length?list.slice(0,2).map(x=>{const cp=candidateProgress(x);return '<div class="candidate-preview"><b>'+esc(x["Nama Kandidat"]||"-")+'</b><span>'+esc(cp.label)+' '+cp.p+'%</span></div>'}).join(""):"";
+    return '<tr><td>'+esc(r.No)+'</td><td><b class="'+(isVacant(r.Nama)?"vacant-name":"")+'">'+esc(r.Nama||"Vacant")+'</b></td><td>'+esc(r.Jabatan||"-")+'</td><td>'+cand+preview+'</td><td>'+esc(r.Keterangan||"-")+'</td><td>'+esc(r.PTK||"-")+'</td><td>'+badge(r.Status)+'</td><td><div style="display:flex;align-items:center;gap:7px"><div class="progress"><i style="width:'+p.p+'%"></i></div><b>'+p.p+'%</b></div><small>'+esc(p.label)+'</small></td><td>'+fmtDate(r["Due Date"])+'</td><td>'+badge(r["Keterangan PTK"])+'</td><td class="action-cell"><button class="btn" onclick="openMPPForm('+r.__i+')">Edit</button> '+(isVacant(r.Nama)?'<button class="btn yellow" onclick="openCandidateList('+r.__i+')">Pelamar</button> ':'')+'<button class="btn danger" onclick="deleteMPP('+r.__i+')">Hapus</button></td></tr>';
   }).join(""):'<tr><td colspan="11" class="empty">Belum ada data MPP yang sesuai filter.</td></tr>';
   table.innerHTML='<div class="table-wrap"><table class="table"><thead><tr><th>No</th><th>Nama</th><th>Jabatan</th><th>Pelamar</th><th>Keterangan</th><th>PTK</th><th>Status</th><th>Progress</th><th>Due Date</th><th>Ket. PTK</th><th>Aksi</th></tr></thead><tbody>'+body+'</tbody></table></div>';
 }
@@ -430,12 +413,12 @@ function openMPPForm(index=null){if(!editOnly())return;
   document.getElementById("formFields").innerHTML=MPP_FIELDS.map(f=>fieldHTML(f,row,"mpp")).join("");
   document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
 }
-
 function openCandidateList(mppIndex){
   const r=data.mpp[mppIndex];if(!r)return;
+  if(!isVacant(r.Nama)){alert("Pelamar hanya dikelola untuk posisi Vacant.");return}
   const list=getCandidates(r),best=bestCandidateProgress(r);
   editState={type:"candidate-list",mppIndex};
-  document.getElementById("modalTitle").textContent="Riwayat Pelamar — "+r.Jabatan+" (MPP #"+r.No+")";
+  document.getElementById("modalTitle").textContent="Pelamar — "+r.Jabatan+" (Vacant #"+r.No+")";
   setModalSave(false);
   document.getElementById("formFields").innerHTML='<div class="candidate-manager"><div class="candidate-manager-head"><div><b>'+list.length+' pelamar</b><span>Progress tertinggi '+esc(best.label)+' ('+best.p+'%)</span></div><button class="btn yellow" onclick="openCandidateForm('+mppIndex+',null)">+ Tambah Pelamar</button></div>'+(list.length?list.map((cand,ci)=>{
     const p=candidateProgress(cand);
@@ -452,30 +435,32 @@ function openCandidateForm(mppIndex,candidateIndex=null){if(!editOnly())return;
   document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
 }
 async function deleteCandidate(mppIndex,candidateIndex){
- if(!editOnly()||window.__candidateDeleteBusy)return;
- if(!data.mpp?.length){alert("Data MPP belum dimuat. Tidak ada data yang dihapus.");return}
- const record=data.mpp?.[mppIndex];if(!record)return;
- const key=vacancyKey(record),previous=clone(getCandidates(record)),candidate=previous[candidateIndex];
- if(!candidate)return;
- window.__candidateDeleteBusy=true;
- try{
-   if(!window.KMBCloud?.canEdit?.())throw new Error("Masuk sebagai Pemilik atau Editor.");
-   data.candidates[key]=previous.filter((_,i)=>i!==candidateIndex);
-   await window.KMBCloud.saveState(JSON.parse(JSON.stringify(data)));
-   localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
-   renderMPP();openCandidateList(mppIndex);
-   if(typeof window.KMBDeleteCandidateAttachments==="function"){
-     try{
-       const files=await window.KMBDeleteCandidateAttachments("kta-tra",key,candidate["Nama Kandidat"]||"");
-       if(!files.ok)console.warn("Lampiran kandidat belum dibersihkan:",files.error);
-     }catch(e){console.warn("Lampiran kandidat belum dibersihkan:",e)}
-   }
- }catch(error){
-   data.candidates[key]=previous;
-   localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
-   renderMPP();openCandidateList(mppIndex);
-   alert("Hapus pelamar gagal disimpan: "+(error?.message||String(error)));
- }finally{window.__candidateDeleteBusy=false}
+  if(!editOnly()||window.__candidateDeleteBusy)return;
+  const r=data.mpp?.[mppIndex];if(!r)return;
+  const key=vacancyKey(r),list=getCandidates(r),cand=list[candidateIndex];if(!cand)return;
+  if(!confirm("Hapus pelamar "+(cand["Nama Kandidat"]||"ini")+"?"))return;
+  window.__candidateDeleteBusy=true;
+  const previous=list.slice();
+  try{
+    list.splice(candidateIndex,1);
+    data.candidates[key]=list; // An empty array explicitly means no applicants: do not re-seed from MPP notes.
+    const outcome=await saveData();
+    if(!outcome?.saved){
+      data.candidates[key]=previous;
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+      renderDashboard();renderMPP();openCandidateList(mppIndex);
+      alert("Pelamar BELUM terhapus dari database. Periksa koneksi dan login Pemilik / Editor, lalu coba lagi. "+(outcome?.error?.message||""));
+      return;
+    }
+    renderMPP();openCandidateList(mppIndex);
+  }catch(error){
+    data.candidates[key]=previous;
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+    renderMPP();openCandidateList(mppIndex);
+    alert("Penghapusan pelamar gagal: "+(error?.message||error));
+  }finally{
+    window.__candidateDeleteBusy=false;
+  }
 }
 function deleteMPP(index){if(!editOnly())return;
   const row=data.mpp[index];if(!row)return;
@@ -582,38 +567,19 @@ function vacateMPP(rec){
   if(row){row.Nama="Vacant";row.Keterangan="MP OUT - "+rec.Nama;row.PIC=row.PIC||"";if(!row.PTK){row.Status="";row["Keterangan PTK"]="TIDAK ADA PENGAJUAN"}}
 }
 function closeModal(){document.getElementById("modal").classList.remove("show");setModalSave(true);editState=null}
-async async function saveModal(){if(!editOnly())return;
-  if(!data.mpp?.length){alert("Data MPP belum dimuat. Muat ulang setelah data 36 posisi muncul; penyimpanan diblokir untuk melindungi database.");return}
+function saveModal(){if(!editOnly())return;
   if(!editState)return;const vals={};document.querySelectorAll("#formFields [data-f]").forEach(el=>vals[el.dataset.f]=el.value);
   if(editState.type==="mpp"){
-    if(vals["Atasan No"] && String(vals["Atasan No"])===String(data.mpp[editState.index]?.No||"")){alert("Posisi tidak dapat menjadi atasan dirinya sendiri.");return}
     if(editState.index===null){vals.No="";computeMPP(vals);data.mpp.push(vals)}
     else{vals.No=data.mpp[editState.index]?.No||"";computeMPP(vals);data.mpp[editState.index]={...data.mpp[editState.index],...vals}}
     renumberMPP();saveData();renderMPP();closeModal();return;
   }
   if(editState.type==="candidate"){
-    const r=data.mpp[editState.mppIndex],key=vacancyKey(r),list=getCandidates(r),originalCandidateList=clone(list),clean={};
+    const r=data.mpp[editState.mppIndex],key=vacancyKey(r),list=getCandidates(r),clean={};
     CANDIDATE_FIELDS.forEach(f=>clean[f]=vals[f]||"");
     if(!norm(clean["Nama Kandidat"])){alert("Nama kandidat wajib diisi.");return}
     if(editState.candidateIndex===null)list.push(clean);else list[editState.candidateIndex]={...list[editState.candidateIndex],...clean};
-    const btn=document.getElementById("saveModal");
-    const previous=originalCandidateList;
-    const next=list.map(x=>({...x}));
-    if(btn){btn.disabled=true;btn.textContent="Menyimpan Pelamar..."}
-    try{
-      if(!window.KMBCloud?.canEdit?.())throw new Error("Masuk sebagai Pemilik atau Editor.");
-      data.candidates[key]=next;
-      await window.KMBCloud.saveState(JSON.parse(JSON.stringify(data)));
-      localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
-      renderMPP();openCandidateList(editState.mppIndex);
-    }catch(error){
-      data.candidates[key]=previous;
-      localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
-      alert("Gagal simpan pelamar: "+(error?.message||String(error)));
-    }finally{
-      if(btn){btn.disabled=false;btn.textContent="Simpan Pelamar"}
-    }
-    return;
+    data.candidates[key]=list;saveData();renderMPP();openCandidateList(editState.mppIndex);return;
   }
   if(editState.type==="unit"){
     const name=norm(vals["Jenis Unit"]),qty=Math.max(0,Number(vals.Jumlah)||0);
@@ -771,4 +737,19 @@ document.addEventListener("DOMContentLoaded",()=>{
   showView("dashboard");
 });
 
-
+/* Fit the complete dashboard to a single A4 landscape printed page. */
+(function(){
+  function fitDashboardPrint(){
+    const dashboard=document.getElementById("dashboard");
+    if(!dashboard||!dashboard.classList.contains("active"))return;
+    dashboard.style.setProperty("--dashboard-print-zoom","1");
+    // Layout at the fixed print width first, including all recruitment rows.
+    const h=Math.max(dashboard.scrollHeight,dashboard.getBoundingClientRect().height,1);
+    const scale=Math.max(0.15,Math.min(0.67,690/h));
+    dashboard.style.setProperty("--dashboard-print-zoom",String(scale));
+  }
+  window.addEventListener("beforeprint",fitDashboardPrint);
+  window.addEventListener("afterprint",function(){
+    document.getElementById("dashboard")?.style.removeProperty("--dashboard-print-zoom");
+  });
+})();
