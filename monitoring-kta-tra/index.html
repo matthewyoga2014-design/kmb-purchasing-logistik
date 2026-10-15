@@ -76,9 +76,10 @@
   <div class="dashboard-charts">
     <div class="card chart-card chart-main">
       <div class="section-head">
-        <div><span class="eyebrow">RECRUITMENT PIPELINE</span><h3>Progress Kandidat & Rekrutmen</h3><p class="section-sub">Jumlah kandidat/posisi berdasarkan tahap terakhir.</p></div>
+        <div><span class="eyebrow">RECRUITMENT PIPELINE</span><h3>Progress Kandidat & Rekrutmen</h3><p class="section-sub">Hanya kandidat dari MPP status Open, dihitung pada tahap terakhir.</p></div>
         <span class="chart-dot">LIVE DATA</span>
       </div>
+      <div id="ktaCandidateStatusSummary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;margin:10px 0 14px"></div>
       <div class="chart-canvas tall"><canvas id="ktaPipelineChart"></canvas></div>
     </div>
     <div class="card chart-card">
@@ -204,7 +205,7 @@
 <script src="data_active.js?v=8"></script>
 <script src="data_out.js?v=8"></script>
 <script src="data_units.js?v=8"></script>
-<script src="app.js?v=20261015-sisahari-value29"></script>
+<script src="app.js?v=20261015-pipeline-open30"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase/config.js?v=1"></script>
 <script src="../supabase/cloud-access.js?v=6"></script>
