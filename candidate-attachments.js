@@ -110,6 +110,21 @@ function mount(){
    if(scope.existing)renderAttachments(scope,stage,host);else host.textContent="Belum ada lampiran";
  }
 }
+window.KMBListCandidateAttachments=async function(targetApp,vacancy,candidateName){
+ if(targetApp!==appId)throw new Error("Aplikasi tidak cocok.");
+ const sb=clientForApp();if(!sb)throw new Error("Koneksi file belum tersedia.");
+ const {data,error}=await sb.from("candidate_attachments").select("id,filename,stage,object_path,created_at")
+   .eq("app_id",appId).eq("vacancy_key",vacancy).eq("candidate_name",candidateName)
+   .order("created_at",{ascending:false});
+ if(error)throw error;
+ return data||[];
+};
+window.KMBOpenCandidateAttachment=async function(objectPath){
+ const sb=clientForApp();if(!sb)throw new Error("Koneksi file belum tersedia.");
+ const {data,error}=await sb.storage.from("kmb-candidate-docs").createSignedUrl(objectPath,90);
+ if(error)throw error;
+ window.open(data.signedUrl,"_blank","noopener,noreferrer");
+};
 window.KMBDeleteCandidateAttachments=async function(targetApp,vacancy,candidateName){
  if(targetApp!==appId)return {ok:false,error:"Aplikasi tidak cocok"};
  const sb=clientForApp();if(!sb)return {ok:false,error:"Koneksi dokumen tidak tersedia"};
