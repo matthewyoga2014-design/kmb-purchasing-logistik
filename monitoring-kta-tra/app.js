@@ -577,7 +577,7 @@ function vacateMPP(rec){
   if(row){row.Nama="Vacant";row.Keterangan="MP OUT - "+rec.Nama;row.PIC=row.PIC||"";if(!row.PTK){row.Status="";row["Keterangan PTK"]="TIDAK ADA PENGAJUAN"}}
 }
 function closeModal(){document.getElementById("modal").classList.remove("show");setModalSave(true);editState=null}
-function saveModal(){if(!editOnly())return;
+async function saveModal(){if(!editOnly())return;
   if(!editState)return;const vals={};document.querySelectorAll("#formFields [data-f]").forEach(el=>vals[el.dataset.f]=el.value);
   if(editState.type==="mpp"){
     if(vals["Atasan No"] && String(vals["Atasan No"])===String(data.mpp[editState.index]?.No||"")){alert("Posisi tidak dapat menjadi atasan dirinya sendiri.");return}
@@ -590,7 +590,19 @@ function saveModal(){if(!editOnly())return;
     CANDIDATE_FIELDS.forEach(f=>clean[f]=vals[f]||"");
     if(!norm(clean["Nama Kandidat"])){alert("Nama kandidat wajib diisi.");return}
     if(editState.candidateIndex===null)list.push(clean);else list[editState.candidateIndex]={...list[editState.candidateIndex],...clean};
-    data.candidates[key]=list;saveData();renderMPP();openCandidateList(editState.mppIndex);return;
+    const btn=document.getElementById("saveModal");
+    if(btn){btn.disabled=true;btn.textContent="Menyimpan Pelamar..."}
+    data.candidates[key]=list;
+    try{
+      const outcome=await Promise.resolve(saveData());
+      if(outcome?.saved===false)throw outcome.error||new Error("Database belum menerima perubahan.");
+      renderMPP();openCandidateList(editState.mppIndex);
+    }catch(error){
+      alert("Pelamar belum berhasil disimpan ke database. Periksa koneksi dan akses Pemilik/Editor, lalu coba lagi. "+(error?.message||error));
+    }finally{
+      if(btn){btn.disabled=false;btn.textContent="Simpan Pelamar"}
+    }
+    return;
   }
   if(editState.type==="unit"){
     const name=norm(vals["Jenis Unit"]),qty=Math.max(0,Number(vals.Jumlah)||0);
