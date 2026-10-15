@@ -22,7 +22,7 @@
 @media(max-width:650px){.detail-mpp{padding:13px}.detail-mpp .detail-label{width:90px;font-size:10px}.detail-mpp .detail-n{width:59px;font-size:10px}}
 </style><style>
 .detail-mpp .detail-chips{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 24px}.detail-mpp .detail-chip{font-size:12px;font-weight:700;color:#b42332;background:#fff0f1;border-radius:9px;padding:8px 11px}.detail-mpp .detail-overall{margin:15px 0 25px}.detail-mpp .detail-overall .detail-track{height:12px}.detail-mpp .detail-overall small{display:block;text-align:right;margin-top:6px;color:#66758a}.detail-mpp h3{font-size:16px;margin:20px 0 13px}.detail-mpp .detail-sub{margin-top:24px}.detail-mpp .detail-sub h4{background:#192f4b;color:white;padding:11px;border-radius:8px 8px 0 0;margin:0;font-size:13px}.detail-mpp .detail-sub h4 small{color:#cbd5e1}.detail-mpp .detail-table-wrap table td:nth-child(n+2){text-align:left}.detail-mpp .detail-sub table td:nth-child(1),.detail-mpp .detail-sub table td:nth-child(4){text-align:center}.detail-mpp .detail-sub .detail-vacant{color:#b42332}.detail-mpp .detail-graph{margin-top:23px}.detail-mpp .detail-stat{border:1px solid #e5eaf0}.detail-mpp .detail-n{font-variant-numeric:tabular-nums}
-</style></head>
+</style><style>#soContent{overflow:auto;padding:20px 0}.so-root{max-width:300px;margin:0 auto 35px}.so-grid{display:flex;gap:20px;min-width:700px;align-items:flex-start}.so-section{flex:1;min-width:200px}.so-team{margin:14px 0}.so-root,.so-section,.so-team{background:white;border:1px solid #90a5be}.so-root h3,.so-section h3,.so-team h4{margin:0;padding:10px;background:#adbcd0;text-align:center;font-size:12px}.so-person{display:flex;border-top:1px solid #bbc9d8;font-size:12px}.so-person span{flex:1;padding:8px}.so-person small{width:35%;padding:8px;border-left:1px solid #bbc9d8;font-size:10px}#soContent>p{font-size:12px;color:#64748b}@media print{body:has(#so.view.active) .sidebar,body:has(#so.view.active) .topbar{display:none!important}body:has(#so.view.active) .main{margin:0!important}body:has(#so.view.active) .so-grid{min-width:0!important}@page{size:landscape;margin:8mm}}</style></head>
 <body>
 <div class="app">
 <aside class="sidebar" id="sidebar">
@@ -31,6 +31,7 @@
   <button class="nav active" data-view="dashboard" data-title="Monitoring Manpower KTA - TRA" onclick="showView('dashboard')">▦ &nbsp; Dashboard</button>
   <div class="group">Monitoring</div>
   <button class="nav" data-view="mpp" data-title="MPP KTA - TRA" onclick="showView('mpp')">▤ &nbsp; MPP KTA - TRA</button>
+  <button class="nav" data-view="so" data-title="Struktur Organisasi KTA - TRA" onclick="showView('so')">♧ &nbsp; Struktur Organisasi</button>
   <button class="nav" data-view="mp" data-title="MP Aktif & MP Out" onclick="showView('mp')">👥 &nbsp; MP Aktif & MP Out</button>
   <button class="nav" data-view="unit-population" data-title="Populasi Unit KTA - TRA" onclick="showView('unit-population')">▦ &nbsp; Populasi Unit</button>
   <div class="group">Sistem</div>
@@ -130,6 +131,7 @@
   <div id="mppTable"></div>
 </section>
 
+<section class="view" id="so"><div class="page-head"><div><h2>Struktur Organisasi KTA - TRA</h2><p>Membaca otomatis data MPP yang paling terbaru di website.</p></div><button class="btn" onclick="renderKtaSO()">Refresh</button></div><div id="soContent"></div></section>
 <section class="view" id="mp">
   <div class="page-head">
     <div><h2 id="mpTitle">MP Aktif</h2><p>Database manpower KTA - TRA. Data lengkap dapat disinkronkan dari Excel.</p></div>
@@ -196,6 +198,7 @@
 <script src="data_out.js?v=8"></script>
 <script src="data_units.js?v=8"></script>
 <script src="app.js?v=20261015-subsections"></script>
+<script src="so.js?v=20261015"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase/config.js?v=1"></script>
 <script src="../supabase/cloud-access.js?v=6"></script>
