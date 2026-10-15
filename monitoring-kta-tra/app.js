@@ -506,8 +506,10 @@ async function deleteCandidate(mppIndex,candidateIndex){
    const modal=document.getElementById("modal");
    if(modal?.classList.contains("show"))openCandidateList(mppIndex);
    if(typeof window.KMBDeleteCandidateAttachments==="function"){
-     const files=await window.KMBDeleteCandidateAttachments("kta-tra",key,candidate["Nama Kandidat"]||"");
-     if(!files.ok)alert("Data pelamar terhapus, tetapi pembersihan dokumennya gagal: "+files.error);
+     try{
+       const files=await window.KMBDeleteCandidateAttachments("kta-tra",key,candidate["Nama Kandidat"]||"");
+       if(!files.ok)alert("Data pelamar terhapus, tetapi pembersihan dokumennya gagal: "+files.error);
+     }catch(fileError){console.warn("Dokumen pelamar belum dapat dibersihkan",fileError)}
    }
  }catch(e){
    data.candidates[key]=before;
