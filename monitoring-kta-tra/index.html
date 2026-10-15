@@ -22,7 +22,33 @@
 @media(max-width:650px){.detail-mpp{padding:13px}.detail-mpp .detail-label{width:90px;font-size:10px}.detail-mpp .detail-n{width:59px;font-size:10px}}
 </style><style>
 .detail-mpp .detail-chips{display:flex;gap:7px;flex-wrap:wrap;margin:12px 0 24px}.detail-mpp .detail-chip{font-size:12px;font-weight:700;color:#b42332;background:#fff0f1;border-radius:9px;padding:8px 11px}.detail-mpp .detail-overall{margin:15px 0 25px}.detail-mpp .detail-overall .detail-track{height:12px}.detail-mpp .detail-overall small{display:block;text-align:right;margin-top:6px;color:#66758a}.detail-mpp h3{font-size:16px;margin:20px 0 13px}.detail-mpp .detail-sub{margin-top:24px}.detail-mpp .detail-sub h4{background:#192f4b;color:white;padding:11px;border-radius:8px 8px 0 0;margin:0;font-size:13px}.detail-mpp .detail-sub h4 small{color:#cbd5e1}.detail-mpp .detail-table-wrap table td:nth-child(n+2){text-align:left}.detail-mpp .detail-sub table td:nth-child(1),.detail-mpp .detail-sub table td:nth-child(4){text-align:center}.detail-mpp .detail-sub .detail-vacant{color:#b42332}.detail-mpp .detail-graph{margin-top:23px}.detail-mpp .detail-stat{border:1px solid #e5eaf0}.detail-mpp .detail-n{font-variant-numeric:tabular-nums}
-</style><style>#soContent{overflow:auto;padding:20px 0}.so-root{max-width:300px;margin:0 auto 35px}.so-grid{display:flex;gap:20px;min-width:700px;align-items:flex-start}.so-section{flex:1;min-width:200px}.so-team{margin:14px 0}.so-root,.so-section,.so-team{background:white;border:1px solid #90a5be}.so-root h3,.so-section h3,.so-team h4{margin:0;padding:10px;background:#adbcd0;text-align:center;font-size:12px}.so-person{display:flex;border-top:1px solid #bbc9d8;font-size:12px}.so-person span{flex:1;padding:8px}.so-person small{width:35%;padding:8px;border-left:1px solid #bbc9d8;font-size:10px}#soContent>p{font-size:12px;color:#64748b}@media print{body:has(#so.view.active) .sidebar,body:has(#so.view.active) .topbar{display:none!important}body:has(#so.view.active) .main{margin:0!important}body:has(#so.view.active) .so-grid{min-width:0!important}@page{size:landscape;margin:8mm}}</style></head>
+</style><style>#soContent{overflow:auto;padding:20px 0}.so-root{max-width:300px;margin:0 auto 35px}.so-grid{display:flex;gap:20px;min-width:700px;align-items:flex-start}.so-section{flex:1;min-width:200px}.so-team{margin:14px 0}.so-root,.so-section,.so-team{background:white;border:1px solid #90a5be}.so-root h3,.so-section h3,.so-team h4{margin:0;padding:10px;background:#adbcd0;text-align:center;font-size:12px}.so-person{display:flex;border-top:1px solid #bbc9d8;font-size:12px}.so-person span{flex:1;padding:8px}.so-person small{width:35%;padding:8px;border-left:1px solid #bbc9d8;font-size:10px}#soContent>p{font-size:12px;color:#64748b}@media print{body:has(#so.view.active) .sidebar,body:has(#so.view.active) .topbar{display:none!important}body:has(#so.view.active) .main{margin:0!important}body:has(#so.view.active) .so-grid{min-width:0!important}@page{size:landscape;margin:8mm}}</style><style id="so-orgchart-style">
+#soContent{overflow:auto!important;padding:16px 8px 26px!important;background:#fff}
+.org-diagram{min-width:1490px;color:#1e293b;padding:4px 12px 20px}
+.org-top{display:flex;justify-content:center}
+.org-top>.org-team{width:290px}
+.org-title{box-sizing:border-box;text-align:center;background:#aebccc;color:#152437;border:1px solid #6e8ca8;padding:7px 5px;font-size:11px;font-weight:700;white-space:normal}
+.org-team{min-width:0}
+.org-people{border-left:1px solid #6e8ca8;border-right:1px solid #6e8ca8}
+.org-person{display:grid!important;grid-template-columns:minmax(0,1fr) 84px!important;min-height:25px;border-bottom:1px solid #6e8ca8!important;background:#fff;font-size:11px}
+.org-person .org-name{padding:5px!important;overflow-wrap:anywhere}
+.org-person .org-role{width:auto!important;border-left:2px solid #6e8ca8;padding:5px!important;font-size:10px;overflow-wrap:anywhere}
+.org-person .org-vacant{color:#bd2136;background:#fff0f0;font-weight:bold}
+.org-stem{width:1px;height:90px;background:#90b4d3;margin:auto;position:relative}
+.org-stem:after{content:"";position:absolute;top:70px;left:-570px;width:1140px;border-top:1px solid #90b4d3}
+.org-branches{display:grid;grid-template-columns:1.5fr .6fr 1.4fr;gap:25px;align-items:start}
+.org-branch{position:relative;padding-top:18px}
+.org-branch:before{content:"";position:absolute;height:18px;border-left:1px solid #90b4d3;left:50%;top:0}
+.org-branch-title{width:64%;margin:0 auto 42px}
+.org-subteams{display:flex;align-items:start;gap:9px;justify-content:center;position:relative}
+.org-subteams:before{content:"";position:absolute;top:-20px;left:12%;right:12%;border-top:1px solid #90b4d3}
+.org-subcol{flex:1;min-width:0;position:relative}
+.org-subcol:before{content:"";position:absolute;top:-20px;left:50%;height:20px;border-left:1px solid #90b4d3}
+.org-child{margin-top:35px;position:relative}
+.org-child:before{content:"";position:absolute;left:50%;top:-35px;height:35px;border-left:1px solid #90b4d3}
+.org-explain{font-size:12px;color:#64748b;margin:20px 10px}
+@media print{body:has(#so.view.active) #soContent{overflow:visible!important}body:has(#so.view.active) .org-diagram{min-width:0!important;width:100%!important;padding:0!important}body:has(#so.view.active) .org-branches{gap:6px!important}body:has(#so.view.active) .org-subteams{gap:3px!important}body:has(#so.view.active) .org-title{font-size:7px!important;padding:3px!important}body:has(#so.view.active) .org-person{font-size:7px!important;grid-template-columns:minmax(0,1fr) 35px!important}body:has(#so.view.active) .org-person .org-role{font-size:6px!important}body:has(#so.view.active) .org-explain{display:none!important}@page{size:landscape;margin:6mm}}
+</style></head>
 <body>
 <div class="app">
 <aside class="sidebar" id="sidebar">
@@ -198,7 +224,7 @@
 <script src="data_out.js?v=8"></script>
 <script src="data_units.js?v=8"></script>
 <script src="app.js?v=20261015-sofix2"></script>
-<script src="so.js?v=20261015-sofix2"></script>
+<script src="so.js?v=20261015-orgchart3"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase/config.js?v=1"></script>
 <script src="../supabase/cloud-access.js?v=6"></script>
