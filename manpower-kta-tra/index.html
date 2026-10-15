@@ -421,6 +421,36 @@ td .cc-files { margin-top: 0; min-width: 150px; }
 .onode[data-rsec], .gtitle[data-rgrp] { cursor: pointer; }
 .onode[data-rsec]:hover { filter: brightness(1.08); }
 .gtitle[data-rgrp]:hover { text-decoration: underline; }
+.ocard .oi { font-size: 9.5px; font-weight: 800; padding: 3px 4px 4px; line-height: 1.25; background: #fff; }
+.ocard .oi.open { color: var(--crit); } .ocard .oi.mute { color: var(--muted); font-weight: 600; }
+.ocard .oi.soon { color: #B45309; background: #FFFBEB; } .ocard .oi.late { color: #B91C1C; background: #FEF2F2; }
+.ocard .oacts { display: flex; border-top: 1px solid var(--line); background: #fff; }
+.ocard .oacts button { flex: 1; border: 0; background: none; font: inherit; font-size: 10px; font-weight: 800; color: var(--primary-ink); padding: 5px 2px; cursor: pointer; }
+.ocard .oacts button + button { border-left: 1px solid var(--line); }
+.ocard .oacts button:hover { background: var(--primary-soft); }
+.ocard.dragging { opacity: .45; }
+.dropok { outline: 3px dashed var(--good) !important; outline-offset: 3px; }
+.gframe.dropok, .onode.dropok { background-color: #ECFDF5; }
+.orgwrap.searching .ocard { opacity: .3; }
+.orgwrap.searching .ocard.hit { opacity: 1; box-shadow: 0 0 0 4px #FDE047, 0 6px 16px rgba(30,27,58,.2); }
+.lw { color: #B45309; }
+.gtitle em { font-style: normal; color: var(--crit); }
+.ohelp { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; background: var(--primary-soft); color: var(--ink-2); border-radius: 12px; padding: 10px 14px; font-size: 12.5px; margin-bottom: 14px; }
+.ohelp > span { position: relative; padding-left: 12px; }
+.ohelp > span::before { content: "•"; position: absolute; left: 0; color: var(--primary); }
+.memtool { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+.memtool input[type=search] { flex: 1 1 220px; font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.memmv { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--ink-2); }
+.memlist { max-height: 52vh; overflow: auto; border: 1px solid var(--line); border-radius: 12px; }
+.memgh { position: sticky; top: 0; background: var(--card-2); font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--primary-ink); padding: 7px 12px; border-bottom: 1px solid var(--line); z-index: 1; }
+.memr { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-bottom: 1px solid var(--line); cursor: pointer; font-size: 13px; }
+.memr:hover { background: var(--card-2); }
+.memr input { width: 16px; height: 16px; accent-color: var(--primary); }
+.memr .mn { font-weight: 700; min-width: 0; }
+.memr .mj { color: var(--muted); font-size: 12px; }
+.memr .ml { margin-left: auto; font-size: 11px; color: var(--muted); white-space: nowrap; }
+@media print { .ocard .oacts, .ohelp { display: none !important; } .orgwrap.searching .ocard { opacity: 1; } }
+.oexport .ocard .oacts { display: none !important; }
 .edf { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .edf input { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
 .edl { display: grid; gap: 6px; }
@@ -2246,6 +2276,216 @@ document.addEventListener('click', (e) => {
   const r = e.target.closest('[data-rsec]'); if (r) { renameForm('sec', r.dataset.rsec); return; }
   const g = e.target.closest('[data-rgrp]'); if (g) { renameForm('grp', g.dataset.rgrp, g.dataset.g); }
 });
+
+// ================= v15: Struktur Organisasi tools (tambah bawahan, anggota, drag & drop, info, cari, unduh) =================
+ui.oq = '';
+let ORG_MP = null;
+function orgMpIndex() {
+  const m = DATA.aktif.map((a) => [normName(a.nama), a]);
+  return (nama) => { const n = normName(nama); if (!n) return null; const hit = m.find(([k]) => k === n) || m.find(([k]) => k.startsWith(n) || n.startsWith(k)); return hit ? hit[1] : null; };
+}
+function orgInfo(p) {
+  if (isVacant(p)) {
+    if (!isOpen(p)) return '<div class="oi mute">Belum ada PTK</div>';
+    const act = candidates(p).filter((c) => c.st === 'pr' || c.st === 'hd').length;
+    return `<div class="oi open">PTK Open · ${STAGE_SHORT[topStage(p)]} · ${act} pelamar</div>`;
+  }
+  const a = ORG_MP && ORG_MP(p.nama); if (!a || !a.akhir) return '';
+  const r = diff(a.akhir, TODAY);
+  if (r < 0) return `<div class="oi late">⚠ Kontrak lewat ${-r} hari</div>`;
+  if (r <= 30) return `<div class="oi soon">⚠ Kontrak habis ${r} hari</div>`;
+  return '';
+}
+function ocard(p, M) {
+  const vac = isVacant(p), c = FAM_COLOR[roleFamily(p.jabatan)] || '#6D28D9';
+  const ks = M.kids[p.uid] || [];
+  const nk = DATA.positions.filter((x) => x.atasan === p.uid).length;
+  const i = DATA.positions.indexOf(p);
+  const box = `<div class="ocard ${vac ? 'vac' : ''}" data-uid="${esc(p.uid)}" style="--oc:${c};--ocb:${tint(c, .12)}" ${CAN_EDIT ? `data-epos="${i}" draggable="true" role="button" tabindex="0" title="Klik untuk edit · seret ke atasan / sub-section lain untuk memindahkan"` : `title="${esc((p.section || '') + ' › ' + (p.group || ''))}"`}>
+    <div class="on">${esc(vac ? 'Vacant' : p.nama)}</div><div class="oj">${esc(p.jabatan || '-')}</div>${orgInfo(p)}
+    ${CAN_EDIT ? `<div class="oacts"><button type="button" data-oadd="${esc(p.uid)}" title="Tambah posisi bawahan">+ Bawahan</button><button type="button" data-omem="${esc(p.uid)}" title="Pilih anggota tim">Anggota${nk ? ` (${nk})` : ''}</button></div>` : ''}</div>`;
+  return `<li>${box}${ks.length ? tiersHtml(ks, M) : ''}</li>`;
+}
+function orgChart(D) {
+  ORG_MP = orgMpIndex();
+  const P = D.P; const M = orgModel(P);
+  const freeSet = new Set(M.free.map((p) => p.uid));
+  const secs = orgSections(P);
+  const isTop = (s) => /penanggung|pjo|manajemen|management/i.test(s.name);
+  const top = secs.filter(isTop).flatMap((s) => s.groups.flatMap((g) => g.list)).filter((p) => freeSet.has(p.uid));
+  const body = secs.filter((s) => !isTop(s)).filter((s) => ui.osec === 'semua' || s.name === ui.osec);
+  const secLi = (s) => {
+    const all = s.groups.flatMap((g) => g.list), vac = all.filter(isVacant).length, mpa = all.length - vac;
+    const frames = s.groups.map((g) => {
+      const fl = g.list.filter((p) => freeSet.has(p.uid));
+      const titled = g.name !== s.name; const gv = g.list.filter(isVacant).length;
+      if (!fl.length && !CAN_EDIT) return '';
+      return `<div class="gframe" data-dsec="${esc(s.name)}" data-dg="${esc(g.name)}">${titled ? `<div class="gtitle" ${CAN_EDIT ? `data-rgrp="${esc(s.name)}" data-g="${esc(g.name)}" role="button" tabindex="0" title="Klik untuk ganti nama sub-section"` : ''}>${esc(g.name)}<span>${g.list.length} posisi${gv ? ` · <em>${gv} vacant</em>` : ''}</span></div>` : ''}${fl.length ? tiersHtml(fl, M) : '<div class="small" style="padding:8px">Semua posisi ada di bawah atasannya.</div>'}</div>`;
+    }).join('');
+    return `<li><div class="onode sec" data-dsec="${esc(s.name)}" ${CAN_EDIT ? `data-rsec="${esc(s.name)}" role="button" tabindex="0" title="Klik untuk ganti nama section"` : ''}><b>${esc(s.name)}</b><span>${all.length} MPP · ${mpa} MPA · ${all.length ? Math.round(mpa / all.length * 100) : 0}%</span></div>${frames ? `<div class="glist">${frames}</div>` : ''}</li>`;
+  };
+  const secRow = body.length ? `<ul class="tier secs">${body.map(secLi).join('')}</ul>` : '';
+  if (ui.osec !== 'semua') return `<div class="org">${tiersHtml([], M, secRow)}</div>`;
+  return `<div class="org">${top.length ? tiersHtml(top, M, secRow) : `<div class="tiers">${secRow}</div>`}</div>`;
+}
+function pageOrg(D) {
+  const secs = orgSections(D.P).map((s) => s.name).filter((n) => !/penanggung|pjo|manajemen|management/i.test(n));
+  const fams = [...new Set(D.P.map((p) => roleFamily(p.jabatan)))];
+  return `<div class="mhead"><div><div class="eyebrow">Monitoring Manpower KTA - TRA</div><h1>Struktur Organisasi</h1><p>Otomatis dari MPP KTA - TRA. Jabatan yang sama tampil sejajar, dikelompokkan per section dan sub-section.</p></div>
+    <div class="mtools"><input type="search" id="oq" placeholder="Cari nama / jabatan" value="${esc(ui.oq)}" aria-label="Cari di struktur">
+      <select id="oSec" aria-label="Pilih section"><option value="semua">Semua section</option>${secs.map((s) => `<option ${ui.osec === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
+      <div class="seg" role="group" aria-label="Zoom"><button type="button" data-oz="-">−</button><button type="button" data-oz="fit" aria-pressed="${ui.oz === null}">Pas layar</button><button type="button" data-oz="+">+</button></div>
+      ${DL ? '<button type="button" class="btn btn-g" data-oexp="png">Unduh PNG</button><button type="button" class="btn btn-g" data-oexp="pdf">Unduh PDF</button>' : ''}
+      ${(DL || IS_TOP) ? '<button type="button" class="btn btn-g" id="printBtn">Print</button>' : ''}</div></div>
+  ${CAN_EDIT ? `<div class="ohelp"><b>Cara cepat:</b> <span>Klik kotak = edit posisi</span><span><b>+ Bawahan</b> = tambah posisi di bawahnya</span><span><b>Anggota</b> = centang anggota tim sekaligus</span><span><b>Seret kotak</b> ke atasan, sub-section, atau section lain = pindahkan</span><span>Klik nama section / sub-section = ganti nama</span></div>` : ''}
+  <div class="card orgcard"><div class="olegend">${fams.map((f) => `<span><i style="background:${FAM_COLOR[f] || '#6D28D9'}"></i>${esc(f)}</span>`).join('')}<span><i class="v"></i>Vacant</span><span><b class="lw">⚠</b>Kontrak habis ≤ 30 hari</span><span id="oqHits" class="small"></span></div>
+    <div class="orgwrap" id="orgWrap"><div class="orgsizer" id="orgSizer">${orgChart(D)}</div></div></div>
+  <p class="note">Bawahan otomatis ikut pindah section / sub-section bersama atasannya. Jika kolom <b>Atasan langsung</b> dikosongkan, posisi tampil sejajar dengan jabatan yang sama di sub-section-nya.</p>`;
+}
+
+// ---------- search ----------
+function applyOrgSearch(scroll) {
+  const wrap = document.getElementById('orgWrap'); if (!wrap) return;
+  const q = ui.oq.trim().toLowerCase(); const cards = [...wrap.querySelectorAll('.ocard')];
+  wrap.classList.toggle('searching', !!q);
+  let first = null, n = 0;
+  cards.forEach((c) => { const hit = !!q && ((c.querySelector('.on') || {}).textContent + ' ' + (c.querySelector('.oj') || {}).textContent).toLowerCase().includes(q); c.classList.toggle('hit', hit); if (hit) { n++; if (!first) first = c; } });
+  const h = document.getElementById('oqHits'); if (h) h.textContent = q ? (n ? `${n} ditemukan` : 'Tidak ditemukan') : '';
+  if (scroll && first) first.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+}
+document.addEventListener('input', (e) => { if (e.target.id === 'oq') { ui.oq = e.target.value; applyOrgSearch(true); } });
+const _applyOrgZoom11 = applyOrgZoom;
+applyOrgZoom = function (w) { _applyOrgZoom11(w); applyOrgSearch(false); };
+
+// ---------- helpers ----------
+const posByUid = (S, uid) => S.positions.find((x) => x.uid === uid);
+function isUnder(S, uid, ancestorUid) { let q = posByUid(S, uid), guard = 0; while (q && q.atasan && guard++ < 200) { if (q.atasan === ancestorUid) return true; q = posByUid(S, q.atasan); } return false; }
+function moveTo(S, uid, target) {
+  const p = posByUid(S, uid); if (!p) return;
+  if (target.leader) { const L = posByUid(S, target.leader); if (!L) return; p.atasan = L.uid; p.section = L.section; p.group = L.group || L.section; }
+  else { p.atasan = null; p.section = target.section; p.group = target.group || target.section; }
+  cascadeSection(S, p);
+}
+const nameOf = (p) => `${isVacant(p) ? 'Vacant' : p.nama} (${p.jabatan || '-'})`;
+
+// ---------- + Bawahan ----------
+function addSub(uid) {
+  const L = posByUid(DATA, uid); if (!L) return;
+  mppForm(null);
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+  set('f_section', L.section); set('f_group', L.group || L.section); set('f_atasan', L.uid); set('f_nama', 'Vacant');
+  const lower = DATA.positions.filter((x) => roleFamily(x.jabatan) === roleFamily(L.jabatan) && jabRank(x.jabatan) > jabRank(L.jabatan)).sort((a, b) => jabRank(a.jabatan) - jabRank(b.jabatan))[0];
+  if (lower) set('f_jabatan', lower.jabatan);
+  const t = document.getElementById('mTitle'); if (t) t.textContent = `Tambah Bawahan — ${nameOf(L)}`;
+  const j = document.getElementById('f_jabatan'); if (j) { j.focus(); j.select(); }
+}
+
+// ---------- Anggota tim ----------
+let MEM = null;
+function openMembers(uid) {
+  const L = posByUid(DATA, uid); if (!L) return;
+  FORM = null; MEM = { uid };
+  const anc = new Set(); let q = L, g = 0; while (q && q.atasan && g++ < 200) { anc.add(q.atasan); q = posByUid(DATA, q.atasan); }
+  const list = DATA.positions.filter((x) => x.uid !== uid && !anc.has(x.uid));
+  const groups = new Map(); list.forEach((x) => { const k = `${x.section || '-'} › ${x.group || x.section || '-'}`; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(x); });
+  const leaderOf = (x) => { const a = x.atasan && posByUid(DATA, x.atasan); return a ? (isVacant(a) ? 'Vacant' : a.nama) : ''; };
+  document.getElementById('dialog').innerHTML = `<div class="cm-h"><h2 id="mTitle">Anggota tim — ${esc(nameOf(L))}</h2><button type="button" class="x" id="mClose" aria-label="Tutup">×</button></div>
+    <p class="small" style="margin:6px 0 10px">Centang posisi yang menjadi bawahan langsung. ${esc(L.section || '')}${L.group && L.group !== L.section ? ' › ' + esc(L.group) : ''}</p>
+    <div class="memtool"><input type="search" id="memQ" placeholder="Cari nama / jabatan" aria-label="Cari"><label class="memmv"><input type="checkbox" id="memMove" checked> Pindahkan anggota ke section / sub-section atasan</label></div>
+    <div class="memlist">${[...groups.entries()].map(([k, xs]) => `<div class="memg"><div class="memgh">${esc(k)}</div>${xs.map((x) => `<label class="memr" data-txt="${esc((x.nama + ' ' + x.jabatan + ' ' + k).toLowerCase())}"><input type="checkbox" value="${esc(x.uid)}" ${x.atasan === uid ? 'checked' : ''}><span class="mn ${isVacant(x) ? 'vacn' : ''}">${esc(isVacant(x) ? 'Vacant' : x.nama)}</span><span class="mj">${esc(x.jabatan || '-')}</span>${x.atasan && x.atasan !== uid ? `<span class="ml">atasan: ${esc(leaderOf(x))}</span>` : ''}</label>`).join('')}</div>`).join('')}</div>
+    <div class="factions"><span class="small" id="memN"></span><span style="flex:1"></span><button type="button" class="btn btn-g" id="fCancel">Batal</button><button type="button" class="btn btn-p" id="memSave">Simpan Anggota</button></div>`;
+  document.getElementById('modal').hidden = false; memCount(); document.getElementById('memQ').focus();
+}
+function memCount() { const n = document.querySelectorAll('.memlist input:checked').length; const e = document.getElementById('memN'); if (e) e.textContent = `${n} anggota dipilih`; }
+document.addEventListener('input', (e) => {
+  if (e.target.id !== 'memQ') return; const q = e.target.value.trim().toLowerCase();
+  document.querySelectorAll('.memr').forEach((r) => { r.hidden = !!q && !r.dataset.txt.includes(q); });
+  document.querySelectorAll('.memg').forEach((g) => { g.hidden = ![...g.querySelectorAll('.memr')].some((r) => !r.hidden); });
+});
+document.addEventListener('change', (e) => { if (e.target.closest && e.target.closest('.memlist')) memCount(); });
+document.addEventListener('click', async (e) => {
+  if (!e.target.closest('#memSave') || !MEM) return;
+  const uid = MEM.uid, sel = new Set([...document.querySelectorAll('.memlist input:checked')].map((i) => i.value)), mv = document.getElementById('memMove').checked;
+  const ok = await commit((S) => {
+    const L = posByUid(S, uid); if (!L) return;
+    S.positions.forEach((x) => {
+      if (sel.has(x.uid) && x.atasan !== uid) { x.atasan = uid; if (mv) { x.section = L.section; x.group = L.group || L.section; } cascadeSection(S, x); }
+      else if (!sel.has(x.uid) && x.atasan === uid) x.atasan = null;
+    });
+  }, `Anggota tim disimpan (${sel.size} orang).`);
+  if (ok) { MEM = null; closeModal(); }
+});
+
+// ---------- drag & drop ----------
+let DRAG = null;
+document.addEventListener('dragstart', (e) => {
+  const c = e.target.closest && e.target.closest('.ocard[draggable="true"]'); if (!c || !CAN_EDIT) return;
+  DRAG = c.dataset.uid; c.classList.add('dragging');
+  try { e.dataTransfer.setData('text/plain', DRAG); e.dataTransfer.effectAllowed = 'move'; } catch (er) {}
+});
+document.addEventListener('dragend', () => { DRAG = null; document.querySelectorAll('.dragging,.dropok').forEach((x) => x.classList.remove('dragging', 'dropok')); });
+function dropTarget(el) {
+  const card = el.closest('.ocard'); if (card) { const u = card.dataset.uid; if (u === DRAG || isUnder(DATA, u, DRAG)) return null; return { el: card, leader: u }; }
+  const sec = el.closest('.onode.sec'); if (sec) return { el: sec, section: sec.dataset.dsec, group: sec.dataset.dsec };
+  const fr = el.closest('.gframe'); if (fr) return { el: fr, section: fr.dataset.dsec, group: fr.dataset.dg };
+  return null;
+}
+document.addEventListener('dragover', (e) => {
+  if (!DRAG) return; const t = dropTarget(e.target);
+  document.querySelectorAll('.dropok').forEach((x) => { if (!t || x !== t.el) x.classList.remove('dropok'); });
+  if (t) { e.preventDefault(); t.el.classList.add('dropok'); try { e.dataTransfer.dropEffect = 'move'; } catch (er) {} }
+});
+document.addEventListener('drop', async (e) => {
+  if (!DRAG) return; const t = dropTarget(e.target); if (!t) return; e.preventDefault();
+  const uid = DRAG; DRAG = null; document.querySelectorAll('.dragging,.dropok').forEach((x) => x.classList.remove('dragging', 'dropok'));
+  const p = posByUid(DATA, uid); if (!p) return;
+  const L = t.leader && posByUid(DATA, t.leader);
+  if (L && p.atasan === L.uid) return;
+  if (!L && !p.atasan && p.section === t.section && (p.group || p.section) === t.group) return;
+  await commit((S) => moveTo(S, uid, t), L ? `${nameOf(p)} sekarang di bawah ${nameOf(L)}.` : `${nameOf(p)} dipindah ke ${t.group && t.group !== t.section ? t.section + ' › ' + t.group : t.section}.`);
+});
+
+// ---------- clicks on card buttons ----------
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('[data-oadd]'); if (a && CAN_EDIT) { e.stopPropagation(); addSub(a.dataset.oadd); return; }
+  const m = e.target.closest('[data-omem]'); if (m && CAN_EDIT) { e.stopPropagation(); openMembers(m.dataset.omem); return; }
+  if (e.target.closest('#fCancel') || e.target.id === 'mClose') MEM = null;
+}, true);
+
+// ---------- download PNG / PDF ----------
+async function orgCanvas() {
+  if (!window.htmlToImage) await loadScript('https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.js');
+  const org = document.querySelector('#orgSizer .org'); if (!org) throw new Error('Struktur belum tampil.');
+  const prev = org.style.transform; org.style.transform = 'none';
+  document.body.classList.add('oexport');
+  try {
+    return await window.htmlToImage.toCanvas(org, { pixelRatio: 2, backgroundColor: '#ffffff', skipFonts: true, style: { transform: 'none', margin: '0' } });
+  } finally { org.style.transform = prev; document.body.classList.remove('oexport'); }
+}
+async function exportOrg(kind) {
+  const btns = [...document.querySelectorAll('[data-oexp]')]; btns.forEach((b) => { b.disabled = true; });
+  toast('Menyiapkan ' + kind.toUpperCase() + '…');
+  try {
+    const cv = await orgCanvas();
+    const pad = 60, title = 90, W = cv.width + pad * 2, H = cv.height + pad * 2 + title;
+    const out = document.createElement('canvas'); out.width = W; out.height = H;
+    const g = out.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H);
+    g.fillStyle = '#1E1B3A'; g.font = '800 40px "Plus Jakarta Sans", Arial, sans-serif'; g.fillText('Struktur Organisasi KTA - TRA', pad, pad + 30);
+    g.fillStyle = '#8A87A6'; g.font = '500 24px "Plus Jakarta Sans", Arial, sans-serif'; g.fillText(`${ui.osec === 'semua' ? 'Semua section' : ui.osec} · ${fmt(TODAY)}`, pad, pad + 66);
+    g.drawImage(cv, pad, pad + title);
+    const name = `Struktur_Organisasi_KTA-TRA_${ui.osec === 'semua' ? '' : ui.osec.replace(/[^A-Za-z0-9]+/g, '_') + '_'}${TODAY}`;
+    if (kind === 'png') { const blob = await new Promise((r) => out.toBlob(r, 'image/png')); await save(name + '.png', blob); return; }
+    if (!window.jspdf) await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+    const land = W >= H, fmtName = Math.max(W, H) > 3600 ? 'a3' : 'a4';
+    const pdf = new window.jspdf.jsPDF({ orientation: land ? 'l' : 'p', unit: 'mm', format: fmtName });
+    const pw = pdf.internal.pageSize.getWidth(), ph = pdf.internal.pageSize.getHeight(), m = 6;
+    const s = Math.min((pw - m * 2) / W, (ph - m * 2) / H);
+    pdf.addImage(out.toDataURL('image/jpeg', 0.93), 'JPEG', (pw - W * s) / 2, (ph - H * s) / 2, W * s, H * s);
+    await save(name + '.pdf', pdf.output('blob'));
+  } catch (er) { toast('Gagal mengunduh: ' + ((er && er.message) || 'coba lagi.'), true); }
+  finally { btns.forEach((b) => { b.disabled = false; }); }
+}
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-oexp]'); if (b) exportOrg(b.dataset.oexp); });
 
 // ================= WEB: standalone mode (GitHub Pages + Supabase, no Claude) =================
 const WEB_CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
