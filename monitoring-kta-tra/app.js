@@ -411,9 +411,23 @@ function renderRecruitment(){
 function setModalSave(show,label="Simpan Perubahan"){
   const b=document.getElementById("saveModal");if(!b)return;b.style.display=show?"":"none";b.textContent=label;
 }
+const MP_CONTRACT_FIELD="Status Kontrak PKWT/PKWTT/Harian Lepas";
+function permanentEmployee(row){
+ const status=norm(row?.[MP_CONTRACT_FIELD]).toUpperCase();
+ return status==="PKWTT"||status==="PERMANEN"||status==="KARYAWAN TETAP"||status==="TETAP";
+}
+function applyContractFormRules(){
+ const field=document.querySelector('#formFields [data-f="'+MP_CONTRACT_FIELD+'"]');
+ const end=document.querySelector('#formFields [data-f="Akhir Kontrak"]');
+ const remaining=document.querySelector('#formFields [data-f="Sisa Hari"]');
+ if(!field||!end)return;
+ const permanent=permanentEmployee({[MP_CONTRACT_FIELD]:field.value});
+ [end,remaining].forEach(el=>{if(!el)return;el.disabled=permanent;if(permanent)el.value="";const block=el.closest(".field");if(block)block.style.display=permanent?"none":""});
+}
 function fieldHTML(f,row,type){
   const val=row?.[f]??"",empty=type==="mp"&&!norm(val);
   if((f==="No"&&type==="mpp")||(f==="No."&&type==="mp"))return '<div class="field"><label>'+esc(f)+'</label><input value="'+esc(val||"Otomatis")+'" readonly><small class="empty-hint">Nomor diatur otomatis oleh sistem</small></div>';
+  if(type==="mp"&&f===MP_CONTRACT_FIELD)return '<div class="field"><label>Status Karyawan / Kontrak</label><select data-f="'+esc(f)+'" onchange="applyContractFormRules()"><option value="">-- Pilih Status --</option>'+["PKWT","PKWTT","Harian Lepas"].map(x=>'<option value="'+x+'" '+(norm(val).toUpperCase()===x.toUpperCase()||x==="PKWTT"&&permanentEmployee(row)?"selected":"")+'>'+(x==="PKWTT"?"Permanen (PKWTT)":x)+'</option>').join("")+'</select></div>';
   if(f==="Status"&&type==="mpp")return '<div class="field"><label>Status</label><select data-f="Status"><option value=""></option>'+["Open","Continue","Close"].map(x=>'<option '+(val===x?"selected":"")+'>'+x+'</option>').join("")+'</select></div>';
   if(["Keterangan","Alamat Domisili","Alamat Lengkap"].includes(f))return '<div class="field '+(empty?"empty-field":"")+'"><label>'+esc(f)+'</label><textarea data-f="'+esc(f)+'" placeholder="'+(empty?"Belum terisi di Excel":"")+'">'+esc(val)+'</textarea>'+(empty?'<small class="empty-hint">Belum terisi di Excel</small>':'')+'</div>';
   return '<div class="field '+(empty?"empty-field":"")+'"><label>'+esc(f)+'</label><input type="'+(DATE_FIELDS.has(f)?"date":"text")+'" data-f="'+esc(f)+'" value="'+esc(val)+'" placeholder="'+(empty?"Belum terisi di Excel":"")+'">'+(empty?'<small class="empty-hint">Belum terisi di Excel</small>':'')+'</div>';
@@ -558,7 +572,7 @@ function renderMP(){
   const fields=mpFull?(mpMode==="active"?MP_ACTIVE_SCHEMA:MP_OUT_SCHEMA):MP_SUMMARY.concat(mpMode==="out"?["Tanggal Keluar"]:[]);
   const head=fields.map(f=>'<th>'+esc(f)+'</th>').join("")+'<th>Aksi</th>';
   const body=rows.map(r=>{
-    const cells=fields.map(f=>'<td'+(f==="Sisa Hari"&&sisaHariWarning(r)?' class="'+sisaHariWarning(r)+'"':'')+'>'+esc(r[f]||"-")+'</td>').join("");
+    const cells=fields.map(f=>'<td'+(f==="Sisa Hari"&&!permanentEmployee(r)&&sisaHariWarning(r)?' class="'+sisaHariWarning(r)+'"':'')+'>'+esc(permanentEmployee(r)&&["Akhir Kontrak","Sisa Hari","Reminder"].includes(f)?"-":r[f]||"-")+'</td>').join("");
     const acts=mpMode==="active"?'<button class="btn" onclick="openMPForm(\'active\','+r.__i+')">Edit</button> <button class="btn danger" onclick="openExit('+r.__i+')">MP OUT</button>':'<button class="btn" onclick="openMPForm(\'out\','+r.__i+')">Edit</button> <button class="btn yellow" onclick="restoreFromOut('+r.__i+')">Kembalikan ke MP Aktif</button> <button class="btn danger" onclick="deleteMP(\'out\','+r.__i+')">Hapus</button>';
     return '<tr>'+cells+'<td class="action-cell">'+acts+'</td></tr>'
   }).join("");
@@ -573,7 +587,8 @@ function openMPForm(mode,index=null){if(!editOnly())return;
   if(mode==="out"&&index===null)top+='<div class="source-box"><label>Ambil data dari MP Aktif</label><select id="sourceActive"><option value="">-- pilih nama --</option>'+data.mpActive.map((r,i)=>'<option value="'+i+'">'+esc(r.Nama)+' — '+esc(r.Jabatan)+'</option>').join("")+'</select><small>Data akan disalin ke form MP Out.</small></div>';
   document.getElementById("formFields").innerHTML=top+schema.map(f=>fieldHTML(f,row,"mp")).join("");
   document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
-  const s=document.getElementById("sourceActive");if(s)s.onchange=()=>fillFromActive(s.value);
+  applyContractFormRules();
+  const s=document.getElementById("sourceActive");if(s)s.onchange=()=>{fillFromActive(s.value);applyContractFormRules()};
 }
 function fillFromActive(idx){if(idx==="")return;const src=data.mpActive[Number(idx)];MP_OUT_SCHEMA.forEach(f=>{const el=document.querySelector('#formFields [data-f="'+CSS.escape(f)+'"]');if(el)el.value=f==="Tanggal Keluar"?todayISO():(src[f]||"")})}
 function openExit(index){if(!editOnly())return;
@@ -583,6 +598,7 @@ function openExit(index){if(!editOnly())return;
   document.getElementById("modalTitle").textContent="Pindahkan ke MP Out — "+src.Nama;
   document.getElementById("formFields").innerHTML='<div class="notice" style="grid-column:1/-1"><b>Sinkron otomatis:</b> saat disimpan, data masuk ke MP Out, dihapus dari MP Aktif, dan posisi yang sama di MPP menjadi Vacant.</div>'+MP_OUT_SCHEMA.map(f=>fieldHTML(f,row,"mp")).join("");
   document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
+  applyContractFormRules();
 }
 function deleteMP(mode,index){if(!editOnly())return;if(confirm("Hapus data ini?")){(mode==="active"?data.mpActive:data.mpOut).splice(index,1);saveData();renderMP()}}
 function restoreFromOut(index){if(!editOnly())return;
@@ -634,13 +650,13 @@ function saveModal(){if(!editOnly())return;
     saveData();renderUnits();renderDashboard();closeModal();return;
   }
   if(editState.type==="mp"){
-    const arr=editState.mode==="active"?data.mpActive:data.mpOut,schema=editState.mode==="active"?MP_ACTIVE_SCHEMA:MP_OUT_SCHEMA,clean={};schema.forEach(f=>clean[f]=vals[f]||"");
+    const arr=editState.mode==="active"?data.mpActive:data.mpOut,schema=editState.mode==="active"?MP_ACTIVE_SCHEMA:MP_OUT_SCHEMA,clean={};schema.forEach(f=>clean[f]=vals[f]||"");if(permanentEmployee(clean)){clean["Akhir Kontrak"]="";clean["Sisa Hari"]="";clean["Reminder"]=""}
     if(editState.index===null){clean["No."]="";arr.push(clean)}
     else{clean["No."]=arr[editState.index]?.["No."]||"";arr[editState.index]={...arr[editState.index],...clean}}
     saveData();renderMP();closeModal();return;
   }
   if(editState.type==="exit"){
-    const src=data.mpActive[editState.sourceIndex],clean={};MP_OUT_SCHEMA.forEach(f=>clean[f]=vals[f]||"");
+    const src=data.mpActive[editState.sourceIndex],clean={};MP_OUT_SCHEMA.forEach(f=>clean[f]=vals[f]||"");if(permanentEmployee(clean)){clean["Akhir Kontrak"]="";clean["Sisa Hari"]="";clean["Reminder"]=""}
     if(src){
       const key=ktaRestoreKey(src);data.mpRestoreMeta[key]={index:editState.sourceIndex,no:Number(src["No."])||editState.sourceIndex+1,capturedFrom:"mp-out"};
       clean["No."]=src["No."]||"";data.mpOut.push(clean);vacateMPP(src);data.mpActive.splice(editState.sourceIndex,1);
