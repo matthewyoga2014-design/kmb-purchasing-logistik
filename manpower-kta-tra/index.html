@@ -370,6 +370,9 @@ td .cc-files { margin-top: 0; min-width: 150px; }
 #sumCard.closed { min-height: 360px; }
 #sumCard.closed .closedmsg { padding-top: 110px; }
 .pill.pgood { background: var(--good-soft); color: var(--good); border-color: transparent; }
+#sumCard:not(.closed)::before { display: none; }
+@media print { #sumCard::before { display: none !important; } }
+@media print { #printStamp:not(.closed) { display: none !important; } }
 .edf { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .edf input { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
 .edl { display: grid; gap: 6px; }
@@ -1998,6 +2001,7 @@ window.addEventListener('beforeprint', syncPrintStamp);
 async function stampForPdf() {
   try {
     const closed = stampClosed();
+    if (!closed) return null;
     const v = getComputedStyle(document.documentElement).getPropertyValue(closed ? '--stamp-closed' : '--stamp-open');
     const m = v.match(/url\(["']?(data:[^"')]+)["']?\)/); if (!m) return null;
     const img = new Image(); img.src = m[1]; await img.decode();
