@@ -466,6 +466,10 @@ async function deleteCandidate(mppIndex,candidateIndex){
    const result=await Promise.resolve(saveData());
    if(result?.saved!==true)throw result?.error||new Error("Perubahan belum tersimpan ke database.");
    renderMPP();openCandidateList(mppIndex);
+   if(typeof window.KMBDeleteCandidateAttachments==="function"){
+     const attachmentResult=await window.KMBDeleteCandidateAttachments("kta-tra",key,candidate["Nama Kandidat"]||"");
+     if(!attachmentResult.ok)alert("Pelamar sudah dihapus dari database, tetapi dokumen lampiran belum berhasil dibersihkan: "+attachmentResult.error);
+   }
  }catch(error){
    data.candidates[key]=previous;
    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
