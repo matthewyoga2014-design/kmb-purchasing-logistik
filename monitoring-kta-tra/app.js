@@ -351,6 +351,22 @@ function renderKtaCharts(){
     options:ktaChartOptions({layout:{padding:{top:22}},plugins:{legend:{display:false},tooltip:{backgroundColor:"#252238",padding:10,cornerRadius:10}}})
   });
 }
+function renderManpowerByRole(){
+ const host=document.getElementById("manpowerRoleRecap");if(!host)return;
+ const groups=new Map();
+ (data.mpp||[]).forEach(r=>{
+   const label=norm(r.Jabatan)||"Belum ditentukan";
+   const key=label.toLowerCase().replace(/\s+/g," ");
+   if(!groups.has(key))groups.set(key,{label,planning:0,actual:0,vacant:0});
+   const g=groups.get(key);g.planning++;
+   if(isVacant(r.Nama))g.vacant++;else g.actual++;
+ });
+ const list=Array.from(groups.values()).sort((a,b)=>b.planning-a.planning||a.label.localeCompare(b.label,"id"));
+ const total=list.reduce((acc,g)=>({planning:acc.planning+g.planning,actual:acc.actual+g.actual,vacant:acc.vacant+g.vacant}),{planning:0,actual:0,vacant:0});
+ const pct=(a,p)=>p?Math.round(100*a/p)+"%":"0%";
+ const row=(g,isTotal=false)=>'<tr'+(isTotal?' style="font-weight:800;background:#f4f0ff"':'')+'><td>'+esc(g.label||"TOTAL")+'</td><td style="text-align:center">'+g.planning+'</td><td style="text-align:center">'+g.actual+'</td><td style="text-align:center;'+(g.vacant?'color:#dc2626;font-weight:700':'')+'">'+g.vacant+'</td><td style="text-align:center">'+pct(g.actual,g.planning)+'</td></tr>';
+ host.innerHTML='<div class="table-wrap"><table class="table"><thead><tr><th>Jabatan</th><th style="text-align:center">Planning</th><th style="text-align:center">Actual</th><th style="text-align:center">Vacant</th><th style="text-align:center">% Actual</th></tr></thead><tbody>'+list.map(g=>row(g)).join("")+row({...total,label:"TOTAL"},true)+'</tbody></table></div>';
+}
 function renderDashboard(){
   const m=metrics();
   document.getElementById("kPlanning").textContent=m.planning;
@@ -360,7 +376,7 @@ function renderDashboard(){
   document.getElementById("vacantTotal").textContent=m.vacant+" vacant • "+allCandidateRows().length+" kandidat";
   document.getElementById("statusCards").innerHTML=[["Open",m.open],["Continue",m.cont],["Close",m.close]].map(x=>'<div class="mini"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join("");
   document.getElementById("dueCards").innerHTML=[["Hampir Jatuh Tempo",m.near],["Jatuh Tempo",m.overdue],["Selesai",m.done]].map(x=>'<div class="mini"><b>'+x[1]+'</b><span>'+x[0]+'</span></div>').join("");
-  renderVacancyResume();renderRecruitment();renderUnits();renderKtaCharts();
+  renderManpowerByRole();renderVacancyResume();renderRecruitment();renderUnits();renderKtaCharts();
 }
 function renderVacancyResume(){
   const groups={};
