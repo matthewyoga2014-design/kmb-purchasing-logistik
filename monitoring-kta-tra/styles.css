@@ -307,3 +307,13 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
 #dashboard #unitSummary .unit-card:nth-child(7n+6){--unit-accent:#079b65;background:#eafaf3!important;border-color:#c3efdd!important}
 #dashboard #unitSummary .unit-card:nth-child(7n+7){--unit-accent:#5547ed;background:#f0efff!important;border-color:#dad5ff!important}
 #dashboard #unitSummary .unit-card b{color:var(--unit-accent)!important;font-size:20px!important}
+
+/* Light, non-interactive OPEN watermark only on Summary Progress Rekrutmen table. */
+#dashboard #recruitmentCard .table-wrap{position:relative;isolation:isolate}
+#dashboard #recruitmentCard .table-wrap:after{
+ content:"";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+ width:min(54%,510px);aspect-ratio:640/560;
+ background:url("./open-stamp.svg") center/contain no-repeat;
+ opacity:.12;pointer-events:none;z-index:2;
+}
+@media print{#dashboard #recruitmentCard .table-wrap:after{opacity:.09}}
