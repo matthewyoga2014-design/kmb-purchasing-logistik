@@ -16,7 +16,7 @@ function mppItems(){
  }catch(e){return []}
 }
 function displayName(n){
- if(n.sectionHeading)return "";
+ if(n.sectionHeading||["bupr-maint","bupr-tyre"].includes(n.id))return "";
  const item=mppItems().find(x=>x.key===String(n.mppKey||""));
  if(item)return !item.name||/^vacant$/i.test(item.name)?"VACANT":item.name;
  return /^vacant\b/i.test(String(n.name||""))?"VACANT":(n.name||"VACANT");
@@ -144,5 +144,6 @@ document.head.append(css);
 document.addEventListener("DOMContentLoaded",setup);
 window.addEventListener("resize",()=>{if(document.getElementById("organization")?.classList.contains("active"))fitChart()});
 document.addEventListener("click",e=>{if(e.target.closest?.('[data-view="organization"]'))requestAnimationFrame(fitChart)});
+window.addEventListener("kmb:data-changed",()=>{if(ready&&!dirty)draw()});
 window.addEventListener("focus",()=>{if(!dirty&&document.getElementById("organization")?.classList.contains("active"))load()});
 })();
