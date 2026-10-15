@@ -253,3 +253,10 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
 #dashboard #unitSummary .unit-card:nth-child(5n+4) b{color:#c2410c}
 #dashboard #unitSummary .unit-card:nth-child(5n+5){background:#fdf2f8;border-color:#fce7f3}
 #dashboard #unitSummary .unit-card:nth-child(5n+5) b{color:#be185d}
+
+/* Percentage achievement indicator; do not highlight Actual headcount. */
+#manpowerRoleRecap .recap-pct{display:inline-block;min-width:56px;padding:5px 10px;border-radius:999px;font-weight:800}
+#manpowerRoleRecap .recap-pct.pct-low{color:#b91c1c;background:#fee2e2}
+#manpowerRoleRecap .recap-pct.pct-medium{color:#c2410c;background:#ffedd5}
+#manpowerRoleRecap .recap-pct.pct-high{color:#a16207;background:#fef9c3}
+#manpowerRoleRecap .recap-pct.pct-complete{color:#15803d;background:#dcfce7}
