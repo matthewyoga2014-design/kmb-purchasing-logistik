@@ -186,7 +186,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="data.js?v=10"></script>
-<script src="app.js?v=20261015-all-applicant-pipeline"></script>
+<script src="app.js?v=20261015-mpp-sections"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase/config.js?v=1"></script>
 <script src="../supabase/cloud-access.js?v=6"></script>
@@ -207,13 +207,29 @@ function render(force=false){
  const groups=source.sites&&typeof source.sites==="object"
  ?Object.entries(source.sites).map(([site,rows])=>({label:source.siteLabels?.[site]||site,rows:Array.isArray(rows)?rows:[]}))
  :[{label:document.title.replace("Monitoring Manpower ",""),rows:Array.isArray(source.mpp)?source.mpp:[]}];
- const fingerprint=JSON.stringify(groups.map(g=>[g.label,g.rows.map(r=>[r.No,r.Nama,r.Jabatan,r.Keterangan])]));
+ const fingerprint=JSON.stringify(groups.map(g=>[g.label,g.rows.map(r=>[r.No,r.Nama,r.Jabatan,r.Keterangan,r['Section Job'],r['Scope Job']])]));
  if(!force&&fingerprint===previous)return;
  previous=fingerprint;
+
  let number=0;
- box.innerHTML='<div class="detail-table-wrap"><table><thead><tr><th>NO.</th><th>NAMA</th><th>JABATAN</th><th>KETERANGAN</th></tr></thead><tbody>'+
- groups.map(group=>(groups.length>1?'<tr class="detail-group"><td colspan="4">'+escapeHTML(group.label)+'</td></tr>':'')+
- group.rows.map(row=>'<tr><td>'+(++number)+'</td><td class="'+(isVacant(row.Nama)?'detail-vacant':'')+'">'+escapeHTML(isVacant(row.Nama)?"Vacant":row.Nama)+'</td><td>'+escapeHTML(row.Jabatan||"-")+'</td><td>'+escapeHTML(row.Keterangan||"")+'</td></tr>').join('')
+ const summary=new Map();
+ groups.forEach(g=>g.rows.forEach(r=>{
+   const role=String(r.Jabatan||"Belum Ditentukan").trim(),section=String(r["Section Job"]||"").trim(),scope=String(r["Scope Job"]||"").trim();
+   const key=[g.label,role,section,scope].join("|");
+   if(!summary.has(key))summary.set(key,{site:g.label,role,section,scope,planning:0,actual:0,vacant:0});
+   const x=summary.get(key);x.planning++;if(isVacant(r.Nama))x.vacant++;else x.actual++;
+ }));
+ const totals={planning:0,actual:0,vacant:0};
+ const detailRows=Array.from(summary.values()).sort((a,b)=>a.site.localeCompare(b.site)||a.role.localeCompare(b.role));
+ detailRows.forEach(x=>{totals.planning+=x.planning;totals.actual+=x.actual;totals.vacant+=x.vacant});
+ const summaryTable='<div class="detail-table-wrap"><table><thead><tr><th>JOBSITE</th><th>JABATAN</th><th>SECTION JOB</th><th>SCOPE JOB</th><th>PLANNING</th><th>ACTUAL</th><th>VACANT</th></tr></thead><tbody>'+
+ detailRows.map(x=>'<tr><td>'+escapeHTML(x.site)+'</td><td>'+escapeHTML(x.role)+'</td><td>'+escapeHTML(x.section||"-")+'</td><td>'+escapeHTML(x.scope||"-")+'</td><td>'+x.planning+'</td><td>'+x.actual+'</td><td class="'+(x.vacant?'detail-vacant':'')+'">'+x.vacant+'</td></tr>').join('')+
+ '<tr style="font-weight:800;background:#f0f3fa"><td colspan="4">TOTAL</td><td>'+totals.planning+'</td><td>'+totals.actual+'</td><td>'+totals.vacant+'</td></tr></tbody></table></div>';
+ box.innerHTML='<h4 style="margin:10px 0">Rekap Kebutuhan Manpower per Jabatan</h4><p>Planning, Actual dan Vacant dihitung otomatis dari MPP. Section Job dan Scope Job diedit melalui formulir MPP.</p>'+
+ summaryTable+'<h4 style="margin:24px 0 10px">Rincian Data MPP</h4>'+
+ '<div class="detail-table-wrap"><table><thead><tr><th>NO.</th><th>NAMA</th><th>JABATAN</th><th>SECTION JOB</th><th>SCOPE JOB</th><th>KETERANGAN</th></tr></thead><tbody>'+
+ groups.map(group=>(groups.length>1?'<tr class="detail-group"><td colspan="6">'+escapeHTML(group.label)+'</td></tr>':'')+
+ group.rows.map(row=>'<tr><td>'+(++number)+'</td><td class="'+(isVacant(row.Nama)?'detail-vacant':'')+'">'+escapeHTML(isVacant(row.Nama)?"Vacant":row.Nama)+'</td><td>'+escapeHTML(row.Jabatan||"-")+'</td><td>'+escapeHTML(row["Section Job"]||"-")+'</td><td>'+escapeHTML(row["Scope Job"]||"-")+'</td><td>'+escapeHTML(row.Keterangan||"")+'</td></tr>').join('')
  ).join('')+'</tbody></table></div>';
  }catch(e){console.error("Gagal menampilkan tabel MPP:",e);box.textContent="Tabel MPP belum dapat dimuat."}
 }
