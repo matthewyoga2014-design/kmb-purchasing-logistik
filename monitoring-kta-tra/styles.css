@@ -317,3 +317,8 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
  opacity:.12;pointer-events:none;z-index:2;
 }
 @media print{#dashboard #recruitmentCard .table-wrap:after{opacity:.09}}
+
+/* Unit-specific line icons replace the generic truck pictogram */
+#dashboard #unitSummary .unit-card:before{content:none!important;display:none!important}
+#dashboard #unitSummary .unit-card .kta-unit-icon{position:absolute;left:16px;top:50%;transform:translateY(-50%);width:37px;height:37px;border-radius:10px;display:flex;align-items:center;justify-content:center;background:var(--unit-accent);color:white}
+#dashboard #unitSummary .unit-card .kta-unit-svg{display:block;width:25px;height:25px;flex:none}
