@@ -371,6 +371,53 @@ td .cc-files { margin-top: 0; min-width: 150px; }
 #sumCard.closed .closedmsg { padding-top: 110px; }
 .pill.pgood { background: var(--good-soft); color: var(--good); border-color: transparent; }
 @media print { #printStamp:not(.closed) { display: none !important; } }
+.orgcard { padding: 14px 0 0; overflow: hidden; }
+.olegend { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; padding: 0 18px 12px; font-size: 12px; color: var(--ink-2); border-bottom: 1px solid var(--line); }
+.olegend span { display: inline-flex; align-items: center; gap: 6px; }
+.olegend i { width: 10px; height: 10px; border-radius: 3px; }
+.olegend i.v { background: var(--crit-soft); border: 1.5px dashed var(--crit); }
+.orgwrap { overflow: auto; padding: 22px 18px 26px; background: radial-gradient(circle, #E4E1F2 1px, transparent 1.2px) 0 0 / 18px 18px; }
+.orgsizer { margin: 0 auto; }
+.org { transform-origin: 0 0; width: max-content; --ol: #9A94C4; }
+.org .tiers { display: flex; flex-direction: column; align-items: center; }
+.org ul { display: flex; justify-content: center; margin: 0; padding: 20px 0 0; position: relative; list-style: none; }
+.org ul::before { content: ""; position: absolute; top: 0; left: 50%; height: 20px; border-left: 2px solid var(--ol); }
+.org .tiers > ul:not(:last-child)::after { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; border-left: 2px solid var(--ol); z-index: 0; }
+.org > .tiers > ul:first-child { padding-top: 0; }
+.org > .tiers > ul:first-child::before { display: none; }
+.org li { position: relative; padding: 20px 6px 0; display: flex; flex-direction: column; align-items: center; }
+.org li::before, .org li::after { content: ""; position: absolute; top: 0; right: 50%; width: 50%; height: 20px; border-top: 2px solid var(--ol); }
+.org li::after { right: auto; left: 50%; border-left: 2px solid var(--ol); }
+.org li:only-child { padding-top: 0; }
+.org li:only-child::before, .org li:only-child::after { display: none; }
+.org li:first-child::before, .org li:last-child::after { border: 0 none; }
+.org li:last-child::before { border-right: 2px solid var(--ol); border-radius: 0 8px 0 0; }
+.org li:first-child::after { border-radius: 8px 0 0 0; }
+.org > .tiers > ul:first-child > li { padding-top: 0; }
+.org > .tiers > ul:first-child > li::before, .org > .tiers > ul:first-child > li::after { display: none; }
+.ocard { position: relative; z-index: 1; width: 140px; border-radius: 10px; overflow: hidden; background: var(--card); border: 1.5px solid var(--oc); box-shadow: 0 2px 6px rgba(30,27,58,.08); text-align: center; }
+.ocard[data-epos] { cursor: pointer; }
+.ocard[data-epos]:hover { box-shadow: 0 0 0 3px var(--ocb), 0 4px 10px rgba(30,27,58,.12); }
+.ocard .on { background: var(--oc); color: #fff; font-weight: 800; font-size: 12.5px; line-height: 1.25; padding: 9px 8px 8px; min-height: 40px; display: grid; place-items: center; }
+.ocard .oj { background: var(--ocb); color: var(--ink); font-size: 11px; font-weight: 600; padding: 5px 6px; line-height: 1.25; }
+.ocard.vac { border: 1.5px dashed var(--crit); }
+.ocard.vac .on { background: var(--crit-soft); color: var(--crit); }
+.ocard .otag { display: block; font-size: 9.5px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; padding: 3px 0 4px; }
+.ocard .otag.open { color: var(--crit); background: #fff; }
+.onode { position: relative; z-index: 1; border-radius: 12px; padding: 9px 16px; text-align: center; min-width: 160px; }
+.onode b { display: block; font-size: 13px; }
+.onode span { font-size: 11px; opacity: .85; }
+.onode.sec { background: linear-gradient(120deg, var(--g1a), var(--g1b)); color: #fff; box-shadow: 0 4px 12px rgba(109,40,217,.25); }
+.glist { position: relative; display: flex; flex-direction: column; align-items: center; gap: 18px; padding-top: 20px; }
+.glist::before { content: ""; position: absolute; top: 0; bottom: 20px; left: 50%; border-left: 2px solid var(--ol); }
+.gframe { position: relative; z-index: 1; background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 10px 10px 12px; box-shadow: 0 1px 3px rgba(30,27,58,.05); }
+.gtitle { text-align: center; font-weight: 800; font-size: 12px; color: var(--primary-ink); background: var(--primary-soft); border-radius: 8px; padding: 5px 10px; margin: 0 auto 4px; width: max-content; max-width: 100%; }
+.gtitle span { font-weight: 600; color: var(--muted); margin-left: 6px; }
+.gframe > .tiers > ul:first-child::before { height: 12px; }
+@media print {
+  .orgwrap { overflow: visible !important; background: none; padding: 8px 0; }
+  .orgcard { border: 0; }
+}
 .edf { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .edf input { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
 .edl { display: grid; gap: 6px; }
@@ -2009,6 +2056,165 @@ async function stampForPdf() {
     return { url: c.toDataURL('image/png'), w, h, op: closed ? 0.16 : 0.12 };
   } catch (e) { return null; }
 }
+
+// ================= v14: Struktur Organisasi (auto from MPP) =================
+PAGES.splice(PAGES.findIndex((x) => x.id === 'karyawan'), 0, { id: 'org', label: 'Struktur Organisasi', grp: 'Monitoring', ic: '<rect x="9" y="3" width="6" height="5" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="16" width="6" height="5" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="15" y="16" width="6" height="5" rx="1" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v4M6 16v-4h12v4" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>' });
+if ((location.hash || '').slice(1) === 'org') ui.page = 'org';
+try { if ((sessionStorage.getItem('mp5-page') || store.get('mp5-page')) === 'org') ui.page = 'org'; } catch (e) {}
+ui.osec = 'semua'; ui.oz = null;
+
+const newUid = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const _materialize = materialize;
+materialize = function (p) { if (!p.uid) p.uid = newUid(); return _materialize(p); };
+STATE.positions.forEach((p) => { if (!p.uid) p.uid = newUid(); });
+
+function jabKey(j) { return (j || '–').toLowerCase().replace(/middle/g, 'midle').split(/\s+/).filter(Boolean).sort().join(' '); }
+function jabRank(j) {
+  j = (j || '').toLowerCase();
+  if (/dept|department|manager|pjo/.test(j)) return 0;
+  if (/section head|kepala/.test(j)) return 1;
+  if (/supervisor|foreman|leader|spv/.test(j)) return 2;
+  if (/planner/.test(j)) return 3;
+  if (/admin/.test(j)) return 4;
+  if (/senior/.test(j)) return 5;
+  if (/junior/.test(j)) return 7;
+  if (/helper/.test(j)) return 8;
+  return 6;
+}
+function orgModel(P) {
+  const by = {}; P.forEach((p) => { by[p.uid] = p; });
+  const parentOf = (p) => {
+    if (!p.atasan || !by[p.atasan] || p.atasan === p.uid) return null;
+    const seen = new Set([p.uid]); let q = by[p.atasan];
+    while (q) { if (seen.has(q.uid)) return null; seen.add(q.uid); q = q.atasan ? by[q.atasan] : null; }
+    return by[p.atasan];
+  };
+  const kids = {}; const free = [];
+  P.forEach((p) => { const par = parentOf(p); if (par) (kids[par.uid] = kids[par.uid] || []).push(p); else free.push(p); });
+  return { kids, free };
+}
+function tierRows(list) {
+  const m = new Map();
+  list.forEach((p) => { const k = jabKey(p.jabatan); if (!m.has(k)) m.set(k, []); m.get(k).push(p); });
+  return [...m.values()].sort((a, b) => jabRank(a[0].jabatan) - jabRank(b[0].jabatan));
+}
+function ocard(p, M) {
+  const vac = isVacant(p), c = FAM_COLOR[roleFamily(p.jabatan)] || '#6D28D9';
+  const ks = M.kids[p.uid] || [];
+  const tag = isOpen(p) ? '<span class="otag open">PTK Open</span>' : '';
+  const box = `<div class="ocard ${vac ? 'vac' : ''}" style="--oc:${c};--ocb:${tint(c, .12)}" ${CAN_EDIT ? `data-epos="${DATA.positions.indexOf(p)}" role="button" tabindex="0" title="Klik untuk edit / atur atasan"` : `title="${esc(p.group || p.section || '')}"`}>
+    <div class="on">${esc(vac ? 'Vacant' : p.nama)}</div><div class="oj">${esc(p.jabatan || '-')}</div>${tag}</div>`;
+  return `<li>${box}${ks.length ? tiersHtml(ks, M) : ''}</li>`;
+}
+function tiersHtml(list, M, tail) {
+  const rows = tierRows(list).map((r) => `<ul class="tier">${r.map((p) => ocard(p, M)).join('')}</ul>`);
+  if (tail) rows.push(tail);
+  return `<div class="tiers">${rows.join('')}</div>`;
+}
+function orgSections(P) {
+  const out = []; const idx = {};
+  P.forEach((p) => {
+    const s = p.section || 'Lainnya';
+    if (idx[s] === undefined) { idx[s] = out.length; out.push({ name: s, groups: [], gidx: {} }); }
+    const S = out[idx[s]], g = p.group || s;
+    if (S.gidx[g] === undefined) { S.gidx[g] = S.groups.length; S.groups.push({ name: g, list: [] }); }
+    S.groups[S.gidx[g]].list.push(p);
+  });
+  return out;
+}
+function orgChart(D) {
+  const P = D.P; const M = orgModel(P);
+  const freeSet = new Set(M.free.map((p) => p.uid));
+  const secs = orgSections(P);
+  const isTop = (s) => /penanggung|pjo|manajemen|management/i.test(s.name);
+  const top = secs.filter(isTop).flatMap((s) => s.groups.flatMap((g) => g.list)).filter((p) => freeSet.has(p.uid));
+  let body = secs.filter((s) => !isTop(s)).filter((s) => ui.osec === 'semua' || s.name === ui.osec);
+  const secLi = (s) => {
+    const all = s.groups.flatMap((g) => g.list), vac = all.filter(isVacant).length;
+    const frames = s.groups.map((g) => {
+      const fl = g.list.filter((p) => freeSet.has(p.uid)); if (!fl.length) return '';
+      const titled = g.name !== s.name;
+      return `<div class="gframe">${titled ? `<div class="gtitle">${esc(g.name)}<span>${g.list.length} posisi</span></div>` : ''}${tiersHtml(fl, M)}</div>`;
+    }).join('');
+    return `<li><div class="onode sec"><b>${esc(s.name)}</b><span>${all.length} posisi${vac ? ` · ${vac} vacant` : ''}</span></div>${frames ? `<div class="glist">${frames}</div>` : ''}</li>`;
+  };
+  const secRow = body.length ? `<ul class="tier secs">${body.map(secLi).join('')}</ul>` : '';
+  if (ui.osec !== 'semua') return `<div class="org">${tiersHtml([], M, secRow)}</div>`;
+  return `<div class="org">${top.length ? tiersHtml(top, M, secRow) : `<div class="tiers">${secRow}</div>`}</div>`;
+}
+function pageOrg(D) {
+  const secs = orgSections(D.P).map((s) => s.name).filter((n) => !/penanggung|pjo|manajemen|management/i.test(n));
+  const fams = [...new Set(D.P.map((p) => roleFamily(p.jabatan)))];
+  return `<div class="mhead"><div><div class="eyebrow">Monitoring Manpower KTA - TRA</div><h1>Struktur Organisasi</h1><p>Otomatis dari MPP KTA - TRA. Jabatan yang sama tampil sejajar, dikelompokkan per section dan sub-section.</p></div>
+    <div class="mtools"><select id="oSec" aria-label="Pilih section"><option value="semua">Semua section</option>${secs.map((s) => `<option ${ui.osec === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
+      <div class="seg" role="group" aria-label="Zoom"><button type="button" data-oz="-">−</button><button type="button" data-oz="fit" aria-pressed="${ui.oz === null}">Pas layar</button><button type="button" data-oz="+">+</button></div>
+      ${(DL || IS_TOP) ? '<button type="button" class="btn btn-g" id="printBtn">Print</button>' : ''}</div></div>
+  <div class="card orgcard"><div class="olegend">${fams.map((f) => `<span><i style="background:${FAM_COLOR[f] || '#6D28D9'}"></i>${esc(f)}</span>`).join('')}<span><i class="v"></i>Vacant</span>${CAN_EDIT ? '<span class="small">Klik kotak jabatan untuk mengedit atau mengatur <b>atasan langsung</b>.</span>' : ''}</div>
+    <div class="orgwrap" id="orgWrap"><div class="orgsizer" id="orgSizer">${orgChart(D)}</div></div></div>
+  <p class="note">Bawahan langsung: buka Edit pada posisi (di sini atau di MPP KTA - TRA), lalu isi <b>Atasan langsung</b>. Posisi itu akan pindah ke bawah atasannya. Jika dikosongkan, posisi tampil otomatis sejajar dengan jabatan yang sama di sub-section-nya.</p>`;
+}
+function applyOrgZoom(forWidth) {
+  const wrap = document.getElementById('orgWrap'), sizer = document.getElementById('orgSizer'); if (!wrap || !sizer) return;
+  const org = sizer.querySelector('.org'); if (!org) return;
+  org.style.transform = 'none';
+  const w = org.offsetWidth, h = org.offsetHeight;
+  const avail = forWidth || (wrap.clientWidth - 40);
+  const fit = Math.min(1, avail / w);
+  const s = forWidth ? fit : (ui.oz === null ? Math.max(.35, fit) : ui.oz);
+  org.style.transform = `scale(${s})`;
+  sizer.style.width = Math.ceil(w * s) + 'px'; sizer.style.height = Math.ceil(h * s) + 'px';
+  if (!forWidth) ui.ozCur = s;
+}
+function render() {
+  D = derive();
+  let lastG = '';
+  const nPel = D.P.reduce((a, p) => a + candidates(p).filter((c) => c.st === 'pr' || c.st === 'hd').length, 0);
+  const ct = { mpp: [D.open.length, D.ket['JATUH TEMPO'] > 0], pelamar: [nPel, false], karyawan: [DATA.aktif.length, false], unit: [D.unitTot, false] };
+  document.getElementById('nav').innerHTML = PAGES.map((pg) => {
+    const lbl = pg.grp !== lastG ? `<div class="lbl">${pg.grp}</div>` : ''; lastG = pg.grp;
+    const c = ct[pg.id];
+    return `${lbl}<button type="button" data-go="${pg.id}" ${ui.page === pg.id ? 'aria-current="page"' : ''}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">${pg.ic}</svg>${pg.label}${c ? `<span class="ct ${c[1] ? 'al' : ''}">${c[0]}</span>` : ''}</button>`;
+  }).join('');
+  document.getElementById('roleTag').textContent = ROLE;
+  document.getElementById('roleTag').className = 'pill' + (CAN_EDIT ? ' live' : '');
+  document.getElementById('upBtn').hidden = !CAN_EDIT;
+  const map = { dashboard: pageDashboard, mpp: pageMPP, pelamar: pagePelamar, org: pageOrg, unit: pageUnit, karyawan: pageKaryawan, setting: pageSetting };
+  document.getElementById('view').innerHTML = (map[ui.page] || pageDashboard)(D);
+  if (ui.page === 'org') applyOrgZoom();
+}
+document.addEventListener('click', (e) => {
+  const z = e.target.closest('[data-oz]'); if (!z) return;
+  const v = z.dataset.oz, cur = ui.ozCur || 1;
+  ui.oz = v === 'fit' ? null : Math.min(1.6, Math.max(.3, +(cur + (v === '+' ? .1 : -.1)).toFixed(2)));
+  render();
+});
+document.addEventListener('change', (e) => { if (e.target.id === 'oSec') { ui.osec = e.target.value; ui.oz = null; render(); } });
+document.addEventListener('keydown', (e) => { if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('ocard') && e.target.dataset.epos) { e.preventDefault(); e.target.click(); } });
+let _ozT; window.addEventListener('resize', () => { clearTimeout(_ozT); _ozT = setTimeout(() => { if (ui.page === 'org' && ui.oz === null) applyOrgZoom(); }, 150); });
+window.addEventListener('beforeprint', () => {
+  if (ui.page !== 'org') return;
+  let s = document.getElementById('orgPrintCss'); if (!s) { s = document.createElement('style'); s.id = 'orgPrintCss'; document.head.appendChild(s); }
+  s.textContent = '@page { size: A4 landscape; margin: 8mm; }';
+  applyOrgZoom(1080);
+});
+window.addEventListener('afterprint', () => { const s = document.getElementById('orgPrintCss'); if (s) s.remove(); if (ui.page === 'org') applyOrgZoom(); });
+
+// "Atasan langsung" in the MPP form
+const _mppForm10 = mppForm;
+mppForm = function (idx) {
+  _mppForm10(idx);
+  const p = idx == null ? null : DATA.positions[idx];
+  const opts = DATA.positions.filter((x) => !p || x.uid !== p.uid).map((x) => `<option value="${esc(x.uid)}" ${p && p.atasan === x.uid ? 'selected' : ''}>No. ${x.no} · ${esc(isVacant(x) ? 'Vacant' : x.nama)} · ${esc(x.jabatan || '')}</option>`).join('');
+  const grid = document.querySelector('#frm .fgrid');
+  if (grid) grid.insertAdjacentHTML('beforeend', `<div class="fld full"><label for="f_atasan">Atasan langsung (Struktur Organisasi)</label><select id="f_atasan"><option value="">Otomatis — sejajar dengan jabatan yang sama</option>${opts}</select><small>Pilih atasan jika posisi ini adalah bawahan/anggota dari posisi lain.</small></div>`);
+  const save = FORM.onSave;
+  FORM.onSave = (v) => {
+    const at = (document.getElementById('f_atasan') || {}).value || null;
+    const _c = commit;
+    commit = (mut, msg) => { commit = _c; return _c((S) => { mut(S); const pos = p ? S.positions.find((x) => x.uid === p.uid) : S.positions.find((x) => !x.uid); if (pos) { if (!pos.uid) pos.uid = newUid(); pos.atasan = at; } S.positions.forEach((x) => { if (!x.uid) x.uid = newUid(); }); }, msg); };
+    try { return save(v); } finally { commit = _c; }
+  };
+};
 
 // ================= WEB: standalone mode (GitHub Pages + Supabase, no Claude) =================
 const WEB_CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
