@@ -418,73 +418,7 @@ function openMPPForm(index=null){if(!editOnly())return;
   editState={type:"mpp",index};const row=index===null?{}:data.mpp[index];
   document.getElementById("modalTitle").textContent=index===null?"Tambah MPP KTA - TRA":"Edit MPP KTA - TRA";
   document.getElementById("formFields").innerHTML=MPP_FIELDS.map(f=>fieldHTML(f,row,"mpp")).join("");
-  const currentIndex=index===null?-1:index;
-  const leaderOptions=(data.mpp||[]).map((r,i)=>({r,i})).filter(x=>x.i!==currentIndex).map(x=>'<option value="'+esc(String(x.r.No))+'" '+(String(row["Atasan No"]||"")===String(x.r.No)?"selected":"")+'>'+esc(String(x.r.No)+" — "+(x.r.Nama||"VACANT")+" ("+(x.r.Jabatan||"-")+")")+'</option>').join("");
-  document.getElementById("formFields").insertAdjacentHTML("beforeend",'<div class="field"><label>Urutan SO (1 = Paling Atas)</label><input type="number" min="1" data-f="Urutan SO" value="'+esc(row["Urutan SO"]??(index===null?data.mpp.length+1:index+1))+'"></div><div class="field"><label>Atasan Langsung (berdasarkan nomor MPP)</label><select data-f="Atasan No"><option value="">— Paling atas / tidak punya atasan —</option>'+leaderOptions+'</select><small>Untuk posisi yang setingkat, pilih atasan yang sama. Untuk bawahan, pilih nomor posisi atasannya.</small></div><div class="field"><label>Scope Job (Kelompok / Tim)</label><input data-f="Scope Job" value="'+esc(row["Scope Job"]||row["Job"]||"")+'" placeholder="Contoh: Maintenance / Unscheduled MTC"></div>');
-  setupMPPOrgDropdowns(row);
   document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
-}
-
-function setupMPPOrgDropdowns(row){
- const form=document.getElementById("formFields");
- const get=f=>form.querySelector('[data-f="'+f+'"]');
- const scope=get("Scope Job"),sub=get("Sub Section Job"),direct=get("Atasan No");
- if(!scope||!sub||!direct)return;
- const catalog={
- "Penanggung Jawab Operasional":["Manajemen Operasional"],
- "Maintenance Section":["Unscheduled MTC","Scheduled MTC","Crew Electric","Crew Welder","Helper Unscheduled Repair","Helper Scheduled Repair","Helper Welder"],
- "Planner Section":["Planning","Plant Admin"],
- "Tyre Section":["Tyre Inspector","Tyre Repair","Tyre Storing"],
- "Di Luar SO":["Di Luar SO"]
- };
- const subCatalog={
- "Manajemen Operasional":["Department Head","Section Head"],
- "Unscheduled MTC":["Mekanik","Helper Unscheduled Repair"],
- "Scheduled MTC":["Mekanik","Helper Scheduled Repair"],
- "Crew Electric":["Electric"],
- "Crew Welder":["Welder","Helper Welder"],
- "Planning":["Planner"],"Plant Admin":["Admin Plant"],
- "Tyre Inspector":["Tyre Inspector"],"Tyre Repair":["Tyre Repair"],"Tyre Storing":["Tyre Storing"],
- "Helper Unscheduled Repair":["Helper Mekanik"],"Helper Scheduled Repair":["Helper Mekanik"],"Helper Welder":["Helper Welder"]
- };
- const makeSelect=(old,field)=>{
-   const el=document.createElement("select");el.dataset.f=field;
-   old.replaceWith(el);return el;
- };
- const scopeSelect=makeSelect(scope,"Scope Job");
- const subSelect=makeSelect(sub,"Sub Section Job");
- const wrap=document.createElement("div");wrap.className="field";
- wrap.innerHTML='<label>Induk Scope Job (Atasan Kelompok)</label><select data-f="Induk Scope Job"></select><small>Pilih kelompok yang membawahi Scope Job ini. Pilihan mengikuti Section Job.</small>';
- scopeSelect.closest(".field").after(wrap);
- const parentSelect=get("Induk Scope Job");
- const section=get("Section Job"),job=get("Job");
- const initialScope=String(row["Scope Job"]||row["Job"]||"").trim();
- const initialSub=String(row["Sub Section Job"]||"").trim();
- const initialParent=String(row["Induk Scope Job"]||"").trim();
- const dynamicScopes=[...new Set((data.mpp||[]).map(r=>String(r["Scope Job"]||r.Job||"").trim()).filter(Boolean))];
- const opt=(sel,values,current,placeholder)=>{
-   const entries=[...new Set(values.filter(Boolean))];
-   if(current&&!entries.includes(current))entries.push(current);
-   sel.innerHTML='<option value="">'+placeholder+'</option>'+entries.map(x=>'<option value="'+esc(x)+'">'+esc(x)+'</option>').join("");
-   sel.value=current||"";
- };
- let initialized=false;
- const update=(changed)=>{
-   const s=section?.value?.trim()||"";
-   const selectedScope=changed==="section"?"":scopeSelect.value||(initialized?"":initialScope);
-   const available=[...(catalog[s]||[]),...dynamicScopes.filter(x=>(data.mpp||[]).some(r=>String(r["Section Job"]||"").trim()===s&&String(r["Scope Job"]||r.Job||"").trim()===x))];
-   opt(scopeSelect,available,selectedScope,"— Pilih Scope Job —");
-   const currentParent=changed==="section"?"":parentSelect.value||(initialized?"":initialParent);
-   const parents=[...new Set((data.mpp||[]).filter(r=>String(r["Section Job"]||"").trim()===s).map(r=>String(r["Scope Job"]||r.Job||"").trim()).filter(Boolean))];
-   opt(parentSelect,parents.filter(x=>x!==scopeSelect.value),currentParent,"— Tidak ada / Scope paling atas —");
-   const currentSub=(changed==="scope"||changed==="section")?"":subSelect.value||(initialized?"":initialSub);
-   opt(subSelect,[...(subCatalog[scopeSelect.value]||[]),...(data.mpp||[]).filter(r=>String(r["Scope Job"]||r.Job||"").trim()===scopeSelect.value).map(r=>String(r["Sub Section Job"]||"").trim())],currentSub,"— Pilih Sub Scope Job —");
-   initialized=true;
- };
- section?.addEventListener("change",()=>update("section"));
- section?.addEventListener("input",()=>update("section"));
- scopeSelect.addEventListener("change",()=>update("scope"));
- update("");
 }
 
 function openCandidateList(mppIndex){
