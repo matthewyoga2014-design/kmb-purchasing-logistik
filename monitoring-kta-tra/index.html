@@ -48,6 +48,8 @@
 .org-child:before{content:"";position:absolute;left:50%;top:-35px;height:35px;border-left:1px solid #90b4d3}
 .org-explain{font-size:12px;color:#64748b;margin:20px 10px}
 @media print{body:has(#so.view.active) #soContent{overflow:visible!important}body:has(#so.view.active) .org-diagram{min-width:0!important;width:100%!important;padding:0!important}body:has(#so.view.active) .org-branches{gap:6px!important}body:has(#so.view.active) .org-subteams{gap:3px!important}body:has(#so.view.active) .org-title{font-size:7px!important;padding:3px!important}body:has(#so.view.active) .org-person{font-size:7px!important;grid-template-columns:minmax(0,1fr) 35px!important}body:has(#so.view.active) .org-person .org-role{font-size:6px!important}body:has(#so.view.active) .org-explain{display:none!important}@page{size:landscape;margin:6mm}}
+</style><style id="so-simple-tree">
+#soContent{background:#fff;padding:18px;overflow:auto}.tree-sheet{min-width:860px;color:#243247}.tree-header{text-align:center;font-size:13px;line-height:1.9;margin-bottom:30px}.tree-header strong{font-size:17px;letter-spacing:3px}.tree-scroll{overflow:auto;padding:12px 0 35px}.tree-chart,.tree-chart ul{display:flex;justify-content:center;gap:16px;padding-top:34px;margin:0;list-style:none;position:relative}.tree-chart>li:before,.tree-chart>li:after{display:none}.tree-chart li{position:relative;min-width:175px;max-width:260px;flex:1;text-align:center;padding:0 8px}.tree-chart li:before,.tree-chart li:after{content:"";position:absolute;top:-34px;right:50%;height:34px;width:50%;border-top:1px solid #86a5c3}.tree-chart li:after{left:50%;right:auto;border-left:1px solid #86a5c3}.tree-chart li:only-child:before,.tree-chart li:only-child:after{display:none}.tree-chart li:first-child:before,.tree-chart li:last-child:after{border:0}.tree-chart li:last-child:before{border-right:1px solid #86a5c3;border-radius:0 4px 0 0}.tree-chart li:first-child:after{border-radius:4px 0 0 0}.tree-chart ul:before{content:"";height:34px;position:absolute;top:0;left:50%;border-left:1px solid #86a5c3}.tree-person{display:grid;grid-template-columns:minmax(0,1fr) 75px;text-align:left;border:1px solid #7793ad;background:white;font-size:11px;min-height:32px}.tree-person span{padding:7px;overflow-wrap:anywhere}.tree-person small{border-left:2px solid #7793ad;padding:7px;font-size:10px;overflow-wrap:anywhere}.tree-vacant{color:#b42339;font-weight:800;background:#fff0f0}.tree-scope{font-size:10px;font-weight:600;background:#bdcada;padding:6px 4px;min-height:24px}.tree-warning{color:#b91c1c}.tree-tip{font-size:12px;color:#64748b;margin:18px 0}@media print{body:has(#so.view.active) .sidebar,body:has(#so.view.active) .topbar{display:none!important}body:has(#so.view.active) .main{margin:0!important;width:100%!important}body:has(#so.view.active) .tree-sheet{min-width:0!important}body:has(#so.view.active) .tree-person{font-size:8px!important;grid-template-columns:minmax(0,1fr) 48px!important}body:has(#so.view.active) .tree-person small{font-size:7px!important}body:has(#so.view.active) .tree-chart{gap:3px}body:has(#so.view.active) .tree-chart ul{gap:3px}body:has(#so.view.active) .tree-tip{display:none}@page{size:landscape;margin:6mm}}
 </style></head>
 <body>
 <div class="app">
@@ -223,8 +225,8 @@
 <script src="data_active.js?v=8"></script>
 <script src="data_out.js?v=8"></script>
 <script src="data_units.js?v=8"></script>
-<script src="app.js?v=20261015-so-mpp-linked"></script>
-<script src="so.js?v=20261015-orgchart3"></script>
+<script src="app.js?v=20261015-simpletree4"></script>
+<script src="so.js?v=20261015-simpletree4"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase/config.js?v=1"></script>
 <script src="../supabase/cloud-access.js?v=6"></script>
@@ -280,5 +282,5 @@ const kpi=document.getElementById("kPlanning");
 if(kpi)new MutationObserver(()=>render()).observe(kpi,{childList:true,characterData:true,subtree:true});
 setInterval(()=>{if(!document.hidden)render()},5000);
 })();
-</script><script defer src="../shared-monitoring-visuals.js?v=20261015"></script><script defer src="../candidate-attachments.js?v=20261015"></script><script defer src="../mp-active-filters.js?v=20261015"></script><script defer src="../mpp-hierarchy-input.js?v=20261015-dropdown2"></script><script defer src="so-manager.js?v=20261015-manager1"></script></body>
+</script><script defer src="../shared-monitoring-visuals.js?v=20261015"></script><script defer src="../candidate-attachments.js?v=20261015"></script><script defer src="../mp-active-filters.js?v=20261015"></script><script defer src="../mpp-hierarchy-input.js?v=20261015-dropdown2"></script></body>
 </html>
