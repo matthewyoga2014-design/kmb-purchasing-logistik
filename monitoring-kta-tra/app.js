@@ -321,9 +321,13 @@ function renderKtaCharts(){
   const stages=["SOURCING PELAMAR","PSIKOLOGI TEST","INTERVIEW USER","OFFERING","MCU","FU MCU","ON SITE","INDUKSI","HIRED"];
   const labels=["Sourcing","Psikotes","Interview","Offering","MCU","FU MCU","On Site","Induksi","Hired"];
   const counts=Object.fromEntries(stages.map(x=>[x,0]));
-  const candidateRows=allCandidateRows();
-  candidateRows.filter(isActiveCandidate).forEach(r=>{const label=norm(r["Progress Terakhir"]).toUpperCase();if(counts[label]!==undefined)counts[label]++});
-  (data.mpp||[]).filter(r=>isVacant(r.Nama)&&activeCandidates(r).length===0).forEach(r=>{const p=bestCandidateProgress(r);if(counts[p.label]!==undefined)counts[p.label]++});
+  // Pipeline hanya menghitung posisi vacant berstatus Open, beserta kandidat Aktif terkait.
+  (data.mpp||[]).filter(r=>isVacant(r.Nama)&&norm(r.Status).toLowerCase()==="open").forEach(r=>{
+    const active=activeCandidates(r);
+    if(active.length){
+      active.forEach(c=>{const label=candidateProgress(c).label;if(counts[label]!==undefined)counts[label]++});
+    }else counts["SOURCING PELAMAR"]++;
+  });
   ktaMakeChart("ktaPipelineChart",{
     type:"line",
     data:{labels,datasets:[{label:"Kandidat / Posisi",data:stages.map(s=>counts[s]),borderColor:"#7c3aed",backgroundColor:"rgba(124,58,237,.12)",pointBackgroundColor:"#fff",pointBorderColor:"#7c3aed",pointBorderWidth:3,pointRadius:4,tension:.38,fill:true}]},
