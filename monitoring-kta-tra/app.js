@@ -506,6 +506,20 @@ function renderUnits(){
 }
 function setMPMode(mode){mpMode=mode;document.querySelectorAll(".mp-tab").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));renderMP()}
 function toggleMPFull(){mpFull=!mpFull;document.getElementById("mpFullBtn").textContent=mpFull?"Tampilan Ringkas":"Semua Kolom";renderMP()}
+function sisaHariWarning(row){
+ const end=norm(row["Akhir Kontrak"]);
+ let remaining=null;
+ if(/^\d{4}-\d{2}-\d{2}$/.test(end)){
+   const p=end.split("-").map(Number),expiry=Date.UTC(p[0],p[1]-1,p[2]),now=new Date();
+   remaining=Math.round((expiry-Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()))/86400000);
+ }else{
+   const value=norm(row["Sisa Hari"]);
+   if(/^-?\d+$/.test(value))remaining=Number(value);
+   else if(/jatuh tempo|expired|habis/i.test(value))remaining=0;
+ }
+ if(remaining===null||remaining>30)return "";
+ return remaining<=7?"sisa-hari-merah":remaining<=14?"sisa-hari-oranye":"sisa-hari-kuning";
+}
 function renderMP(){
   const arr=mpMode==="active"?data.mpActive:data.mpOut,q=norm(document.getElementById("mpSearch")?.value).toLowerCase();
   const rows=arr.map((r,i)=>({...r,__i:i})).filter(r=>!q||JSON.stringify(r).toLowerCase().includes(q));
@@ -513,7 +527,7 @@ function renderMP(){
   const fields=mpFull?(mpMode==="active"?MP_ACTIVE_SCHEMA:MP_OUT_SCHEMA):MP_SUMMARY.concat(mpMode==="out"?["Tanggal Keluar"]:[]);
   const head=fields.map(f=>'<th>'+esc(f)+'</th>').join("")+'<th>Aksi</th>';
   const body=rows.map(r=>{
-    const cells=fields.map(f=>'<td>'+esc(r[f]||"-")+'</td>').join("");
+    const cells=fields.map(f=>'<td'+(f==="Sisa Hari"&&sisaHariWarning(r)?' class="'+sisaHariWarning(r)+'"':'')+'>'+esc(r[f]||"-")+'</td>').join("");
     const acts=mpMode==="active"?'<button class="btn" onclick="openMPForm(\'active\','+r.__i+')">Edit</button> <button class="btn danger" onclick="openExit('+r.__i+')">MP OUT</button>':'<button class="btn" onclick="openMPForm(\'out\','+r.__i+')">Edit</button> <button class="btn yellow" onclick="restoreFromOut('+r.__i+')">Kembalikan ke MP Aktif</button> <button class="btn danger" onclick="deleteMP(\'out\','+r.__i+')">Hapus</button>';
     return '<tr>'+cells+'<td class="action-cell">'+acts+'</td></tr>'
   }).join("");
