@@ -483,6 +483,15 @@ body.ofull .orgwrap { height: calc(100vh - 128px); }
 .org { display: flex; align-items: flex-start; gap: 70px; }
 .orgroot.out { position: relative; padding: 14px 18px 18px; border: 2px dashed #C4BFE0; border-radius: 18px; background: rgba(255,255,255,.55); }
 .outlbl { text-align: center; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.org.pos-left { flex-direction: row-reverse; }
+.org.pos-bottom { flex-direction: column; align-items: center; gap: 50px; }
+.dropbefore { box-shadow: -8px 0 0 -2px #10B981, 0 0 0 2px rgba(16,185,129,.25) !important; }
+.dropafter { box-shadow: 8px 0 0 -2px #10B981, 0 0 0 2px rgba(16,185,129,.25) !important; }
+.orgroot.dropbefore, .orgroot.dropafter, .orgroot.dropok { border-radius: 18px; }
+.onode.sec[data-rsec] { cursor: grab; user-select: none; -webkit-user-select: none; touch-action: none; }
+.outlbl[data-outmv] { cursor: grab; user-select: none; touch-action: none; }
+.outlbl .grip { font-style: normal; margin-right: 6px; color: var(--primary-2); }
+@media print { .outlbl .grip { display: none; } }
 .edf { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .edf input { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
 .edl { display: grid; gap: 6px; }
@@ -2377,7 +2386,7 @@ function pageOrg(D) {
       <button type="button" class="btn ${ui.ofull ? 'btn-p' : 'btn-g'}" id="oFull" title="Tampilkan struktur memenuhi layar (Esc untuk keluar)">${ui.ofull ? '✕ Keluar layar penuh' : '⛶ Layar penuh'}</button>
       ${DL ? '<button type="button" class="btn btn-g" data-oexp="png">Unduh PNG</button><button type="button" class="btn btn-g" data-oexp="pdf">Unduh PDF</button>' : ''}
       ${(DL || IS_TOP) ? '<button type="button" class="btn btn-g" id="printBtn">Print</button>' : ''}</div></div>
-  ${CAN_EDIT ? `<div class="ohelp"><b>Cara cepat:</b> <span>Klik kotak = edit posisi</span><span><b>+ Bawahan</b> = tambah posisi di bawahnya</span><span><b>Anggota</b> = centang anggota tim sekaligus</span><span><b>Seret kotak</b> ke atasan, sub-section, atau section lain = pindahkan</span><span>Klik nama section / sub-section = ganti nama</span></div>` : ''}
+  ${CAN_EDIT ? `<div class="ohelp"><b>Cara cepat:</b> <span>Klik kotak = edit posisi</span><span><b>+ Bawahan</b> = tambah posisi di bawahnya</span><span><b>Anggota</b> = centang anggota tim sekaligus</span><span><b>Seret kotak orang</b>: lepas di <u>tengah</u> kotak lain = jadi bawahannya, di <u>sisi kiri/kanan</u> = sejajar (ubah urutan)</span><span><b>Seret judul sub-section ⠿</b>: tengah = masuk di bawahnya, sisi kiri/kanan = ubah urutan</span><span><b>Seret kotak ungu section</b> = ubah urutan / pindah ke Di luar SO</span><span>Klik nama section / sub-section = ganti nama</span></div>` : ''}
   <div class="card orgcard"><div class="olegend">${fams.map((f) => `<span><i style="background:${FAM_COLOR[f] || '#6D28D9'}"></i>${esc(f)}</span>`).join('')}<span><i class="v"></i>Vacant</span><span><b class="lw">⚠</b>Kontrak habis ≤ 30 hari</span><span id="oqHits" class="small"></span></div>
     <div class="orgwrap" id="orgWrap"><div class="orgsizer" id="orgSizer">${orgChart(D)}</div></div></div>
   <p class="note">Bawahan otomatis ikut pindah section / sub-section bersama atasannya. Jika kolom <b>Atasan langsung</b> dikosongkan, posisi tampil sejajar dengan jabatan yang sama di sub-section-nya.</p>`;
@@ -2530,7 +2539,11 @@ document.addEventListener('click', (e) => { const b = e.target.closest('[data-oe
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-olay]'); if (!b) return; ui.olay = b.dataset.olay; store.set('kta-olay', ui.olay); ui.ojump = true; render(); });
 
 // ================= v16: pointer-based drag (mouse + touch) and pan =================
-let PD = null, SUPPRESS_CLICK = false;
+let PD = null, SUPPRESS_CLICK = false, PX = 0, PY = 0;
+const DROP_CLS = ['dropok', 'dropbefore', 'dropafter'];
+function clearDrop() { document.querySelectorAll('.dragging,.dropok,.dropbefore,.dropafter').forEach((x) => x.classList.remove('dragging', ...DROP_CLS)); }
+function markDrop(t) { document.querySelectorAll('.dropok,.dropbefore,.dropafter').forEach((x) => { if (!t || x !== t.el) x.classList.remove(...DROP_CLS); }); if (t) { t.el.classList.remove(...DROP_CLS); t.el.classList.add(t.cls || 'dropok'); } }
+document.addEventListener('pointermove', (e) => { PX = e.clientX; PY = e.clientY; }, true);
 async function doOrgDrop(uid, t) {
   const p = posByUid(DATA, uid); if (!p || !t) return;
   const L = t.leader && posByUid(DATA, t.leader);
@@ -2540,7 +2553,7 @@ async function doOrgDrop(uid, t) {
 }
 function pdCleanup() {
   if (PD && PD.ghost) PD.ghost.remove();
-  document.querySelectorAll('.dragging,.dropok').forEach((x) => x.classList.remove('dragging', 'dropok'));
+  clearDrop();
   document.body.classList.remove('odragging');
   const w = document.getElementById('orgWrap'); if (w) w.classList.remove('panning');
   DRAG = null; PD = null;
@@ -2576,8 +2589,7 @@ document.addEventListener('pointermove', (e) => {
   PD.ghost.style.left = (e.clientX - PD.ox) + 'px'; PD.ghost.style.top = (e.clientY - PD.oy) + 'px';
   const el = document.elementFromPoint(e.clientX, e.clientY);
   const t = el && el.closest('#orgWrap') ? dropTarget(el) : null; PD.t = t;
-  document.querySelectorAll('.dropok').forEach((x) => { if (!t || x !== t.el) x.classList.remove('dropok'); });
-  if (t) t.el.classList.add('dropok');
+  markDrop(t);
   const wr = PD.wrap.getBoundingClientRect(), m = 48, sp = 14;
   if (e.clientX < wr.left + m) PD.wrap.scrollLeft -= sp; else if (e.clientX > wr.right - m) PD.wrap.scrollLeft += sp;
   if (e.clientY < wr.top + m) PD.wrap.scrollTop -= sp; else if (e.clientY > wr.bottom - m) PD.wrap.scrollTop += sp;
@@ -2630,9 +2642,9 @@ function orgChart(D) {
     return `<li><div class="onode sec" data-dsec="${esc(s.name)}" ${CAN_EDIT ? `data-rsec="${esc(s.name)}" role="button" tabindex="0" title="Klik untuk ganti nama section"` : ''}><b>${esc(s.name)}</b><span>${all.length} MPP · ${mpa} MPA · ${all.length ? Math.round(mpa / all.length * 100) : 0}%</span></div>${frames}</li>`;
   };
   const secRow = body.length ? `<ul class="tier secs">${body.map(secLi).join('')}</ul>` : '';
-  const outBlk = outs.length ? `<div class="orgroot out"><div class="outlbl">Di luar Struktur Organisasi (SO)</div><div class="tiers"><ul class="tier secs">${outs.map(secLi).join('')}</ul></div></div>` : '';
+  const outBlk = outs.length ? `<div class="orgroot out"><div class="outlbl" ${CAN_EDIT ? 'data-outmv="1" title="Seret untuk memindahkan kotak ini ke kiri / kanan / bawah struktur"' : ''}>${CAN_EDIT ? '<i class="grip">⠿</i>' : ''}Di luar Struktur Organisasi (SO)</div><div class="tiers"><ul class="tier secs">${outs.map(secLi).join('')}</ul></div></div>` : '';
   const main = ui.osec !== 'semua' ? (secRow ? `<div class="orgroot">${tiersHtml([], M, secRow)}</div>` : '') : `<div class="orgroot">${top.length ? tiersHtml(top, M, secRow) : `<div class="tiers">${secRow}</div>`}</div>`;
-  return `<div class="org">${main}${outBlk}</div>`;
+  return `<div class="org pos-${['left', 'bottom'].includes(DATA.orgOutPos) ? DATA.orgOutPos : 'right'}">${main}${outBlk}</div>`;
 }
 function secOut(name, S) { const m = ((S || DATA).orgSecMode) || {}; return m[name] ? m[name] === 'out' : /luar\s*so|non[\s-]*so/i.test(name || ''); }
 
@@ -2693,8 +2705,7 @@ document.addEventListener('pointermove', (e) => {
   PG.ghost.style.left = (e.clientX - PG.ox) + 'px'; PG.ghost.style.top = (e.clientY - PG.oy) + 'px';
   const el = document.elementFromPoint(e.clientX, e.clientY);
   const t = el && el.closest('#orgWrap') ? gTarget(el, PG.key) : null; PG.t = t;
-  document.querySelectorAll('.dropok').forEach((x) => { if (!t || x !== t.el) x.classList.remove('dropok'); });
-  if (t) t.el.classList.add('dropok');
+  markDrop(t);
   const wr = PG.wrap.getBoundingClientRect(), m = 48, sp = 14;
   if (e.clientX < wr.left + m) PG.wrap.scrollLeft -= sp; else if (e.clientX > wr.right - m) PG.wrap.scrollLeft += sp;
   if (e.clientY < wr.top + m) PG.wrap.scrollTop -= sp; else if (e.clientY > wr.bottom - m) PG.wrap.scrollTop += sp;
@@ -2702,7 +2713,7 @@ document.addEventListener('pointermove', (e) => {
 }, { passive: false });
 function pgCleanup() {
   if (PG && PG.ghost) PG.ghost.remove();
-  document.querySelectorAll('.dragging,.dropok').forEach((x) => x.classList.remove('dragging', 'dropok'));
+  clearDrop();
   document.body.classList.remove('odragging'); PG = null;
 }
 document.addEventListener('pointerup', async () => {
@@ -2743,6 +2754,124 @@ document.addEventListener('wheel', (e) => {
   wrap.scrollLeft = mx * nz / old - (e.clientX - r.left); wrap.scrollTop = my * nz / old - (e.clientY - r.top);
   const l = document.getElementById('ozLbl'); if (l) l.textContent = Math.round(nz * 100) + '%';
 }, { passive: false });
+
+// ================= v19: free re-arranging (order of people, sub-sections, sections, Di luar SO box) =================
+const _orgSections15 = orgSections;
+orgSections = function (P) {
+  const out = _orgSections15(P);
+  const so = DATA.orgSecOrder || [], go = DATA.orgGrpOrder || {};
+  const ix = (arr, n, d) => { const i = arr.indexOf(n); return i < 0 ? 1000 + d : i; };
+  out.forEach((s, i) => { s._i = i; const ord = go[s.name] || []; s.groups = s.groups.map((g, j) => ({ g, k: ix(ord, g.name, j) })).sort((a, b) => a.k - b.k).map((x) => x.g); });
+  return out.sort((a, b) => ix(so, a.name, a._i) - ix(so, b.name, b._i));
+};
+const zone = (el, x, edge) => { const r = el.getBoundingClientRect(); const rel = (x - r.left) / Math.max(1, r.width); return rel < edge ? 'before' : rel > 1 - edge ? 'after' : 'mid'; };
+
+// ---------- people: before / after (sejajar) or onto (bawahan) ----------
+dropTarget = function (el) {
+  const card = el.closest('.ocard');
+  if (card) {
+    const u = card.dataset.uid; if (u === DRAG || isUnder(DATA, u, DRAG)) return null;
+    const z = zone(card, PX, .28);
+    if (z === 'mid') return { el: card, leader: u };
+    return { el: card, cls: z === 'before' ? 'dropbefore' : 'dropafter', beside: u, where: z };
+  }
+  const sec = el.closest('.onode.sec'); if (sec) return { el: sec, section: sec.dataset.dsec, group: sec.dataset.dsec };
+  const fr = el.closest('.gframe'); if (fr) return { el: fr, section: fr.dataset.dsec, group: fr.dataset.dg };
+  return null;
+};
+const _doOrgDrop15 = doOrgDrop;
+doOrgDrop = async function (uid, t) {
+  if (!t || !t.beside) return _doOrgDrop15(uid, t);
+  const p = posByUid(DATA, uid), T = posByUid(DATA, t.beside); if (!p || !T) return;
+  await commit((S) => {
+    const a = S.positions.findIndex((x) => x.uid === uid); const [rec] = S.positions.splice(a, 1);
+    const tgt = posByUid(S, t.beside);
+    rec.atasan = tgt.atasan || null; rec.section = tgt.section; rec.group = tgt.group || tgt.section;
+    const b = S.positions.findIndex((x) => x.uid === t.beside);
+    S.positions.splice(t.where === 'before' ? b : b + 1, 0, rec);
+    cascadeSection(S, rec);
+  }, `${nameOf(p)} dipindah ${t.where === 'before' ? 'sebelum' : 'sesudah'} ${nameOf(T)}.`);
+};
+
+// ---------- sub-sections: before / after (urutan) or middle (jadi di bawahnya) ----------
+gTarget = function (el, key) {
+  const fr = el.closest('.gframe');
+  if (fr) {
+    const k = GK(fr.dataset.dsec, fr.dataset.dg); if (k === key || gIsUnder(gmap(DATA), k, key)) return null;
+    const z = zone(fr, PX, .22);
+    return { el: fr, kind: z === 'mid' ? 'grp' : 'gpos', where: z, cls: z === 'mid' ? 'dropok' : z === 'before' ? 'dropbefore' : 'dropafter', key: k, sec: fr.dataset.dsec, g: fr.dataset.dg };
+  }
+  const sn = el.closest('.onode.sec'); if (sn) return { el: sn, kind: 'sec', sec: sn.dataset.dsec };
+  return null;
+};
+function grpOrderOf(S, sec) { const names = []; S.positions.forEach((p) => { if (p.section === sec) { const g = p.group || p.section; if (!names.includes(g)) names.push(g); } }); const cur = (S.orgGrpOrder || {})[sec] || []; return [...cur.filter((n) => names.includes(n)), ...names.filter((n) => !cur.includes(n))]; }
+document.addEventListener('pointerup', async () => {
+  if (!PG || !PG.started || !PG.t || PG.t.kind !== 'gpos') return;
+  const { t, key, sec, g } = PG; pgCleanup();
+  SUPPRESS_CLICK = true; setTimeout(() => { SUPPRESS_CLICK = false; }, 0);
+  await commit((S) => {
+    if (t.sec !== sec) moveGroupSection(S, key, t.sec);
+    const m = { ...gmap(S) }; const nk = GK(t.sec, g); const tp = m[t.key]; if (tp) m[nk] = tp; else delete m[nk]; S.orgGroups = m;
+    const ord = grpOrderOf(S, t.sec).filter((n) => n !== g); const i = ord.indexOf(t.g); ord.splice(t.where === 'before' ? i : i + 1, 0, g);
+    S.orgGrpOrder = { ...(S.orgGrpOrder || {}), [t.sec]: ord };
+  }, `${g} dipindah ${t.where === 'before' ? 'sebelum' : 'sesudah'} ${t.g}.`);
+}, true);
+
+// ---------- sections (kotak ungu) and the Di luar SO box ----------
+let PS = null;
+function secOrderOf(S) { const names = []; S.positions.forEach((p) => { const s = p.section || 'Lainnya'; if (!names.includes(s)) names.push(s); }); const cur = S.orgSecOrder || []; return [...cur.filter((n) => names.includes(n)), ...names.filter((n) => !cur.includes(n))]; }
+function sTarget(el) {
+  if (PS.kind === 'box') return null;
+  const sn = el.closest('.onode.sec');
+  if (sn && sn.dataset.dsec !== PS.sec) { const z = zone(sn, PX, .5); return { el: sn, kind: 'spos', sec: sn.dataset.dsec, where: z === 'before' ? 'before' : 'after', cls: z === 'before' ? 'dropbefore' : 'dropafter' }; }
+  const out = el.closest('.orgroot.out'); if (out && !secOut(PS.sec)) return { el: out, kind: 'sout' };
+  const main = el.closest('.orgroot:not(.out)'); if (main && secOut(PS.sec)) return { el: main, kind: 'sin' };
+  return null;
+}
+document.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0 || !CAN_EDIT) return;
+  const sn = e.target.closest && e.target.closest('#orgWrap .onode.sec[data-rsec]');
+  const ob = e.target.closest && e.target.closest('#orgWrap [data-outmv]');
+  if (!sn && !ob) return;
+  PS = sn ? { kind: 'sec', el: sn, sec: sn.dataset.rsec, x: e.clientX, y: e.clientY } : { kind: 'box', el: ob.closest('.orgroot.out'), x: e.clientX, y: e.clientY };
+  PS.wrap = document.getElementById('orgWrap'); e.preventDefault();
+});
+document.addEventListener('pointermove', (e) => {
+  if (!PS) return;
+  const dx = e.clientX - PS.x, dy = e.clientY - PS.y;
+  if (!PS.started) {
+    if (Math.hypot(dx, dy) < 7) return;
+    PS.started = true; const src = PS.kind === 'box' ? PS.el.querySelector('.outlbl') : PS.el;
+    const r = src.getBoundingClientRect(); PS.ox = PS.x - r.left; PS.oy = PS.y - r.top;
+    const g = src.cloneNode(true); g.classList.add('oghost', 'gghost'); g.style.transform = `scale(${r.width / src.offsetWidth})`; g.style.width = src.offsetWidth + 'px';
+    document.body.appendChild(g); PS.ghost = g; PS.el.classList.add('dragging'); document.body.classList.add('odragging');
+  }
+  e.preventDefault();
+  PS.ghost.style.left = (e.clientX - PS.ox) + 'px'; PS.ghost.style.top = (e.clientY - PS.oy) + 'px';
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  if (PS.kind === 'box') {
+    const main = document.querySelector('#orgWrap .orgroot:not(.out)');
+    if (main) { const r = main.getBoundingClientRect(); PS.pos = e.clientY > r.bottom - 20 ? 'bottom' : e.clientX < r.left + r.width / 2 ? 'left' : 'right'; main.dataset.pos = PS.pos; markDrop({ el: main, cls: PS.pos === 'left' ? 'dropbefore' : PS.pos === 'right' ? 'dropafter' : 'dropok' }); }
+  } else { const t = el && el.closest('#orgWrap') ? sTarget(el) : null; PS.t = t; markDrop(t); }
+  const wr = PS.wrap.getBoundingClientRect(), m = 48, sp = 14;
+  if (e.clientX < wr.left + m) PS.wrap.scrollLeft -= sp; else if (e.clientX > wr.right - m) PS.wrap.scrollLeft += sp;
+  if (e.clientY < wr.top + m) PS.wrap.scrollTop -= sp; else if (e.clientY > wr.bottom - m) PS.wrap.scrollTop += sp;
+}, { passive: false });
+function psCleanup() { if (PS && PS.ghost) PS.ghost.remove(); clearDrop(); document.body.classList.remove('odragging'); PS = null; }
+document.addEventListener('pointerup', async () => {
+  if (!PS) return;
+  const { started, kind, t, sec, pos } = PS; psCleanup();
+  if (!started) return;
+  SUPPRESS_CLICK = true; setTimeout(() => { SUPPRESS_CLICK = false; }, 0);
+  if (kind === 'box') { if (!pos || pos === (DATA.orgOutPos || 'right')) return; await commit((S) => { S.orgOutPos = pos; }, `Kotak Di luar SO dipindah ke ${pos === 'left' ? 'kiri' : pos === 'right' ? 'kanan' : 'bawah'} struktur.`); return; }
+  if (!t) { toast('Lepaskan di samping kotak section lain, atau di area Di luar SO.', true); return; }
+  if (t.kind === 'sout' || t.kind === 'sin') { await commit((S) => { S.orgSecMode = { ...(S.orgSecMode || {}), [sec]: t.kind === 'sout' ? 'out' : 'in' }; }, t.kind === 'sout' ? `${sec} dipindah ke Di luar SO.` : `${sec} disambungkan ke struktur.`); return; }
+  await commit((S) => {
+    const ord = secOrderOf(S).filter((n) => n !== sec); const i = ord.indexOf(t.sec); ord.splice(t.where === 'before' ? i : i + 1, 0, sec); S.orgSecOrder = ord;
+    if (secOut(t.sec, S) !== secOut(sec, S)) S.orgSecMode = { ...(S.orgSecMode || {}), [sec]: secOut(t.sec, S) ? 'out' : 'in' };
+  }, `${sec} dipindah ${t.where === 'before' ? 'sebelum' : 'sesudah'} ${t.sec}.`);
+});
+document.addEventListener('pointercancel', psCleanup);
 
 // ================= WEB: standalone mode (GitHub Pages + Supabase, no Claude) =================
 const WEB_CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
