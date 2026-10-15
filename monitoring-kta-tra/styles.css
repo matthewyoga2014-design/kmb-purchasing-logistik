@@ -201,3 +201,8 @@ body.viewer-mode button[onclick*="restoreFromOut"]{display:none!important}
  #dashboard .table{min-width:0!important;width:100%!important;table-layout:auto!important}
  #dashboard .card{box-shadow:none!important}
 }
+
+/* Peringatan Sisa Hari: kontrak panjang tetap tanpa warna */
+#mpTable td.sisa-hari-kuning{background:#fff4c2!important;color:#805600!important;font-weight:700}
+#mpTable td.sisa-hari-oranye{background:#ffe0bf!important;color:#9c4600!important;font-weight:700}
+#mpTable td.sisa-hari-merah{background:#ffd7dc!important;color:#a41629!important;font-weight:700}
