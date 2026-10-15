@@ -506,6 +506,8 @@ body.ofull .orgwrap { height: calc(100vh - 128px); }
 .orgwrap.dashv { height: auto; overflow: hidden; cursor: default; padding: 18px 12px 22px; }
 .orgwrap.dashv .ocard { cursor: default; }
 @media print { .dashorg { break-before: page; } .dashorg .btn { display: none !important; } }
+.orgwrap.fitw { height: auto !important; overflow: hidden; cursor: default; }
+body.ofull .orgwrap.fitw { height: auto !important; }
 .edf { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .edf input { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
 .edl { display: grid; gap: 6px; }
@@ -2149,7 +2151,7 @@ async function stampForPdf() {
 PAGES.splice(PAGES.findIndex((x) => x.id === 'karyawan'), 0, { id: 'org', label: 'Struktur Organisasi', grp: 'Monitoring', ic: '<rect x="9" y="3" width="6" height="5" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="3" y="16" width="6" height="5" rx="1" stroke="currentColor" stroke-width="1.8"/><rect x="15" y="16" width="6" height="5" rx="1" stroke="currentColor" stroke-width="1.8"/><path d="M12 8v4M6 16v-4h12v4" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>' });
 if ((location.hash || '').slice(1) === 'org') ui.page = 'org';
 try { if ((sessionStorage.getItem('mp5-page') || store.get('mp5-page')) === 'org') ui.page = 'org'; } catch (e) {}
-ui.osec = 'semua'; ui.oz = (() => { const v = parseFloat(store.get('kta-oz')); return v > 0 ? v : 0.9; })(); ui.ofull = false;
+ui.osec = 'semua'; ui.oz = (() => { const v = parseFloat(store.get('kta-oz2')); return v > 0 ? v : null; })(); ui.ofull = false;
 
 const newUid = () => 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const _materialize = materialize;
@@ -2246,7 +2248,8 @@ function applyOrgZoom(forWidth) {
   const org = sizer.querySelector('.org'); if (!org) return;
   org.style.transform = 'none';
   const w = org.offsetWidth, h = org.offsetHeight;
-  const fit = forWidth ? Math.min(1, forWidth / w) : Math.min(1, (wrap.clientWidth - 40) / w, (wrap.clientHeight - 50) / h);
+  wrap.classList.toggle('fitw', !forWidth && ui.oz === null);
+  const fit = forWidth ? Math.min(1, forWidth / w) : Math.min(1, (wrap.clientWidth - 40) / w);
   const s = forWidth ? fit : (ui.oz === null ? Math.max(.2, fit) : ui.oz);
   org.style.transform = `scale(${s})`;
   sizer.style.width = Math.ceil(w * s) + 'px'; sizer.style.height = Math.ceil(h * s) + 'px';
@@ -2278,7 +2281,7 @@ document.addEventListener('click', (e) => {
   const z = e.target.closest('[data-oz]'); if (!z) return;
   const v = z.dataset.oz, cur = ui.ozCur || 1;
   ui.oz = v === 'fit' ? null : v === '100' ? 1 : Math.min(1.8, Math.max(.2, +(cur + (v === '+' ? .1 : -.1)).toFixed(2)));
-  if (ui.oz !== null) store.set('kta-oz', String(ui.oz)); ui.ojump = true;
+  store.set('kta-oz2', ui.oz === null ? '' : String(ui.oz)); ui.ojump = true;
   render();
 });
 document.addEventListener('change', (e) => { if (e.target.id === 'oSec') { ui.osec = e.target.value; ui.ojump = true; render(); } });
@@ -2338,7 +2341,7 @@ document.addEventListener('click', (e) => {
 });
 
 // ================= v15: Struktur Organisasi tools (tambah bawahan, anggota, drag & drop, info, cari, unduh) =================
-ui.oq = ''; ui.olay = (store.get('kta-olay') === 'v') ? 'v' : 'h';
+ui.oq = ''; ui.olay = (store.get('kta-olay2') === 'h') ? 'h' : 'v';
 let ORG_MP = null;
 function orgMpIndex() {
   const m = DATA.aktif.map((a) => [normName(a.nama), a]);
@@ -2395,8 +2398,8 @@ function pageOrg(D) {
   return `<div class="mhead"><div><div class="eyebrow">Monitoring Manpower KTA - TRA</div><h1>Struktur Organisasi</h1><p>Otomatis dari MPP KTA - TRA. Jabatan yang sama tampil sejajar, dikelompokkan per section dan sub-section.</p></div>
     <div class="mtools"><input type="search" id="oq" placeholder="Cari nama / jabatan" value="${esc(ui.oq)}" aria-label="Cari di struktur">
       <select id="oSec" aria-label="Pilih section"><option value="semua">Semua section</option>${secs.map((s) => `<option ${ui.osec === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
-      <div class="seg" role="group" aria-label="Tata letak sub-section"><button type="button" data-olay="h" aria-pressed="${ui.olay !== 'v'}" title="Sub-section berjajar ke samping">Sub-section mendatar</button><button type="button" data-olay="v" aria-pressed="${ui.olay === 'v'}" title="Sub-section bersusun ke bawah (lebih ringkas)">Menurun</button></div>
-      <div class="seg" role="group" aria-label="Zoom"><button type="button" data-oz="-" title="Perkecil">−</button><button type="button" data-oz="100" title="Ukuran asli" id="ozLbl">${ui.oz === null ? 'Pas' : Math.round(ui.oz * 100) + '%'}</button><button type="button" data-oz="+" title="Perbesar">+</button><button type="button" data-oz="fit" aria-pressed="${ui.oz === null}" title="Tampilkan semua">Pas layar</button></div>
+      <div class="seg" role="group" aria-label="Tata letak sub-section"><button type="button" data-olay="h" aria-pressed="${ui.olay !== 'v'}" title="Sub-section berjajar ke samping (lebar)">Mendatar</button><button type="button" data-olay="v" aria-pressed="${ui.olay === 'v'}" title="Sub-section bersusun ke bawah (ringkas, mudah dibaca)">Sub-section menurun</button></div>
+      <div class="seg" role="group" aria-label="Zoom"><button type="button" data-oz="-" title="Perkecil">−</button><button type="button" data-oz="100" title="Ukuran asli" id="ozLbl">${ui.oz === null ? 'Pas' : Math.round(ui.oz * 100) + '%'}</button><button type="button" data-oz="+" title="Perbesar">+</button><button type="button" data-oz="fit" aria-pressed="${ui.oz === null}" title="Seluruh struktur pas dengan lebar layar">Pas lebar</button></div>
       <button type="button" class="btn ${ui.ofull ? 'btn-p' : 'btn-g'}" id="oFull" title="Tampilkan struktur memenuhi layar (Esc untuk keluar)">${ui.ofull ? '✕ Keluar layar penuh' : '⛶ Layar penuh'}</button>
       ${DL ? '<button type="button" class="btn btn-g" data-oexp="png">Unduh PNG</button><button type="button" class="btn btn-g" data-oexp="pdf">Unduh PDF</button>' : ''}
       ${(DL || IS_TOP) ? '<button type="button" class="btn btn-g" id="printBtn">Print</button>' : ''}</div></div>
@@ -2550,7 +2553,7 @@ async function exportOrg(kind) {
 }
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-oexp]'); if (b) exportOrg(b.dataset.oexp); });
 
-document.addEventListener('click', (e) => { const b = e.target.closest('[data-olay]'); if (!b) return; ui.olay = b.dataset.olay; store.set('kta-olay', ui.olay); ui.ojump = true; render(); });
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-olay]'); if (!b) return; ui.olay = b.dataset.olay; store.set('kta-olay2', ui.olay); ui.ojump = true; render(); });
 
 // ================= v16: pointer-based drag (mouse + touch) and pan =================
 let PD = null, SUPPRESS_CLICK = false, PX = 0, PY = 0;
@@ -2796,7 +2799,7 @@ document.addEventListener('wheel', (e) => {
   e.preventDefault();
   const r = wrap.getBoundingClientRect(), mx = e.clientX - r.left + wrap.scrollLeft, my = e.clientY - r.top + wrap.scrollTop;
   const old = ui.ozCur || 1, nz = Math.min(1.8, Math.max(.2, +(old * (e.deltaY < 0 ? 1.1 : 1 / 1.1)).toFixed(3)));
-  ui.oz = nz; store.set('kta-oz', String(nz)); applyOrgZoom();
+  ui.oz = nz; store.set('kta-oz2', String(nz)); applyOrgZoom();
   wrap.scrollLeft = mx * nz / old - (e.clientX - r.left); wrap.scrollTop = my * nz / old - (e.clientY - r.top);
   const l = document.getElementById('ozLbl'); if (l) l.textContent = Math.round(nz * 100) + '%';
 }, { passive: false });
