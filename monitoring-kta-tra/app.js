@@ -156,7 +156,7 @@ function loadData(){
   }catch(e){return clone(BASE)}
 }
 ensureKtaRuntime();renumberKtaAll();
-function saveData(){ensureKtaRuntime();renumberKtaAll();localStorage.setItem(STORAGE_KEY,JSON.stringify(data));renderDashboard();renderSettings()}
+function saveData(){ensureKtaRuntime();renumberKtaAll();localStorage.setItem(STORAGE_KEY,JSON.stringify(data));renderDashboard();renderSettings();if(typeof window.renderKtaSO==="function")window.renderKtaSO()}
 function ktaRestoreKey(rec){return [nameKey(rec?.Nama),jobKey(rec?.Jabatan),norm(rec?.SITE||"TRA").toLowerCase()].join("|")}
 function ensureKtaRuntime(){
   if(!Array.isArray(data.deletedMPP))data.deletedMPP=[];
