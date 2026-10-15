@@ -110,6 +110,20 @@ function mount(){
    if(scope.existing)renderAttachments(scope,stage,host);else host.textContent="Belum ada lampiran";
  }
 }
+window.KMBUploadCandidateAttachment=async function(targetApp,vacancy,candidateName,stage,file){
+ if(targetApp!==appId)throw new Error("Aplikasi tidak cocok.");
+ if(!["owner","editor"].includes(window.accessMode?.()))throw new Error("Hanya Pemilik atau Editor dapat mengunggah.");
+ if(!file||file.size>20*1024*1024)throw new Error("Ukuran file maksimal 20 MB.");
+ if(!["application/pdf","image/jpeg","image/png"].includes(file.type))throw new Error("Gunakan PDF, JPG, atau PNG.");
+ const sb=clientForApp();if(!sb)throw new Error("Koneksi penyimpanan belum tersedia.");
+ const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,"_");
+ const objectPath=appId+"/"+crypto.randomUUID()+"_"+safe;
+ const uploaded=await sb.storage.from("kmb-candidate-docs").upload(objectPath,file,{upsert:false,contentType:file.type});
+ if(uploaded.error)throw uploaded.error;
+ const added=await sb.from("candidate_attachments").insert({app_id:appId,vacancy_key:vacancy,candidate_name:candidateName,stage,object_path:objectPath,filename:file.name});
+ if(added.error){await sb.storage.from("kmb-candidate-docs").remove([objectPath]);throw added.error;}
+ return {ok:true,objectPath};
+};
 window.KMBListCandidateAttachments=async function(targetApp,vacancy,candidateName){
  if(targetApp!==appId)throw new Error("Aplikasi tidak cocok.");
  const sb=clientForApp();if(!sb)throw new Error("Koneksi file belum tersedia.");
