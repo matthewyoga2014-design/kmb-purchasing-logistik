@@ -551,9 +551,29 @@ function deleteKtaUnit(index){if(!editOnly())return;
   if(!confirm("Hapus "+(row["Jenis Unit"]||"jenis unit ini")+" dari Populasi Unit KTA - TRA?"))return;
   data.units.splice(index,1);saveData();renderUnits();renderDashboard();
 }
+function ktaUnitIcon(name){
+ const n=norm(name).toLowerCase().replace(/[^a-z0-9]+/g," ");
+ const paths={
+  lamp:'<path d="M12 20V6m-5 14h10M7 6l5-3 5 3-2 5H9z"/><path d="m4 4-2-2m18 2 2-2m-18 10-2 2m18-2 2 2"/>',
+  generator:'<rect x="3" y="7" width="18" height="11" rx="2"/><circle cx="9" cy="12.5" r="3"/><path d="M15 11h3m-3 3h3M6 18v2m12-2v2"/>',
+  bus:'<rect x="3" y="4" width="18" height="15" rx="3"/><path d="M3 12h18M7 8h4m3 0h3M6 19v2m12-2v2"/><circle cx="7" cy="15.5" r="1"/><circle cx="17" cy="15.5" r="1"/>',
+  dump:'<path d="M2 10h12l3 7H4zM4 10l2-5h10l-2 5M17 13h3l2 3v2h-5z"/><circle cx="8" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>',
+  bulldozer:'<path d="M3 14h13l3 3H3zM7 14V8h7l2 6M9 8V5h5"/><path d="M2 17h18v3H2zM20 10h2v11h-3"/><circle cx="7" cy="18.5" r="1"/><circle cx="14" cy="18.5" r="1"/>',
+  tanker:'<rect x="3" y="8" width="13" height="9" rx="4"/><path d="M16 12h4l2 3v3h-5M3 17H1"/><circle cx="6" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>',
+  lube:'<path d="M2 11h11v7H2zM13 13h5l3 3v2h-8M4 11V7h6v4"/><circle cx="6" cy="19" r="2"/><circle cx="17" cy="19" r="2"/><path d="M8 3v5m-2-2 2 2 2-2"/>',
+  weld:'<path d="M6 3h12v12H6zM9 6h6v5H9zM12 15v4m-4 2h8"/><path d="m2 7 2 2m-2 4 2-2m16-2 2-2m-2 6 2 2"/>',
+  grader:'<path d="M2 14h10l4-4h5v7H2zM7 14V8h5v6M11 17l3 4 3-4"/><circle cx="5" cy="19" r="2"/><circle cx="19" cy="19" r="2"/>',
+  water:'<rect x="2" y="8" width="14" height="9" rx="4"/><path d="M16 12h4l2 3v3h-5"/><circle cx="6" cy="19" r="2"/><circle cx="19" cy="19" r="2"/><path d="M9 9c2 2 3 3 3 5a3 3 0 0 1-6 0c0-2 1-3 3-5z"/>',
+  compressor:'<rect x="2" y="9" width="15" height="9" rx="3"/><circle cx="6" cy="19" r="2"/><circle cx="16" cy="19" r="2"/><path d="M9 9V5h5v4m3 2h4v5h-4"/>',
+  pump:'<circle cx="10" cy="13" r="6"/><path d="M10 7V3h7v4M16 13h6v7h-6M10 10v6m-3-3h6"/>',
+  excavator:'<path d="M2 17h15v3H2zM6 17V9h8v8M14 10l4-6 4 2-4 9-4-2"/><path d="m18 15 4 2-2 3h-3"/><circle cx="6" cy="18.5" r="1"/><circle cx="13" cy="18.5" r="1"/>'
+ };
+ let kind=n.includes("tower")||n.includes("lamp")?"lamp":n.includes("genset")?"generator":n.includes("bus")?"bus":n.includes("dt")||n.includes("dump")?"dump":n.includes("bulldoz")?"bulldozer":n.includes("fuel")?"tanker":n.includes("lube")?"lube":n.includes("las")||n.includes("weld")?"weld":n.includes("grader")?"grader":n.includes("water")?"water":n.includes("compress")?"compressor":n.includes("pomp")||n.includes("pump")?"pump":n.includes("excavat")?"excavator":"generator";
+ return '<svg class="kta-unit-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+paths[kind]+'</svg>';
+}
 function renderUnits(){
   const total=(data.units||[]).reduce((s,r)=>s+(Number(r.Jumlah)||0),0);
-  const dashboardCards=(data.units||[]).map(r=>'<div class="unit-card"><span>'+esc(r["Jenis Unit"])+'</span><b>'+esc(r.Jumlah)+'</b></div>').join("");
+  const dashboardCards=(data.units||[]).map(r=>'<div class="unit-card"><span class="kta-unit-icon">'+ktaUnitIcon(r["Jenis Unit"])+'</span><span>'+esc(r["Jenis Unit"])+'</span><b>'+esc(r.Jumlah)+'</b></div>').join("");
   const pageCards=(data.units||[]).map((r,i)=>'<div class="unit-card unit-manage-card"><div class="unit-manage-main"><span>'+esc(r["Jenis Unit"])+'</span><b>'+esc(r.Jumlah)+'</b></div><div class="unit-manage-actions"><button class="btn" onclick="openKtaUnitForm('+i+')">Edit</button><button class="btn danger" onclick="deleteKtaUnit('+i+')">Hapus</button></div></div>').join("");
   const totalEl=document.getElementById("unitTotal");if(totalEl)totalEl.textContent=total+" unit";
   const dash=document.getElementById("unitSummary");if(dash)dash.innerHTML=dashboardCards;
