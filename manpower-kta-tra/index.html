@@ -1392,7 +1392,7 @@ function pageSetting(D) {
   <div class="grid">
     <div class="card s6"><div class="ch"><div><div class="eyebrow">Akses</div><h2>Pemilik & Editor</h2></div><span class="pill ${CAN_EDIT ? 'live' : ''}">${ROLE}</span></div>
       <div class="role"><b>Pemilik</b><span>Akun Claude yang membuat web ini. Bisa mengedit semua data dan menentukan siapa saja editornya.</span></div>
-      <div class="role"><b>Editor</b><span>Orang yang diberi akses edit oleh pemilik. Bisa menambah, mengubah, menghapus data, dan upload berkas pelamar.</span></div>
+      <div class="role"><b>Editor</b><span>Orang yang diberi akses edit oleh pemilik. Bisa mengubah data posisi yang sudah ada, mengelola pelamar, upload berkas, dan menata Struktur Organisasi. Menambah / menghapus posisi, membuat nama section / sub-section / jabatan baru, sinkron Excel, dan pulihkan backup hanya oleh Pemilik.</span></div>
       <div class="role"><b>Pelihat</b><span>Semua orang lain yang membuka link. Bisa melihat, mencari, print, dan export, tanpa bisa mengubah data.</span></div>
       <p class="small" style="margin:12px 0 0">${IS_OWNER ? 'Anda masuk sebagai <b style="color:var(--good)">Pemilik</b>.' : CAN_EDIT ? 'Anda masuk sebagai <b style="color:var(--good)">Editor</b>. Tombol Tambah, Edit, dan Hapus aktif di setiap halaman.' : 'Anda melihat sebagai <b>Pelihat</b>. Minta pemilik memberi Anda akses edit jika perlu mengubah data.'}</p></div>
     <div class="card s6"><div class="ch"><div><div class="eyebrow">Editor</div><h2>Cara menambah editor</h2><p>Editor ditambahkan dari menu berbagi di Claude, bukan dari halaman ini.</p></div></div>
@@ -2974,7 +2974,7 @@ function comboize(key, list, cur, onChange) {
   const NEW = '__new__';
   const sel = document.createElement('select'); sel.id = 'f_' + key; sel.name = key;
   const has = cur && list.some((x) => x === cur);
-  sel.innerHTML = (key === 'group' ? '<option value="">— Sama dengan section —</option>' : '<option value="">— Pilih —</option>') + optHtml(list, cur) + (cur && !has ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : '') + `<option value="${NEW}">➕ Tambah baru…</option>`;
+  sel.innerHTML = (key === 'group' ? '<option value="">— Sama dengan section —</option>' : '<option value="">— Pilih —</option>') + optHtml(list, cur) + (cur && !has ? `<option value="${esc(cur)}" selected>${esc(cur)}</option>` : '') + (IS_OWNER ? `<option value="${NEW}">➕ Tambah baru…</option>` : '');
   const box = document.createElement('input'); box.type = 'text'; box.placeholder = 'Ketik nama baru'; box.hidden = true; box.className = 'combonew'; box.autocomplete = 'off';
   inp.replaceWith(sel); sel.after(box);
   const dl = document.getElementById('dl_' + key); if (dl) dl.remove();
@@ -2992,7 +2992,7 @@ mppForm = function (idx) {
   const jabCur = (document.getElementById('f_jabatan') || {}).value || (p && p.jabatan) || '';
   comboize('section', secList(), secCur, (v) => {
     const g = document.getElementById('f_group'); if (!g || g.tagName !== 'SELECT') return;
-    g.innerHTML = '<option value="">— Sama dengan section —</option>' + optHtml(grpList(v), '') + '<option value="__new__">➕ Tambah baru…</option>';
+    g.innerHTML = '<option value="">— Sama dengan section —</option>' + optHtml(grpList(v), '') + (IS_OWNER ? '<option value="__new__">➕ Tambah baru…</option>' : '');
   });
   comboize('group', grpList(secCur), grpCur === secCur ? '' : grpCur);
   comboize('jabatan', jabList(), jabCur);
@@ -3006,6 +3006,43 @@ mppForm = function (idx) {
     return save(v);
   };
 };
+
+// ================= v21: only the Pemilik may add / delete positions (and create new names) =================
+const OWNER_ONLY = 'Hanya Pemilik yang bisa menambah atau menghapus posisi.';
+const _commit17 = commit;
+commit = function (mut, msg) {
+  if (!IS_OWNER) {
+    const test = JSON.parse(JSON.stringify(STATE));
+    const ids = (S) => S.positions.map((p) => p.uid || '');
+    const before = ids(test); try { mut(test); } catch (e) { return _commit17(mut, msg); }
+    const after = ids(test);
+    const removed = before.some((u) => !after.includes(u)), added = after.length !== before.length || after.some((u) => !u || !before.includes(u));
+    if (removed || added) { toast(OWNER_ONLY, true); return Promise.resolve(false); }
+    const nm = (S, k) => new Set(S.positions.map((p) => String(k === 'group' ? (p.group || p.section) : p[k] || '').toLowerCase()));
+    for (const k of ['section', 'group', 'jabatan']) { const old = nm(STATE, k); if ([...nm(test, k)].some((v) => v && !old.has(v))) { toast('Nama section / sub-section / jabatan baru hanya bisa dibuat oleh Pemilik.', true); return Promise.resolve(false); } }
+  }
+  return _commit17(mut, msg);
+};
+const _pageMPP17 = pageMPP;
+pageMPP = function (D) {
+  let h = _pageMPP17(D);
+  if (!IS_OWNER) h = h.replace(/<button type="button" class="btn btn-y" id="addPos">[^<]*<\/button>/g, '').replace(/<button type="button" class="btn btn-g btn-sm red" data-delpos="\d+">Hapus<\/button>/g, '');
+  return h;
+};
+const _render17 = render;
+render = function () {
+  _render17();
+  if (!IS_OWNER) {
+    const up = document.getElementById('upBtn'); if (up) up.hidden = true;
+    document.querySelectorAll('#view [data-sync], #view #rsBtn').forEach((b) => { const s = document.createElement('p'); s.className = 'small'; s.style.margin = '0'; s.textContent = 'Hanya Pemilik yang bisa melakukan ini.'; b.replaceWith(s); });
+  }
+};
+document.addEventListener('click', (e) => {
+  if (IS_OWNER || !CAN_EDIT) return;
+  const t = e.target;
+  if (t.closest('#addPos') || t.closest('[data-delpos]') || t.closest('#upBtn') || t.closest('[data-sync]') || t.closest('#rsBtn')) { e.stopPropagation(); e.preventDefault(); toast(t.closest('#addPos') || t.closest('[data-delpos]') ? OWNER_ONLY : 'Hanya Pemilik yang bisa melakukan ini.', true); return; }
+  if (!SUPPRESS_CLICK && (t.closest('[data-rsec]') || t.closest('[data-rgrp]'))) { e.stopPropagation(); toast('Ganti nama section / sub-section hanya bisa oleh Pemilik. Anda tetap bisa menyeret untuk mengatur letaknya.', true); }
+}, true);
 
 // ================= WEB: standalone mode (GitHub Pages + Supabase, no Claude) =================
 const WEB_CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
@@ -3158,7 +3195,7 @@ function pageSetting(D) {
   <div class="grid">
     <div class="card s6"><div class="ch"><div><div class="eyebrow">Akses</div><h2>Pemilik & Editor</h2></div><span class="pill ${CAN_EDIT ? 'live' : ''}">${ROLE}</span></div>
       <div class="role"><b>Pemilik</b><span>${esc(WEB_OWNER)}. Bisa mengedit semua data dan menentukan siapa saja editornya.</span></div>
-      <div class="role"><b>Editor</b><span>Email yang didaftarkan Pemilik. Masuk lewat tombol Masuk, lalu bisa menambah, mengubah, menghapus data, dan upload berkas pelamar.</span></div>
+      <div class="role"><b>Editor</b><span>Email yang didaftarkan Pemilik. Masuk lewat tombol Masuk, lalu bisa mengubah data posisi yang sudah ada, mengelola pelamar, upload berkas, dan menata Struktur Organisasi. Menambah / menghapus posisi, nama section / sub-section / jabatan baru, sinkron Excel, dan pulihkan backup hanya oleh Pemilik.</span></div>
       <div class="role"><b>Pelihat</b><span>Semua orang yang membuka link tanpa masuk. Bisa melihat, mencari, print, dan export, tanpa bisa mengubah data.</span></div>
       <p class="small" style="margin:12px 0 0">${WEB.user ? `Masuk sebagai <b style="color:var(--ink)">${esc(WEB.user.email)}</b> — ${IS_OWNER ? '<b style="color:var(--good)">Pemilik</b>' : CAN_EDIT ? '<b style="color:var(--good)">Editor</b>' : '<b>Pelihat</b> (email ini belum didaftarkan sebagai Editor)'}.` : 'Anda melihat sebagai <b>Pelihat</b>. Klik <b>Masuk</b> di pojok kanan atas untuk mengedit.'}</p></div>
     ${editorsCard()}
