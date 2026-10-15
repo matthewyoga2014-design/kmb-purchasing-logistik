@@ -518,6 +518,17 @@ body.ofull .orgwrap.fitw { height: auto !important; }
 .glist > .gnode > .gframe::before { content: ""; position: absolute; left: -18px; top: 22px; width: 18px; border-top: 2px solid var(--ol); }
 .gframe > ul.gul { margin-top: 6px; }
 .gframe > ul.gul > li > .gnode > .gframe { background: var(--card-2); }
+/* v25: taller, narrower cards (portrait-friendly) */
+.ocard { width: 120px; }
+.ocard .oj { font-size: 10.5px; padding: 7px 6px; min-height: 36px; display: grid; place-items: center; line-height: 1.2; }
+.ocard .on { font-size: 12.5px; line-height: 1.3; padding: 12px 6px; min-height: 64px; word-break: break-word; }
+.ocard .oi { font-size: 9px; padding: 4px 4px 5px; }
+.ocard .oacts button { font-size: 9.5px; padding: 6px 2px; }
+.org li { padding-left: 4px; padding-right: 4px; }
+.org ul.gul > li { padding-left: 6px; padding-right: 6px; }
+.gframe { padding: 8px 8px 10px; }
+.gtitle { font-size: 11.5px; white-space: normal; max-width: 260px; }
+@media print { .orgcard, .orgwrap { break-inside: auto !important; } .orgcard { padding: 0; } .ocard, .gtitle, .onode { break-inside: avoid; } }
 .edf { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .edf input { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
 .edl { display: grid; gap: 6px; }
@@ -2300,10 +2311,11 @@ let _ozT; window.addEventListener('resize', () => { clearTimeout(_ozT); _ozT = s
 window.addEventListener('beforeprint', () => {
   if (ui.page !== 'org') return;
   let s = document.getElementById('orgPrintCss'); if (!s) { s = document.createElement('style'); s.id = 'orgPrintCss'; document.head.appendChild(s); }
-  s.textContent = '@page { size: A4 landscape; margin: 8mm; }';
-  applyOrgZoom(1080);
+  s.textContent = '@page { size: A4 portrait; margin: 8mm; }';
+  const og = document.querySelector('#orgSizer .org'); if (og && og.querySelector('.orgroot.out')) { og.classList.remove('pos-left', 'pos-right'); og.classList.add('pos-bottom'); }
+  if (og) { const sz = document.getElementById('orgSizer'); og.style.transform = 'none'; og.style.zoom = ''; const w = og.offsetWidth; og.style.zoom = String(Math.min(1, 660 / w)); if (sz) { sz.style.width = 'auto'; sz.style.height = 'auto'; } }
 });
-window.addEventListener('afterprint', () => { const s = document.getElementById('orgPrintCss'); if (s) s.remove(); if (ui.page === 'org') applyOrgZoom(); });
+window.addEventListener('afterprint', () => { const s = document.getElementById('orgPrintCss'); if (s) s.remove(); if (ui.page === 'org') render(); });
 
 // "Atasan langsung" in the MPP form
 const _mppForm10 = mppForm;
