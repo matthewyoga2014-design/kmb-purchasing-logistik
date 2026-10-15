@@ -364,7 +364,7 @@ function renderManpowerByRole(){
  const list=Array.from(groups.values()).sort((a,b)=>b.planning-a.planning||a.label.localeCompare(b.label,"id"));
  const total=list.reduce((acc,g)=>({planning:acc.planning+g.planning,actual:acc.actual+g.actual,vacant:acc.vacant+g.vacant}),{planning:0,actual:0,vacant:0});
  const pct=(a,p)=>p?Math.round(100*a/p)+"%":"0%";
- const row=(g,isTotal=false)=>'<tr'+(isTotal?' style="font-weight:800;background:#f4f0ff"':'')+'><td>'+esc(g.label||"TOTAL")+'</td><td style="text-align:center">'+g.planning+'</td><td style="text-align:center">'+g.actual+'</td><td style="text-align:center;'+(g.vacant?'color:#dc2626;font-weight:700':'')+'">'+g.vacant+'</td><td style="text-align:center">'+pct(g.actual,g.planning)+'</td></tr>';
+ const row=(g,isTotal=false)=>'<tr'+(isTotal?' style="font-weight:800;background:#f4f0ff"':'')+'><td>'+esc(g.label||"TOTAL")+'</td><td style="text-align:center">'+g.planning+'</td><td style="text-align:center">'+'<span class="recap-actual-badge '+(g.actual>0?'has-actual':'no-actual')+'">'+g.actual+'</span></td><td style="text-align:center;'+(g.vacant?'color:#dc2626;font-weight:700':'')+'">'+g.vacant+'</td><td style="text-align:center">'+pct(g.actual,g.planning)+'</td></tr>';
  host.innerHTML='<div class="table-wrap"><table class="table"><thead><tr><th>Jabatan</th><th style="text-align:center">Planning</th><th style="text-align:center">Actual</th><th style="text-align:center">Vacant</th><th style="text-align:center">% Actual</th></tr></thead><tbody>'+list.map(g=>row(g)).join("")+row({...total,label:"TOTAL"},true)+'</tbody></table></div>';
 }
 function renderDashboard(){
