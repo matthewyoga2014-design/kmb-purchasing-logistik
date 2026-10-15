@@ -400,6 +400,16 @@ function computeMPP(r){
   if(r.Status==="Close"){r["Keterangan PTK"]="SELESAI";if(r["Tanggal Close"]&&r["Tanggal Pengajuan PTK"]){const a=new Date(r["Tanggal Pengajuan PTK"]),b=new Date(r["Tanggal Close"]);r["Lama Closing (Hari)"]=String(Math.round((b-a)/86400000))}return}
   const d=daysLeft(r["Due Date"]);r["Keterangan PTK"]=d===""?"":d<=0?"JATUH TEMPO":d<=7?"HAMPIR JATUH TEMPO":"ON TRACK";r["Lama Closing (Hari)"]="";
 }
+function mppRecruitmentNote(r){
+ const list=getCandidates(r);
+ if(!list.length)return norm(r.Keterangan)||"Belum ada riwayat kandidat";
+ const counts={};
+ list.forEach(c=>{const status=norm(c["Status Kandidat"]||"Aktif");counts[status]=(counts[status]||0)+1});
+ const items=Object.entries(counts).map(([status,n])=>status+": "+n);
+ const latest=list[list.length-1];
+ const p=candidateProgress(latest);
+ return "Total "+list.length+" kandidat | "+items.join(", ")+" | Terakhir: "+norm(latest["Nama Kandidat"]||"-")+" ("+p.label+")"+(norm(r.Keterangan)?" | Catatan: "+norm(r.Keterangan):"");
+}
 function renderMPP(){
   const stats=document.getElementById("mppStats"),table=document.getElementById("mppTable");if(!stats||!table)return;
   const q=norm(document.getElementById("mppSearch")?.value).toLowerCase(),st=norm(document.getElementById("mppStatus")?.value),m=metrics();
@@ -442,34 +452,31 @@ function openCandidateForm(mppIndex,candidateIndex=null){if(!editOnly())return;
   document.getElementById("modal").classList.add("show");document.querySelector("#modal .modal-card").scrollTop=0;
 }
 async function deleteCandidate(mppIndex,candidateIndex){
-  if(!editOnly()||window.__candidateDeleteBusy)return;
-  const r=data.mpp?.[mppIndex];if(!r)return;
-  const key=vacancyKey(r),list=getCandidates(r),cand=list[candidateIndex];if(!cand)return;
-  if(!confirm("Hapus pelamar "+(cand["Nama Kandidat"]||"ini")+"?"))return;
-  window.__candidateDeleteBusy=true;
-  const modalTitle=document.getElementById("modalTitle");
-  if(modalTitle)modalTitle.textContent="Menyimpan penghapusan pelamar...";
-  const previous=list.slice();
-  try{
-    list.splice(candidateIndex,1);
-    data.candidates[key]=list; // An empty array explicitly means no applicants: do not re-seed from MPP notes.
-    const outcome=await saveData();
-    if(!outcome?.saved){
-      data.candidates[key]=previous;
-      localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
-      renderDashboard();renderMPP();openCandidateList(mppIndex);
-      alert("Pelamar BELUM terhapus dari database. Periksa koneksi dan login Pemilik / Editor, lalu coba lagi. "+(outcome?.error?.message||""));
-      return;
-    }
-    renderMPP();openCandidateList(mppIndex);
-  }catch(error){
-    data.candidates[key]=previous;
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
-    renderMPP();openCandidateList(mppIndex);
-    alert("Penghapusan pelamar gagal: "+(error?.message||error));
-  }finally{
-    window.__candidateDeleteBusy=false;
-  }
+ if(!editOnly()||window.__candidateDeleteBusy)return;
+ const record=data.mpp?.[mppIndex];if(!record)return;
+ const key=vacancyKey(record),previous=clone(getCandidates(record)),candidate=previous[candidateIndex];
+ if(!candidate)return;
+ if(!confirm("Hapus pelamar "+(candidate["Nama Kandidat"]||"ini")+" dari posisi "+(record.Jabatan||"")+"?\\n\\nRiwayat kandidat akan dihapus dari daftar MPP. Lampiran yang telah diunggah tidak otomatis dihapus."))return;
+ const btns=document.querySelectorAll(".candidate-actions button");
+ window.__candidateDeleteBusy=true;
+ btns.forEach(b=>b.disabled=true);
+ const title=document.getElementById("modalTitle");
+ if(title)title.textContent="Menyimpan penghapusan pelamar...";
+ try{
+  const revised=previous.filter((_,i)=>i!==candidateIndex);
+  data.candidates[key]=revised;
+  const result=await Promise.resolve(saveData());
+  if(result?.saved!==true)throw result?.error||new Error("Penyimpanan online tidak terkonfirmasi. Periksa koneksi dan hak akses.");
+  renderMPP();openCandidateList(mppIndex);
+ }catch(error){
+  data.candidates[key]=previous;
+  localStorage.setItem(STORAGE_KEY,JSON.stringify(data));
+  renderMPP();openCandidateList(mppIndex);
+  alert("Penghapusan dibatalkan karena gagal tersimpan ke database: "+(error?.message||String(error)));
+ }finally{
+  window.__candidateDeleteBusy=false;
+  btns.forEach(b=>b.disabled=false);
+ }
 }
 function deleteMPP(index){if(!editOnly())return;
   const row=data.mpp[index];if(!row)return;
