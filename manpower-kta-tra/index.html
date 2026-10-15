@@ -451,6 +451,12 @@ td .cc-files { margin-top: 0; min-width: 150px; }
 .memr .ml { margin-left: auto; font-size: 11px; color: var(--muted); white-space: nowrap; }
 @media print { .ocard .oacts, .ohelp { display: none !important; } .orgwrap.searching .ocard { opacity: 1; } }
 .oexport .ocard .oacts { display: none !important; }
+.orgwrap { cursor: grab; }
+.orgwrap.panning { cursor: grabbing; user-select: none; }
+.orgwrap .ocard[data-epos] { touch-action: none; cursor: grab; }
+.odragging, .odragging * { cursor: grabbing !important; user-select: none !important; }
+.oghost { position: fixed; z-index: 90; pointer-events: none; transform-origin: 0 0; opacity: .92; box-shadow: 0 14px 30px rgba(30,27,58,.3); margin: 0; }
+.oghost .oacts { display: none; }
 .edf { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .edf input { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
 .edl { display: grid; gap: 6px; }
@@ -2301,7 +2307,7 @@ function ocard(p, M) {
   const ks = M.kids[p.uid] || [];
   const nk = DATA.positions.filter((x) => x.atasan === p.uid).length;
   const i = DATA.positions.indexOf(p);
-  const box = `<div class="ocard ${vac ? 'vac' : ''}" data-uid="${esc(p.uid)}" style="--oc:${c};--ocb:${tint(c, .12)}" ${CAN_EDIT ? `data-epos="${i}" draggable="true" role="button" tabindex="0" title="Klik untuk edit · seret ke atasan / sub-section lain untuk memindahkan"` : `title="${esc((p.section || '') + ' › ' + (p.group || ''))}"`}>
+  const box = `<div class="ocard ${vac ? 'vac' : ''}" data-uid="${esc(p.uid)}" style="--oc:${c};--ocb:${tint(c, .12)}" ${CAN_EDIT ? `data-epos="${i}" role="button" tabindex="0" title="Klik untuk edit · seret ke atasan / sub-section lain untuk memindahkan"` : `title="${esc((p.section || '') + ' › ' + (p.group || ''))}"`}>
     <div class="on">${esc(vac ? 'Vacant' : p.nama)}</div><div class="oj">${esc(p.jabatan || '-')}</div>${orgInfo(p)}
     ${CAN_EDIT ? `<div class="oacts"><button type="button" data-oadd="${esc(p.uid)}" title="Tambah posisi bawahan">+ Bawahan</button><button type="button" data-omem="${esc(p.uid)}" title="Pilih anggota tim">Anggota${nk ? ` (${nk})` : ''}</button></div>` : ''}</div>`;
   return `<li>${box}${ks.length ? tiersHtml(ks, M) : ''}</li>`;
@@ -2486,6 +2492,73 @@ async function exportOrg(kind) {
   finally { btns.forEach((b) => { b.disabled = false; }); }
 }
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-oexp]'); if (b) exportOrg(b.dataset.oexp); });
+
+// ================= v16: pointer-based drag (mouse + touch) and pan =================
+let PD = null, SUPPRESS_CLICK = false;
+async function doOrgDrop(uid, t) {
+  const p = posByUid(DATA, uid); if (!p || !t) return;
+  const L = t.leader && posByUid(DATA, t.leader);
+  if (L && p.atasan === L.uid) return;
+  if (!L && !p.atasan && p.section === t.section && (p.group || p.section) === t.group) return;
+  await commit((S) => moveTo(S, uid, t), L ? `${nameOf(p)} sekarang di bawah ${nameOf(L)}.` : `${nameOf(p)} dipindah ke ${t.group && t.group !== t.section ? t.section + ' › ' + t.group : t.section}.`);
+}
+function pdCleanup() {
+  if (PD && PD.ghost) PD.ghost.remove();
+  document.querySelectorAll('.dragging,.dropok').forEach((x) => x.classList.remove('dragging', 'dropok'));
+  document.body.classList.remove('odragging');
+  const w = document.getElementById('orgWrap'); if (w) w.classList.remove('panning');
+  DRAG = null; PD = null;
+}
+document.addEventListener('pointerdown', (e) => {
+  if (e.button !== 0) return;
+  const wrap = e.target.closest && e.target.closest('#orgWrap'); if (!wrap) return;
+  const card = CAN_EDIT && e.target.closest('.ocard[data-uid]');
+  if (card && !e.target.closest('button')) { PD = { mode: 'card', card, uid: card.dataset.uid, x: e.clientX, y: e.clientY, wrap }; return; }
+  if (e.pointerType === 'mouse' && !e.target.closest('.ocard, .onode, .gtitle, button, input, select, a')) {
+    PD = { mode: 'pan', x: e.clientX, y: e.clientY, sl: wrap.scrollLeft, st: wrap.scrollTop, wrap }; e.preventDefault();
+  }
+});
+document.addEventListener('pointermove', (e) => {
+  if (!PD) return;
+  const dx = e.clientX - PD.x, dy = e.clientY - PD.y;
+  if (PD.mode === 'pan') {
+    if (!PD.started && Math.hypot(dx, dy) < 4) return;
+    PD.started = true; PD.wrap.classList.add('panning');
+    PD.wrap.scrollLeft = PD.sl - dx; PD.wrap.scrollTop = PD.st - dy; return;
+  }
+  if (!PD.started) {
+    if (Math.hypot(dx, dy) < 7) return;
+    PD.started = true; DRAG = PD.uid;
+    const r = PD.card.getBoundingClientRect();
+    PD.ox = PD.x - r.left; PD.oy = PD.y - r.top;
+    const g = PD.card.cloneNode(true); g.classList.add('oghost'); g.removeAttribute('data-epos');
+    g.style.width = PD.card.offsetWidth + 'px'; g.style.transform = `scale(${r.width / PD.card.offsetWidth})`;
+    document.body.appendChild(g); PD.ghost = g;
+    PD.card.classList.add('dragging'); document.body.classList.add('odragging');
+  }
+  e.preventDefault();
+  PD.ghost.style.left = (e.clientX - PD.ox) + 'px'; PD.ghost.style.top = (e.clientY - PD.oy) + 'px';
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const t = el && el.closest('#orgWrap') ? dropTarget(el) : null; PD.t = t;
+  document.querySelectorAll('.dropok').forEach((x) => { if (!t || x !== t.el) x.classList.remove('dropok'); });
+  if (t) t.el.classList.add('dropok');
+  const wr = PD.wrap.getBoundingClientRect(), m = 48, sp = 14;
+  if (e.clientX < wr.left + m) PD.wrap.scrollLeft -= sp; else if (e.clientX > wr.right - m) PD.wrap.scrollLeft += sp;
+  if (e.clientY < wr.top + m) PD.wrap.scrollTop -= sp; else if (e.clientY > wr.bottom - m) PD.wrap.scrollTop += sp;
+  if (e.clientY < 70) window.scrollBy(0, -sp); else if (e.clientY > window.innerHeight - 40) window.scrollBy(0, sp);
+}, { passive: false });
+document.addEventListener('pointerup', (e) => {
+  if (!PD) return;
+  const st = PD.started, mode = PD.mode, uid = PD.uid, t = PD.t;
+  pdCleanup();
+  if (st) { SUPPRESS_CLICK = true; setTimeout(() => { SUPPRESS_CLICK = false; }, 0); }
+  if (st && mode === 'card') {
+    if (t) doOrgDrop(uid, t); else toast('Lepaskan di kotak atasan, kotak sub-section, atau kotak section.', true);
+  }
+});
+document.addEventListener('pointercancel', pdCleanup);
+document.addEventListener('click', (e) => { if (SUPPRESS_CLICK) { e.stopPropagation(); e.preventDefault(); SUPPRESS_CLICK = false; } }, true);
+document.addEventListener('dragstart', (e) => { if (e.target.closest && e.target.closest('#orgWrap')) e.preventDefault(); }, true);
 
 // ================= WEB: standalone mode (GitHub Pages + Supabase, no Claude) =================
 const WEB_CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
