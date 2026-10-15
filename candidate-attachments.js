@@ -110,6 +110,19 @@ function mount(){
    if(scope.existing)renderAttachments(scope,stage,host);else host.textContent="Belum ada lampiran";
  }
 }
+window.KMBDeleteCandidateAttachments=async function(targetApp,vacancy,candidateName){
+ if(targetApp!==appId)return {ok:false,error:"Aplikasi tidak cocok"};
+ const sb=clientForApp();if(!sb)return {ok:false,error:"Koneksi dokumen tidak tersedia"};
+ const query=await sb.from("candidate_attachments").select("id,object_path").eq("app_id",appId).eq("vacancy_key",vacancy).eq("candidate_name",candidateName);
+ if(query.error)return {ok:false,error:query.error.message};
+ const files=query.data||[];
+ if(!files.length)return {ok:true,count:0};
+ const paths=files.map(x=>x.object_path).filter(Boolean);
+ if(paths.length){const removed=await sb.storage.from("kmb-candidate-docs").remove(paths);if(removed.error)return {ok:false,error:removed.error.message}}
+ const deleted=await sb.from("candidate_attachments").delete().eq("app_id",appId).eq("vacancy_key",vacancy).eq("candidate_name",candidateName);
+ if(deleted.error)return {ok:false,error:deleted.error.message};
+ return {ok:true,count:files.length};
+};
 document.addEventListener("DOMContentLoaded",()=>{
  let queued=false;
  const observer=new MutationObserver(()=>{
