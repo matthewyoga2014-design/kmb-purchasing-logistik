@@ -507,18 +507,13 @@ function renderUnits(){
 function setMPMode(mode){mpMode=mode;document.querySelectorAll(".mp-tab").forEach(b=>b.classList.toggle("active",b.dataset.mode===mode));renderMP()}
 function toggleMPFull(){mpFull=!mpFull;document.getElementById("mpFullBtn").textContent=mpFull?"Tampilan Ringkas":"Semua Kolom";renderMP()}
 function sisaHariWarning(row){
- const end=norm(row["Akhir Kontrak"]);
- let remaining=null;
- if(/^\d{4}-\d{2}-\d{2}$/.test(end)){
-   const p=end.split("-").map(Number),expiry=Date.UTC(p[0],p[1]-1,p[2]),now=new Date();
-   remaining=Math.round((expiry-Date.UTC(now.getFullYear(),now.getMonth(),now.getDate()))/86400000);
- }else{
-   const value=norm(row["Sisa Hari"]);
-   if(/^-?\d+$/.test(value))remaining=Number(value);
-   else if(/jatuh tempo|expired|habis/i.test(value))remaining=0;
- }
- if(remaining===null||remaining>30)return "";
- return remaining<=7?"sisa-hari-merah":remaining<=14?"sisa-hari-oranye":"sisa-hari-kuning";
+ const value=norm(row["Sisa Hari"]);
+ if(/jatuh\s*tempo|expired|habis/i.test(value))return "sisa-hari-merah";
+ const match=value.match(/^-?\d+(?:[.,]\d+)?$/);
+ if(!match)return "";
+ const days=Number(value.replace(",","."));
+ if(!Number.isFinite(days)||days>30)return "";
+ return days<=7?"sisa-hari-merah":days<=14?"sisa-hari-oranye":"sisa-hari-kuning";
 }
 function renderMP(){
   const arr=mpMode==="active"?data.mpActive:data.mpOut,q=norm(document.getElementById("mpSearch")?.value).toLowerCase();
