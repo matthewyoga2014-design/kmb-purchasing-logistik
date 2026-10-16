@@ -205,7 +205,7 @@ body.setmode .hero, body.setmode .tot, body.setmode .grid { display: none; }
 <main>
   <section class="hero">
     <div class="eb">Integrated Monitoring</div>
-    <h1>Monitoring Achievement All Jobsite</h1>
+    <h1>Monitoring MPP Achievement All Jobsite</h1>
     <p class="sub">Pencapaian pemenuhan manpower (MPP vs MPA) dan progres rekrutmen di seluruh jobsite: KTA-TRA, BUPR Ampah, MBJ, dan KMB. Angka diperbarui otomatis dari setiap web proyek.</p>
     
   </section>
@@ -284,7 +284,7 @@ function totHtml(list) {
   const cls = { kta: 't1', bupr: 't2', mbj: 't3', kmb: 't4' };
   return PROJECTS.map((p) => {
     const s = list && list[p.key];
-    return `<a class="t ${cls[p.key]}" href="${p.href}" title="Buka ${esc(p.name)}"><span class="ti">${I[p.icon]}</span><div class="tx"><small>Persentase Actual</small><b>${s ? s.pct + '%' : '<span class="sk">00</span>'}</b><em>${esc(p.name)}</em><span class="tb"><i style="width:${s ? s.pct : 0}%"></i></span></div><span class="tg">${I.pie('#fff', 40)}</span></a>`;
+    return `<a class="t ${cls[p.key]}" href="${p.href}" title="Buka ${esc(p.name)}"><span class="ti">${I[p.icon]}</span><div class="tx"><small>Persentase MPP Actual</small><b>${s ? s.pct + '%' : '<span class="sk">00</span>'}</b><em>${esc(p.name)}</em><span class="tb"><i style="width:${s ? s.pct : 0}%"></i></span></div><span class="tg">${I.pie('#fff', 40)}</span></a>`;
   }).join('');
 }
 function cardHtml(p, s, per, last) {
