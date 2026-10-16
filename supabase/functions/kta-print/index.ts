@@ -129,9 +129,6 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     if (body.op === "notify") return await notify(req);
     if (body.op === "decide") return await decide(body);
-    if (body.op === "activate") {
-      return json(await formSubmit({ _subject: "Aktifkan notifikasi izin cetak · Monitoring Manpower", "Pesan": "Notifikasi izin cetak Monitoring Manpower akan dikirim ke email ini. Jika ini email aktivasi FormSubmit, klik Activate Form." }));
-    }
     if (body.op === "test") {
       if ((await caller(req)) !== OWNER) return json({ ok: false, error: "owner_only" }, 403);
       const m = await sendMail("Tes notifikasi · Monitoring Manpower", `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:520px;margin:auto;padding:24px;color:#1E1B3A"><div style="font-size:11px;font-weight:800;letter-spacing:.14em;color:#6D28D9">MONITORING MANPOWER KTA-TRA</div><h2 style="margin:6px 0 10px">Notifikasi email aktif ✓</h2><p style="font-size:15px">Permintaan izin cetak dari Pelihat akan masuk ke email ini, lengkap dengan tombol Setujui dan Tolak.</p></div>`);
