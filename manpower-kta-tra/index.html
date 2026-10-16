@@ -3320,7 +3320,8 @@ async function applyRole() {
   WEB.editors = null; WEB.grants = null;
   GUARD_WHO = WEB.user ? WEB.user.email : '';
   await loadGrant();
-  if (IS_OWNER) { loadEditors(); loadGrants(); }
+  WEB.mail = null;
+  if (IS_OWNER) { loadEditors(); loadGrants(); loadMail(); }
   watchGrants();
   authBtn();
   render();
@@ -3415,6 +3416,7 @@ function pageSetting(D) {
       <p class="small" style="margin:12px 0 0">${WEB.user ? `Masuk sebagai <b style="color:var(--ink)">${esc(WEB.user.email)}</b> — ${IS_OWNER ? '<b style="color:var(--good)">Pemilik</b>' : CAN_EDIT ? '<b style="color:var(--good)">Editor</b>' : '<b>Pelihat</b> (email ini belum didaftarkan sebagai Editor)'}.` : 'Anda melihat sebagai <b>Pelihat</b>. Klik <b>Masuk</b> di pojok kanan atas untuk mengedit.'}</p></div>
     ${editorsCard()}
     ${printCard()}
+    ${mailCard()}
     <div class="card s6"><div class="ch"><div><div class="eyebrow">Sinkronisasi</div><h2>Sinkronkan Excel</h2><p>Ganti seluruh data web dengan isi file Excel Monitoring Manpower KTA - TRA (sheet DASHBOARD, MPP KTA-TRA, MP Aktif, MP Out). Pelamar yang hilang dari Keterangan tetap disimpan sebagai riwayat.</p></div></div>
       ${CAN_EDIT ? '<button type="button" class="btn btn-p" data-sync="1">Sinkronkan Excel</button>' : '<p class="small" style="margin:0">Hanya Pemilik/Editor yang bisa menyinkronkan Excel.</p>'}</div>
     <div class="card s6"><div class="ch"><div><div class="eyebrow">Download</div><h2>Download Excel</h2><p>Unduh data terbaru dari web dalam format .xlsx (MPP, MP Aktif, MP Out, Populasi Unit).</p></div></div>
@@ -3550,6 +3552,44 @@ document.addEventListener('click', async (e) => {
   toast(act === 'approved' ? `${email} sekarang boleh mencetak.` : act === 'denied' ? `Permintaan ${email} ditolak.` : `Izin cetak ${email} dicabut.`);
   loadGrants();
 }, true);
+
+// ---------- notifikasi email (Pemilik) ----------
+async function loadMail() {
+  const { data, error } = await WEB.sb.rpc('kta_mail_key_status');
+  WEB.mail = error ? { set: false, err: error.message } : (data || { set: false });
+  if (ui.page === 'setting') render();
+}
+function mailCard() {
+  if (!IS_OWNER) return '';
+  const m = WEB.mail;
+  const st = m === null ? '<div class="upst"><span class="spin sm"></span>Memeriksa…</div>'
+    : m.set ? `<div class="role" style="margin-top:0"><b style="color:var(--good)">✓ Aktif</b><span>Key Resend tersimpan (…${esc(m.tail || '')}). Permintaan izin cetak dikirim ke <b>${esc(WEB_OWNER)}</b>.</span></div>`
+    : '<div class="role" style="margin-top:0"><b style="color:var(--crit)">Belum aktif</b><span>Tempel API key dari resend.com (diawali <b>re_</b>) lalu klik Simpan.</span></div>';
+  return `<div class="card s6"><div class="ch"><div><div class="eyebrow">Notifikasi</div><h2>Email Izin Cetak</h2><p>Permintaan izin cetak dikirim ke email Anda dengan tombol Setujui / Tolak, bisa diputuskan dari HP tanpa membuka web.</p></div></div>
+    ${st}
+    <form id="mailForm" class="edf" novalidate style="margin-top:12px"><input type="password" id="mailKey" placeholder="${m && m.set ? 'Ganti key (opsional)' : 're_xxxxxxxx'}" aria-label="API key Resend" autocomplete="off" spellcheck="false"><button type="submit" class="btn btn-p">Simpan</button></form>
+    ${m && m.set ? '<button type="button" class="btn btn-g" id="mailTest">Kirim email uji</button>' : ''}
+    <p class="small" style="margin:10px 0 0">Key disimpan di server dan tidak bisa dilihat siapa pun, termasuk dari web ini.</p></div>`;
+}
+document.addEventListener('submit', async (e) => {
+  if (e.target.id !== 'mailForm') return;
+  e.preventDefault(); if (!IS_OWNER) return;
+  const inp = document.getElementById('mailKey'); const k = (inp.value || '').trim();
+  if (!/^re_[A-Za-z0-9_]{10,}$/.test(k)) { toast('Key Resend harus diawali re_ (salin dari menu API Keys di resend.com).', true); return; }
+  const { error } = await WEB.sb.rpc('kta_set_mail_key', { k });
+  if (error) { toast('Gagal menyimpan: ' + error.message, true); return; }
+  inp.value = ''; toast('Key tersimpan. Mengirim email uji…');
+  await loadMail(); mailTest();
+});
+async function mailTest() {
+  const b = document.getElementById('mailTest'); if (b) b.disabled = true;
+  let r = null;
+  try { const { data } = await WEB.sb.functions.invoke('kta-print', { body: { op: 'test' } }); r = data; } catch (er) {}
+  if (b) b.disabled = false;
+  if (r && r.ok) toast(`Email uji terkirim ke ${WEB_OWNER}. Cek Kotak Masuk / Spam.`);
+  else toast('Email uji gagal: ' + ((r && (r.detail || r.error)) || 'periksa koneksi') + '. Pastikan akun Resend didaftarkan dengan ' + WEB_OWNER + '.', true);
+}
+document.addEventListener('click', (e) => { if (e.target.closest('#mailTest') && IS_OWNER) { e.stopPropagation(); mailTest(); } }, true);
 // ---------- boot ----------
 render();
 try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.removeItem('mp5-flash'); setTimeout(() => toast(f), 300); } } catch (e) {}

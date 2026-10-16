@@ -8,7 +8,6 @@ const PAGE = "https://matthewyoga2014-design.github.io/kmb-purchasing-logistik/m
 const WEB = "https://matthewyoga2014-design.github.io/kmb-purchasing-logistik/manpower-kta-tra/";
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const SRK = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const RESEND = Deno.env.get("RESEND_API_KEY") || "";
 const admin = createClient(URL_, SRK, { auth: { persistSession: false } });
 
 const CORS = {
@@ -44,20 +43,39 @@ async function verify(t: string) {
 }
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 
+async function resendKey() {
+  const env = Deno.env.get("RESEND_API_KEY");
+  if (env) return env;
+  const { data } = await admin.from("kta_private_settings").select("value").eq("name", "resend_api_key").maybeSingle();
+  return (data && data.value) || "";
+}
+async function sendMail(subject: string, html: string) {
+  const k = await resendKey();
+  if (!k) return { ok: false, error: "email_not_configured" };
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${k}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ from: "Monitoring Manpower <onboarding@resend.dev>", to: [OWNER], subject, html }),
+  });
+  return r.ok ? { ok: true } : { ok: false, error: "email_failed", detail: (await r.text()).slice(0, 300) };
+}
+async function caller(req: Request) {
+  const jwt = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  const { data: u } = await admin.auth.getUser(jwt);
+  return (u?.user?.email || "").toLowerCase();
+}
+
 async function row(email: string) {
   const { data } = await admin.from("kta_print_grants").select("email,status,requested_at,decided_at,notified_at").eq("app_id", APP).eq("email", email).maybeSingle();
   return data;
 }
 
 async function notify(req: Request) {
-  const jwt = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
-  const { data: u } = await admin.auth.getUser(jwt);
-  const email = (u?.user?.email || "").toLowerCase();
+  const email = await caller(req);
   if (!email) return json({ ok: false, error: "login" }, 401);
   const g = await row(email);
   if (!g || g.status !== "pending") return json({ ok: false, error: "no_request" }, 400);
   if (g.notified_at && Date.now() - Date.parse(g.notified_at) < 10 * 60 * 1000) return json({ ok: true, skipped: "recent" });
-  if (!RESEND) return json({ ok: false, error: "email_not_configured" }, 503);
   const t = await sign({ e: email, r: Date.parse(g.requested_at), x: Date.now() + 7 * 864e5 });
   const when = new Date(g.requested_at).toLocaleString("id-ID", { timeZone: "Asia/Jakarta", dateStyle: "medium", timeStyle: "short" });
   const btn = (a: string, label: string, bg: string) => `<a href="${PAGE}?a=${a}&t=${t}" style="display:inline-block;padding:13px 26px;border-radius:10px;background:${bg};color:#fff;font-weight:700;text-decoration:none;font-size:15px;margin:4px 6px">${label}</a>`;
@@ -67,12 +85,8 @@ async function notify(req: Request) {
     <p style="font-size:15px;line-height:1.5"><b>${esc(email)}</b> meminta izin untuk print, simpan PDF/PNG, dan mengunduh data.<br><span style="color:#8A87A6;font-size:13px">Diminta ${when} WIB</span></p>
     <div style="text-align:center;margin:22px 0">${btn("approved", "✓ Setujui", "#15803D")}${btn("denied", "✕ Tolak", "#DC2626")}</div>
     <p style="font-size:12px;color:#8A87A6">Link berlaku 7 hari. Izin bisa dicabut kapan saja di <a href="${WEB}" style="color:#6D28D9">web</a> → Pengaturan → Izin Cetak Pelihat.</p></div>`;
-  const r = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${RESEND}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: "Monitoring Manpower <onboarding@resend.dev>", to: [OWNER], subject: `Izin cetak: ${email}`, html }),
-  });
-  if (!r.ok) return json({ ok: false, error: "email_failed", detail: (await r.text()).slice(0, 300) }, 502);
+  const m = await sendMail(`Izin cetak: ${email}`, html);
+  if (!m.ok) return json(m, 502);
   await admin.from("kta_print_grants").update({ notified_at: new Date().toISOString() }).eq("app_id", APP).eq("email", email);
   return json({ ok: true });
 }
@@ -97,6 +111,11 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     if (body.op === "notify") return await notify(req);
     if (body.op === "decide") return await decide(body);
+    if (body.op === "test") {
+      if ((await caller(req)) !== OWNER) return json({ ok: false, error: "owner_only" }, 403);
+      const m = await sendMail("Tes notifikasi · Monitoring Manpower", `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:520px;margin:auto;padding:24px;color:#1E1B3A"><div style="font-size:11px;font-weight:800;letter-spacing:.14em;color:#6D28D9">MONITORING MANPOWER KTA-TRA</div><h2 style="margin:6px 0 10px">Notifikasi email aktif ✓</h2><p style="font-size:15px">Permintaan izin cetak dari Pelihat akan masuk ke email ini, lengkap dengan tombol Setujui dan Tolak.</p></div>`);
+      return json(m);
+    }
     return json({ ok: false, error: "op" }, 400);
   } catch (e) {
     return json({ ok: false, error: String((e as Error)?.message || e) }, 500);
