@@ -139,6 +139,21 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     if (body.op === "notify") return await notify(req, appOf(body.app));
     if (body.op === "decide") return await decide(body);
+    if (body.op === "drivefiles") {
+      // dipakai Google Apps Script milik Pemilik untuk menyalin berkas pelamar ke Google Drive
+      const { data: tk } = await admin.from("kta_private_settings").select("value").eq("name", "drive_sync_token").maybeSingle();
+      if (!tk || !body.token || body.token !== tk.value) return json({ ok: false, error: "token" }, 403);
+      const { data: rows } = await admin.from("kta_web_state").select("id,data");
+      const out: unknown[] = [];
+      for (const r of rows || []) {
+        for (const p of (r.data?.positions || [])) for (const c of (p.cands || [])) for (const f of Object.values(c.files || {}) as any[]) {
+          if (!f || !f.id) continue;
+          const { data: su } = await admin.storage.from("kta-web-docs").createSignedUrl(f.id, 900);
+          if (su?.signedUrl) out.push({ state: r.id, cand: c.name, jabatan: p.jabatan || "", name: f.name || String(f.id).split("/").pop(), id: f.id, url: su.signedUrl });
+        }
+      }
+      return json({ ok: true, files: out });
+    }
     if (body.op === "test") {
       if ((await caller(req)) !== OWNER) return json({ ok: false, error: "owner_only" }, 403);
       const m = await sendMail("Tes notifikasi · Monitoring Manpower", `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:520px;margin:auto;padding:24px;color:#1E1B3A"><div style="font-size:11px;font-weight:800;letter-spacing:.14em;color:#6D28D9">MONITORING MANPOWER KTA-TRA</div><h2 style="margin:6px 0 10px">Notifikasi email aktif ✓</h2><p style="font-size:15px">Permintaan izin cetak dari Pelihat akan masuk ke email ini, lengkap dengan tombol Setujui dan Tolak.</p></div>`);
