@@ -128,11 +128,22 @@ body.nop main, body.nop .top { -webkit-user-select: none; user-select: none; }
 #shield { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 16px; background: rgba(238,240,248,.86); -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); cursor: pointer; }
 #shield > div { background: #fff; border-radius: 16px; padding: 20px 24px; max-width: 380px; text-align: center; display: grid; gap: 6px; box-shadow: 0 10px 30px rgba(30,27,58,.15); }
 #shield span { font-size: 13px; color: var(--muted); }
-.dlg.wide { width: min(560px, 100%); }
+.dlg.wide { width: min(560px, 100%); max-height: calc(100vh - 32px); overflow: auto; }
 .pick { display: grid; gap: 8px; margin: 10px 0 14px; }
 .pick label { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; cursor: pointer; font-size: 13.5px; }
 .pick label small { color: var(--muted); margin-left: auto; font-size: 12px; }
-.pick input { width: 17px; height: 17px; margin: 0; accent-color: var(--p); }
+.pick input, .opt input, .acc input[type=checkbox] { width: 17px !important; height: 17px; margin: 0 !important; padding: 0 !important; flex-shrink: 0; accent-color: var(--p); }
+.opt label { justify-content: flex-start; text-align: left; }
+.acc { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
+.acc h4 { margin: 0 0 4px; font-size: 14.5px; } .acc p { margin: 0 0 10px; }
+.acc .af { display: grid; gap: 8px; }
+.acc .ap { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 13px; } .acc .ap label { display: inline-flex; gap: 6px; align-items: center; }
+.acc .al { display: grid; gap: 6px; margin-top: 12px; max-height: 190px; overflow: auto; }
+.acc .al > div { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; font-size: 13px; }
+.acc .al .em { font-weight: 700; flex: 1; min-width: 150px; overflow: hidden; text-overflow: ellipsis; }
+.acc .chip { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 12px; background: var(--p-soft); color: var(--p-ink); }
+.acc .rm { border: 0; background: #FEE2E2; color: #B91C1C; border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.dlnone { padding: 14px; border-radius: 12px; background: #FEF3C7; color: #92400E; font-size: 13px; margin: 8px 0 14px; }
 .opt { display: grid; gap: 6px; font-size: 13px; margin-bottom: 14px; } .opt label { display: flex; gap: 8px; align-items: center; } .opt input { accent-color: var(--p); }
 .prog { font-size: 12.5px; color: var(--ink-2); min-height: 18px; margin-bottom: 10px; }
 #nopr { display: none; }
@@ -181,9 +192,12 @@ body.nop main, body.nop .top { -webkit-user-select: none; user-select: none; }
   <div class="row"><button type="button" class="btn btn-g" id="lgX">Batal</button><button type="submit" class="btn btn-p">Masuk</button></div></form></div>
 <div class="modal" id="dlModal" hidden><div class="dlg wide" role="dialog" aria-labelledby="dlT"><h3 id="dlT">Pengaturan unduhan</h3><p>Unduh seluruh data dari portal yang dipilih sekaligus. Hasilnya satu file <b>.zip</b>; setelah dibuka isinya langsung tersusun per folder proyek.</p>
   <div class="pick" id="dlPick"></div>
-  <div class="opt"><label><input type="checkbox" id="oX" checked> Excel per proyek (MPP, MP Aktif, MP Out, Populasi Unit)</label><label><input type="checkbox" id="oJ" checked> Backup lengkap (.json, bisa dipulihkan ke web)</label><label><input type="checkbox" id="oF" checked> Berkas pelamar yang sudah di-upload (CV, psikotes, dll.)</label></div>
+  <div class="opt" id="dlOpt"><label><input type="checkbox" id="oX" checked> Excel per proyek (MPP, MP Aktif, MP Out, Populasi Unit)</label><label><input type="checkbox" id="oJ" checked> Backup lengkap (.json, bisa dipulihkan ke web)</label><label><input type="checkbox" id="oF" checked> Berkas pelamar yang sudah di-upload (CV, psikotes, dll.)</label></div>
   <div class="prog" id="dlProg"></div>
-  <div class="row"><button type="button" class="btn btn-g" id="dlX">Tutup</button><button type="button" class="btn btn-p" id="dlGo">Download .zip</button></div></div></div>
+  <div class="row"><button type="button" class="btn btn-g" id="dlX">Tutup</button><button type="button" class="btn btn-p" id="dlGo">Download .zip</button></div>
+  <div class="acc" id="dlAcc" hidden><h4>Akses unduhan (khusus Pemilik)</h4><p class="small" style="font-size:12.5px;color:var(--ink-2)">Hanya email yang didaftarkan di sini yang bisa mengunduh data, dan hanya portal yang dicentang.</p>
+    <div class="af"><input type="email" id="accEm" placeholder="nama@email.com" autocomplete="off"><div class="ap" id="accAp"></div><div class="row"><button type="button" class="btn btn-p" id="accAdd">+ Daftarkan</button></div></div>
+    <div class="al" id="accList"></div></div></div></div>
 <div id="wm" aria-hidden="true"></div>
 <div id="shield" hidden><div><b>Tampilan disembunyikan</b><span>Screenshot dan rekam layar tidak diizinkan untuk Pelihat. Klik di sini untuk melanjutkan.</span></div></div>
 <div id="nopr"><b>Monitoring Manpower</b><br>Cetak tidak diizinkan. Hanya akun yang didaftarkan Pemilik yang bisa mencetak.</div>
@@ -291,12 +305,14 @@ document.getElementById('lgForm').addEventListener('submit', async (e) => {
 
 // ================= hak cetak & unduh: hanya akun terdaftar (Pemilik, Editor, atau yang disetujui) =================
 const OWNER = 'matthewyoga2014@gmail.com';
-let CAN = false, ROLES = [];
+let CAN = false, ROLES = [], DLAPPS = [], IS_OWNER = false;
+const APP_OF = { kta: 'kta-tra', bupr: 'bupr-ampah', mbj: 'mbj', kmb: 'kmb' };
 async function loadPerm() {
-  CAN = false; ROLES = [];
+  CAN = false; ROLES = []; DLAPPS = []; IS_OWNER = false;
   if (USER && SB) {
     const em = USER.email.toLowerCase();
-    if (em === OWNER) CAN = true;
+    if (em === OWNER) { CAN = true; IS_OWNER = true; DLAPPS = Object.values(APP_OF); }
+    else { try { const r = await SB.from('kta_download_access').select('app_id').eq('email', em); DLAPPS = (r.data || []).map((x) => x.app_id); } catch (e) {} }
     try { const r = await SB.from('app_access_roles').select('app_id,role').eq('email', em); ROLES = r.data || []; if (ROLES.some((x) => x.role === 'owner' || x.role === 'editor')) CAN = true; } catch (e) {}
     try { const g = await SB.from('kta_print_grants').select('status').eq('email', em).eq('status', 'approved'); if ((g.data || []).length) CAN = true; } catch (e) {}
   }
@@ -309,7 +325,7 @@ function wmPaint() {
 }
 function guard() {
   document.body.classList.toggle('nop', !CAN);
-  ['prBtn', 'dlBtn'].forEach((id) => { const b = document.getElementById(id); b.classList.toggle('lk', !CAN); });
+  document.getElementById('prBtn').classList.toggle('lk', !CAN); document.getElementById('dlBtn').classList.toggle('lk', !DLAPPS.length);
   if (CAN) document.getElementById('shield').hidden = true;
   wmPaint();
 }
@@ -351,16 +367,46 @@ function workbook(d, title) {
 }
 const safe = (s) => String(s || '').replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim() || 'tanpa nama';
 function openDl() {
-  if (!CAN) { denied(); return; }
-  document.getElementById('dlPick').innerHTML = PROJECTS.map((p) => `<label><input type="checkbox" value="${p.key}" checked> <b>${esc(p.name)}</b><small>${p.sites ? p.sites.length + ' jobsite' : '1 proyek'}</small></label>`).join('');
-  document.getElementById('dlProg').textContent = ''; document.getElementById('dlModal').hidden = false;
+  if (!USER) { toast('Masuk dulu dengan akun yang didaftarkan Pemilik untuk mengunduh data.'); return; }
+  const allowed = PROJECTS.filter((p) => DLAPPS.includes(APP_OF[p.key]));
+  document.getElementById('dlPick').innerHTML = allowed.length ? allowed.map((p) => `<label><input type="checkbox" value="${p.key}" checked> <b>${esc(p.name)}</b><small>${p.sites ? p.sites.length + ' jobsite' : '1 proyek'}</small></label>`).join('')
+    : '<div class="dlnone">Akun ini belum didaftarkan Pemilik untuk mengunduh data. Minta Pemilik menambahkan email Anda di <b>Akses unduhan</b>.</div>';
+  document.getElementById('dlOpt').hidden = !allowed.length; document.getElementById('dlGo').hidden = !allowed.length;
+  document.getElementById('dlProg').textContent = '';
+  document.getElementById('dlAcc').hidden = !IS_OWNER; if (IS_OWNER) accRender();
+  document.getElementById('dlModal').hidden = false;
 }
+async function accRender() {
+  document.getElementById('accAp').innerHTML = PROJECTS.map((p) => `<label><input type="checkbox" value="${APP_OF[p.key]}"> ${esc(p.name)}</label>`).join('');
+  const L = document.getElementById('accList'); L.innerHTML = '<div class="small">Memuat…</div>';
+  const { data, error } = await SB.from('kta_download_access').select('email,app_id').order('email');
+  if (error) { L.innerHTML = `<div class="small">${esc(error.message)}</div>`; return; }
+  const by = {}; (data || []).forEach((r) => { (by[r.email] = by[r.email] || []).push(r.app_id); });
+  const nameOf = (a) => (PROJECTS.find((p) => APP_OF[p.key] === a) || { name: a }).name;
+  L.innerHTML = Object.entries(by).map(([em, apps]) => `<div><span class="em">${esc(em)}</span>${apps.map((a) => `<span class="chip">${esc(nameOf(a))}</span>`).join('')}<button type="button" class="rm" data-accrm="${esc(em)}">Hapus</button></div>`).join('') || '<div class="small">Belum ada yang didaftarkan. Saat ini hanya Anda yang bisa mengunduh.</div>';
+}
+document.getElementById('accAdd').addEventListener('click', async () => {
+  if (!IS_OWNER) return;
+  const em = document.getElementById('accEm').value.trim().toLowerCase();
+  const apps = [...document.querySelectorAll('#accAp input:checked')].map((x) => x.value);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { toast('Format email belum benar.'); return; }
+  if (!apps.length) { toast('Centang minimal satu portal.'); return; }
+  const { error } = await SB.from('kta_download_access').upsert(apps.map((a) => ({ email: em, app_id: a, added_by: USER.email })), { onConflict: 'email,app_id', ignoreDuplicates: true });
+  if (error) { toast('Gagal mendaftarkan: ' + error.message); return; }
+  document.getElementById('accEm').value = ''; toast(`${em} sekarang boleh mengunduh data.`); accRender();
+});
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-accrm]'); if (!b || !IS_OWNER) return;
+  const em = b.dataset.accrm; if (!confirm(`Cabut akses unduhan ${em}?`)) return;
+  const { error } = await SB.from('kta_download_access').delete().eq('email', em);
+  if (error) { toast('Gagal: ' + error.message); return; } toast(`Akses unduhan ${em} dicabut.`); accRender();
+});
 document.getElementById('dlBtn').addEventListener('click', openDl);
 document.getElementById('dlX').addEventListener('click', () => { document.getElementById('dlModal').hidden = true; });
 document.getElementById('dlGo').addEventListener('click', async () => {
-  if (!CAN) return;
+  if (!DLAPPS.length) return;
   if (typeof JSZip === 'undefined' || typeof XLSX === 'undefined') { toast('Komponen unduhan belum termuat. Coba lagi sebentar.'); return; }
-  const keys = [...document.querySelectorAll('#dlPick input:checked')].map((x) => x.value); if (!keys.length) { toast('Pilih minimal satu portal.'); return; }
+  const keys = [...document.querySelectorAll('#dlPick input:checked')].map((x) => x.value).filter((k) => DLAPPS.includes(APP_OF[k])); if (!keys.length) { toast('Pilih minimal satu portal.'); return; }
   const oX = document.getElementById('oX').checked, oJ = document.getElementById('oJ').checked, oF = document.getElementById('oF').checked;
   const prog = document.getElementById('dlProg'), go = document.getElementById('dlGo'); go.disabled = true;
   const today = new Date().toISOString().slice(0, 10), root = `Monitoring_Manpower_${today}`;
