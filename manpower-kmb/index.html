@@ -4029,6 +4029,80 @@ if (typeof PROJ_ART !== 'undefined' && PROJ_ART) {
     return `<div class="gbanner gb-${PROJ.app}" style="--art:url('${PROJ_ART}')"><div class="gb-t"><span>Monitoring Manpower</span><b>${esc(PROJ.short || '')}${site ? ` <em>· ${esc(site)}</em>` : ''}</b><small>Plant Department · ${PROJ.sites ? PROJ.sites.length + ' jobsite' : 'MPP, rekrutmen & struktur organisasi'}</small></div></div>` + _pageDash(D);
   };
 }
+
+// ================= Pemilik: hapus berkas pelamar tidak aktif (web + Google Drive) =================
+// Berkas pelamar disimpan di Drive selama berkasnya masih ada di web. Hanya Pemilik yang bisa
+// menghapus berkas pelamar tidak aktif; setelah itu sinkron Drive ikut membuangnya (±10 menit).
+const DRIVE_DIR = { main: 'KMB', bupr: 'BUPR Ampah', mbj: 'MBJ', 'kmb-c4': 'KMB › C4', 'kmb-slr-maintenance': 'KMB › SLR - Maintenance', 'kmb-slr-rekondisi': 'KMB › SLR - Rekondisi', 'kmb-workshop': 'KMB › Workshop Legok' };
+const PURGE = { orphans: [], loading: false };
+function purgeList() {
+  const out = [];
+  DATA.positions.forEach((p, pi) => candidates(p).forEach((c) => {
+    if (c.fromHist || PT_OF(c) !== 'tidak') return;
+    const fs = Object.values(c.files || {}).filter((f) => f && f.id);
+    if (fs.length) out.push({ pi, ci: c.ci, uid: p.uid, name: c.name, jab: p.jabatan || '', status: c.status, ids: fs.map((f) => f.id) });
+  }));
+  return out;
+}
+async function purgeOrphans() {
+  // berkas di penyimpanan web yang sudah tidak dipakai pelamar mana pun (mis. pelamar dihapus Editor), lebih dari 1 hari
+  const used = new Set(); DATA.positions.forEach((p) => (p.cands || []).forEach((c) => Object.values(c.files || {}).forEach((f) => f && f.id && used.add(f.id))));
+  const pre = WEB_ID === 'main' ? '' : WEB_ID;
+  const r = await WEB.sb.storage.from(WEB_BUCKET).list(pre, { limit: 1000 });
+  if (r.error || !Array.isArray(r.data)) return [];
+  const old = Date.now() - 864e5;
+  return r.data.filter((o) => o.id && o.name !== '.emptyFolderPlaceholder').map((o) => ({ id: pre ? pre + '/' + o.name : o.name, t: Date.parse(o.created_at || '') || 0 }))
+    .filter((o) => !used.has(o.id) && o.t && o.t < old).map((o) => o.id);
+}
+const _pagePelamar24 = pagePelamar;
+pagePelamar = function (D) {
+  const h = _pagePelamar24(D);
+  if (!IS_OWNER) return h;
+  const L = purgeList(), n = L.reduce((a, x) => a + x.ids.length, 0);
+  const btn = `<button type="button" class="btn btn-g red" id="purgeBtn" title="Hapus berkas pelamar tidak aktif dari web dan Google Drive">Hapus Berkas Tidak Aktif${n ? ` (${n})` : ''}</button>`;
+  return h.replace('<div class="mtools">', '<div class="mtools">' + btn);
+};
+async function openPurge() {
+  const L = purgeList();
+  const D = document.getElementById('dialog');
+  D.innerHTML = `<div class="cm-h"><h2 id="mTitle">Hapus Berkas Pelamar Tidak Aktif</h2><button type="button" class="x" id="mClose" aria-label="Tutup">×</button></div><div class="empty"><span class="spin sm"></span> Memeriksa berkas…</div>`;
+  document.getElementById('modal').hidden = false;
+  let orph = []; try { orph = await purgeOrphans(); } catch (e) { orph = []; }
+  PURGE.orphans = orph; PURGE.list = L;
+  const nf = L.reduce((a, x) => a + x.ids.length, 0) + orph.length;
+  const dir = DRIVE_DIR[WEB_ID] || 'jobsite ini';
+  D.innerHTML = `<div class="cm-h"><h2 id="mTitle">Hapus Berkas Pelamar Tidak Aktif</h2><button type="button" class="x" id="mClose" aria-label="Tutup">×</button></div>
+    ${nf ? `<div class="soinfo"><div><span>Pelamar tidak aktif</span><b>${L.length}</b></div><div><span>Berkas dihapus</span><b>${nf}</b></div><div><span>Folder Drive</span><b>${esc(dir)}</b></div></div>
+    <div class="cm-list" style="max-height:38vh">${L.map((x) => `<div class="cc"><div class="cc-h"><div><b>${esc(x.name)}</b><div class="cc-meta"><span class="hs no">${esc(x.status)}</span><span>${esc(x.jab)}</span><span>${x.ids.length} berkas</span></div></div></div></div>`).join('')}
+      ${orph.length ? `<div class="cc"><div class="cc-h"><div><b>${orph.length} berkas lama tanpa pelamar</b><div class="cc-meta"><span>Pelamarnya sudah dihapus dari web, berkasnya masih tersimpan</span></div></div></div></div>` : ''}</div>
+    <p class="small" style="margin:12px 0 0">Download dulu dari Google Drive: <b>Monitoring Manpower › ${esc(dir)} › Berkas Pelamar</b>. Setelah dihapus, berkas hilang dari web dan dari Google Drive dalam ±10 menit (masuk Sampah Drive, bisa dipulihkan 30 hari). Nama, status, dan tahap pelamar tetap tersimpan.</p>
+    <label class="small" style="display:flex;gap:8px;align-items:center;margin-top:10px;color:var(--ink)"><input type="checkbox" id="purgeOk" style="width:auto"> Saya sudah download berkasnya dari Google Drive</label>
+    <div class="ferr" id="purgeErr" hidden></div>
+    <div class="factions"><span style="flex:1"></span><button type="button" class="btn btn-g" id="fCancel">Batal</button><button type="button" class="btn btn-d" id="purgeGo" disabled>Hapus ${nf} Berkas</button></div>`
+    : `<div class="empty">Tidak ada berkas pelamar tidak aktif di ${esc(siteName() || dir)}. Semua berkas yang tersimpan milik pelamar aktif atau yang sudah diterima.</div><div class="factions"><span style="flex:1"></span><button type="button" class="btn btn-g" id="fCancel">Tutup</button></div>`}`;
+}
+async function runPurge() {
+  const L = PURGE.list || [], orph = PURGE.orphans || [];
+  const ids = [...new Set(L.flatMap((x) => x.ids).concat(orph))];
+  const go = document.getElementById('purgeGo'); if (go) { go.disabled = true; go.textContent = 'Menghapus…'; }
+  const kill = new Set(ids);
+  const ok = await Promise.resolve(commit((S) => {
+    S.positions.forEach((p) => (p.cands || []).forEach((c) => {
+      if (!c.files) return;
+      Object.keys(c.files).forEach((k) => { if (c.files[k] && kill.has(c.files[k].id)) delete c.files[k]; });
+    }));
+  }, null));
+  if (ok === false) { const e = document.getElementById('purgeErr'); if (e) { e.hidden = false; e.textContent = 'Gagal menyimpan. Periksa koneksi lalu coba lagi.'; } if (go) { go.disabled = false; go.textContent = `Hapus ${ids.length} Berkas`; } return; }
+  let fail = 0;
+  for (let i = 0; i < ids.length; i += 100) { const r = await WEB.sb.storage.from(WEB_BUCKET).remove(ids.slice(i, i + 100)); if (r.error) fail += ids.slice(i, i + 100).length; }
+  closeModal(); render();
+  toast(fail ? `${ids.length - fail} berkas dihapus, ${fail} gagal. Coba lagi nanti.` : `${ids.length} berkas dihapus. Di Google Drive ikut terhapus dalam ±10 menit.`, !!fail);
+}
+document.addEventListener('click', (e) => {
+  if (e.target.closest('#purgeBtn') && IS_OWNER) { e.stopPropagation(); openPurge(); return; }
+  if (e.target.closest('#purgeGo') && IS_OWNER) { e.stopPropagation(); runPurge(); }
+}, true);
+document.addEventListener('change', (e) => { if (e.target.id === 'purgeOk') { const g = document.getElementById('purgeGo'); if (g) g.disabled = !e.target.checked; } });
 // ---------- boot ----------
 render();
 try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.removeItem('mp5-flash'); setTimeout(() => toast(f), 300); } } catch (e) {}
