@@ -3493,8 +3493,7 @@ async function loadGrant() {
 async function loadGrants() {
   const { data, error } = await WEB.sb.from(WEB_PRINT).select('email,status,requested_at,decided_at').eq('app_id', WEB_ROLE_APP).order('requested_at', { ascending: false });
   WEB.grants = error ? [] : (data || []);
-  const np = WEB.grants.filter((r) => r.status === 'pending').length;
-  if (np && !WEB.gToast) { WEB.gToast = 1; toast(`${np} permintaan izin cetak menunggu persetujuan Anda (menu Pengaturan).`); }
+  grantPopup();
   render();
 }
 function watchGrants() {
@@ -3590,6 +3589,37 @@ async function mailTest() {
   else toast('Email uji gagal: ' + ((r && (r.detail || r.error)) || 'periksa koneksi') + '. Pastikan akun Resend didaftarkan dengan ' + WEB_OWNER + '.', true);
 }
 document.addEventListener('click', (e) => { if (e.target.closest('#mailTest') && IS_OWNER) { e.stopPropagation(); mailTest(); } }, true);
+
+// ---------- pop-up persetujuan untuk Pemilik (langsung muncul saat membuka web, juga di HP) ----------
+function grantPopup() {
+  const pend = (WEB.grants || []).filter((r) => r.status === 'pending');
+  const open = !document.getElementById('modal').hidden;
+  const mine = open && document.getElementById('pgPop');
+  if (mine && !pend.length) { closeModal(); return; }
+  if (!pend.length || (open && !mine)) return;
+  let seen = []; try { seen = JSON.parse(sessionStorage.getItem('kta-pg-seen') || '[]'); } catch (e) {}
+  const key = pend.map((r) => r.email + '@' + r.requested_at);
+  if (!mine && key.every((k) => seen.includes(k))) return;
+  try { sessionStorage.setItem('kta-pg-seen', JSON.stringify([...new Set(seen.concat(key))])); } catch (e) {}
+  const tm = (s) => new Date(s).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+  document.getElementById('dialog').innerHTML = `<button type="button" class="x" id="mClose" aria-label="Tutup">×</button>
+    <div id="pgPop"><div class="eyebrow">Izin cetak</div><h2 id="mTitle" style="font-size:19px;margin-bottom:4px">${pend.length} permintaan menunggu</h2>
+    <p class="small" style="margin:0 0 12px">Orang berikut minta izin untuk print, simpan PDF/PNG, dan mengunduh data.</p>
+    <div class="pgl2">${pend.map((r) => `<div><span class="em">${esc(r.email)}</span>
+      <button type="button" class="btn btn-p btn-sm" data-pg="approved" data-pe="${esc(r.email)}">✓ Setujui</button>
+      <button type="button" class="btn btn-g btn-sm red" data-pg="denied" data-pe="${esc(r.email)}">✕ Tolak</button>
+      <small>Diminta ${tm(r.requested_at)}</small></div>`).join('')}</div>
+    <p class="small" style="margin:12px 0 0">Bisa diubah kapan saja di Pengaturan → Izin Cetak Pelihat.</p></div>`;
+  document.getElementById('modal').hidden = false;
+}
+const _renderPg = render;
+render = function () {
+  _renderPg.apply(this, arguments);
+  if (!IS_OWNER) return;
+  const n = (WEB.grants || []).filter((r) => r.status === 'pending').length;
+  const b = document.querySelector('[data-go="setting"]');
+  if (b && n && !b.querySelector('.ct')) b.insertAdjacentHTML('beforeend', `<span class="ct al" title="Permintaan izin cetak">${n}</span>`);
+};
 // ---------- boot ----------
 render();
 try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.removeItem('mp5-flash'); setTimeout(() => toast(f), 300); } } catch (e) {}
