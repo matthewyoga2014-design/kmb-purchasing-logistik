@@ -49,9 +49,21 @@ async function resendKey() {
   const { data } = await admin.from("kta_private_settings").select("value").eq("name", "resend_api_key").maybeSingle();
   return (data && data.value) || "";
 }
-async function sendMail(subject: string, html: string) {
+// Fallback without any API key: FormSubmit relays a form post to the owner's inbox
+// (one-time "Activate Form" click in the first email it sends).
+async function formSubmit(fields: Record<string, string>) {
+  const r = await fetch(`https://formsubmit.co/ajax/${OWNER}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", Accept: "application/json", Referer: WEB, Origin: "https://matthewyoga2014-design.github.io", "User-Agent": "Mozilla/5.0 (Monitoring Manpower)" },
+    body: JSON.stringify({ _template: "box", _captcha: "false", ...fields }),
+  });
+  const txt = await r.text();
+  let j: any = null; try { j = JSON.parse(txt); } catch (_) { /* not json */ }
+  return { ok: r.ok && (!j || String(j.success) !== "false"), status: r.status, detail: txt.slice(0, 300) };
+}
+async function sendMail(subject: string, html: string, fields?: Record<string, string>) {
   const k = await resendKey();
-  if (!k) return { ok: false, error: "email_not_configured" };
+  if (!k) return fields ? await formSubmit({ _subject: subject, ...fields }) : { ok: false, error: "email_not_configured" };
   const r = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${k}`, "Content-Type": "application/json" },
@@ -85,7 +97,13 @@ async function notify(req: Request) {
     <p style="font-size:15px;line-height:1.5"><b>${esc(email)}</b> meminta izin untuk print, simpan PDF/PNG, dan mengunduh data.<br><span style="color:#8A87A6;font-size:13px">Diminta ${when} WIB</span></p>
     <div style="text-align:center;margin:22px 0">${btn("approved", "✓ Setujui", "#15803D")}${btn("denied", "✕ Tolak", "#DC2626")}</div>
     <p style="font-size:12px;color:#8A87A6">Link berlaku 7 hari. Izin bisa dicabut kapan saja di <a href="${WEB}" style="color:#6D28D9">web</a> → Pengaturan → Izin Cetak Pelihat.</p></div>`;
-  const m = await sendMail(`Izin cetak: ${email}`, html);
+  const m = await sendMail(`Izin cetak: ${email}`, html, {
+    "Permintaan": `${email} minta izin print / simpan PDF-PNG / unduh data`,
+    "Waktu": `${when} WIB`,
+    "SETUJUI (klik link)": `${PAGE}?a=approved&t=${t}`,
+    "TOLAK (klik link)": `${PAGE}?a=denied&t=${t}`,
+    "Catatan": "Link berlaku 7 hari. Izin bisa dicabut di web > Pengaturan > Izin Cetak Pelihat.",
+  });
   if (!m.ok) return json(m, 502);
   await admin.from("kta_print_grants").update({ notified_at: new Date().toISOString() }).eq("app_id", APP).eq("email", email);
   return json({ ok: true });
@@ -111,6 +129,9 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     if (body.op === "notify") return await notify(req);
     if (body.op === "decide") return await decide(body);
+    if (body.op === "activate") {
+      return json(await formSubmit({ _subject: "Aktifkan notifikasi izin cetak · Monitoring Manpower", "Pesan": "Notifikasi izin cetak Monitoring Manpower akan dikirim ke email ini. Jika ini email aktivasi FormSubmit, klik Activate Form." }));
+    }
     if (body.op === "test") {
       if ((await caller(req)) !== OWNER) return json({ ok: false, error: "owner_only" }, 403);
       const m = await sendMail("Tes notifikasi · Monitoring Manpower", `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:520px;margin:auto;padding:24px;color:#1E1B3A"><div style="font-size:11px;font-weight:800;letter-spacing:.14em;color:#6D28D9">MONITORING MANPOWER KTA-TRA</div><h2 style="margin:6px 0 10px">Notifikasi email aktif ✓</h2><p style="font-size:15px">Permintaan izin cetak dari Pelihat akan masuk ke email ini, lengkap dengan tombol Setujui dan Tolak.</p></div>`);
