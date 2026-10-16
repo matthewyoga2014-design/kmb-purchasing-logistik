@@ -3633,6 +3633,7 @@ async function webInit() {
     setTimeout(async () => { await applyRole(); if (CAN_EDIT && WEB.empty) commit(() => {}, 'Data awal tersimpan di server.'); if (ev === 'SIGNED_IN') toast(`Masuk sebagai ${nu.email} (${ROLE}).`); if (ev === 'SIGNED_OUT') toast('Anda sudah keluar.'); }, 0);
   });
   watchState();
+  if (PROJ.sites) { loadAllSites(); WEB.sb.channel('kta-web-sites').on('postgres_changes', { event: '*', schema: 'public', table: WEB_TABLE }, (pl) => { const n = pl.new; if (n && n.id && PROJ.sites.some((x) => x.id === n.id) && n.data) { SITE_DATA[n.id] = n.data; if (ui.page === 'karyawan' && document.getElementById('modal').hidden) render(); else siteNavCount(); } }).subscribe(); }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && document.getElementById('modal').hidden && !SAVING) webLoad().catch(() => {}); });
 }
 setTimeout(webInit, 0);
@@ -3910,6 +3911,70 @@ async function openMutasi(idx) {
     }
   });
 }
+
+// ---------- MP Aktif & MP Out gabungan semua jobsite (filter jobsite hanya untuk MPP) ----------
+const SITE_DATA = {};
+async function loadAllSites() {
+  if (!PROJ.sites || !WEB.sb) return;
+  const { data, error } = await WEB.sb.from(WEB_TABLE).select('id,data').in('id', PROJ.sites.map((s) => s.id));
+  if (error || !data) return;
+  data.forEach((r) => { SITE_DATA[r.id] = r.data; });
+  if (ui.page === 'karyawan') render(); else siteNavCount();
+}
+function siteRows(kind) {
+  const out = [];
+  PROJ.sites.forEach((s) => {
+    let d = s.id === WEB_ID ? DATA : SITE_DATA[s.id] || (window.SITE_SEEDS && SITE_SEEDS[s.id]);
+    if (!d) return;
+    if (s.id !== WEB_ID) { d = JSON.parse(JSON.stringify(d)); (d.positions || []).forEach((p) => { if (!p.uid) p.uid = 'x'; }); mppSync(d); }
+    (kind === 'out' ? d.keluar : d.aktif || []).forEach((p, i) => out.push({ p, i, site: s }));
+  });
+  return out;
+}
+function siteNavCount() {
+  if (!PROJ.sites) return;
+  const n = siteRows('aktif').length, b = document.querySelector('[data-go="karyawan"] .ct');
+  if (b) b.textContent = n;
+}
+if (PROJ.sites) {
+  pageKaryawan = function (D) {
+    const out = ui.kt === 'out', q = (ui.kq || '').toLowerCase();
+    const all = siteRows(out ? 'out' : 'aktif'), nA = siteRows('aktif').length, nO = siteRows('out').length;
+    const rows = all.filter(({ p, site }) => !q || `${p.nama} ${p.jabatan} ${p.poh} ${site.name}`.toLowerCase().includes(q));
+    const cols = MP_COLS.filter((c) => ui.allCols || c[3]).filter((c) => !(out && c[0] === 'sisa'));
+    if (out) cols.push(['keluar', 'Tanggal Keluar', (p) => p.keluar ? fmt(p.keluar) : '']);
+    const act = ({ p, i, site }) => !CAN_EDIT ? '' : `<td class="nw"><span class="acts">${editBtn(`data-empx="${site.id}|${out ? 'out' : 'aktif'}|${i}"`)}${out ? '' : `<button type="button" class="ab out" data-mpoutx="${site.id}|${i}" title="Pindahkan ke MP Out">MP OUT</button>`}</span></td>`;
+    return `${header('Database', out ? 'MP Out' : 'MP Aktif', 'Database manpower KMB gabungan semua jobsite. Filter jobsite hanya berlaku di MPP.')}
+    <div class="card"><div class="toolbar">
+      <div class="seg" role="group" aria-label="Pilih data">${[['aktif', `MP Aktif (${nA})`], ['out', `MP Out (${nO})`]].map(([k, l]) => `<button type="button" data-kt="${k}" aria-pressed="${ui.kt === k}">${l}</button>`).join('')}</div>
+      <input type="search" id="kq" placeholder="Cari nama, jabatan, POH, atau jobsite" value="${esc(ui.kq || '')}" aria-label="Cari karyawan">
+      <button type="button" class="btn btn-g" id="colBtn" aria-pressed="${!!ui.allCols}">${ui.allCols ? 'Kolom Ringkas' : 'Semua Kolom'}</button>
+      ${CAN_EDIT ? `<button type="button" class="btn btn-p" data-addmp="${out ? 'out' : 'aktif'}" title="Ditambahkan ke jobsite ${esc(siteName())}">+ Tambah Data (${esc(siteName())})</button>` : ''}
+      ${DL ? `<button type="button" class="btn btn-g" data-csv="${out ? 'out' : 'aktif'}">Export CSV</button>` : ''}
+    </div>
+    <div class="small" style="margin:-4px 0 10px">${rows.length} data · ${PROJ.sites.map((s) => `${esc(s.name)} ${all.filter((r) => r.site.id === s.id).length}`).join(' · ')}</div>
+    <div class="tw"><table class="t mpp"><thead><tr>${CAN_EDIT ? '<th>Aksi</th>' : ''}<th>Jobsite</th>${cols.map((c) => `<th>${c[1]}</th>`).join('')}</tr></thead><tbody>
+    ${rows.map((r, k) => `<tr>${act(r)}<td class="nw"><span class="hs ${r.site.id === WEB_ID ? 'pr' : 'hist'}">${esc(r.site.name)}</span></td>${cols.map((c) => `<td class="nw">${c[2](r.p, k)}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${cols.length + 2}" class="empty">Tidak ada data.</td></tr>`}
+    </tbody></table></div>
+    <p class="note">MP Aktif mengikuti MPP tiap jobsite. ${CAN_EDIT ? 'Edit data di jobsite lain otomatis membuka jobsite tersebut. ' : ''}Data pribadi (NIK, KK, NPWP, nomor HP, rekening, BPJS, alamat, data keluarga) tidak disimpan di web ini.</p></div>`;
+  };
+  document.addEventListener('click', async (e) => {
+    const a = e.target.closest('[data-empx],[data-mpoutx]'); if (!a || !CAN_EDIT) return;
+    e.stopPropagation();
+    const [sid, x, y] = (a.dataset.empx || a.dataset.mpoutx).split('|');
+    if (sid !== WEB_ID) { await switchSite(sid); }
+    if (a.dataset.empx) mpForm(x, +y); else mpOutForm(+x);
+  }, true);
+  const _renderNav = render;
+  render = function () { _renderNav.apply(this, arguments); siteNavCount(); };
+}
+if (PROJ.sites) document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-csv="aktif"],[data-csv="out"]'); if (!b || (typeof guardFree === 'function' && !guardFree())) return;
+  e.stopImmediatePropagation(); e.preventDefault();
+  const out = b.dataset.csv === 'out', rows = siteRows(out ? 'out' : 'aktif');
+  const head = ['Jobsite'].concat(MP_HEAD).concat(out ? ['Tanggal Keluar'] : []);
+  save(`${out ? 'MP_Out' : 'MP_Aktif'}_KMB_semua_jobsite.csv`, csvOf(head, rows.map((r, k) => [r.site.name].concat(mpRow(r.p, k)).concat(out ? [r.p.keluar || ''] : []))));
+}, true);
 // ---------- boot ----------
 render();
 try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.removeItem('mp5-flash'); setTimeout(() => toast(f), 300); } } catch (e) {}
