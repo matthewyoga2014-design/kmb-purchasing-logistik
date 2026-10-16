@@ -67,7 +67,12 @@ h1 { font-size: clamp(30px, 4vw, 46px); font-weight: 800; margin: 6px 0 6px; let
 .t .ti { width: 54px; height: 54px; border-radius: 50%; background: rgba(255,255,255,.22); display: grid; place-items: center; flex-shrink: 0; }
 .t small { display: block; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; opacity: .95; }
 .t b { display: block; font-size: 32px; font-weight: 800; line-height: 1.05; font-variant-numeric: tabular-nums; }
-.t .tg { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); opacity: .28; }
+.t .tg { position: absolute; right: 18px; top: 50%; transform: translateY(-50%); opacity: .25; }
+a.t { text-decoration: none; transition: transform .15s ease; } a.t:hover { transform: translateY(-2px); }
+.t .tx { flex: 1; min-width: 0; position: relative; z-index: 1; }
+.t .tx em { display: block; font-style: normal; font-size: 12px; opacity: .92; margin-top: 2px; }
+.t .tb { display: block; height: 5px; border-radius: 3px; background: rgba(255,255,255,.3); margin-top: 7px; max-width: 170px; overflow: hidden; }
+.t .tb i { display: block; height: 100%; background: #fff; border-radius: 3px; }
 .t1 { background: linear-gradient(115deg, #7C3AED, #A78BFA); } .t2 { background: linear-gradient(115deg, #2563EB, #60A5FA); } .t3 { background: linear-gradient(115deg, #EF4F5F, #FB9A9A); } .t4 { background: linear-gradient(115deg, #F7871F, #FDBE74); }
 @media (max-width: 520px) { .t { padding: 14px; gap: 10px; min-height: 76px; } .t .ti { width: 40px; height: 40px; } .t b { font-size: 24px; } .t .tg { display: none; } }
 
@@ -275,12 +280,12 @@ const add = (a, b) => ({ mpp: a.mpp + b.mpp, act: a.act + b.act, vac: a.vac + b.
 const fmtDate = (s) => s ? new Date(s).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '–';
 function toast(m) { const t = document.getElementById('toast'); t.textContent = m; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, 4200); }
 
-function totHtml(all) {
-  const pct = all ? (all.mpp ? Math.round(all.act / all.mpp * 100) : 0) : 0, v = (x) => all ? x : '<span class="sk">00</span>';
-  return `<div class="t t1"><span class="ti">${I.people('#fff', 30)}</span><div><small>Total MPP</small><b>${v(all && all.mpp)}</b></div><span class="tg">${I.people('#fff', 46)}</span></div>
-    <div class="t t2"><span class="ti">${I.helmet('#fff', 30)}</span><div><small>Actual</small><b>${v(all && all.act)}</b></div><span class="tg">${I.bars('#fff')}</span></div>
-    <div class="t t3"><span class="ti">${I.vac('#fff', 30)}</span><div><small>Vacant</small><b>${v(all && all.vac)}</b></div><span class="tg">${I.vac('#fff', 44)}</span></div>
-    <div class="t t4"><span class="ti">${I.pie('#fff', 30)}</span><div><small>% Terisi</small><b>${all ? pct + '%' : v()}</b></div><span class="tg">${I.bars('#fff')}</span></div>`;
+function totHtml(list) {
+  const cls = { kta: 't1', bupr: 't2', mbj: 't3', kmb: 't4' };
+  return PROJECTS.map((p) => {
+    const s = list && list[p.key];
+    return `<a class="t ${cls[p.key]}" href="${p.href}" title="Buka ${esc(p.name)}"><span class="ti">${I[p.icon]}</span><div class="tx"><small>% Actual ${esc(p.name)}</small><b>${s ? s.pct + '%' : '<span class="sk">00</span>'}</b><em>${s ? `${s.act} dari ${s.mpp} MPP terisi` : '&nbsp;'}</em><span class="tb"><i style="width:${s ? s.pct : 0}%"></i></span></div><span class="tg">${I.pie('#fff', 40)}</span></a>`;
+  }).join('');
 }
 function cardHtml(p, s, per, last) {
   const v = (x) => s ? x : '<span class="sk">00</span>';
@@ -299,16 +304,16 @@ let ROWS = [];
 function render(rows) {
   ROWS = rows;
   const by = Object.fromEntries(rows.map((r) => [r.id, r]));
-  let all = { mpp: 0, act: 0, vac: 0, open: 0 };
+  let all = { mpp: 0, act: 0, vac: 0, open: 0 }; const per1 = {};
   const cards = PROJECTS.map((p) => {
     const ids = p.sites ? p.sites.map((s) => s[0]) : p.ids;
     const per = ids.map((id) => ({ id, s: stats(by[id] && by[id].data), at: by[id] && by[id].updated_at }));
     const s = per.reduce((a, x) => add(a, x.s), { mpp: 0, act: 0, vac: 0, open: 0 });
     s.pct = s.mpp ? Math.round(s.act / s.mpp * 100) : 0;
-    all = add(all, s);
+    all = add(all, s); per1[p.key] = s;
     return cardHtml(p, s, per, per.map((x) => x.at).filter(Boolean).sort().pop());
   });
-  document.getElementById('tot').innerHTML = totHtml(all);
+  document.getElementById('tot').innerHTML = totHtml(per1);
   document.getElementById('grid').innerHTML = cards.join('');
 }
 document.addEventListener('click', (e) => { const a = e.target.closest('[data-site]'); if (a) { try { localStorage.setItem('kta-site:kmb', a.dataset.site); } catch (er) {} } });
