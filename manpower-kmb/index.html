@@ -371,6 +371,15 @@ td .cc-files { margin-top: 0; min-width: 150px; }
 #sumCard.closed .closedmsg { padding-top: 110px; }
 .pill.pgood { background: var(--good-soft); color: var(--good); border-color: transparent; }
 @media print { #printStamp:not(.closed) { display: none !important; } }
+
+/* keterangan grafik progress kandidat */
+.pipeinfo { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 18px; margin-top: 14px; padding: 14px 16px; border-radius: 12px; background: var(--card-2); border: 1px solid var(--line); }
+@media (max-width: 760px) { .pipeinfo { grid-template-columns: minmax(0, 1fr); } }
+.pipeinfo .pt { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 800; color: var(--ink); margin-bottom: 4px; }
+.pipeinfo .pt i { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.pipeinfo p { margin: 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.55; }
+.pipeinfo .ps { grid-column: 1 / -1; font-size: 12px; color: var(--muted); border-top: 1px dashed var(--line); padding-top: 10px; }
+.pipeinfo .ps b { color: var(--ink-2); }
 .orgcard { padding: 14px 0 0; overflow: hidden; }
 .olegend { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: center; padding: 0 18px 12px; font-size: 12px; color: var(--ink-2); border-bottom: 1px solid var(--line); }
 .olegend span { display: inline-flex; align-items: center; gap: 6px; }
@@ -764,7 +773,7 @@ const BUNDLED_SRC = { name: 'Monitoring_Manpower_KTA_-_TRA.xlsx', asOf: '2026-10
 
 const STAGES = ['Sourcing Pelamar', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU', 'FU MCU', 'On Site', 'Induksi'];
 const STAGE_UP = ['SOURCING PELAMAR', 'PSIKOLOGI TEST', 'INTERVIEW USER', 'OFFERING LETTER', 'MCU', 'FU MCU', 'ON SITE', 'INDUKSI'];
-const STAGE_SHORT = ['Sourcing', 'Psikotes', 'Interview', 'Offering', 'MCU', 'FU MCU', 'On Site', 'Induksi', 'Hired'];
+const STAGE_SHORT = ['Sourcing', 'Psikotes', 'Interview User', 'Offering', 'MCU', 'FU MCU', 'On Site', 'Induksi', 'Hired'];
 const STAGE_TIP = ['Sourcing Pelamar', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU', 'FU MCU', 'On Site', 'Induksi', 'Hired (PTK close bulan ini)'];
 const STAGE_PCT = [0, 25, 40, 55, 70, 80, 95, 100];
 const MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
@@ -817,7 +826,7 @@ function reasonOf(note) {
   if (/menolak|tolak/.test(n)) return 'Menolak offering';
   if (/respon|respond|tidak aktif|no response/.test(n)) return 'Tidak ada respon';
   if (/kabur|mundur|resign|keluar/.test(n)) return 'Mundur / kabur';
-  if (/interview/.test(n)) return 'Tidak lolos interview';
+  if (/interview/.test(n)) return 'Tidak lolos interview user';
   if (/psiko/.test(n)) return 'Tidak lolos psikotes';
   if (/mcu|medical/.test(n)) return 'Tidak lolos MCU';
   return 'Tidak lolos';
@@ -1251,7 +1260,7 @@ function mppForm(idx) {
         { k: 'group', label: 'Sub-section', list: GRP_OPTS(), hint: 'Kosongkan jika sama dengan section.' },
         { k: 'jabatan', label: 'Jabatan', list: JAB_OPTS(), req: true },
         { k: 'nama', label: 'Nama', ph: 'Vacant' },
-        { k: 'ket', label: 'Keterangan / Kandidat', type: 'textarea', full: true, ph: 'Budi Santoso - Tidak lolos interview\nAndi - HOLD' },
+        { k: 'ket', label: 'Keterangan / Kandidat', type: 'textarea', full: true, ph: 'Budi Santoso - Tidak lolos interview user\nAndi - HOLD' },
       ] },
       { title: 'PTK', fields: [
         { k: 'pic', label: 'PIC', list: ['PT. KAI'] },
@@ -1484,7 +1493,7 @@ function pageMPP(D) {
     <div class="tw"><table class="t"><thead><tr><th>Nama Pelamar</th><th>Jabatan</th><th>PTK</th><th>Status PTK</th><th>Tahap</th><th>Hasil</th><th>Keterangan</th></tr></thead><tbody>
     ${prow.map((x) => `<tr><td class="b">${esc(x.name)}</td><td class="nw">${esc(x.p.jabatan)} <span class="small">No. ${x.p.no}</span></td><td class="small nw">${esc(x.p.ptk)}</td><td><span class="stt ${isOpen(x.p) ? 'open' : 'close'}">${esc(x.p.status)}</span></td><td class="small nw">${isOpen(x.p) ? STAGE_UP[stageIdx(x.p)] : 'Close ' + fmt(x.p.close)}</td><td><span class="hs ${x.st}">${ST_LBL[x.st]}</span>${x.fromHist ? ' <span class="hs hist">riwayat</span>' : ''}</td><td class="small">${esc(x.note || x.reason || '-')}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">Tidak ada pelamar yang cocok.</td></tr>'}
     </tbody></table></div>
-    <p class="note">Format kolom Keterangan: satu baris per pelamar, <b>Nama - keterangan</b> (contoh: <i>Budi - Tidak lolos interview</i>, <i>Andi - HOLD</i>). Saat PTK close, biarkan nama pelamar yang gagal tetap di Keterangan dan tambahkan nama yang diterima, supaya arsipnya tetap lengkap.</p>
+    <p class="note">Format kolom Keterangan: satu baris per pelamar, <b>Nama - keterangan</b> (contoh: <i>Budi - Tidak lolos interview user</i>, <i>Andi - HOLD</i>). Saat PTK close, biarkan nama pelamar yang gagal tetap di Keterangan dan tambahkan nama yang diterima, supaya arsipnya tetap lengkap.</p>
   </div>`;
 }
 function pageKaryawan(D) {
@@ -1713,7 +1722,6 @@ function resumeVacant(D) {
     ps.forEach((p) => { if (!candidates(p).some((c) => c.st === 'pr' || c.st === 'hd')) { const k = STAGE_UP[stageIdx(p)]; byStage[k] = (byStage[k] || 0) + 1; } });
     return `<div class="rcard"><div class="hd"><span class="nb">${ps.length}</span>${esc(j)}</div>
       <div class="l1">${act.length} pelamar untuk ${ps.length} vacant</div>
-      <div class="l2">Progress kandidat tertinggi: <b>${STAGE_UP[hi]} (${STAGE_PCT[hi]}%)</b></div>
       <div class="l3">${cs.length} kandidat tercatat • ${cs.filter((c) => c.st === 'no').length} tidak lolos</div>
       <div class="l3">${Object.entries(byStage).map(([k, n]) => `${n}× ${k}`).join(' • ')}</div>
       <button type="button" class="more ${ui.jf === j ? 'on' : ''}" data-detail="${esc(j)}">${ui.jf === j ? 'Sedang difilter ✓' : 'Lihat detail →'}</button></div>`;
@@ -1796,7 +1804,7 @@ function candForm(idx, ci) {
       { k: 'status', label: 'Status', type: 'select', options: C_STATUS },
       { k: 'sumber', label: 'Sumber', list: C_SUMBER, ph: 'Online, Referral, Walk-in…' },
       { k: 'stage', label: 'Tahap Terakhir', type: 'select', options: STAGE_UP.map((s, i) => [String(i), `${s} (${STAGE_PCT[i]}%)`]) },
-      { k: 'note', label: 'Keterangan', type: 'textarea', full: true, rows: 3, ph: 'Contoh: Tidak lolos final interview' },
+      { k: 'note', label: 'Keterangan', type: 'textarea', full: true, rows: 3, ph: 'Contoh: Tidak lolos interview user' },
     ],
     onSave: (v) => commit((S) => {
       const pos = S.positions[idx]; materialize(pos);
@@ -2032,7 +2040,7 @@ function candForm(idx, ci) {
       { k: 'd3', label: 'MCU', type: 'date' }, { k: 'u_st3', label: 'Hasil MCU', type: 'upload' },
       { k: 'd4', label: 'FU MCU', type: 'date' }, { k: 'd5', label: 'On Site', type: 'date' }, { k: 'd6', label: 'Induksi', type: 'date' },
       { k: 'status', label: 'Status Kandidat', type: 'select', options: C_STATUS },
-      { k: 'note', label: 'Keterangan', type: 'textarea', full: true, rows: 3, ph: 'Contoh: Tidak lolos final interview' },
+      { k: 'note', label: 'Keterangan', type: 'textarea', full: true, rows: 3, ph: 'Contoh: Tidak lolos interview user' },
     ] }],
     onSave: (v) => {
       if (FORM && FORM.uploading) { toast('Tunggu upload selesai dulu.', true); return false; }
@@ -3428,6 +3436,21 @@ doOrgDrop = async function (uid, t) {
 // pindah ke atasan / sub-section lain: kembali ke baris sesuai jabatannya
 const _moveTo22 = moveTo;
 moveTo = function (S, uid, target) { _moveTo22(S, uid, target); const q = posByUid(S, uid); if (q) delete q.tier; };
+
+// ================= Keterangan arti status di bawah grafik Progress Kandidat & Rekrutmen =================
+const _pipeChart23 = pipeChart;
+pipeChart = function (act, off) {
+  return _pipeChart23(act, off) + `<div class="pipeinfo">
+    <div><div class="pt"><i style="background:var(--primary)"></i>Aktif / Hold</div>
+      <p>Pelamar yang <b>masih berjalan</b> di PTK yang Open / Continue: sedang diproses ke tahap berikutnya, atau <b>Hold</b> (ditahan sementara, belum diputuskan lanjut atau tidak). Garis ungu menunjukkan di tahap mana mereka sekarang.</p></div>
+    <div><div class="pt"><i style="background:var(--c3)"></i>Tidak aktif</div>
+      <p>Pelamar yang <b>sudah berhenti</b> dan tidak dilanjutkan: tidak lolos tes / interview user, tidak ada respon, mundur / kabur, atau menolak offering. Garis merah menunjukkan di tahap mana mereka berhenti.</p></div>
+    <div class="ps"><b>Urutan tahap:</b> Sourcing → Psikotes → Interview User → Offering → MCU → FU MCU → On Site → Induksi. Pelamar yang sudah <b>diterima</b> tidak dihitung di grafik ini. Status pelamar diambil otomatis dari kolom <b>Keterangan</b> di MPP.</div></div>`;
+};
+
+// tampilkan "interview" di catatan pelamar sebagai "interview user" (data asli tidak diubah)
+const _candidates23 = candidates;
+candidates = function (p) { return _candidates23(p).map((c) => (c.note && /interview(?!\s*user)/i.test(c.note)) ? { ...c, note: c.note.replace(/interview(?!\s*user)/gi, (m) => m[0] === 'I' ? 'Interview User' : 'interview user') } : c); };
 
 // ================= WEB: standalone mode (GitHub Pages + Supabase, no Claude) =================
 const WEB_CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
