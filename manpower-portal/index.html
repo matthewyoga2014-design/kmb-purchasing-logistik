@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Portal Monitoring Manpower</title>
+<meta name="description" content="Portal Monitoring Manpower KMB: KTA-TRA, BUPR Ampah, MBJ, dan KMB (4 jobsite).">
+<meta name="theme-color" content="#6D28D9">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2716%27 fill=%27%236D28D9%27/%3E%3Ctext x=%2732%27 y=%2740%27 font-family=%27Arial%27 font-weight=%27700%27 font-size=%2720%27 fill=%27white%27 text-anchor=%27middle%27%3EKMB%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+:root { color-scheme: light; --bg: #F2F1FA; --card: #fff; --card-2: #F7F6FD; --ink: #1E1B3A; --ink-2: #4B4868; --muted: #8A87A6; --line: #E8E6F3;
+  --p: #6D28D9; --p-soft: #EFE9FE; --p-ink: #5B21B6; --good: #15803D; --good-soft: #DCFCE7; --crit: #DC2626; --crit-soft: #FEE2E2; --warn: #B45309; --warn-soft: #FEF3C7; }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.5 "Plus Jakarta Sans", "Segoe UI", system-ui, sans-serif; min-height: 100vh; }
+a { color: inherit; }
+.top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: 12px; padding: 12px max(16px, env(safe-area-inset-left)); background: rgba(242,241,250,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.lg { width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(135deg, #7C3AED, #A78BFA); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 11px; flex-shrink: 0; }
+.top b { display: block; font-size: 15px; font-weight: 800; line-height: 1.2; }
+.top span { font-size: 12px; color: var(--muted); }
+.who { margin-left: auto; font-size: 12px; color: var(--muted); text-align: right; }
+.who b { font-size: 12.5px; color: var(--ink); display: block; }
+main { max-width: 1240px; margin: 0 auto; padding: 24px 16px 48px; }
+.eb { font-size: 10.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--p); }
+h1 { font-size: clamp(22px, 3vw, 30px); font-weight: 800; margin: 4px 0 4px; letter-spacing: -.01em; }
+.sub { color: var(--muted); margin: 0 0 20px; font-size: 13.5px; }
+.tot { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px; margin-bottom: 22px; }
+.t { border-radius: 14px; padding: 16px 18px; color: #fff; position: relative; overflow: hidden; }
+.t::after { content: ""; position: absolute; width: 110px; height: 110px; border-radius: 50%; right: -26px; top: -40px; background: rgba(255,255,255,.15); }
+.t small { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; opacity: .92; }
+.t b { display: block; font-size: 28px; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; }
+.t1 { background: linear-gradient(120deg, #7C3AED, #A78BFA); } .t2 { background: linear-gradient(120deg, #2563EB, #60A5FA); } .t3 { background: linear-gradient(120deg, #EF4F5F, #FB9A9A); } .t4 { background: linear-gradient(120deg, #F7871F, #FDBE74); }
+@media (max-width: 760px) { .tot { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 860px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px; text-decoration: none; transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease; min-width: 0; }
+a.card:hover { transform: translateY(-2px); border-color: #C4B5FD; box-shadow: 0 12px 30px rgba(30,27,58,.08); }
+.ch { display: flex; gap: 14px; align-items: center; }
+.ic { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; color: #fff; flex-shrink: 0; }
+.ch h2 { font-size: 17px; font-weight: 800; margin: 0; }
+.ch p { margin: 0; font-size: 12.5px; color: var(--muted); }
+.go { text-decoration: none; margin-left: auto; font-size: 12.5px; font-weight: 800; color: var(--p-ink); background: var(--p-soft); padding: 7px 12px; border-radius: 10px; white-space: nowrap; }
+.st { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.st div { background: var(--card-2); border-radius: 10px; padding: 10px 12px; }
+.st b { display: block; font-size: 20px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.st span { font-size: 11px; color: var(--muted); }
+.st .v b { color: var(--crit); } .st .o b { color: var(--warn); }
+.bar { height: 8px; border-radius: 4px; background: #ECEAF6; overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #7C3AED, #A78BFA); }
+.meta { display: flex; justify-content: space-between; gap: 10px; font-size: 11.5px; color: var(--muted); flex-wrap: wrap; }
+.sites { display: grid; gap: 6px; }
+.sites a { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 12px; align-items: center; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; text-decoration: none; font-size: 12.5px; }
+.sites a:hover { background: var(--p-soft); border-color: transparent; }
+.sites .n { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sites .x { color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.sites .x.v { color: var(--crit); font-weight: 700; }
+.pill { font-size: 11px; font-weight: 800; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+.pill.g { background: var(--good-soft); color: var(--good); } .pill.r { background: var(--crit-soft); color: var(--crit); }
+.sk { color: transparent !important; background: linear-gradient(90deg, #EEEDF7, #F7F6FD, #EEEDF7); background-size: 200% 100%; animation: sh 1.2s infinite; border-radius: 6px; }
+@keyframes sh { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .sk { animation: none; } a.card { transition: none; } }
+.note { margin-top: 22px; font-size: 12px; color: var(--muted); }
+.err { background: var(--crit-soft); color: var(--crit); border-radius: 10px; padding: 9px 14px; font-size: 13px; margin-bottom: 16px; }
+@media (max-width: 520px) { .st { grid-template-columns: repeat(2, minmax(0, 1fr)); } .sites a { grid-template-columns: minmax(0, 1fr) auto auto; } .sites .pc { display: none; } .who span { display: none; } }
+</style></head>
+<body>
+<header class="top"><span class="lg">KMB</span><div><b>Portal Monitoring Manpower</b><span>Plant Department</span></div><div class="who" id="who"></div></header>
+<main>
+  <div class="eb">Integrated Monitoring</div>
+  <h1>Monitoring Manpower</h1>
+  <p class="sub">Ringkasan MPP, actual, vacant, dan PTK open semua proyek. Angka selalu mengikuti data terbaru di masing-masing web.</p>
+  <div id="err" class="err" hidden></div>
+  <div class="tot" id="tot"></div>
+  <div class="grid" id="grid"></div>
+  <p class="note">Login cukup sekali: setelah masuk di salah satu web, Anda otomatis dikenali di web proyek lainnya. Editor hanya bisa mengubah proyek yang didaftarkan Pemilik.</p>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+const CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
+const ICONS = {
+  people: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="9" cy="8" r="3.2" stroke="currentColor" stroke-width="2"/><path d="M3 19c.6-3.2 3-5 6-5s5.4 1.8 6 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M16 5.5a3 3 0 0 1 0 5.6M18 14c1.6.6 2.7 2.2 3 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  truck: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 6h11v9H2zM13 9h4.5l3.5 3.5V15h-8z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="6" cy="17.5" r="1.8" stroke="currentColor" stroke-width="2"/><circle cx="17" cy="17.5" r="1.8" stroke="currentColor" stroke-width="2"/></svg>',
+  gear: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
+  site: '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+};
+const PROJECTS = [
+  { key: 'kta', name: 'KTA - TRA', desc: 'Monitoring Manpower KTA - TRA', href: '../manpower-kta-tra/', ids: ['main'], icon: 'people', bg: 'linear-gradient(135deg,#7C3AED,#A78BFA)' },
+  { key: 'bupr', name: 'BUPR Ampah', desc: 'Monitoring Manpower BUPR Ampah', href: '../manpower-bupr/', ids: ['bupr'], icon: 'truck', bg: 'linear-gradient(135deg,#2563EB,#60A5FA)' },
+  { key: 'mbj', name: 'MBJ', desc: 'Monitoring Manpower MBJ', href: '../manpower-mbj/', ids: ['mbj'], icon: 'gear', bg: 'linear-gradient(135deg,#EF4F5F,#FB9A9A)' },
+  { key: 'kmb', name: 'KMB', desc: '4 jobsite · C4, SLR, Workshop', href: '../manpower-kmb/', icon: 'site', bg: 'linear-gradient(135deg,#F7871F,#FDBE74)', app: 'kmb',
+    sites: [['kmb-c4', 'C4'], ['kmb-slr-maintenance', 'SLR - Maintenance'], ['kmb-slr-rekondisi', 'SLR - Rekondisi'], ['kmb-workshop', 'Workshop Legok']] },
+];
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const isVac = (p) => !p.nama || /^vacant$/i.test(String(p.nama).trim());
+function stats(d) {
+  const ps = (d && d.positions) || [];
+  const mpp = ps.length, vac = ps.filter(isVac).length, act = mpp - vac;
+  const open = ps.filter((p) => /open|continue/i.test(p.status || '') && !/close/i.test(p.status || '')).length;
+  return { mpp, act, vac, open, pct: mpp ? Math.round(act / mpp * 100) : 0 };
+}
+const add = (a, b) => ({ mpp: a.mpp + b.mpp, act: a.act + b.act, vac: a.vac + b.vac, open: a.open + b.open });
+const fmtDate = (s) => s ? new Date(s).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '–';
+
+function skeleton() {
+  document.getElementById('tot').innerHTML = ['t1', 't2', 't3', 't4'].map((c) => `<div class="t ${c}"><small>&nbsp;</small><b class="sk">000</b></div>`).join('');
+  document.getElementById('grid').innerHTML = PROJECTS.map((p) => `<a class="card" href="${p.href}"><div class="ch"><span class="ic" style="background:${p.bg}">${ICONS[p.icon]}</span><div><h2>${esc(p.name)}</h2><p>${esc(p.desc)}</p></div><span class="go">Buka →</span></div><div class="st">${'<div><b class="sk">00</b><span>&nbsp;</span></div>'.repeat(4)}</div></a>`).join('');
+}
+function render(rows) {
+  const by = Object.fromEntries(rows.map((r) => [r.id, r]));
+  let all = { mpp: 0, act: 0, vac: 0, open: 0 };
+  const cards = PROJECTS.map((p) => {
+    const ids = p.sites ? p.sites.map((s) => s[0]) : p.ids;
+    const per = ids.map((id) => ({ id, s: stats(by[id] && by[id].data), at: by[id] && by[id].updated_at }));
+    const s = per.reduce((a, x) => add(a, x.s), { mpp: 0, act: 0, vac: 0, open: 0 });
+    s.pct = s.mpp ? Math.round(s.act / s.mpp * 100) : 0;
+    all = add(all, s);
+    const last = per.map((x) => x.at).filter(Boolean).sort().pop();
+    const sites = p.sites ? `<div class="sites">${p.sites.map(([id, nm], i) => { const x = per[i].s; return `<a href="${p.href}" data-site="${id}"><span class="n">${esc(nm)}</span><span class="x">${x.act}/${x.mpp} MPP</span><span class="x pc">${x.pct}%</span><span class="x ${x.vac ? 'v' : ''}">${x.vac ? x.vac + ' vacant' : 'Lengkap'}</span></a>`; }).join('')}</div>` : '';
+    return `<${p.sites ? 'div' : 'a'} class="card" ${p.sites ? '' : `href="${p.href}"`}>
+      <div class="ch"><span class="ic" style="background:${p.bg}">${ICONS[p.icon]}</span><div><h2>${esc(p.name)}</h2><p>${esc(p.desc)}</p></div>${p.sites ? `<a class="go" href="${p.href}">Buka →</a>` : '<span class="go">Buka →</span>'}</div>
+      <div class="st"><div><b>${s.mpp}</b><span>MPP</span></div><div><b>${s.act}</b><span>Actual</span></div><div class="v"><b>${s.vac}</b><span>Vacant</span></div><div class="o"><b>${s.open}</b><span>PTK open</span></div></div>
+      <div class="bar" title="${s.pct}% terisi"><i style="width:${s.pct}%"></i></div>
+      ${sites}
+      <div class="meta"><span>${s.pct}% MPP terisi ${s.vac ? '' : '<span class="pill g">Lengkap</span>'}</span><span>Diperbarui ${fmtDate(last)}</span></div>
+    </${p.sites ? 'div' : 'a'}>`;
+  });
+  const pct = all.mpp ? Math.round(all.act / all.mpp * 100) : 0;
+  document.getElementById('tot').innerHTML = `<div class="t t1"><small>Total MPP</small><b>${all.mpp}</b></div><div class="t t2"><small>Actual</small><b>${all.act}</b></div><div class="t t3"><small>Vacant</small><b>${all.vac}</b></div><div class="t t4"><small>% Terisi</small><b>${pct}%</b></div>`;
+  document.getElementById('grid').innerHTML = cards.join('');
+}
+document.addEventListener('click', (e) => { const a = e.target.closest('[data-site]'); if (a) { try { localStorage.setItem('kta-site:kmb', a.dataset.site); } catch (er) {} } });
+
+skeleton();
+(async () => {
+  if (!window.supabase) { const e = document.getElementById('err'); e.textContent = 'Tidak bisa terhubung ke server data. Periksa koneksi lalu muat ulang.'; e.hidden = false; return; }
+  const sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'kta-web-auth' } });
+  try { const { data } = await sb.auth.getSession(); const u = data && data.session && data.session.user; if (u) document.getElementById('who').innerHTML = `<span>Masuk sebagai</span><b>${esc(u.email)}</b>`; } catch (e) {}
+  const load = async () => {
+    const { data, error } = await sb.from('kta_web_state').select('id,data,updated_at');
+    if (error) { const e = document.getElementById('err'); e.textContent = 'Data belum bisa dimuat: ' + error.message; e.hidden = false; return; }
+    document.getElementById('err').hidden = true; render(data || []);
+  };
+  await load();
+  sb.channel('portal-state').on('postgres_changes', { event: '*', schema: 'public', table: 'kta_web_state' }, () => load()).subscribe();
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+})();
+</script>
+</body></html>
