@@ -134,6 +134,28 @@ body.nop main, body.nop .top { -webkit-user-select: none; user-select: none; }
 .pick label small { color: var(--muted); margin-left: auto; font-size: 12px; }
 .pick input, .opt input, .acc input[type=checkbox] { width: 17px !important; height: 17px; margin: 0 !important; padding: 0 !important; flex-shrink: 0; accent-color: var(--p); }
 .opt label { justify-content: flex-start; text-align: left; }
+.sethead { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin: 0 0 20px; }
+.h1s { font-size: clamp(26px, 3vw, 34px); }
+.sgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+@media (max-width: 900px) { .sgrid { grid-template-columns: minmax(0, 1fr); } }
+.scard { background: rgba(255,255,255,.96); border: 1px solid var(--line); border-radius: 18px; padding: 22px; box-shadow: 0 10px 30px rgba(30,27,58,.07); min-width: 0; }
+.scard.wide2 { grid-column: 1 / -1; }
+.sch { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; }
+.sch h2 { margin: 2px 0 0; font-size: 17px; font-weight: 800; } .sch .small { margin: 4px 0 0; }
+.eb2 { font-size: 10.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--p); }
+.small { font-size: 12.5px; color: var(--ink-2); }
+.rolepill { font-size: 11.5px; font-weight: 700; padding: 5px 12px; border-radius: 20px; background: var(--p-soft); color: var(--p-ink); white-space: nowrap; }
+.role { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-top: 10px; display: grid; gap: 2px; }
+.role b { font-size: 14px; } .role span { font-size: 12.5px; color: var(--ink-2); }
+.accf { display: flex; gap: 8px; flex-wrap: wrap; } .accf input { flex: 1 1 220px; min-width: 0; font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.ap { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: 13px; margin: 10px 0 4px; } .ap label { display: inline-flex; gap: 6px; align-items: center; }
+.al { display: grid; gap: 8px; margin-top: 12px; }
+.al > div { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; font-size: 13px; }
+.al .em { font-weight: 700; flex: 1; min-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+.chip { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 12px; background: var(--p-soft); color: var(--p-ink); }
+.chip.own { background: #DCFCE7; color: #15803D; }
+.rm { border: 0; background: #FEE2E2; color: #B91C1C; border-radius: 9px; padding: 6px 11px; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+body.setmode .hero, body.setmode .tot, body.setmode .grid { display: none; }
 .acc { border-top: 1px solid var(--line); margin-top: 16px; padding-top: 14px; }
 .acc h4 { margin: 0 0 4px; font-size: 14.5px; } .acc p { margin: 0 0 10px; }
 .acc .af { display: grid; gap: 8px; }
@@ -171,7 +193,7 @@ body.nop main, body.nop .top { -webkit-user-select: none; user-select: none; }
 <div class="side-l" aria-hidden="true"></div><div class="side-r" aria-hidden="true"></div><div class="scene" aria-hidden="true"></div><div class="bscene" aria-hidden="true"></div><div class="helmet" aria-hidden="true"></div>
 <header class="top">
   <span class="lg">M</span><div class="bn"><b>Monitoring</b></div>
-  <div class="hbtns"><button type="button" class="hb" id="prBtn" title="Print halaman portal"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Print</span></button><button type="button" class="hb" id="dlBtn" title="Pengaturan unduhan semua portal"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Unduh data</span></button></div>
+  <div class="hbtns"><button type="button" class="hb" id="prBtn" title="Print halaman portal"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Print</span></button><button type="button" class="hb" id="dlBtn" title="Pengaturan: akses unduhan & unduh data"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Pengaturan</span></button></div>
   <div class="who" id="who"><button type="button" id="whoBtn" aria-haspopup="menu" aria-expanded="false"><span class="av"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c1.2-3.6 4.2-5.5 8-5.5s6.8 1.9 8 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span class="wt"><small id="whoL">Belum masuk</small><b id="whoE">Masuk</b></span><svg class="wt" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="menu" id="menu" role="menu" hidden></div></div>
 </header>
@@ -182,6 +204,26 @@ body.nop main, body.nop .top { -webkit-user-select: none; user-select: none; }
     <p class="sub">Ringkasan MPP, actual, vacant, dan PTK open semua proyek. Angka selalu mengikuti data terbaru di masing-masing web.</p>
     <div class="tag" aria-hidden="true">Update laporan<br>monitoring</div>
   </section>
+  <section id="setPage" hidden>
+    <div class="sethead"><div><div class="eb">Sistem</div><h1 class="h1s">Pengaturan</h1><p class="sub">Akses unduhan, siapa saja yang terdaftar, dan unduh data semua portal.</p></div><button type="button" class="btn btn-g" id="setBack">← Kembali ke portal</button></div>
+    <div class="sgrid">
+      <div class="scard"><div class="sch"><div><div class="eb2">Akses</div><h2>Pemilik & Akses Unduhan</h2></div><span class="rolepill" id="rolePill">Pelihat</span></div>
+        <div class="role"><b>Pemilik</b><span>matthewyoga2014@gmail.com. Bisa mengunduh semua portal dan menentukan siapa saja yang boleh mengunduh.</span></div>
+        <div class="role"><b>Terdaftar</b><span>Email yang didaftarkan Pemilik di <b>Kelola Akses Unduhan</b>. Masuk lewat tombol Masuk, lalu bisa mengunduh data portal yang dicentang untuknya (Excel, backup, dan berkas pelamar).</span></div>
+        <div class="role"><b>Pelihat</b><span>Semua orang lain yang membuka portal. Hanya bisa melihat ringkasan; print dan unduh dikunci. Tampilan diberi watermark dan disembunyikan saat mencoba screenshot.</span></div>
+        <p class="small" id="whoLine"></p></div>
+      <div class="scard" id="dlAcc"><div class="sch"><div><div class="eb2">Akses unduhan</div><h2>Kelola Akses Unduhan</h2><p class="small">Tambahkan email orang yang boleh mengunduh data, lalu centang portal mana saja.</p></div></div>
+        <div id="accBody"><div class="accf"><input type="email" id="accEm" placeholder="nama@email.com" autocomplete="off"><button type="button" class="btn btn-p" id="accAdd">+ Tambah Akses</button></div>
+        <div class="ap" id="accAp"></div>
+        <div class="al" id="accList"></div></div>
+        <p class="small" id="accNote" hidden>Hanya Pemilik yang bisa menambah atau menghapus akses unduhan.</p></div>
+      <div class="scard wide2"><div class="sch"><div><div class="eb2">Download</div><h2>Unduh Data Semua Portal</h2><p class="small">Hasilnya satu file <b>.zip</b>; setelah dibuka isinya langsung tersusun per folder proyek.</p></div></div>
+        <div class="pick" id="dlPick"></div>
+        <div class="opt" id="dlOpt"><label><input type="checkbox" id="oX" checked> Excel per proyek (MPP, MP Aktif, MP Out, Populasi Unit)</label><label><input type="checkbox" id="oJ" checked> Backup lengkap (.json, bisa dipulihkan ke web)</label><label><input type="checkbox" id="oF" checked> Berkas pelamar yang sudah di-upload (CV, psikotes, dll.)</label></div>
+        <div class="prog" id="dlProg"></div>
+        <button type="button" class="btn btn-p" id="dlGo">Download .zip</button></div>
+    </div>
+  </section>
   <div id="err" class="err" hidden></div>
   <div class="tot" id="tot"></div>
   <div class="grid" id="grid"></div>
@@ -190,14 +232,6 @@ body.nop main, body.nop .top { -webkit-user-select: none; user-select: none; }
 <div class="modal" id="lgModal" hidden><form class="dlg" id="lgForm" novalidate><h3>Masuk</h3><p>Masukkan email Anda. Isi password jika akun sudah punya password; kosongkan untuk menerima link masuk lewat email.</p>
   <input type="email" id="lgEm" placeholder="nama@email.com" autocomplete="email" required><input type="password" id="lgPw" placeholder="Password (opsional)" autocomplete="current-password">
   <div class="row"><button type="button" class="btn btn-g" id="lgX">Batal</button><button type="submit" class="btn btn-p">Masuk</button></div></form></div>
-<div class="modal" id="dlModal" hidden><div class="dlg wide" role="dialog" aria-labelledby="dlT"><h3 id="dlT">Pengaturan unduhan</h3><p>Unduh seluruh data dari portal yang dipilih sekaligus. Hasilnya satu file <b>.zip</b>; setelah dibuka isinya langsung tersusun per folder proyek.</p>
-  <div class="pick" id="dlPick"></div>
-  <div class="opt" id="dlOpt"><label><input type="checkbox" id="oX" checked> Excel per proyek (MPP, MP Aktif, MP Out, Populasi Unit)</label><label><input type="checkbox" id="oJ" checked> Backup lengkap (.json, bisa dipulihkan ke web)</label><label><input type="checkbox" id="oF" checked> Berkas pelamar yang sudah di-upload (CV, psikotes, dll.)</label></div>
-  <div class="prog" id="dlProg"></div>
-  <div class="row"><button type="button" class="btn btn-g" id="dlX">Tutup</button><button type="button" class="btn btn-p" id="dlGo">Download .zip</button></div>
-  <div class="acc" id="dlAcc" hidden><h4>Akses unduhan (khusus Pemilik)</h4><p class="small" style="font-size:12.5px;color:var(--ink-2)">Hanya email yang didaftarkan di sini yang bisa mengunduh data, dan hanya portal yang dicentang.</p>
-    <div class="af"><input type="email" id="accEm" placeholder="nama@email.com" autocomplete="off"><div class="ap" id="accAp"></div><div class="row"><button type="button" class="btn btn-p" id="accAdd">+ Daftarkan</button></div></div>
-    <div class="al" id="accList"></div></div></div></div>
 <div id="wm" aria-hidden="true"></div>
 <div id="shield" hidden><div><b>Tampilan disembunyikan</b><span>Screenshot dan rekam layar tidak diizinkan untuk Pelihat. Klik di sini untuk melanjutkan.</span></div></div>
 <div id="nopr"><b>Monitoring Manpower</b><br>Cetak tidak diizinkan. Hanya akun yang didaftarkan Pemilik yang bisa mencetak.</div>
@@ -316,7 +350,7 @@ async function loadPerm() {
     try { const r = await SB.from('app_access_roles').select('app_id,role').eq('email', em); ROLES = r.data || []; if (ROLES.some((x) => x.role === 'owner' || x.role === 'editor')) CAN = true; } catch (e) {}
     try { const g = await SB.from('kta_print_grants').select('status').eq('email', em).eq('status', 'approved'); if ((g.data || []).length) CAN = true; } catch (e) {}
   }
-  guard();
+  guard(); setRender();
 }
 function wmPaint() {
   const d = new Date(), p = (n) => String(n).padStart(2, '0'), who = USER ? USER.email : 'Pelihat · tanpa login';
@@ -367,23 +401,32 @@ function workbook(d, title) {
 }
 const safe = (s) => String(s || '').replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim() || 'tanpa nama';
 function openDl() {
-  if (!USER) { toast('Masuk dulu dengan akun yang didaftarkan Pemilik untuk mengunduh data.'); return; }
+  document.body.classList.add('setmode'); document.getElementById('setPage').hidden = false; window.scrollTo(0, 0);
+  try { history.replaceState(null, '', '#pengaturan'); } catch (e) {}
+  setRender();
+}
+function closeSet() { document.body.classList.remove('setmode'); document.getElementById('setPage').hidden = true; try { history.replaceState(null, '', location.pathname); } catch (e) {} }
+function setRender() {
+  if (document.getElementById('setPage').hidden) return;
+  document.getElementById('rolePill').textContent = IS_OWNER ? 'Pemilik' : DLAPPS.length ? 'Terdaftar' : 'Pelihat';
+  document.getElementById('whoLine').innerHTML = USER ? `Masuk sebagai <b style="color:var(--ink)">${esc(USER.email)}</b> — ${IS_OWNER ? '<b style="color:var(--good)">Pemilik</b>' : DLAPPS.length ? '<b style="color:var(--good)">Terdaftar</b>' : '<b>Pelihat</b> (email ini belum didaftarkan untuk unduh)'}.` : 'Anda melihat sebagai <b>Pelihat</b>. Klik <b>Masuk</b> di pojok kanan atas.';
   const allowed = PROJECTS.filter((p) => DLAPPS.includes(APP_OF[p.key]));
   document.getElementById('dlPick').innerHTML = allowed.length ? allowed.map((p) => `<label><input type="checkbox" value="${p.key}" checked> <b>${esc(p.name)}</b><small>${p.sites ? p.sites.length + ' jobsite' : '1 proyek'}</small></label>`).join('')
-    : '<div class="dlnone">Akun ini belum didaftarkan Pemilik untuk mengunduh data. Minta Pemilik menambahkan email Anda di <b>Akses unduhan</b>.</div>';
+    : `<div class="dlnone">${USER ? 'Akun ini belum didaftarkan Pemilik untuk mengunduh data.' : 'Masuk dulu dengan akun yang didaftarkan Pemilik.'}</div>`;
   document.getElementById('dlOpt').hidden = !allowed.length; document.getElementById('dlGo').hidden = !allowed.length;
-  document.getElementById('dlProg').textContent = '';
-  document.getElementById('dlAcc').hidden = !IS_OWNER; if (IS_OWNER) accRender();
-  document.getElementById('dlModal').hidden = false;
+  document.getElementById('accBody').hidden = !IS_OWNER; document.getElementById('accNote').hidden = IS_OWNER;
+  if (IS_OWNER) accRender();
 }
+document.getElementById('setBack').addEventListener('click', closeSet);
+if (location.hash === '#pengaturan') setTimeout(openDl, 0);
 async function accRender() {
-  document.getElementById('accAp').innerHTML = PROJECTS.map((p) => `<label><input type="checkbox" value="${APP_OF[p.key]}"> ${esc(p.name)}</label>`).join('');
+  if (!document.getElementById('accAp').children.length) document.getElementById('accAp').innerHTML = '<span class="small">Boleh unduh:</span>' + PROJECTS.map((p) => `<label><input type="checkbox" value="${APP_OF[p.key]}" checked> ${esc(p.name)}</label>`).join('');
   const L = document.getElementById('accList'); L.innerHTML = '<div class="small">Memuat…</div>';
   const { data, error } = await SB.from('kta_download_access').select('email,app_id').order('email');
   if (error) { L.innerHTML = `<div class="small">${esc(error.message)}</div>`; return; }
   const by = {}; (data || []).forEach((r) => { (by[r.email] = by[r.email] || []).push(r.app_id); });
   const nameOf = (a) => (PROJECTS.find((p) => APP_OF[p.key] === a) || { name: a }).name;
-  L.innerHTML = Object.entries(by).map(([em, apps]) => `<div><span class="em">${esc(em)}</span>${apps.map((a) => `<span class="chip">${esc(nameOf(a))}</span>`).join('')}<button type="button" class="rm" data-accrm="${esc(em)}">Hapus</button></div>`).join('') || '<div class="small">Belum ada yang didaftarkan. Saat ini hanya Anda yang bisa mengunduh.</div>';
+  L.innerHTML = `<div><span class="em">${esc(OWNER)}</span><span class="chip own">Pemilik · semua portal</span></div>` + Object.entries(by).map(([em, apps]) => `<div><span class="em">${esc(em)}</span>${apps.map((a) => `<span class="chip">${esc(nameOf(a))}</span>`).join('')}<button type="button" class="rm" data-accrm="${esc(em)}">Hapus</button></div>`).join('');
 }
 document.getElementById('accAdd').addEventListener('click', async () => {
   if (!IS_OWNER) return;
@@ -402,7 +445,6 @@ document.addEventListener('click', async (e) => {
   if (error) { toast('Gagal: ' + error.message); return; } toast(`Akses unduhan ${em} dicabut.`); accRender();
 });
 document.getElementById('dlBtn').addEventListener('click', openDl);
-document.getElementById('dlX').addEventListener('click', () => { document.getElementById('dlModal').hidden = true; });
 document.getElementById('dlGo').addEventListener('click', async () => {
   if (!DLAPPS.length) return;
   if (typeof JSZip === 'undefined' || typeof XLSX === 'undefined') { toast('Komponen unduhan belum termuat. Coba lagi sebentar.'); return; }
