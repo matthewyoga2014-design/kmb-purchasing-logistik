@@ -143,14 +143,31 @@ Deno.serve(async (req) => {
       // dipakai Google Apps Script milik Pemilik untuk menyalin berkas pelamar ke Google Drive
       const { data: tk } = await admin.from("kta_private_settings").select("value").eq("name", "drive_sync_token").maybeSingle();
       if (!tk || !body.token || body.token !== tk.value) return json({ ok: false, error: "token" }, 403);
+      // 1) catat semua berkas yang sekarang ada di web ke arsip (kta_drive_files)
       const { data: rows } = await admin.from("kta_web_state").select("id,data");
-      const out: unknown[] = [];
+      const now = new Date().toISOString();
+      const seen: Record<string, unknown>[] = [];
       for (const r of rows || []) {
         for (const p of (r.data?.positions || [])) for (const c of (p.cands || [])) for (const f of Object.values(c.files || {}) as any[]) {
           if (!f || !f.id) continue;
-          const { data: su } = await admin.storage.from("kta-web-docs").createSignedUrl(f.id, 900);
-          if (su?.signedUrl) out.push({ state: r.id, cand: c.name, jabatan: p.jabatan || "", name: f.name || String(f.id).split("/").pop(), id: f.id, url: su.signedUrl });
+          seen.push({ storage_id: f.id, state: r.id, cand: c.name || "", jabatan: p.jabatan || "", name: f.name || String(f.id).split("/").pop(), last_seen: now });
         }
+      }
+      if (seen.length) await admin.from("kta_drive_files").upsert(seen, { onConflict: "storage_id" });
+      // 2) Drive menyimpan semua berkas di arsip yang objek storage-nya masih ada.
+      //    Editor menghapus pelamar di web -> berkas tetap di Drive (objek storage tidak dihapus).
+      //    Pemilik klik "Hapus berkas tidak aktif" -> objek storage dihapus -> ikut hilang dari Drive.
+      const { data: reg } = await admin.from("kta_drive_files").select("storage_id,state,cand,jabatan,name");
+      const { data: objs, error: oe } = await admin.rpc("kta_storage_names");
+      if (oe || !Array.isArray(objs)) return json({ ok: false, error: "storage_list" }, 500);
+      const live = new Set((objs as unknown[]).map((o) => (typeof o === "string" ? o : (o as Record<string, string>).kta_storage_names)));
+      const gone = (reg || []).filter((x) => !live.has(x.storage_id)).map((x) => x.storage_id);
+      if (gone.length) await admin.from("kta_drive_files").delete().in("storage_id", gone);
+      const out: unknown[] = [];
+      for (const x of (reg || []).filter((x) => live.has(x.storage_id))) {
+        const { data: su } = await admin.storage.from("kta-web-docs").createSignedUrl(x.storage_id, 900);
+        if (!su?.signedUrl) return json({ ok: false, error: "sign" }, 500); // jangan kirim daftar tidak lengkap
+        out.push({ state: x.state, cand: x.cand, jabatan: x.jabatan, name: x.name, id: x.storage_id, url: su.signedUrl });
       }
       return json({ ok: true, files: out });
     }
