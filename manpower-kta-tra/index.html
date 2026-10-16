@@ -533,6 +533,27 @@ body.ofull .orgwrap.fitw { height: auto !important; }
 .printing .orgwrap, .printing .orgwrap *, .oexport .org, .oexport .org * { box-shadow: none !important; filter: none !important; text-shadow: none !important; }
 .printing .orgwrap { background: #fff !important; }
 @media print { .orgwrap, .orgwrap * { box-shadow: none !important; filter: none !important; text-shadow: none !important; } .orgwrap { background: #fff !important; } }
+
+/* Pelihat guard */
+#wm { position: fixed; inset: 0; z-index: 75; pointer-events: none; display: none; background-repeat: repeat; }
+body.nop #wm { display: block; }
+body.nop .main, body.nop .modal { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+body.nop input, body.nop textarea, body.nop select { -webkit-user-select: text; user-select: text; }
+body.nop img { -webkit-user-drag: none; pointer-events: auto; }
+.btn.lk::before { content: "🔒"; font-size: 11px; margin-right: -2px; }
+#shield { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 16px; background: rgba(242,241,250,.82); -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px); cursor: pointer; }
+#shield > div { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px 24px; max-width: 380px; text-align: center; display: grid; gap: 6px; box-shadow: 0 10px 30px rgba(30,27,58,.15); }
+#shield b { font-size: 16px; } #shield span { font-size: 13px; color: var(--muted); }
+#nopr { display: none; }
+.pgl2 { display: grid; gap: 6px; }
+.pgl2 > div { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; }
+.pgl2 .em { flex: 1; min-width: 140px; overflow: hidden; text-overflow: ellipsis; font-weight: 600; font-size: 13px; }
+.pgl2 small { color: var(--muted); font-size: 11px; width: 100%; }
+@media print {
+  body.nop > *:not(#nopr) { display: none !important; }
+  body.nop #nopr { display: block !important; margin: 60mm auto 0; text-align: center; font: 600 16px/1.6 var(--f); color: #1E1B3A; }
+  #wm, #shield { display: none !important; }
+}
 .edf { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .edf input { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
 .edl { display: grid; gap: 6px; }
@@ -3169,10 +3190,76 @@ renameForm = function (kind, sec, grp) {
   if (!own) { const f = document.getElementById('f_nm'); if (f) f.disabled = true; }
 };
 
+// ================= Pelihat guard: no print/export without Pemilik approval, screenshot deterrence =================
+let PRINT_OK = false;            // set true by the web adapter when the Pemilik approved this viewer
+let GUARD_WHO = '';              // email shown in the watermark (web adapter fills it after login)
+const LOCK_SEL = '#printBtn,[data-oexp],#xlsxBtn,#bkBtn,#csvPel';
+const guardFree = () => CAN_EDIT || PRINT_OK;
+document.body.insertAdjacentHTML('beforeend', `<div id="wm" aria-hidden="true"></div>
+<div id="shield" hidden><div><b>Tampilan disembunyikan</b><span>Screenshot dan rekam layar tidak diizinkan untuk Pelihat. Klik di sini untuk melanjutkan.</span></div></div>
+<div id="nopr"><b>Monitoring Manpower</b><br>Cetak tidak diizinkan. Minta izin cetak ke Pemilik melalui tombol Print di web.</div>`);
+
+function wmPaint() {
+  const el = document.getElementById('wm'); if (!el) return;
+  const d = new Date(), p = (n) => String(n).padStart(2, '0');
+  const stamp = `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  const who = GUARD_WHO || 'Pelihat · tanpa login';
+  const t = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="380" height="220"><g transform="rotate(-22 190 110)" font-family="Plus Jakarta Sans,Segoe UI,sans-serif" text-anchor="middle" fill="#1E1B3A" fill-opacity=".085"><text x="190" y="100" font-size="17" font-weight="800">MONITORING MANPOWER · RAHASIA</text><text x="190" y="126" font-size="13" font-weight="600">${t(who)} · ${stamp}</text></g></svg>`;
+  el.style.backgroundImage = `url("data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}")`;
+}
+function guardSync() {
+  const lock = !guardFree();
+  document.body.classList.toggle('nop', lock);
+  if (!lock) shieldOff();
+  wmPaint();
+  document.querySelectorAll(LOCK_SEL).forEach((b) => { b.classList.toggle('lk', lock); if (lock) b.title = 'Perlu izin Pemilik untuk mencetak / mengunduh'; });
+}
+setInterval(() => { if (document.body.classList.contains('nop')) wmPaint(); }, 30000);
+const _render20 = render;
+render = function () { _render20.apply(this, arguments); guardSync(); };
+
+function shieldOn() { if (!guardFree()) document.getElementById('shield').hidden = false; }
+function shieldOff() { const s = document.getElementById('shield'); if (s) s.hidden = true; }
+window.addEventListener('blur', shieldOn);
+document.addEventListener('visibilitychange', () => { if (document.hidden) shieldOn(); });
+window.addEventListener('focus', () => setTimeout(shieldOff, 250));
+document.getElementById('shield').addEventListener('pointerdown', shieldOff);
+
+function askPrint() {
+  if (typeof PRINT_ASK === 'function') { PRINT_ASK(); return; }
+  openForm({ eyebrow: 'Izin cetak', title: 'Cetak & unduh perlu izin Pemilik', values: {}, fields: [], submit: 'Mengerti',
+    intro: 'Sebagai Pelihat, Anda hanya bisa melihat. Untuk mencetak, menyimpan PDF/PNG, atau mengunduh Excel, minta izin ke Pemilik.', onSave: () => true });
+}
+document.addEventListener('click', (e) => {
+  if (guardFree()) return;
+  if (e.target.closest && e.target.closest(LOCK_SEL)) { e.preventDefault(); e.stopImmediatePropagation(); askPrint(); }
+}, true);
+document.addEventListener('keydown', (e) => {
+  if (guardFree()) return;
+  const k = (e.key || '').toLowerCase();
+  if ((e.ctrlKey || e.metaKey) && (k === 'p' || k === 's')) { e.preventDefault(); e.stopImmediatePropagation(); askPrint(); return; }
+  if ((e.ctrlKey || e.metaKey) && (k === 'c' || k === 'x') && !e.target.closest('input,textarea')) { e.preventDefault(); return; }
+  if (k === 'meta' || k === 'os' || k === 'printscreen' || (e.shiftKey && e.metaKey)) shieldOn();
+}, true);
+document.addEventListener('keyup', (e) => {
+  if (guardFree() || (e.key || '').toLowerCase() !== 'printscreen') return;
+  shieldOn();
+  try { navigator.clipboard && navigator.clipboard.writeText('Screenshot Monitoring Manpower tidak diizinkan.'); } catch (er) {}
+  toast('Screenshot tidak diizinkan untuk Pelihat.', true);
+}, true);
+['contextmenu', 'copy', 'cut', 'dragstart', 'selectstart'].forEach((ev) => document.addEventListener(ev, (e) => {
+  if (guardFree() || (e.target.closest && e.target.closest('input,textarea,select,[contenteditable]'))) return;
+  e.preventDefault();
+}, true));
+window.addEventListener('beforeprint', () => { if (!guardFree()) document.body.classList.add('nop'); });
+guardSync();
+
 // ================= WEB: standalone mode (GitHub Pages + Supabase, no Claude) =================
 const WEB_CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
 const WEB_TABLE = 'kta_web_state', WEB_ID = 'main', WEB_BUCKET = 'kta-web-docs', WEB_ROLE_APP = 'kta-tra', WEB_OWNER = 'matthewyoga2014@gmail.com';
-const WEB = { sb: null, user: null, role: 'viewer', ver: null, editors: null, edErr: null, ready: false, offline: false, empty: false };
+const WEB = { sb: null, user: null, role: 'viewer', ver: null, editors: null, edErr: null, ready: false, offline: false, empty: false, grant: null, grants: null, gch: null };
+const WEB_PRINT = 'kta_print_grants';
 IS_TOP = true;
 DL = { async save({ filename, data }) {
   const blob = data instanceof Blob ? data : new Blob([data], { type: /\.csv$/i.test(filename) ? 'text/csv;charset=utf-8' : /\.json$/i.test(filename) ? 'application/json' : 'application/octet-stream' });
@@ -3230,8 +3317,11 @@ async function applyRole() {
   CAN_EDIT = WEB.role === 'owner' || WEB.role === 'editor';
   ROLE = IS_OWNER ? 'Pemilik · Editor' : CAN_EDIT ? 'Editor' : 'Pelihat';
   ASSETS = CAN_EDIT ? WEB_ASSETS : null;
-  WEB.editors = null;
-  if (IS_OWNER) loadEditors();
+  WEB.editors = null; WEB.grants = null;
+  GUARD_WHO = WEB.user ? WEB.user.email : '';
+  await loadGrant();
+  if (IS_OWNER) { loadEditors(); loadGrants(); }
+  watchGrants();
   authBtn();
   render();
 }
@@ -3270,8 +3360,8 @@ async function commit(mutate, okMsg) {
 
 // ---------- login ----------
 function openLogin() {
-  openForm({ eyebrow: 'Masuk', title: 'Masuk untuk mengedit', submit: 'Masuk',
-    intro: 'Masukkan email yang sudah didaftarkan Pemilik sebagai Editor. Isi password jika akun Anda sudah punya password; kosongkan untuk menerima <b>link masuk</b> lewat email.',
+  openForm({ eyebrow: 'Masuk', title: 'Masuk', submit: 'Masuk',
+    intro: 'Editor: masukkan email yang sudah didaftarkan Pemilik. Pelihat: masuk dengan email Anda untuk meminta izin cetak. Isi password jika akun Anda sudah punya password; kosongkan untuk menerima <b>link masuk</b> lewat email.',
     values: {}, fields: [{ k: 'em', label: 'Email', req: true, full: true, ph: 'nama@email.com' }, { k: 'pw', label: 'Password (opsional)', full: true }],
     onSave: async (v) => {
       const email = String(v.em || '').trim().toLowerCase();
@@ -3321,9 +3411,10 @@ function pageSetting(D) {
     <div class="card s6"><div class="ch"><div><div class="eyebrow">Akses</div><h2>Pemilik & Editor</h2></div><span class="pill ${CAN_EDIT ? 'live' : ''}">${ROLE}</span></div>
       <div class="role"><b>Pemilik</b><span>${esc(WEB_OWNER)}. Bisa mengedit semua data dan menentukan siapa saja editornya.</span></div>
       <div class="role"><b>Editor</b><span>Email yang didaftarkan Pemilik. Masuk lewat tombol Masuk, lalu bisa mengubah data posisi yang sudah ada, mengelola pelamar, upload berkas, dan menata Struktur Organisasi. Menambah / menghapus posisi, nama section / sub-section / jabatan baru, sinkron Excel, dan pulihkan backup hanya oleh Pemilik.</span></div>
-      <div class="role"><b>Pelihat</b><span>Semua orang yang membuka link tanpa masuk. Bisa melihat, mencari, print, dan export, tanpa bisa mengubah data.</span></div>
+      <div class="role"><b>Pelihat</b><span>Semua orang yang membuka link dan belum didaftarkan. Hanya bisa melihat dan mencari. Print, PDF/PNG, dan unduhan dikunci sampai Pemilik menyetujui permintaan izin cetaknya. Tampilan diberi watermark dan disembunyikan saat mencoba screenshot.</span></div>
       <p class="small" style="margin:12px 0 0">${WEB.user ? `Masuk sebagai <b style="color:var(--ink)">${esc(WEB.user.email)}</b> — ${IS_OWNER ? '<b style="color:var(--good)">Pemilik</b>' : CAN_EDIT ? '<b style="color:var(--good)">Editor</b>' : '<b>Pelihat</b> (email ini belum didaftarkan sebagai Editor)'}.` : 'Anda melihat sebagai <b>Pelihat</b>. Klik <b>Masuk</b> di pojok kanan atas untuk mengedit.'}</p></div>
     ${editorsCard()}
+    ${printCard()}
     <div class="card s6"><div class="ch"><div><div class="eyebrow">Sinkronisasi</div><h2>Sinkronkan Excel</h2><p>Ganti seluruh data web dengan isi file Excel Monitoring Manpower KTA - TRA (sheet DASHBOARD, MPP KTA-TRA, MP Aktif, MP Out). Pelamar yang hilang dari Keterangan tetap disimpan sebagai riwayat.</p></div></div>
       ${CAN_EDIT ? '<button type="button" class="btn btn-p" data-sync="1">Sinkronkan Excel</button>' : '<p class="small" style="margin:0">Hanya Pemilik/Editor yang bisa menyinkronkan Excel.</p>'}</div>
     <div class="card s6"><div class="ch"><div><div class="eyebrow">Download</div><h2>Download Excel</h2><p>Unduh data terbaru dari web dalam format .xlsx (MPP, MP Aktif, MP Out, Populasi Unit).</p></div></div>
@@ -3389,6 +3480,73 @@ async function webInit() {
   document.addEventListener('visibilitychange', () => { if (!document.hidden && document.getElementById('modal').hidden && !SAVING) webLoad().catch(() => {}); });
 }
 setTimeout(webInit, 0);
+
+// ---------- izin cetak (Pelihat) ----------
+async function loadGrant() {
+  WEB.grant = null; PRINT_OK = false;
+  if (!WEB.sb || !WEB.user || CAN_EDIT) return;
+  const { data } = await WEB.sb.from(WEB_PRINT).select('status,requested_at,decided_at').eq('app_id', WEB_ROLE_APP).eq('email', WEB.user.email.toLowerCase()).maybeSingle();
+  WEB.grant = data || null; PRINT_OK = !!(data && data.status === 'approved');
+}
+async function loadGrants() {
+  const { data, error } = await WEB.sb.from(WEB_PRINT).select('email,status,requested_at,decided_at').eq('app_id', WEB_ROLE_APP).order('requested_at', { ascending: false });
+  WEB.grants = error ? [] : (data || []);
+  const np = WEB.grants.filter((r) => r.status === 'pending').length;
+  if (np && !WEB.gToast) { WEB.gToast = 1; toast(`${np} permintaan izin cetak menunggu persetujuan Anda (menu Pengaturan).`); }
+  render();
+}
+function watchGrants() {
+  if (WEB.gch) { WEB.sb.removeChannel(WEB.gch); WEB.gch = null; }
+  if (!WEB.user || !(IS_OWNER || !CAN_EDIT)) return;
+  const f = IS_OWNER ? 'app_id=eq.' + WEB_ROLE_APP : 'email=eq.' + WEB.user.email.toLowerCase();
+  WEB.gch = WEB.sb.channel('kta-print-' + Date.now()).on('postgres_changes', { event: '*', schema: 'public', table: WEB_PRINT, filter: f }, async (pl) => {
+    if (IS_OWNER) {
+      await loadGrants();
+      if (pl.new && pl.new.status === 'pending') toast(`Permintaan izin cetak dari ${pl.new.email}. Buka Pengaturan untuk menyetujui.`);
+    } else {
+      const was = PRINT_OK; await loadGrant(); render();
+      if (!was && PRINT_OK) toast('Pemilik menyetujui izin cetak Anda. Print & unduh sekarang aktif.');
+      else if (was && !PRINT_OK) toast('Izin cetak Anda dicabut oleh Pemilik.', true);
+      else if (WEB.grant && WEB.grant.status === 'denied') toast('Permintaan izin cetak ditolak Pemilik.', true);
+    }
+  }).subscribe();
+}
+function PRINT_ASK() {
+  const info = (title, intro, submit, fn) => openForm({ eyebrow: 'Izin cetak', title, intro, values: {}, fields: [], submit, onSave: fn || (() => true) });
+  if (!WEB.sb) { info('Cetak & unduh perlu izin Pemilik', 'Server belum terhubung. Periksa koneksi lalu muat ulang.', 'Tutup'); return; }
+  if (!WEB.user) { info('Cetak & unduh perlu izin Pemilik', 'Sebagai Pelihat, Anda hanya bisa melihat. Masuk dengan email Anda dulu, lalu kirim permintaan izin cetak ke Pemilik.', 'Masuk', () => { setTimeout(openLogin, 50); return true; }); return; }
+  const g = WEB.grant;
+  if (g && g.status === 'pending') { info('Menunggu persetujuan Pemilik', `Permintaan dari <b>${esc(WEB.user.email)}</b> sudah terkirim. Tombol Print & unduh aktif otomatis begitu Pemilik menyetujuinya.`, 'Tutup'); return; }
+  info(g && g.status === 'denied' ? 'Permintaan sebelumnya ditolak' : 'Minta izin cetak ke Pemilik',
+    `Kirim permintaan sebagai <b>${esc(WEB.user.email)}</b>. Setelah disetujui, Anda bisa print, simpan PDF/PNG, dan mengunduh data.`, 'Kirim permintaan', async () => {
+      const row = { app_id: WEB_ROLE_APP, email: WEB.user.email.toLowerCase(), status: 'pending', requested_at: new Date().toISOString(), decided_at: null, decided_by: null };
+      const { error } = g ? await WEB.sb.from(WEB_PRINT).update(row).eq('app_id', WEB_ROLE_APP).eq('email', row.email) : await WEB.sb.from(WEB_PRINT).insert(row);
+      if (error) { toast('Gagal mengirim permintaan: ' + error.message, true); return false; }
+      await loadGrant(); render(); toast('Permintaan izin cetak terkirim ke Pemilik.'); return true;
+    });
+}
+function printCard() {
+  if (!IS_OWNER) return '';
+  const L = WEB.grants, tm = (s) => s ? new Date(s).toLocaleString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '';
+  const st = { pending: ['hd', 'Menunggu'], approved: ['ok', 'Diizinkan'], denied: ['no', 'Ditolak'] };
+  return `<div class="card s6"><div class="ch"><div><div class="eyebrow">Keamanan</div><h2>Izin Cetak Pelihat</h2><p>Pelihat tidak bisa print, simpan PDF/PNG, atau mengunduh data sebelum Anda setujui. Editor selalu bisa.</p></div>${L && L.some((r) => r.status === 'pending') ? `<span class="pill red">${L.filter((r) => r.status === 'pending').length} menunggu</span>` : ''}</div>
+    <div class="pgl2">${L === null ? '<div class="upst"><span class="spin sm"></span>Memuat…</div>' : L.map((r) => `<div><span class="em">${esc(r.email)}</span><span class="hs ${st[r.status][0]}">${st[r.status][1]}</span>
+      ${r.status !== 'approved' ? `<button type="button" class="btn btn-p btn-sm" data-pg="approved" data-pe="${esc(r.email)}">Setujui</button>` : ''}
+      ${r.status === 'pending' ? `<button type="button" class="btn btn-g btn-sm red" data-pg="denied" data-pe="${esc(r.email)}">Tolak</button>` : ''}
+      ${r.status === 'approved' ? `<button type="button" class="btn btn-g btn-sm red" data-pg="del" data-pe="${esc(r.email)}">Cabut izin</button>` : ''}
+      <small>Diminta ${tm(r.requested_at)}${r.decided_at ? ' · diputuskan ' + tm(r.decided_at) : ''}</small></div>`).join('') || '<div class="small">Belum ada permintaan.</div>'}</div></div>`;
+}
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-pg]'); if (!b || !IS_OWNER) return;
+  e.stopPropagation(); b.disabled = true;
+  const email = b.dataset.pe, act = b.dataset.pg;
+  const q = WEB.sb.from(WEB_PRINT);
+  const { error } = act === 'del' ? await q.delete().eq('app_id', WEB_ROLE_APP).eq('email', email)
+    : await q.update({ status: act, decided_at: new Date().toISOString(), decided_by: WEB.user.email }).eq('app_id', WEB_ROLE_APP).eq('email', email);
+  if (error) { toast('Gagal: ' + error.message, true); b.disabled = false; return; }
+  toast(act === 'approved' ? `${email} sekarang boleh mencetak.` : act === 'denied' ? `Permintaan ${email} ditolak.` : `Izin cetak ${email} dicabut.`);
+  loadGrants();
+}, true);
 // ---------- boot ----------
 render();
 try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.removeItem('mp5-flash'); setTimeout(() => toast(f), 300); } } catch (e) {}
