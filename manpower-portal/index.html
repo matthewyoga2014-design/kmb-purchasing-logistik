@@ -284,7 +284,7 @@ function totHtml(list) {
   const cls = { kta: 't1', bupr: 't2', mbj: 't3', kmb: 't4' };
   return PROJECTS.map((p) => {
     const s = list && list[p.key];
-    return `<a class="t ${cls[p.key]}" href="${p.href}" title="Buka ${esc(p.name)}"><span class="ti">${I[p.icon]}</span><div class="tx"><small>% Actual ${esc(p.name)}</small><b>${s ? s.pct + '%' : '<span class="sk">00</span>'}</b><em>${s ? `${s.act} dari ${s.mpp} MPP terisi` : '&nbsp;'}</em><span class="tb"><i style="width:${s ? s.pct : 0}%"></i></span></div><span class="tg">${I.pie('#fff', 40)}</span></a>`;
+    return `<a class="t ${cls[p.key]}" href="${p.href}" title="Buka ${esc(p.name)}"><span class="ti">${I[p.icon]}</span><div class="tx"><small>% Actual ${esc(p.name)}</small><b>${s ? s.pct + '%' : '<span class="sk">00</span>'}</b><span class="tb"><i style="width:${s ? s.pct : 0}%"></i></span></div><span class="tg">${I.pie('#fff', 40)}</span></a>`;
   }).join('');
 }
 function cardHtml(p, s, per, last) {
@@ -364,7 +364,7 @@ function wmPaint() {
 }
 function guard() {
   document.body.classList.toggle('nop', !CAN);
-  document.getElementById('prBtn').classList.toggle('lk', !CAN); document.getElementById('dlBtn').classList.toggle('lk', !DLAPPS.length);
+  document.getElementById('prBtn').classList.toggle('lk', !CAN);
   if (CAN) document.getElementById('shield').hidden = true;
   wmPaint();
 }
