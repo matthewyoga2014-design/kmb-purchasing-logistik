@@ -3522,7 +3522,10 @@ function PRINT_ASK() {
       const row = { app_id: WEB_ROLE_APP, email: WEB.user.email.toLowerCase(), status: 'pending', requested_at: new Date().toISOString(), decided_at: null, decided_by: null };
       const { error } = g ? await WEB.sb.from(WEB_PRINT).update(row).eq('app_id', WEB_ROLE_APP).eq('email', row.email) : await WEB.sb.from(WEB_PRINT).insert(row);
       if (error) { toast('Gagal mengirim permintaan: ' + error.message, true); return false; }
-      await loadGrant(); render(); toast('Permintaan izin cetak terkirim ke Pemilik.'); return true;
+      await loadGrant(); render();
+      let mailed = false;
+      try { const { data } = await WEB.sb.functions.invoke('kta-print', { body: { op: 'notify' } }); mailed = !!(data && data.ok); } catch (er) {}
+      toast(mailed ? 'Permintaan terkirim. Pemilik sudah diberi tahu lewat email.' : 'Permintaan izin cetak terkirim ke Pemilik.'); return true;
     });
 }
 function printCard() {

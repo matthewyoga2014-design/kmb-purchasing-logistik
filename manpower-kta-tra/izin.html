@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Izin Cetak · Monitoring Manpower</title><meta name="robots" content="noindex"><meta name="theme-color" content="#6D28D9">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;700;800&display=swap">
+<style>
+:root{color-scheme:light;--bg:#F2F1FA;--card:#fff;--ink:#1E1B3A;--muted:#8A87A6;--line:#E8E6F3;--p:#6D28D9;--good:#15803D;--crit:#DC2626}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:20px 16px;background:var(--bg);color:var(--ink);font:15px/1.5 "Plus Jakarta Sans",system-ui,sans-serif}
+.c{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px 22px;width:min(440px,100%);text-align:center;box-shadow:0 10px 30px rgba(30,27,58,.08)}
+.e{font-size:11px;font-weight:800;letter-spacing:.14em;color:var(--p)}h1{font-size:22px;margin:6px 0 8px}p{margin:0 0 6px;color:#4B4868}.m{color:var(--muted);font-size:13px}
+.em{display:inline-block;margin:8px 0 4px;padding:6px 12px;border-radius:10px;background:#EFE9FE;color:#5B21B6;font-weight:800;word-break:break-all}
+.b{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap}button{font:inherit;font-weight:800;border:0;border-radius:12px;padding:13px 22px;color:#fff;cursor:pointer;min-width:130px}
+.ok{background:var(--good)}.no{background:var(--crit)}button:disabled{opacity:.5}.ic{font-size:44px;line-height:1;margin-bottom:6px}
+a{color:var(--p);font-weight:700}
+</style></head><body>
+<main class="c" id="c"><div class="e">MONITORING MANPOWER KTA-TRA</div><h1>Memuat…</h1></main>
+<script>
+const FN = 'https://yoviojbfyvgpllxisjvy.supabase.co/functions/v1/kta-print';
+const KEY = 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9';
+const WEB = './';
+const q = new URLSearchParams(location.search), t = q.get('t') || '', want = q.get('a');
+const c = document.getElementById('c');
+const esc = (s) => String(s || '').replace(/[&<>"']/g, (x) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[x]));
+const head = '<div class="e">MONITORING MANPOWER KTA-TRA</div>';
+const LBL = { approved: 'Diizinkan', denied: 'Ditolak', pending: 'Menunggu' };
+async function call(body) {
+  const r = await fetch(FN, { method: 'POST', headers: { 'content-type': 'application/json', apikey: KEY }, body: JSON.stringify({ op: 'decide', t, ...body }) });
+  return r.json().catch(() => ({ ok: false, error: 'server' }));
+}
+function msg(ic, title, body) { c.innerHTML = `${head}<div class="ic">${ic}</div><h1>${title}</h1>${body}<p class="m" style="margin-top:14px"><a href="${WEB}">Buka web Monitoring</a></p>`; }
+function fail(r) {
+  const m = { invalid: 'Link tidak valid atau sudah kedaluwarsa (lebih dari 7 hari).', stale: 'Orang ini sudah mengirim permintaan baru. Gunakan link di email terbaru.', gone: 'Permintaan ini sudah dihapus.', }[r.error] || 'Terjadi kesalahan. Coba lagi beberapa saat lagi.';
+  msg('⚠️', 'Tidak bisa diproses', `<p>${m}</p>${r.email ? `<div class="em">${esc(r.email)}</div>` : ''}${r.status ? `<p class="m">Status sekarang: <b>${LBL[r.status]}</b></p>` : ''}`);
+}
+async function decide(a) {
+  c.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+  const r = await call({ a });
+  if (!r.ok) return fail(r);
+  msg(a === 'approved' ? '✅' : '⛔', a === 'approved' ? 'Izin cetak disetujui' : 'Permintaan ditolak', `<div class="em">${esc(r.email)}</div><p>${a === 'approved' ? 'Orang ini sekarang bisa print, simpan PDF/PNG, dan mengunduh data. Gemboknya hilang otomatis di layarnya.' : 'Print dan unduhan tetap terkunci untuk orang ini.'}</p><p class="m">Bisa diubah kapan saja di web → Pengaturan → Izin Cetak Pelihat.</p>`);
+}
+(async () => {
+  if (!t) return fail({ error: 'invalid' });
+  const r = await call({ peek: true });
+  if (!r.ok) return fail(r);
+  const when = new Date(r.requested_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
+  c.innerHTML = `${head}<h1>Izin cetak</h1><div class="em">${esc(r.email)}</div><p>meminta izin untuk print, simpan PDF/PNG, dan mengunduh data.</p><p class="m">Diminta ${when} · Status sekarang: <b>${LBL[r.status]}</b></p>
+    <div class="b">${want !== 'denied' ? '<button class="ok" data-a="approved">✓ Setujui</button>' : ''}<button class="no" data-a="denied">✕ Tolak</button>${want === 'denied' ? '<button class="ok" data-a="approved">✓ Setujui</button>' : ''}</div>`;
+  c.querySelectorAll('button').forEach((b) => b.addEventListener('click', () => decide(b.dataset.a)));
+})();
+</script>
+</body></html>
