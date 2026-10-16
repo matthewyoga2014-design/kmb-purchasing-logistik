@@ -3447,6 +3447,35 @@ pipeChart = function (act, off) {
 const _candidates23 = candidates;
 candidates = function (p) { return _candidates23(p).map((c) => (c.note && /interview(?!\s*user)/i.test(c.note)) ? { ...c, note: c.note.replace(/interview(?!\s*user)/gi, (m) => m[0] === 'I' ? 'Interview User' : 'interview user') } : c); };
 
+// ================= tahan klik + geser untuk menggulung tabel (seperti Struktur Organisasi) =================
+(function () {
+  const css = document.createElement('style');
+  css.textContent = '.tw.canpan{cursor:grab}.tw.panning,.tw.panning *{cursor:grabbing!important;user-select:none!important}';
+  document.head.appendChild(css);
+  const SKIP = 'a,button,input,select,textarea,label,summary,[contenteditable],[draggable="true"],.fchip2,[data-pt]';
+  let P = null;
+  const mark = () => document.querySelectorAll('.tw').forEach((w) => w.classList.toggle('canpan', w.scrollWidth > w.clientWidth + 2));
+  new MutationObserver(() => requestAnimationFrame(mark)).observe(document.documentElement, { childList: true, subtree: true });
+  window.addEventListener('resize', mark);
+  document.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    const w = e.target.closest && e.target.closest('.tw'); if (!w || e.target.closest(SKIP)) return;
+    if (w.scrollWidth <= w.clientWidth + 2) return;
+    P = { w, x: e.clientX, y: e.clientY, sl: w.scrollLeft, sy: window.scrollY, on: false };
+  });
+  document.addEventListener('mousemove', (e) => {
+    if (!P) return;
+    const dx = e.clientX - P.x, dy = e.clientY - P.y;
+    if (!P.on) { if (Math.abs(dx) + Math.abs(dy) < 6) return; P.on = true; P.w.classList.add('panning'); window.getSelection && window.getSelection().removeAllRanges(); }
+    e.preventDefault();
+    P.w.scrollLeft = P.sl - dx;
+    window.scrollTo(window.scrollX, P.sy - dy);
+  });
+  const end = () => { if (!P) return; if (P.on) { const w = P.w; w.classList.remove('panning'); const eat = (ev) => { ev.stopPropagation(); ev.preventDefault(); }; window.addEventListener('click', eat, true); setTimeout(() => window.removeEventListener('click', eat, true), 0); } P = null; };
+  document.addEventListener('mouseup', end);
+  window.addEventListener('blur', end);
+})();
+
 // ================= WEB: standalone mode (GitHub Pages + Supabase, no Claude) =================
 const WEB_CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
 const PROJ = (typeof PROJ_CFG !== 'undefined') ? PROJ_CFG : { id: 'main', app: 'kta-tra', sites: null };
