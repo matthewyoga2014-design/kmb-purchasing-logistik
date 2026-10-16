@@ -21,13 +21,13 @@ const WEB = './';
 const q = new URLSearchParams(location.search), t = q.get('t') || '', want = q.get('a');
 const c = document.getElementById('c');
 const esc = (s) => String(s || '').replace(/[&<>"']/g, (x) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[x]));
-const head = '<div class="e">MONITORING MANPOWER KTA-TRA</div>';
+let head = '<div class="e">MONITORING MANPOWER</div>', WEBP = WEB;
 const LBL = { approved: 'Diizinkan', denied: 'Ditolak', pending: 'Menunggu' };
 async function call(body) {
   const r = await fetch(FN, { method: 'POST', headers: { 'content-type': 'application/json', apikey: KEY }, body: JSON.stringify({ op: 'decide', t, ...body }) });
   return r.json().catch(() => ({ ok: false, error: 'server' }));
 }
-function msg(ic, title, body) { c.innerHTML = `${head}<div class="ic">${ic}</div><h1>${title}</h1>${body}<p class="m" style="margin-top:14px"><a href="${WEB}">Buka web Monitoring</a></p>`; }
+function msg(ic, title, body) { c.innerHTML = `${head}<div class="ic">${ic}</div><h1>${title}</h1>${body}<p class="m" style="margin-top:14px"><a href="${WEBP}">Buka web Monitoring</a></p>`; }
 function fail(r) {
   const m = { invalid: 'Link tidak valid atau sudah kedaluwarsa (lebih dari 7 hari).', stale: 'Orang ini sudah mengirim permintaan baru. Gunakan link di email terbaru.', gone: 'Permintaan ini sudah dihapus.', }[r.error] || 'Terjadi kesalahan. Coba lagi beberapa saat lagi.';
   msg('⚠️', 'Tidak bisa diproses', `<p>${m}</p>${r.email ? `<div class="em">${esc(r.email)}</div>` : ''}${r.status ? `<p class="m">Status sekarang: <b>${LBL[r.status]}</b></p>` : ''}`);
@@ -41,6 +41,7 @@ async function decide(a) {
 (async () => {
   if (!t) return fail({ error: 'invalid' });
   const r = await call({ peek: true });
+  if (r.project) { head = `<div class="e">MONITORING MANPOWER ${esc(r.project).toUpperCase()}</div>`; WEBP = r.web || WEB; }
   if (!r.ok) return fail(r);
   const when = new Date(r.requested_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' });
   c.innerHTML = `${head}<h1>Izin cetak</h1><div class="em">${esc(r.email)}</div><p>meminta izin untuk print, simpan PDF/PNG, dan mengunduh data.</p><p class="m">Diminta ${when} · Status sekarang: <b>${LBL[r.status]}</b></p>

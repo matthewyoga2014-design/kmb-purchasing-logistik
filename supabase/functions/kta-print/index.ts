@@ -3,9 +3,16 @@
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
 const OWNER = "matthewyoga2014@gmail.com";
-const APP = "kta-tra";
-const PAGE = "https://matthewyoga2014-design.github.io/kmb-purchasing-logistik/manpower-kta-tra/izin.html";
-const WEB = "https://matthewyoga2014-design.github.io/kmb-purchasing-logistik/manpower-kta-tra/";
+const APPS: Record<string, { name: string; web: string }> = {
+  "kta-tra": { name: "KTA-TRA", web: "manpower-kta-tra/" },
+  "bupr-ampah": { name: "BUPR Ampah", web: "manpower-bupr/" },
+  "mbj": { name: "MBJ", web: "manpower-mbj/" },
+  "kmb": { name: "KMB", web: "manpower-kmb/" },
+};
+const appOf = (a: unknown) => (typeof a === "string" && APPS[a] ? a : "kta-tra");
+const BASE = "https://matthewyoga2014-design.github.io/kmb-purchasing-logistik/";
+const PAGE = BASE + "manpower-kta-tra/izin.html";
+const WEB = BASE + "manpower-kta-tra/";
 const URL_ = Deno.env.get("SUPABASE_URL")!;
 const SRK = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const admin = createClient(URL_, SRK, { auth: { persistSession: false } });
@@ -28,7 +35,7 @@ async function key() {
   }
   return KEY;
 }
-async function sign(p: { e: string; r: number; x: number }) {
+async function sign(p: { e: string; r: number; x: number; a?: string }) {
   const body = b64u(enc.encode(JSON.stringify(p)));
   const sig = new Uint8Array(await crypto.subtle.sign("HMAC", await key(), enc.encode(body)));
   return body + "." + b64u(sig);
@@ -39,7 +46,7 @@ async function verify(t: string) {
   const ok = await crypto.subtle.verify("HMAC", await key(), unb64u(sig), enc.encode(body));
   if (!ok) return null;
   const p = JSON.parse(new TextDecoder().decode(unb64u(body)));
-  return p.x > Date.now() ? p as { e: string; r: number; x: number } : null;
+  return p.x > Date.now() ? p as { e: string; r: number; x: number; a?: string } : null;
 }
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 
@@ -77,27 +84,29 @@ async function caller(req: Request) {
   return (u?.user?.email || "").toLowerCase();
 }
 
-async function row(email: string) {
+async function row(email: string, APP: string) {
   const { data } = await admin.from("kta_print_grants").select("email,status,requested_at,decided_at,notified_at").eq("app_id", APP).eq("email", email).maybeSingle();
   return data;
 }
 
-async function notify(req: Request) {
+async function notify(req: Request, APP: string) {
   const email = await caller(req);
   if (!email) return json({ ok: false, error: "login" }, 401);
-  const g = await row(email);
+  const g = await row(email, APP);
   if (!g || g.status !== "pending") return json({ ok: false, error: "no_request" }, 400);
   if (g.notified_at && Date.now() - Date.parse(g.notified_at) < 10 * 60 * 1000) return json({ ok: true, skipped: "recent" });
-  const t = await sign({ e: email, r: Date.parse(g.requested_at), x: Date.now() + 7 * 864e5 });
+  const t = await sign({ e: email, r: Date.parse(g.requested_at), x: Date.now() + 7 * 864e5, a: APP });
+  const PN = APPS[APP].name, PW = BASE + APPS[APP].web;
   const when = new Date(g.requested_at).toLocaleString("id-ID", { timeZone: "Asia/Jakarta", dateStyle: "medium", timeStyle: "short" });
   const btn = (a: string, label: string, bg: string) => `<a href="${PAGE}?a=${a}&t=${t}" style="display:inline-block;padding:13px 26px;border-radius:10px;background:${bg};color:#fff;font-weight:700;text-decoration:none;font-size:15px;margin:4px 6px">${label}</a>`;
   const html = `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:520px;margin:auto;padding:24px;color:#1E1B3A">
-    <div style="font-size:11px;font-weight:800;letter-spacing:.14em;color:#6D28D9">MONITORING MANPOWER KTA-TRA</div>
+    <div style="font-size:11px;font-weight:800;letter-spacing:.14em;color:#6D28D9">MONITORING MANPOWER ${PN.toUpperCase()}</div>
     <h2 style="margin:6px 0 10px">Permintaan izin cetak</h2>
     <p style="font-size:15px;line-height:1.5"><b>${esc(email)}</b> meminta izin untuk print, simpan PDF/PNG, dan mengunduh data.<br><span style="color:#8A87A6;font-size:13px">Diminta ${when} WIB</span></p>
     <div style="text-align:center;margin:22px 0">${btn("approved", "✓ Setujui", "#15803D")}${btn("denied", "✕ Tolak", "#DC2626")}</div>
-    <p style="font-size:12px;color:#8A87A6">Link berlaku 7 hari. Izin bisa dicabut kapan saja di <a href="${WEB}" style="color:#6D28D9">web</a> → Pengaturan → Izin Cetak Pelihat.</p></div>`;
-  const m = await sendMail(`Izin cetak: ${email}`, html, {
+    <p style="font-size:12px;color:#8A87A6">Link berlaku 7 hari. Izin bisa dicabut kapan saja di <a href="${PW}" style="color:#6D28D9">web</a> → Pengaturan → Izin Cetak Pelihat.</p></div>`;
+  const m = await sendMail(`Izin cetak ${PN}: ${email}`, html, {
+    "Proyek": `Monitoring Manpower ${PN}`,
     "Permintaan": `${email} minta izin print / simpan PDF-PNG / unduh data`,
     "Waktu": `${when} WIB`,
     "SETUJUI (klik link)": `${PAGE}?a=approved&t=${t}`,
@@ -112,14 +121,15 @@ async function notify(req: Request) {
 async function decide(body: { t: string; a?: string; peek?: boolean }) {
   const p = await verify(body.t);
   if (!p) return json({ ok: false, error: "invalid" }, 400);
-  const g = await row(p.e);
+  const APP = appOf(p.a);
+  const g = await row(p.e, APP);
   if (!g) return json({ ok: false, error: "gone", email: p.e }, 404);
   if (Date.parse(g.requested_at) !== p.r) return json({ ok: false, error: "stale", email: p.e, status: g.status }, 409);
-  if (body.peek) return json({ ok: true, email: p.e, status: g.status, requested_at: g.requested_at });
+  if (body.peek) return json({ ok: true, email: p.e, status: g.status, requested_at: g.requested_at, project: APPS[APP].name, web: BASE + APPS[APP].web });
   if (body.a !== "approved" && body.a !== "denied") return json({ ok: false, error: "action" }, 400);
   const { error } = await admin.from("kta_print_grants").update({ status: body.a, decided_at: new Date().toISOString(), decided_by: OWNER + " (email)" }).eq("app_id", APP).eq("email", p.e);
   if (error) return json({ ok: false, error: error.message }, 500);
-  return json({ ok: true, email: p.e, status: body.a });
+  return json({ ok: true, email: p.e, status: body.a, project: APPS[APP].name, web: BASE + APPS[APP].web });
 }
 
 Deno.serve(async (req) => {
@@ -127,7 +137,7 @@ Deno.serve(async (req) => {
   if (req.method !== "POST") return json({ ok: false }, 405);
   try {
     const body = await req.json().catch(() => ({}));
-    if (body.op === "notify") return await notify(req);
+    if (body.op === "notify") return await notify(req, appOf(body.app));
     if (body.op === "decide") return await decide(body);
     if (body.op === "test") {
       if ((await caller(req)) !== OWNER) return json({ ok: false, error: "owner_only" }, 403);

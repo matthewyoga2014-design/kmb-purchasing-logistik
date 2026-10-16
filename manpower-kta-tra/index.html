@@ -1,4 +1,4 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Monitoring Manpower KTA-TRA</title><meta name="description" content="Monitoring MPP, actual, vacant, pelamar dan progress rekrutmen KTA - TRA."><meta name="theme-color" content="#6D28D9"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2716%27 fill=%27%236D28D9%27/%3E%3Ctext x=%2732%27 y=%2740%27 font-family=%27Arial%27 font-weight=%27700%27 font-size=%2720%27 fill=%27white%27 text-anchor=%27middle%27%3EKMB%3C/text%3E%3C/svg%3E"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"><style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style><style id="css">
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Monitoring Manpower KTA - TRA</title><meta name="description" content="Monitoring MPP, actual, vacant, pelamar dan progress rekrutmen KTA - TRA."><meta name="theme-color" content="#6D28D9"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2716%27 fill=%27%236D28D9%27/%3E%3Ctext x=%2732%27 y=%2740%27 font-family=%27Arial%27 font-weight=%27700%27 font-size=%2720%27 fill=%27white%27 text-anchor=%27middle%27%3EKMB%3C/text%3E%3C/svg%3E"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"><style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style><style id="css">
 /* Layout: white sidebar + lavender content; gradient KPI row, then 12-col card grid (charts, resumes, recruitment tables). Mirrors the KTA-TRA / KMB monitoring pages. */
 :root {
   --bg: #F2F1FA; --card: #FFFFFF; --card-2: #F7F6FD; --side: #FFFFFF;
@@ -562,11 +562,21 @@ body.nop img { -webkit-user-drag: none; pointer-events: auto; }
 #authBtn { padding: 8px 14px; }
 @media (max-width: 560px) { .top #roleTag { display: none; } }
 @media print { #authBtn { display: none !important; } }
+
+.sitesel { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.sitesel select { font: inherit; font-size: 13px; font-weight: 700; letter-spacing: 0; text-transform: none; color: var(--primary-ink); background: var(--primary-soft); border: 1px solid transparent; border-radius: 10px; padding: 7px 10px; cursor: pointer; }
+@media (max-width: 560px) { .sitesel span { display: none; } .sitesel select { max-width: 130px; } }
+@media print { .sitesel { display: none !important; } }
+.toportal { display: block; margin: -6px 20px 6px; font-size: 12px; font-weight: 700; color: var(--primary-ink); text-decoration: none; padding: 7px 10px; border-radius: 9px; background: var(--primary-soft); }
+.toportal:hover { filter: brightness(.97); }
+@media print { .toportal { display: none !important; } }
 </style></head><body>
 <script type="application/json" id="state">{"positions": [{"no": 1, "section": "Penanggung Jawab Operasional", "group": "Penanggung Jawab Operasional", "nama": "Indra Purba", "jabatan": "Dept Head", "ket": null, "pic": null, "ptk": null, "aju": null, "stages": [null, null, null, null, null, null, null], "due": null, "status": null, "close": null, "cands": [], "uid": "pmv9uvfudmy18q"}, {"no": 2, "section": "Penanggung Jawab Operasional", "group": "Penanggung Jawab Operasional", "nama": "Yoel Sembiring", "jabatan": "Section Head", "ket": null, "pic": null, "ptk": null, "aju": null, "stages": [null, null, null, null, null, null, null], "due": null, "status": null, "close": null, "cands": [], "uid": "pmv9uvfud1kiny"}, {"no": 3, "section": "Planner Section", "group": "Planner Section", "nama": "Ersa Nurfalah", "jabatan": "Planner", "ket": null, "pic": null, "ptk": null, "aju": null, "stages": [null, null, null, null, null, null, null], "due": null, "status": null, "close": null, "cands": [], "uid": "pmv9uvfudxhtx1"}, {"no": 4, "section": "Planner Section", "group": "Planner Section", "nama": "Amrizal", "jabatan": "Admin Plant", "ket": "Amrizal", "pic": "PT. KAI", "ptk": "PTK 19 Agu 2026", "aju": "2026-08-19", "stages": ["2026-09-04", "2026-09-08", "2026-09-10", "2026-09-13", null, "2026-09-17", "2026-09-18"], "due": "2026-09-30", "status": "Close", "close": "2026-09-18", "cands": [{"name": "Amrizal", "status": "Diterima", "sumber": null, "stage": 7, "note": null}], "uid": "pmv9uvfud5x59q"}, {"no": 5, "section": "Tyre Section", "group": "Tyre Inspector", "nama": "Eko Sriyanto", "jabatan": "Senior Tyreman", "ket": null, "pic": null, "ptk": null, "aju": null, "stages": [null, null, null, null, null, null, null], "due": null, "status": null, "close": null, "cands": [], "uid": "pmv9uvfudjoh6g"}, {"no": 6, "section": "Tyre Section", "group": "Tyre Inspector", "nama": "Sutanto", "jabatan": "Senior Tyreman", "ket": null, "pic": "PT. KAI", "ptk": "002/KMB-KTA/DEPT.HRGA/2026", "aju": "2026-05-01", "stages": [null, null, null, null, null, null, null], "due": "2026-06-01", "status": "Close", "close": "2026-09-03", "cands": [{"name": "Sutanto", "status": "Diterima", "sumber": null, "stage": 7, "note": null}], "uid": "pmv9uvfudjl85w"}, {"no": 7, "section": "Tyre Section", "group": "Tyre Repair", "nama": "Dito Heryanto", "jabatan": "Junior Tyreman", "ket": null, "pic": null, "ptk": null, "aju": null, "stages": [null, null, null, null, null, null, null], "due": null, "status": null, "close": null, "cands": [], "uid": "pmv9uvfudu3hvg"}, {"no": 8, "section": "Tyre Section", "group": "Tyre Repair", "nama": "Wawan Deni", "jabatan": "Junior Tyreman", "ket": null, "pic": null, "ptk": null, "aju": null, "stages": [null, null, null, null, null, null, null], "due": null, "status": null, "close": null, "cands": [], "uid": "pmv9uvfudkyz6y"}, {"no": 9, "section": "Tyre Section", "group": "Tyre Repair", "nama": "Ahmad Turohman", "jabatan": "Junior Tyreman", "ket": null, "pic": null, "ptk": null, "aju": null, "stages": [null, null, null, null, null, null, null], "due": null, "status": null, "close": null, "cands": [], "uid": "pmv9uvfudgyxbf"}, {"no": 10, "section": "Tyre Section", "group": "Tyre Storing", "nama": "Egy Maulana", "jabatan": "Junior Tyreman", "ket": null, "pic": null, "ptk": null, "aju": null, "stages": [null, null, null, null, null, null, null], "due": null, "status": null, "close": null, "cands": [], "uid": "pmv9uvfudcqh68"}, {"no": 11, "section": "Tyre Section", "group": "Tyre Storing", "nama": "Anjesua Wiratama", "jabatan": "Junior Tyreman", "ket": null, "pic": null, "ptk": null, "aju": null, "stages": [null, null, null, null, null, null, null], "due": null, "status": null, "close": null, "cands": [], "uid": "pmv9uvfudqmsra"}, {"no": 12, "section": "Tyre Section", "group": "Tyre Storing", "nama": "Prasetyo susilo", "jabatan": "Junior Tyreman", "ket": null, "pic": null, "ptk": null, "aju": null, "stages": [null, null, null, null, null, null, null], "due": null, "status": null, "close": null, "cands": [], "uid": "pmv9uvfudinckp"}, {"no": 13, "section": "Maintenance Section", "group": "Welder", "nama": "Vacant", "jabatan": "Welder", "ket": "KMS Syarif - Tidak lolos Final Interview\nSupriyadi - Tidak ada Respon\nHairul Insani - HOLD\nAriyan Yuliansah - Tidak lolos Final Interview", "pic": "PT. KAI", "ptk": "No. 011/SPTK/HRGA-TRA/lX/2026", "aju": "2026-09-28", "stages": ["2026-10-05", "2026-10-12", null, null, null, null, null], "due": "2026-10-10", "status": "Open", "close": null, "cands": [{"name": "KMS Syarif", "status": "Tidak Lolos", "sumber": null, "stage": 2, "note": "Tidak lolos Final Interview"}, {"name": "Supriyadi", "status": "No Response", "sumber": null, "apply": null, "dates": [null, null, null, null, null, null, null], "files": {}, "note": "Tidak ada Respon", "stage": 2}, {"name": "Hairul Insani", "status": "Hold", "sumber": null, "stage": 2, "note": "HOLD"}, {"name": "Ariyan Yuliansah", "status": "Tidak Lolos", "sumber": null, "stage": 2, "note": "Tidak lolos Final Interview"}], "uid": "pmv9uvfudq62gv"}, {"no": 14, "section": "Maintenance Section", "group": "Welder", "nama": "Wahyu Febriansyah", "jabatan": "Helper Welder", "ket": null, "pic": "PT. KAI", "ptk": "PTK 4 Agustus 2026", "aju": "2026-08-04", "stages": [null, null, null, null, null, null, null], "due": "2026-09-04", "status": "Close", "close": "2026-09-03", "cands": [{"name": "Wahyu Febriansyah", "status": "Diterima", "sumber": null, "stage": 7, "note": null}], "uid": "pmv9uvfudsccea"}, {"no": 15, "section": "Maintenance Section", "group": "Elektrik", "nama": "Ilyas", "jabatan": "Elektrik", "ket": null, "pic": null, "ptk": null, "aju": null, "stages": [null, null, null, null, null, null, null], "due": null, "status": null, "close": null, "cands": [], "uid": "pmv9uvfudw3u2t", "atasan": null}, {"no": 16, "section": "Maintenance Section", "group": "Schedule Maintenance", "nama": "Wawan Setiawan", "jabatan": "Senior Mekanik", "ket": null, "pic": null, "ptk": null, "aju": null, "stages": [null, null, null, null, null, null, null], "due": null, "status": null, "close": null, "cands": [], "uid": "pmv9uvfud9eqp5"}, {"no": 17, "section": "Maintenance Section", "group": "Schedule Maintenance", "nama": "Selamet Hariadi", "jabatan": "Senior Mekanik", "ket": "Selamet Hariadi", "pic": "PT. KAI", "ptk": "PTK 31 Juli 2026", "aju": "2026-07-31", "stages": ["2026-09-12", "2026-09-14", "2026-09-14", "2026-09-16", null, "2026-09-29", "2026-10-02"], "due": "2026-09-30", "status": "Close", "close": "2026-10-02", "cands": [{"name": "Selamet Hariadi", "status": "Diterima", "sumber": null, "stage": 7, "note": null}], "uid": "pmv9uvfudxa2dt"}, {"no": 18, "section": "Maintenance Section", "group": "Schedule Maintenance", "nama": "Erdin", "jabatan": "Mekanik Midle", "ket": null, "pic": "PT. KAI", "ptk": "PTK 10 Agustus 2026", "aju": "2026-08-10", "stages": [null, null, null, null, null, null, null], "due": "2026-09-10", "status": "Close", "close": "2026-09-08", "cands": [{"name": "Erdin", "status": "Diterima", "sumber": null, "stage": 7, "note": null}], "uid": "pmv9uvfudpycwp"}, {"no": 19, "section": "Maintenance Section", "group": "Schedule Maintenance", "nama": "Hikmah Sepkia Patra", "jabatan": "Junior Mekanik", "ket": null, "pic": null, "ptk": null, "aju": null, "stages": [null, null, null, null, null, null, null], "due": null, "status": null, "close": null, "cands": [], "uid": "pmv9uvfud654ii"}, {"no": 20, "section": "Maintenance Section", "group": "Schedule Maintenance", "nama": "Okta Sarozi", "jabatan": "Junior Mekanik", "ket": "Okta Sarozi", "pic": "PT. KAI", "ptk": "No. 003/SPTK/HRGA-TRA/lX/2026", "aju": "2026-09-10", "stages": ["2026-09-17", "2026-09-22", "2026-09-23", "2026-09-24", null, "2026-09-29", "2026-10-02"], "due": "2026-09-30", "status": "Close", "close": "2026-10-02", "cands": [{"name": "Okta Sarozi", "status": "Diterima", "sumber": null, "stage": 7, "note": null}], "uid": "pmv9uvfudrvas1"}, {"no": 21, "section": "Maintenance Section", "group": "Schedule Maintenance", "nama": "Cagi Brasilianto", "jabatan": "Junior Mekanik", "ket": "Cagi Brasilianto", "pic": "PT. KAI", "ptk": "PTK 31 Juli 2026", "aju": "2026-07-31", "stages": ["2026-09-01", "2026-09-03", "2026-09-04", "2026-09-05", "2026-09-10", "2026-09-13", "2026-09-13"], "due": "2026-09-30", "status": "Close", "close": "2026-09-13", "cands": [{"name": "Cagi Brasilianto", "status": "Diterima", "sumber": null, "stage": 7, "note": null}], "uid": "pmv9uvfud7mdb3"}, {"no": 22, "section": "Maintenance Section", "group": "Unschedule Maintenance", "nama": "Agung Wahyudi", "jabatan": "Senior Mekanik", "ket": null, "pic": null, "ptk": null, "aju": null, "stages": [null, null, null, null, null, null, null], "due": null, "status": null, "close": null, "cands": [], "uid": "pmv9uvfudzklv0"}, {"no": 23, "section": "Maintenance Section", "group": "Unschedule Maintenance", "nama": "Vacant", "jabatan": "Senior Mekanik", "ket": "Jepri Yoga - Tidak lolos final interview\nBachtiar - Tidak lolos final interview\nRendy Febby Gilang Bimantara - Menolak OL\nJoko Santoso - Tidak lolos final interview\nAgung Wijaya - Tidak lolos final interview", "pic": "PT. KAI", "ptk": "PTK 26 Mei 2026", "aju": "2026-05-26", "stages": ["2026-10-06", "2026-10-12", null, null, null, null, null], "due": "2026-09-30", "status": "Open", "close": null, "cands": [{"name": "Jepri Yoga", "status": "Tidak Lolos", "sumber": null, "stage": 2, "note": "Tidak lolos final interview"}, {"name": "Bachtiar", "status": "Tidak Lolos", "sumber": null, "stage": 2, "note": "Tidak lolos final interview"}, {"name": "Rendy Febby Gilang Bimantara", "status": "Menolak OL", "sumber": null, "stage": 2, "note": "Menolak OL"}, {"name": "Joko Santoso", "status": "Tidak Lolos", "sumber": null, "stage": 2, "note": "Tidak lolos final interview"}, {"name": "Agung Wijaya", "status": "Tidak Lolos", "sumber": null, "stage": 2, "note": "Tidak lolos final interview"}], "uid": "pmv9uvfudjsx1f"}, {"no": 24, "section": "Maintenance Section", "group": "Unschedule Maintenance", "nama": "Vacant", "jabatan": "Midle Mekanik", "ket": "Rio Pajriansyah\nAndry Rizki G. Sijabat", "pic": "PT. KAI", "ptk": "No. 010/SPTK/HRGA-TRA/lX/2026", "aju": "2026-09-28", "stages": ["2026-10-01", "2026-10-03", null, null, null, null, null], "due": "2026-10-10", "status": "Open", "close": null, "cands": [{"name": "Rio Pajriansyah", "status": "Aktif", "sumber": null, "apply": null, "dates": [null, "2026-10-19", null, null, null, null, null], "files": {}, "note": null, "stage": 2}, {"name": "Andry Rizki G. Sijabat", "status": "Aktif", "sumber": null, "stage": 2, "note": null}], "uid": "pmv9uvfud00otn"}, {"no": 25, "section": "Maintenance Section", "group": "Unschedule Maintenance", "nama": "Naufal Muchamad Nabil", "jabatan": "Junior Mekanik", "ket": null, "pic": null, "ptk": null, "aju": null, "stages": [null, null, null, null, null, null, null], "due": null, "status": null, "close": null, "cands": [], "uid": "pmv9uvfudp8us5"}, {"no": 26, "section": "Maintenance Section", "group": "Unschedule Maintenance", "nama": "Bepri Agung", "jabatan": "Junior Mekanik", "ket": "Bepri Agung", "pic": "PT. KAI", "ptk": "PTK 10 Agustus 2026", "aju": "2026-08-10", "stages": ["2026-09-01", "2026-09-03", "2026-09-04", "2026-09-05", "Hav 11 September 2026", "2026-09-14", "2026-09-17"], "due": "2026-09-30", "status": "Close", "close": "2026-09-17", "cands": [{"name": "Bepri Agung", "status": "Diterima", "sumber": null, "stage": 7, "note": null}], "uid": "pmv9uvfud1o46y"}, {"no": 27, "section": "Maintenance Section", "group": "Helper Schedule Repair", "nama": "Ebit Sugara", "jabatan": "Helper Mekanik", "ket": "Ebit Sugara", "pic": "PT. KAI", "ptk": "PTK 10 Juli 2026", "aju": "2026-07-10", "stages": [null, null, null, null, null, "2026-09-10", "2026-09-10"], "due": "2026-08-10", "status": "Close", "close": "2026-09-10", "cands": [{"name": "Ebit Sugara", "status": "Diterima", "sumber": null, "stage": 7, "note": null}], "uid": "pmv9uvfud3z2mo"}, {"no": 28, "section": "Maintenance Section", "group": "Helper Schedule Repair", "nama": "Reno Rachman", "jabatan": "Helper Mekanik", "ket": "Reno Rachman", "pic": "PT. KAI", "ptk": "PTK 10 Juli 2026", "aju": "2026-07-10", "stages": ["2026-09-01", "2026-09-03", "2026-09-03", "2026-09-07", null, "2026-09-11", "2026-09-13"], "due": "2026-09-30", "status": "Close", "close": "2026-09-13", "cands": [{"name": "Reno Rachman", "status": "Diterima", "sumber": null, "stage": 7, "note": null}], "uid": "pmv9uvfudwjq50"}, {"no": 29, "section": "Maintenance Section", "group": "Helper Schedule Repair", "nama": "Muhammad Adib Pratama", "jabatan": "Helper Mekanik", "ket": "Muhammad Adib Pratama", "pic": "PT. KAI", "ptk": "No. 012/SPTK/HRGA-TRA/lX/2026", "aju": "2026-09-30", "stages": ["2026-10-01", "2026-10-03", "2026-10-04", "2026-10-07", null, "2026-10-12", "2026-10-13"], "due": "2026-10-10", "status": "Close", "close": "2026-10-13", "cands": [{"name": "Muhammad Adib Pratama", "status": "Diterima", "sumber": null, "stage": 7, "note": null}], "uid": "pmv9uvfudhjwsr"}, {"no": 30, "section": "Maintenance Section", "group": "Helper Unschedule Repair", "nama": "Ahmad Shofiul", "jabatan": "Helper Mekanik", "ket": "Ahmad Shofiul", "pic": "PT. KAI", "ptk": "No. 005/SPTK/HRGA-TRA/lX/2026", "aju": "2026-09-16", "stages": ["2026-09-18", "2026-09-22", "2026-09-23", "2026-09-24", null, "2026-09-26", "2026-09-27"], "due": "2026-09-30", "status": "Close", "close": "2026-09-27", "cands": [{"name": "Ahmad Shofiul", "status": "Diterima", "sumber": null, "stage": 7, "note": null}], "uid": "pmv9uvfud74xi1"}, {"no": 31, "section": "Maintenance Section", "group": "Helper Unschedule Repair", "nama": "Dadang", "jabatan": "Helper Mekanik", "ket": null, "pic": null, "ptk": null, "aju": null, "stages": [null, null, null, null, null, null, null], "due": null, "status": null, "close": null, "cands": [], "uid": "pmv9uvfuddu04u"}, {"no": 32, "section": "Maintenance Section", "group": "Helper Unschedule Repair", "nama": "Vacant", "jabatan": "Helper Mekanik", "ket": "M Faadhil Al Karim Fachriza", "pic": "PT. KAI", "ptk": "No. 004/SPTK/HRGA-TRA/lX/2026", "aju": "2026-09-10", "stages": ["2026-10-06", "2026-10-12", "2026-10-13", null, null, null, null], "due": "2026-09-30", "status": "Open", "close": null, "cands": [{"name": "M Faadhil Al Karim Fachriza", "status": "Aktif", "sumber": null, "stage": 3, "note": null}], "uid": "pmv9uvfudhz5q5"}, {"no": 33, "section": "Di luar SO", "group": "Di luar SO", "nama": "Vacant", "jabatan": "Senior Mekanik", "ket": "Joko Santoso - Tidak Lolos", "pic": "PT. KAI", "ptk": "No. 006/SPTK/HRGA-TRA/lX/2026", "aju": "2026-09-22", "stages": ["2026-10-01", "2026-10-03", null, null, null, null, null], "due": "2026-09-30", "status": "Open", "close": null, "cands": [{"name": "Joko Santoso", "status": "Tidak Lolos", "sumber": null, "stage": 2, "note": "Tidak Lolos"}], "uid": "pmv9uvfudlmdjb"}, {"no": 34, "section": "Di luar SO", "group": "Di luar SO", "nama": "Vacant", "jabatan": "Senior Mekanik", "ket": null, "pic": "PT. KAI", "ptk": "No. 007/SPTK/HRGA-TRA/lX/2026", "aju": "2026-09-22", "stages": [null, null, null, null, null, null, null], "due": "2026-09-30", "status": "Open", "close": null, "cands": [], "uid": "pmv9uvfudzxyuu"}, {"no": 35, "section": "Di luar SO", "group": "Di luar SO", "nama": "Diadaffa Akmaljiwa", "jabatan": "Junior Mekanik", "ket": "Diadaffa Akmaljiwa", "pic": "PT. KAI", "ptk": "No. 008/SPTK/HRGA-TRA/lX/2026", "aju": "2026-09-22", "stages": ["2026-09-23", "2026-09-25", "2026-09-26", "2026-09-29", null, "2026-10-04", "2026-10-07"], "due": "2026-09-30", "status": "Close", "close": "2026-10-07", "cands": [{"name": "Diadaffa Akmaljiwa", "status": "Diterima", "sumber": null, "stage": 7, "note": null}], "uid": "pmv9uvfudm3iyn"}, {"no": 36, "section": "Di luar SO", "group": "Di luar SO", "nama": "Vacant", "jabatan": "Junior Mekanik", "ket": "Rico Widjaya K - kabur saat onsite\nNabila Dian", "pic": "PT. KAI", "ptk": "No. 009/SPTK/HRGA-TRA/lX/2026", "aju": "2026-09-22", "stages": ["2026-10-12", "2026-10-14", null, null, null, null, null], "due": "2026-10-30", "status": "Open", "close": null, "cands": [{"name": "Rico Widjaya K", "status": "Mundur", "sumber": null, "stage": 2, "note": "kabur saat onsite"}, {"name": "Nabila Dian", "status": "Aktif", "sumber": null, "stage": 2, "note": null}], "uid": "pmv9uvfud8dmpx"}], "aktif": [{"nama": "Ahmad Turohman", "jabatan": "Tyreman", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-10-06", "poh": "Yogyakarta", "masuk": "2026-07-07", "jk": "Laki - Laki", "kategori": "Nasional", "site": "TRA"}, {"nama": "Ilyas", "jabatan": "Junior Electric Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-10-06", "poh": "Jakarta", "masuk": "2026-07-07", "jk": "Laki - Laki", "kategori": "Nasional", "site": "TRA"}, {"nama": "Dadang", "jabatan": "Helper Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-11-09", "poh": "Musi Rawas Utara", "masuk": "2026-08-10", "jk": "Laki - Laki", "kategori": "Ring 1", "site": "TRA"}, {"nama": "Wawan Setiawan", "jabatan": "Senior Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-11-09", "poh": "Jakarta", "masuk": "2026-08-10", "jk": "Laki - Laki", "kategori": "Nasional", "site": "TRA"}, {"nama": "Hikmah Sepkia Patra", "jabatan": "Junior Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-11-10", "poh": "Palembang", "masuk": "2026-05-11", "jk": "Laki - Laki", "kategori": null, "site": "TRA"}, {"nama": "Naufal Muchamad Nabil", "jabatan": "Junior Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-11-17", "poh": "Yogyakarta", "masuk": "2026-05-18", "jk": "Laki - Laki", "kategori": "Nasional", "site": "TRA"}, {"nama": "Sutanto", "jabatan": "Senior Tyreman", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-12-04", "poh": "Jakarta", "masuk": "2026-09-05", "jk": "Laki - Laki", "kategori": "Nasional", "site": "TRA"}, {"nama": "Wahyu Febriansyah", "jabatan": "Helper Welder", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-12-04", "poh": "Lubuk Linggau", "masuk": "2026-09-05", "jk": "Laki - Laki", "kategori": null, "site": "TRA"}, {"nama": "Erdin", "jabatan": "Middle Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-12-07", "poh": "Musi Rawas Utara", "masuk": "2026-09-08", "jk": "Laki - Laki", "kategori": "Ring 1", "site": "TRA"}, {"nama": "Ebit Sugara", "jabatan": "Helper Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-12-09", "poh": "Musi Rawas Utara", "masuk": "2026-09-10", "jk": "Laki - Laki", "kategori": "Ring 1", "site": "TRA"}, {"nama": "Cagi Brasilianto", "jabatan": "Junior Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-12-12", "poh": "Purbalingga", "masuk": "2026-09-13", "jk": "Laki - Laki", "kategori": "Nasional", "site": "TRA"}, {"nama": "Reno Rachman", "jabatan": "Helper Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-12-12", "poh": "Pali", "masuk": "2026-09-13", "jk": "Laki - Laki", "kategori": "Ring 1", "site": "TRA"}, {"nama": "Bepri Agung Nugroho", "jabatan": "Junior Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-12-16", "poh": "Boyolali", "masuk": "2026-09-17", "jk": "Laki - Laki", "kategori": "Nasional", "site": "TRA"}, {"nama": "Amrizal", "jabatan": "Admin Plant", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-12-17", "poh": "Sungai Lilin", "masuk": "2026-09-18", "jk": "Laki - Laki", "kategori": "Ring 1", "site": "TRA"}, {"nama": "Ersa Nurfalah", "jabatan": "Planner", "dept": "Plant", "level": "Staff", "kontrak": "PKWT", "akhir": "2027-01-28", "poh": "Jakarta", "masuk": "2026-04-28", "jk": "Laki - Laki", "kategori": "Nasional", "site": "TRA"}, {"nama": "Eko Sriyanto", "jabatan": "Senior Tyreman", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2027-03-14", "poh": "Semarang", "masuk": "2026-06-15", "jk": "Laki - Laki", "kategori": "Nasional", "site": "TRA"}, {"nama": "Wawan Deni", "jabatan": "Tyreman", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2027-03-14", "poh": "Pali", "masuk": "2026-06-15", "jk": "Laki - Laki", "kategori": null, "site": "TRA"}, {"nama": "Anjesua Wiratama", "jabatan": "Tyreman", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2027-03-18", "poh": "Pali", "masuk": "2026-06-18", "jk": "Laki - Laki", "kategori": null, "site": "TRA"}, {"nama": "Dito Heryanto", "jabatan": "Tyreman", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2027-03-18", "poh": "Pali", "masuk": "2026-06-19", "jk": "Laki - Laki", "kategori": null, "site": "TRA"}, {"nama": "Egy Maulana", "jabatan": "Tyreman", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2027-03-18", "poh": "Pali", "masuk": "2026-06-18", "jk": "Laki - Laki", "kategori": null, "site": "TRA"}, {"nama": "Agung Wahyudi", "jabatan": "Senior Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2027-03-19", "poh": "Solo", "masuk": "2026-06-20", "jk": "Laki - Laki", "kategori": "Nasional", "site": "TRA"}, {"nama": "Prasetyo susilo", "jabatan": "Tyreman", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2027-03-25", "poh": "Muara Enim", "masuk": "2026-06-26", "jk": "Laki - Laki", "kategori": null, "site": "TRA"}, {"nama": "Ahmad Shofiul", "jabatan": "Helper Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-12-26", "poh": "Musi Banyuasin", "masuk": "2026-09-27", "jk": "Laki - Laki", "kategori": null, "site": null}, {"nama": "Slamet Heriadi", "jabatan": "Senior Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2027-01-01", "poh": "Muara Enim", "masuk": "2026-10-02", "jk": "Laki - Laki", "kategori": null, "site": null}, {"nama": "Okta Sarozi", "jabatan": "Junior Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": null, "poh": null, "masuk": null, "jk": "Laki - Laki", "kategori": null, "site": null}, {"nama": "Diadaffa Akmaljiwa", "jabatan": "Junior Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": null, "poh": null, "masuk": null, "jk": null, "kategori": null, "site": null}, {"nama": "Indra Purba", "jabatan": "Section Head Plant", "dept": "Plant", "level": "Staff", "kontrak": "PKWTT", "akhir": null, "poh": null, "masuk": null, "jk": "Laki - Laki", "kategori": null, "site": "TRA"}, {"nama": "Yoel Sembiring", "jabatan": "Supervisor", "dept": "Plant", "level": "Staff", "kontrak": "PKWTT", "akhir": null, "poh": "Medan", "masuk": "2023-03-28", "jk": "Laki - Laki", "kategori": "Nasional", "site": "TRA"}], "keluar": [{"nama": "Wawan Saputra", "jabatan": "Helper Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-09-18", "poh": "Musi Rawas Utara", "masuk": "2026-06-19", "jk": "Laki - Laki", "kategori": "Ring 1", "site": "TRA", "keluar": "2026-08-29"}, {"nama": "Agus Triono", "jabatan": "Junior Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-09-05", "poh": "Jambi", "masuk": "2022-08-27", "jk": "Laki - Laki", "kategori": "Ring 1", "site": "TRA", "keluar": null}, {"nama": "Yoga Apriansyah", "jabatan": "Helper Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-11-09", "poh": "Musi Rawas Utara", "masuk": "2026-08-10", "jk": "Laki - Laki", "kategori": "Ring 1", "site": "TRA", "keluar": null}, {"nama": "Ferdi Yansah", "jabatan": "Middle Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-11-26", "poh": "Musi Rawas Utara", "masuk": "2026-08-27", "jk": "Laki - Laki", "kategori": "Ring 1", "site": "TRA", "keluar": null}, {"nama": "Sugianto", "jabatan": "Welder", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-11-22", "poh": "Lampung", "masuk": "2026-08-23", "jk": "Laki - Laki", "kategori": null, "site": "TRA", "keluar": null}, {"nama": "Audi Arman Dani", "jabatan": "Helper Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-12-10", "poh": "Musi Rawas Utara", "masuk": "2026-09-10", "jk": "Laki - Laki", "kategori": "Ring 1", "site": "TRA", "keluar": null}, {"nama": "Nabawi", "jabatan": "Helper Mekanik", "dept": "Plant", "level": "Non Staff", "kontrak": "PKWT", "akhir": "2026-12-18", "poh": "Ogan Kering Ilir", "masuk": "2026-09-19", "jk": "Laki - Laki", "kategori": "Ring 1", "site": "TRA", "keluar": null}], "units": [{"unit": "Excavator", "jumlah": 5}, {"unit": "Bulldozer", "jumlah": 4}, {"unit": "Motor Grader", "jumlah": 2}, {"unit": "Tower Lamp", "jumlah": 8}, {"unit": "Genset", "jumlah": 5}, {"unit": "Fuel Truck", "jumlah": 3}, {"unit": "Water Truck", "jumlah": 2}, {"unit": "Bus Mainhaul", "jumlah": 2}, {"unit": "Lubetruck", "jumlah": 1}, {"unit": "Compressor", "jumlah": 1}, {"unit": "DT Tonly", "jumlah": 14}, {"unit": "Mesin Las", "jumlah": 1}, {"unit": "Pomp", "jumlah": 1}], "meta": {"updated": "2026-10-16", "source": "Dipindahkan dari web Claude"}, "orgGroups": {"Maintenance Section›Helper Schedule Repair": "Maintenance Section›Schedule Maintenance", "Maintenance Section›Helper Unschedule Repair": "Maintenance Section›Unschedule Maintenance"}, "orgSecOrder": ["Penanggung Jawab Operasional", "Tyre Section", "Planner Section", "Maintenance Section", "Di luar SO"], "orgGrpOrder": {"Maintenance Section": ["Schedule Maintenance", "Welder", "Elektrik", "Unschedule Maintenance", "Helper Schedule Repair", "Helper Unschedule Repair"], "Tyre Section": ["Tyre Repair", "Tyre Inspector", "Tyre Storing"], "Planner Section": ["Planner Section", "Welder"]}, "orgSecLay": {"Tyre Section": "h", "Maintenance Section": "h"}}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script id="app">document.body.insertAdjacentHTML('afterbegin', `
+<script id="app">var PARSE_CFG;
+const PROJ_CFG = { id: 'main', app: 'kta-tra', title: 'Monitoring Manpower KTA - TRA', sites: null };
+document.body.insertAdjacentHTML('afterbegin', `
 <aside class="side" id="side" aria-label="Menu">
   <div class="brand"><span class="lg">KMB</span><div><b>KMB</b><span>Monitoring Manpower KTA - TRA</span></div></div>
   <nav class="nav" id="nav"></nav>
@@ -587,7 +597,8 @@ body.nop img { -webkit-user-drag: none; pointer-events: auto; }
 <div id="toast" role="status" aria-live="polite" hidden></div>`);
 /* Parser: sheets = { sheetName: [[cell,...],...] } (row 0 = Excel row 1, col 0 = column A).
    Dates arrive as Excel serial numbers. Only non-sensitive fields are kept. */
-function parseSheets(sheets) {
+function parseSheets(sheets, cfg) {
+  cfg = cfg || (typeof PARSE_CFG !== 'undefined' ? PARSE_CFG : {});
   const names = Object.keys(sheets);
   const find = (re) => names.find((n) => re.test(n));
   const str = (v) => (v === null || v === undefined || v === 0 || v === '0') ? null : (String(v).trim() || null);
@@ -602,8 +613,8 @@ function parseSheets(sheets) {
   const stage = (v) => { const d = iso(v); if (d) return d; const s = str(v); return s; };
 
   // ---- MPP (planning) ----
-  const mppName = find(/MPP/i);
-  if (!mppName) throw new Error('Sheet "MPP KTA-TRA" tidak ditemukan di file ini.');
+  const mppName = find(cfg.mpp || /MPP/i);
+  if (!mppName) throw new Error(`Sheet "${cfg.mppLabel || 'MPP'}" tidak ditemukan di file ini.`);
   const mpp = sheets[mppName];
   const positions = [];
   let section = null, group = null;
@@ -631,23 +642,55 @@ function parseSheets(sheets) {
     }
   }
 
+  if (cfg.autoSection) {
+    const fam = (j) => { const t = String(j || '').toLowerCase();
+      if (/admin|clerk|planner|supervisor|leader|foreman|head|superintendent/.test(t)) return ['Plant Admin & Leader', 'Admin & Leader'];
+      if (/magang|intern|ojt/.test(t)) return ['Program Magang', 'Magang'];
+      if (/weld/.test(t)) return ['Maintenance Section', 'Welder'];
+      if (/helper/.test(t)) return ['Maintenance Section', 'Helper'];
+      if (/mekanik|mechanic|electric|tyre/.test(t)) return ['Maintenance Section', 'Mekanik'];
+      return ['Maintenance Section', 'Lainnya']; };
+    positions.forEach((p) => { if (!p.section) { const f = fam(p.jabatan); p.section = f[0]; p.group = f[1]; } });
+    // Keterangan di sheet jobsite KMB sering berisi asal karyawan / catatan, bukan nama pelamar
+    const noteOnly = /^(searching|mencari|onsite|on site|menunggu|kmb$|lokal|pinjam)/i;
+    positions.forEach((p) => {
+      const lines = String(p.ket || '').split(/\n+/).map((x) => x.trim()).filter(Boolean);
+      const vac = /^vacant$/i.test(p.nama || '');
+      if ((!vac && !p.status) || !lines.some((l) => !noteOnly.test(l))) p.cands = (!vac && /close/i.test(p.status || '')) ? [{ name: p.nama, status: 'Diterima', sumber: null, stage: 7, note: null }] : [];
+    });
+  }
+
   // ---- Karyawan (MP Aktif / MP Out) ----
+  const norm = (v) => String(v == null ? '' : v).toLowerCase().replace(/\s+/g, ' ').trim();
   const people = (name, withOut) => {
     if (!name) return [];
     const rows = sheets[name];
+    let hr = -1;
+    for (let i = 0; i < Math.min(rows.length, 12) && hr < 0; i++) { const r = (rows[i] || []).map(norm); if (r.includes('nama') && r.includes('jabatan')) hr = i; }
+    const H = hr >= 0 ? (rows[hr] || []).map(norm) : [];
+    const col = (test, dflt) => { const k = H.findIndex((h) => h && test(h)); return k >= 0 ? k : dflt; };
+    const C = {
+      nama: col((h) => h === 'nama', 4), jabatan: col((h) => h === 'jabatan', 8), dept: col((h) => h.startsWith('departemen'), 9),
+      level: col((h) => h === 'level', 10), kontrak: col((h) => h.startsWith('status kontrak'), 11), akhir: col((h) => h.startsWith('akhir kontrak'), 12),
+      poh: col((h) => h === 'poh', 13), masuk: col((h) => h.startsWith('tanggal') && h.includes('masuk'), 16), jk: col((h) => h.startsWith('jenis kelamin'), 18),
+      kategori: col((h) => h === 'keterangan', 26), site: col((h) => h === 'site', -1), tempat: col((h) => h.startsWith('tempat') && h.includes('bekerja'), -1),
+      keluar: col((h) => h.startsWith('tanggal keluar'), 57),
+    };
     const out = [];
-    for (let i = 5; i < rows.length; i++) {
+    for (let i = (hr >= 0 ? hr + 1 : 5); i < rows.length; i++) {
       const r = rows[i] || [];
       if (typeof r[0] !== 'number') continue;
-      const nama = r[4];
+      const nama = r[C.nama];
       if (typeof nama !== 'string' || !nama.trim()) continue;
+      const tempat = C.tempat >= 0 ? str(r[C.tempat]) : null;
+      if (cfg.site && !cfg.site.test(tempat || '')) continue;
       const p = {
         nama: nama.trim(),
-        jabatan: str(r[8]), dept: str(r[9]), level: str(r[10]), kontrak: str(r[11]),
-        akhir: iso(r[12]), poh: str(r[13]), masuk: iso(r[16]), jk: str(r[18]),
-        kategori: str(r[26]), site: str(r[28]),
+        jabatan: str(r[C.jabatan]), dept: str(r[C.dept]), level: str(r[C.level]), kontrak: str(r[C.kontrak]),
+        akhir: iso(r[C.akhir]), poh: str(r[C.poh]), masuk: iso(r[C.masuk]), jk: str(r[C.jk]),
+        kategori: str(r[C.kategori]), site: C.site >= 0 ? str(r[C.site]) : tempat,
       };
-      if (withOut) p.keluar = iso(r[57]);
+      if (withOut) p.keluar = iso(r[C.keluar]);
       out.push(p);
     }
     return out;
@@ -658,7 +701,19 @@ function parseSheets(sheets) {
   // ---- Unit (DASHBOARD) ----
   const units = [];
   const dashName = find(/dashboard/i);
-  if (dashName) {
+  if (dashName && cfg.unitBlock) {
+    const d = sheets[dashName];
+    for (let i = 0; i < d.length; i++) {
+      const r = d[i] || []; const j = r.findIndex((v) => typeof v === 'string' && cfg.unitBlock.test(v.trim()));
+      if (j < 0 || !(d[i + 1] && norm(d[i + 1][j]) === 'unit')) continue;
+      for (let k = i + 2; k < d.length; k++) {
+        const n = (d[k] || [])[j];
+        if (typeof n === 'string' && /^total/i.test(n.trim())) break;
+        if (typeof n === 'string' && n.trim()) units.push({ unit: n.trim(), jumlah: typeof d[k][j + 1] === 'number' ? d[k][j + 1] : 0 });
+      }
+      break;
+    }
+  } else if (dashName) {
     const d = sheets[dashName];
     let hr = -1, hc = -1;
     for (let i = 0; i < d.length && hr < 0; i++) {
@@ -3257,7 +3312,12 @@ guardSync();
 
 // ================= WEB: standalone mode (GitHub Pages + Supabase, no Claude) =================
 const WEB_CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
-const WEB_TABLE = 'kta_web_state', WEB_ID = 'main', WEB_BUCKET = 'kta-web-docs', WEB_ROLE_APP = 'kta-tra', WEB_OWNER = 'matthewyoga2014@gmail.com';
+const PROJ = (typeof PROJ_CFG !== 'undefined') ? PROJ_CFG : { id: 'main', app: 'kta-tra', sites: null };
+const WEB_TABLE = 'kta_web_state', WEB_BUCKET = 'kta-web-docs', WEB_ROLE_APP = PROJ.app, WEB_OWNER = 'matthewyoga2014@gmail.com';
+let WEB_ID = PROJ.id;
+if (PROJ.sites) { let k = null; try { k = localStorage.getItem('kta-site:' + PROJ.app); } catch (e) {} const s0 = PROJ.sites.find((x) => x.id === k) || PROJ.sites[0]; WEB_ID = s0.id; PARSE_CFG = s0.cfg; }
+if (!PROJ.sites && PROJ.cfg) PARSE_CFG = PROJ.cfg;
+const cacheKey = () => WEB_ID === 'main' ? 'kta-web-cache' : 'kta-web-cache:' + WEB_ID;
 const WEB = { sb: null, user: null, role: 'viewer', ver: null, editors: null, edErr: null, ready: false, offline: false, empty: false, grant: null, grants: null, gch: null };
 const WEB_PRINT = 'kta_print_grants';
 IS_TOP = true;
@@ -3270,10 +3330,11 @@ function setState(d) {
   d.positions = d.positions || []; d.aktif = d.aktif || []; d.keluar = d.keluar || []; d.units = d.units || [];
   d.positions.forEach(materialize);
   STATE = d; DATA = d;
-  try { localStorage.setItem('kta-web-cache', JSON.stringify(d)); } catch (e) {}
+  try { localStorage.setItem(cacheKey(), JSON.stringify(d)); } catch (e) {}
   render();
 }
-try { const c = JSON.parse(localStorage.getItem('kta-web-cache') || 'null'); if (c && Array.isArray(c.positions)) { c.positions.forEach(materialize); STATE = c; DATA = c; } } catch (e) {}
+function loadCache() { try { const c = JSON.parse(localStorage.getItem(cacheKey()) || 'null'); if (c && Array.isArray(c.positions)) { c.positions.forEach(materialize); STATE = c; DATA = c; return true; } } catch (e) {} return false; }
+if (WEB_ID === PROJ.id || !PROJ.sites) loadCache(); else if (!loadCache() && window.SITE_SEEDS && SITE_SEEDS[WEB_ID]) { const d = JSON.parse(JSON.stringify(SITE_SEEDS[WEB_ID])); d.positions.forEach(materialize); STATE = d; DATA = d; }
 
 // uploaded files live in a private Supabase bucket; '/_blob/<id>' links are served from there
 const _fetch = window.fetch.bind(window);
@@ -3290,7 +3351,7 @@ window.fetch = async function (u, o) {
 };
 const WEB_ASSETS = { async upload(f) {
   const ext = (f.name.match(/\.[A-Za-z0-9]+$/) || [''])[0].toLowerCase();
-  const id = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)) + ext;
+  const id = (WEB_ID === 'main' ? '' : WEB_ID + '/') + (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)) + ext;
   const { error } = await WEB.sb.storage.from(WEB_BUCKET).upload(id, f, { contentType: f.type, upsert: false });
   if (error) { const e = new Error(error.message); e.code = /size|large/i.test(error.message) ? 'too_large' : /policy|security|denied|unauthor/i.test(error.message) ? 'not_granted' : 'error'; throw e; }
   return { id, contentType: f.type };
@@ -3306,7 +3367,7 @@ async function webLoad() {
 async function webRole() {
   const email = ((WEB.user && WEB.user.email) || '').trim().toLowerCase();
   if (!email) return 'viewer';
-  const r = await WEB.sb.rpc('kta_web_role');
+  const r = await WEB.sb.rpc('kta_web_role_for', { app: WEB_ROLE_APP });
   if (!r.error && typeof r.data === 'string') return r.data;
   const q = await WEB.sb.from('app_access_roles').select('role').eq('app_id', WEB_ROLE_APP).eq('email', email).maybeSingle();
   return q.error ? 'viewer' : ((q.data && q.data.role) || 'viewer');
@@ -3404,7 +3465,7 @@ function editorsCard() {
     <form id="edForm" class="edf" novalidate><input type="email" id="edEmail" placeholder="nama@email.com" aria-label="Email editor baru" autocomplete="off"><button type="submit" class="btn btn-p">+ Tambah Editor</button></form>
     ${WEB.edErr ? `<div class="ferr">${esc(WEB.edErr)}</div>` : ''}
     <div class="edl">${list === null ? '<div class="upst"><span class="spin sm"></span>Memuat daftar…</div>' : list.map((r) => `<div><span class="em">${esc(r.email)}</span><span class="hs ${r.role === 'owner' ? 'ok' : 'pr'}">${r.role === 'owner' ? 'Pemilik' : 'Editor'}</span>${r.role === 'owner' ? '' : `<button type="button" class="btn btn-g btn-sm red" data-rmed="${esc(r.email)}">Hapus</button>`}</div>`).join('') || '<div class="small">Belum ada editor.</div>'}</div>
-    <p class="small" style="margin:10px 0 0">Daftar ini sama dengan editor web Monitoring KTA-TRA lainnya di Supabase.</p></div>`;
+    <p class="small" style="margin:10px 0 0">Editor hanya bisa mengubah proyek ini; proyek lain punya daftar editornya sendiri.</p></div>`;
 }
 function pageSetting(D) {
   return `${header('Sistem', 'Pengaturan', 'Pemilik, editor, sinkronisasi, backup, dan download Excel.')}
@@ -3474,11 +3535,7 @@ async function webInit() {
     WEB.user = nu;
     setTimeout(async () => { await applyRole(); if (CAN_EDIT && WEB.empty) commit(() => {}, 'Data awal tersimpan di server.'); if (ev === 'SIGNED_IN') toast(`Masuk sebagai ${nu.email} (${ROLE}).`); if (ev === 'SIGNED_OUT') toast('Anda sudah keluar.'); }, 0);
   });
-  WEB.sb.channel('kta-web-state').on('postgres_changes', { event: '*', schema: 'public', table: WEB_TABLE, filter: 'id=eq.' + WEB_ID }, (pl) => {
-    const n = pl.new; if (!n || !n.data || n.updated_at === WEB.ver || SAVING) return;
-    if (!document.getElementById('modal').hidden) return;
-    WEB.ver = n.updated_at; setState(n.data); toast('Data diperbarui oleh ' + (n.updated_by || 'editor') + '.');
-  }).subscribe();
+  watchState();
   document.addEventListener('visibilitychange', () => { if (!document.hidden && document.getElementById('modal').hidden && !SAVING) webLoad().catch(() => {}); });
 }
 setTimeout(webInit, 0);
@@ -3525,7 +3582,7 @@ function PRINT_ASK() {
       if (error) { toast('Gagal mengirim permintaan: ' + error.message, true); return false; }
       await loadGrant(); render();
       let mailed = false;
-      try { const { data } = await WEB.sb.functions.invoke('kta-print', { body: { op: 'notify' } }); mailed = !!(data && data.ok); } catch (er) {}
+      try { const { data } = await WEB.sb.functions.invoke('kta-print', { body: { op: 'notify', app: WEB_ROLE_APP } }); mailed = !!(data && data.ok); } catch (er) {}
       toast(mailed ? 'Permintaan terkirim. Pemilik sudah diberi tahu lewat email.' : 'Permintaan izin cetak terkirim ke Pemilik.'); return true;
     });
 }
@@ -3620,6 +3677,50 @@ render = function () {
   const b = document.querySelector('[data-go="setting"]');
   if (b && n && !b.querySelector('.ct')) b.insertAdjacentHTML('beforeend', `<span class="ct al" title="Permintaan izin cetak">${n}</span>`);
 };
+
+function watchState() {
+  if (WEB.sch) { WEB.sb.removeChannel(WEB.sch); WEB.sch = null; }
+  const id = WEB_ID;
+  WEB.sch = WEB.sb.channel('kta-web-state-' + id).on('postgres_changes', { event: '*', schema: 'public', table: WEB_TABLE, filter: 'id=eq.' + id }, (pl) => {
+    const n = pl.new; if (id !== WEB_ID || !n || !n.data || n.updated_at === WEB.ver || SAVING) return;
+    if (!document.getElementById('modal').hidden) return;
+    WEB.ver = n.updated_at; setState(n.data); toast('Data diperbarui oleh ' + (n.updated_by || 'editor') + '.');
+  }).subscribe();
+}
+
+// ---------- jobsite switcher (proyek dengan beberapa jobsite, mis. KMB) ----------
+function siteName() { const s = PROJ.sites && PROJ.sites.find((x) => x.id === WEB_ID); return s ? s.name : ''; }
+function siteBar() {
+  if (!PROJ.sites) return;
+  let el = document.getElementById('siteSel');
+  if (!el) {
+    document.getElementById('roleTag').insertAdjacentHTML('beforebegin', `<label class="sitesel"><span>Jobsite</span><select id="siteSel" aria-label="Pilih jobsite">${PROJ.sites.map((x) => `<option value="${x.id}">${esc(x.name)}</option>`).join('')}</select></label>`);
+    el = document.getElementById('siteSel');
+    el.addEventListener('change', () => switchSite(el.value));
+  }
+  el.value = WEB_ID;
+  const t = document.querySelector('.top .ttl'); if (t) t.textContent = `${PROJ.title} · ${siteName()}`;
+  document.title = `${PROJ.title} · ${siteName()}`;
+}
+async function switchSite(id) {
+  const s = PROJ.sites.find((x) => x.id === id); if (!s || id === WEB_ID) return;
+  if (SAVING) { siteBar(); return; }
+  WEB_ID = id; PARSE_CFG = s.cfg;
+  try { localStorage.setItem('kta-site:' + PROJ.app, id); } catch (e) {}
+  closeModal();
+  if (!loadCache() && window.SITE_SEEDS && SITE_SEEDS[id]) { const d = JSON.parse(JSON.stringify(SITE_SEEDS[id])); d.positions.forEach(materialize); STATE = d; DATA = d; }
+  WEB.ver = null; render();
+  if (WEB.sb) { try { await webLoad(); } catch (e) { toast('Data jobsite belum bisa dimuat: ' + ((e && e.message) || 'periksa koneksi.'), true); } watchState(); if (CAN_EDIT && WEB.empty) commit(() => {}, 'Data awal jobsite tersimpan di server.'); }
+  toast('Jobsite: ' + s.name);
+}
+const _renderSite = render;
+render = function () { _renderSite.apply(this, arguments); siteBar(); };
+
+// ---------- tautan kembali ke portal ----------
+(function () {
+  const brand = document.querySelector('.side .brand');
+  if (brand && !document.getElementById('toPortal')) brand.insertAdjacentHTML('afterend', '<a id="toPortal" class="toportal" href="../manpower-portal/">← Portal semua proyek</a>');
+})();
 // ---------- boot ----------
 render();
 try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.removeItem('mp5-flash'); setTimeout(() => toast(f), 300); } } catch (e) {}
