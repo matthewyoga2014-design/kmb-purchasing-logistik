@@ -2089,7 +2089,8 @@ async function importMany(files,folderId,forceNew){for(const f of files)await im
 function chooseTarget(file,parsed,folderId){
   return new Promise(res=>{
     const cands=S.series.map(s=>({s,v:latestV(s.id)})).filter(x=>x.v).sort((a,b)=>((b.s.folderId===folderId)-(a.s.folderId===folderId))||(b.v.date||"").localeCompare(a.v.date||""));
-    const tn=norm(parsed.title);const guess=parsed.forceSid?cands.find(x=>x.s.id===parsed.forceSid):cands.find(x=>norm(x.s.title)===tn||jac(x.s.title,parsed.title)>=0.6);
+    const tn=norm(parsed.title);const here=cands.filter(x=>(x.s.folderId||null)===(folderId||null));
+    const guess=parsed.forceSid?cands.find(x=>x.s.id===parsed.forceSid):(here.length===1&&folderId?here[0]:here.find(x=>norm(x.s.title)===tn||jac(x.s.title,parsed.title)>=0.5))||cands.find(x=>norm(x.s.title)===tn);
     const dup=S.versions.find(v=>v.source&&norm(v.source)===norm(file.name));
     let done=false;S.onModalClose=()=>{if(!done)res(null);};
     openModal(mHead("Upload notulensi")+`<form class="mb" id="ct">
@@ -2102,9 +2103,15 @@ function chooseTarget(file,parsed,folderId){
       </div>
       <label class="f">Judul notulensi (untuk notulensi baru)<input type="text" id="ctT" value="${esc(parsed.title)}"></label>
       <label class="f">Tanggal meeting<input type="date" id="ctD" value="${esc(parsed.date||iso(today()))}" required></label>
+      <div class="note" id="ctW" hidden style="background:#FFF4F3;border-color:#F5C9C6;color:#B42318"></div>
     </form><div class="mf"><button class="btn" type="button" data-x>Lewati file ini</button><button class="btn pri" type="submit" form="ct">Simpan</button></div>`,
     box=>{box.style.maxWidth="640px";box.querySelector("#ctS").onfocus=()=>{box.querySelector("[value=next]").checked=true;};
-      box.querySelector("#ct").onsubmit=e=>{e.preventDefault();done=true;const mode=box.querySelector("[name=tg]:checked").value;const r={mode,sid:box.querySelector("#ctS").value,title:clean(box.querySelector("#ctT").value)||parsed.title,date:box.querySelector("#ctD").value};S.onModalClose=null;closeModal();res(r);};});
+      let warned="";const W=box.querySelector("#ctW");
+      box.querySelector("#ct").onsubmit=e=>{e.preventDefault();
+        if(box.querySelector("[name=tg]:checked").value==="next"){const sid=box.querySelector("#ctS").value,x=cands.find(c=>c.s.id===sid),d=box.querySelector("#ctD").value;
+          if(x&&d&&(x.v.date||"")>d){W.hidden=false;W.innerHTML=`Tanggal meeting <b>${fmtD(d)}</b> lebih awal dari Meeting ke-${x.v.no} (${fmtD(x.v.date)}) di “${esc(x.s.title)}”. Kemungkinan file ini milik notulensi lain. Pilih notulensi yang benar, atau pilih <b>Notulensi baru</b>.`;return;}
+          if(x&&(x.s.folderId||null)!==(folderId||null)&&warned!==sid){warned=sid;W.hidden=false;W.innerHTML=`Notulensi “${esc(x.s.title)}” ada di <b>${esc(fPathName(x.s.folderId))}</b>, bukan di folder yang sedang dibuka (<b>${esc(fPathName(folderId))}</b>). Klik <b>Simpan</b> sekali lagi kalau memang benar.`;return;}}
+        done=true;const mode=box.querySelector("[name=tg]:checked").value;const r={mode,sid:box.querySelector("#ctS").value,title:clean(box.querySelector("#ctT").value)||parsed.title,date:box.querySelector("#ctD").value};S.onModalClose=null;closeModal();res(r);};});
   });
 }
 const mkColsFrom=(baseCols,colNames)=>{const cols=(baseCols||[]).map(c=>({...c}));(colNames||[]).forEach(n=>{if(!cols.some(c=>norm(c.name)===norm(n)))cols.push({id:"c"+uid().slice(0,6),name:n});});return cols;};
