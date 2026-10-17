@@ -175,15 +175,14 @@ body.setmode .hero, body.setmode .tot, body.setmode .grid { display: none; }
 .prog { font-size: 12.5px; color: var(--ink-2); min-height: 18px; margin-bottom: 10px; }
 #nopr { display: none; }
 @media print {
-  @page { size: A4 landscape; margin: 5mm; }
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { background: linear-gradient(180deg, #F4F3FB 0%, #ECEEF7 60%, #E6E9F3 100%) !important; }
   .hbtns, .who, #toast, .modal, #wm, #shield, .foot { display: none !important; }
   .side-l, .side-r { position: absolute; }
   .side-r { top: 200px; height: 900px; } .side-l { height: 1100px; }
   .top { position: static; background: rgba(255,255,255,.85); border: 0; }
-  main { padding: 24px 150px 30px !important; max-width: none !important; }
-  body { width: 1745px; zoom: .63; min-height: 0; }
+  main { padding: 16px 8% 20px !important; max-width: none !important; }
+  body { min-height: 0; }
   .side-l, .side-r { bottom: auto; }
   .hero { min-height: 0; }
   .card, .t { box-shadow: none !important; break-inside: avoid; }
