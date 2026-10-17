@@ -467,17 +467,32 @@ svg.i.up{transform:rotate(180deg)}
 .field input[type=file]{padding:8px;background:var(--tile)}
 .print-head{display:none}
 @media print{
-  @page{size:A4 landscape;margin:10mm}
-  body{background:#fff}
-  .topbar,.hero-art,.hero-actions,.crumbs,nav.tabs,.pfilter,.btn,.toast,dialog,td.act,.irow .acts,.toolbar,.banner{display:none!important}
-  .print-head{display:block;font-size:11px;color:#555;margin-bottom:6px}
-  .kpi,.tcard,.card,.tbl-wrap{box-shadow:none!important;break-inside:avoid}
-  .kpi{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .masonry{columns:3}
-  .in-sheet .sheet-body{border:0;box-shadow:none;padding:0}
-  .hero .wrap{padding-block:0 8px}
-  table{min-width:0}
+  @page{margin:8mm}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  html,body{background:#fff!important}
+  body::before{display:none!important}
+  .topbar,.hero,.hero-art,.hero-actions,.crumbs,nav.tabs,.pfilter,.btn,.toast,dialog,td.act,.irow .acts,.irow.head .acts,.toolbar,.banner,.filters,.search,.linkish,.tabs-wrap{display:none!important}
+  main.pad{padding:0!important}
+  .wrap{max-width:none!important}
+  .print-head{display:flex!important;justify-content:space-between;align-items:baseline;gap:16px;border-bottom:2px solid #6D28D9;padding:0 0 8px;margin:0 0 12px}
+  .print-head b{font-size:18px;color:#1C1A33}.print-head span{font-size:11px;color:#4B4868;text-align:right}
+  .kpis{gap:8px!important}.kpi{min-height:0!important;padding:10px 12px!important;box-shadow:none!important;transform:none!important}
+  .kpi .val{font-size:24px!important}.kpi .k-ic{width:36px!important;height:36px!important}
+  .kpi,.tcard,.card,.dcard,.tbl-wrap,.gi{box-shadow:none!important;transform:none!important}
+  .kpi,.gi,.dcard,.stats,.tcard-head{break-inside:avoid}
+  .card,.tcard,.tbl-wrap,.dash,.dash-side,.rows,.irows{break-inside:auto}
+  .tcard,.card,.dcard,.tbl-wrap{border:1px solid #DCD9EC!important}
+  .masonry{columns:2 300px!important}
+  .in-sheet .sheet-body{border:0!important;box-shadow:none!important;padding:0!important}
+  section.panel{padding-top:8px!important;gap:10px!important}
+  .sec-head p{display:none}
+  .tbl-wrap{overflow:visible!important;max-height:none!important}
+  table{min-width:0!important;font-size:10.5px}
+  tr,.irow,.row{break-inside:avoid}
+  .dash{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)!important}
+  .flow{overflow:visible!important}
 }
+
 </style>
 </head>
 <body>
@@ -1377,8 +1392,11 @@ async function downloadExcel(){
 $("#btnDownload").addEventListener("click",downloadExcel);
 $("#btnPrint").addEventListener("click",()=>{
   if(!(role==="owner"||role==="editor")){ toast("Print hanya untuk Pemilik dan Editor."); return; }
-  $("#printHead").textContent=`Dicetak ${new Date().toLocaleString("id-ID")} oleh ${meEmail}`;
-  window.print(); });
+  const P=curProj(), TAB={ringkasan:"Dashboard",pengiriman:"Rencana Kirim",unit:"Unit di Lokasi",mobilisasi:"Rencana Mobilisasi",dokumentasi:"Dokumentasi"};
+  const judul=P?`Monitoring Unit ${P.kode} · ${TAB[S.tab]||"Dashboard"}`:"Monitoring Unit & Mobilisasi · Semua Project";
+  const ph=$("#printHead"); ph.innerHTML=`<b>${esc(judul)}</b><span>${P&&P.nama?esc(P.nama)+"<br>":""}Dicetak ${esc(new Date().toLocaleString("id-ID",{dateStyle:"long",timeStyle:"short"}))} · ${esc(meEmail)}</span>`;
+  const oldTitle=document.title; document.title=judul.replace(/ · /g," - ")+" - "+todayStr();
+  setTimeout(()=>{ window.print(); setTimeout(()=>{ document.title=oldTitle; },500); },50); });
 
 /* ---------- dokumentasi bukti per tahap ---------- */
 const TAHAP=[
