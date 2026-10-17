@@ -465,13 +465,19 @@ svg.i.up{transform:rotate(180deg)}
 .gmeta small{display:flex;align-items:center;gap:4px;color:var(--muted)} .gmeta small svg.i{width:12px;height:12px}
 .linkish.danger{color:var(--bad);font-size:12px}
 .field input[type=file]{padding:8px;background:var(--tile)}
+.sync{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--muted);background:var(--tile);border-radius:999px;padding:4px 10px;white-space:nowrap}
+.sync::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ok)}
+.sync.busy::before{background:var(--accent);animation:pulse 1s ease-in-out infinite}
+.sync.err::before{background:var(--bad)}
+@keyframes pulse{50%{opacity:.25}}
+@media (max-width:560px){.sync{display:none}}
 .print-head{display:none}
 @media print{
   @page{margin:8mm}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   html,body{background:#fff!important}
   body::before{display:none!important}
-  .topbar,.hero,.hero-art,.hero-actions,.crumbs,nav.tabs,.pfilter,.btn,.toast,dialog,td.act,.irow .acts,.irow.head .acts,.toolbar,.banner,.filters,.search,.linkish,.tabs-wrap{display:none!important}
+  .sync,.topbar,.hero,.hero-art,.hero-actions,.crumbs,nav.tabs,.pfilter,.btn,.toast,dialog,td.act,.irow .acts,.irow.head .acts,.toolbar,.banner,.filters,.search,.linkish,.tabs-wrap{display:none!important}
   main.pad{padding:0!important}
   .wrap{max-width:none!important}
   .print-head{display:flex!important;justify-content:space-between;align-items:baseline;gap:16px;border-bottom:2px solid #6D28D9;padding:0 0 8px;margin:0 0 12px}
@@ -524,6 +530,7 @@ svg.i.up{transform:rotate(180deg)}
   <div class="wrap">
     <div class="logo"><span class="logo-mark">M</span>Monitoring</div>
     <div class="top-right">
+      <span class="sync" id="sync" hidden></span>
       <div class="clock"><span id="today"></span><b id="time">--:--</b><span>WIB</span></div>
       <button class="btn small" id="btnPrint" type="button" hidden><svg class="i"><use href="#i-print"/></svg><span>Print</span></button>
       <button class="btn small dl" id="btnDownload" type="button" hidden><svg class="i"><use href="#i-download"/></svg><span>Unduh Excel</span></button>
@@ -745,6 +752,7 @@ async function handleErr(e){
 const EMPTY=()=>({rev:0,projects:[],pengiriman:[],units:[],mobilisasi:[],revisi:[],dokumentasi:[]});
 function ensureCols(st){ ["projects","pengiriman","units","mobilisasi","revisi","dokumentasi"].forEach(k=>{ if(!Array.isArray(st[k])) st[k]=[]; }); return st; }
 function applyState(st){ STATE=ensureCols(st||EMPTY()); lastJson=JSON.stringify(STATE);
+  try{ localStorage.setItem("mu_state_v1",JSON.stringify({state:STATE,src:SRC,api:SHEET_API,url:SHEET_URL,at:Date.now()})); }catch(e){}
   S.projects=STATE.projects; S.kirim=STATE.pengiriman; S.units=STATE.units; S.mobs=STATE.mobilisasi; S.dok=STATE.dokumentasi;
   S.revisi=STATE.revisi.slice().sort((a,b)=>String(b.waktu).localeCompare(String(a.waktu)));
   S.ready=true; render(); }
@@ -754,7 +762,8 @@ async function fetchSb(){
   SHEET_API=SBDATA.sheetApi||""; SHEET_URL=SBDATA.sheetUrl||DEFAULT_SHEET_URL; SRC=SHEET_API?"sheet":"supabase";
   return SBDATA; }
 async function fetchSheet(api){
-  const r=await fetch((api||SHEET_API)+((api||SHEET_API).includes("?")?"&":"?")+"t="+Date.now(),{cache:"no-store"});
+  const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),30000);
+  const r=await fetch((api||SHEET_API)+((api||SHEET_API).includes("?")?"&":"?")+"t="+Date.now(),{cache:"no-store",signal:ctl.signal}).finally(()=>clearTimeout(to));
   const j=await r.json(); if(!j||!j.ok||!j.state) throw new Error((j&&j.message)||"sheet");
   return ensureCols(j.state); }
 async function fetchState(){
@@ -1507,13 +1516,19 @@ document.addEventListener("click",e=>{
 });
 
 /* ---------- mulai ---------- */
+function setSync(kind){ const el=$("#sync"); if(!el) return; el.hidden=false; el.className="sync "+(kind==="busy"?"busy":kind==="err"?"err":"");
+  el.textContent=kind==="busy"?"Memperbarui…":kind==="err"?"Gagal memperbarui":`Tersinkron ${pad(new Date().getHours())}.${pad(new Date().getMinutes())}`; }
 async function boot(){
   if(!window.supabase){ mode="error"; S.ready=true; render(); return; }
   sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'kta-web-auth'}});
-  try{ await fetchSb(); applyState(SRC==="sheet"?await fetchSheet():SBDATA); mode="ok"; }catch(e){ mode="error"; S.ready=true; render(); }
-  try{ const {data}=await sb.auth.getSession(); await onSession(data.session); }catch(e){ role="guest"; renderWho(); }
+  let cached=null; try{ cached=JSON.parse(localStorage.getItem("mu_state_v1")||"null"); }catch(e){}
+  if(cached&&cached.state){ SRC=cached.src||"supabase"; SHEET_API=cached.api||""; SHEET_URL=cached.url||SHEET_URL; mode="ok"; applyState(cached.state); }
+  (async()=>{ try{ const {data}=await sb.auth.getSession(); await onSession(data.session); }catch(e){ role="guest"; renderWho(); } })();
   sb.auth.onAuthStateChange((_ev,s)=>{ setTimeout(()=>onSession(s),0); });
-  const refresh=async()=>{ if(document.hidden) return; try{ const st=await fetchState(); if(JSON.stringify(st)!==lastJson) applyState(st); if(mode==="error"){ mode="ok"; render(); } }catch(e){} };
+  setSync("busy");
+  try{ await fetchSb(); const st=SRC==="sheet"?await fetchSheet():SBDATA; mode="ok"; if(JSON.stringify(ensureCols(st))!==lastJson) applyState(st); else render(); setSync("ok"); }
+  catch(e){ setSync("err"); if(!cached){ mode="error"; S.ready=true; render(); } }
+  const refresh=async()=>{ if(document.hidden) return; try{ const st=await fetchState(); if(JSON.stringify(st)!==lastJson) applyState(st); if(mode==="error"){ mode="ok"; render(); } setSync("ok"); }catch(e){ setSync("err"); } };
   setInterval(refresh,20000);
   document.addEventListener("visibilitychange",refresh); window.addEventListener("focus",refresh);
 }
