@@ -787,7 +787,10 @@ const $=id=>document.getElementById(id);
 async function call(op,body){
   const url=gasUrl();if(!url)throw new Error("Alamat Apps Script belum diisi");
   const tok=(await SB.auth.getSession()).data.session?.access_token;
-  const r=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({op,token:tok,...body}),redirect:"follow"});
+  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),op==="upload"||op==="download"?180000:45000);
+  let r;try{r=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({op,token:tok,...body}),redirect:"follow",signal:ctl.signal});}
+  catch(e){throw new Error(e.name==="AbortError"?"Server Drive terlalu lama menjawab":"Server Drive tidak bisa dihubungi. Pastikan deployment Apps Script diatur 'Yang memiliki akses: Siapa saja'");}
+  finally{clearTimeout(tm);}
   if(!r.ok)throw new Error("Server Drive tidak menjawab ("+r.status+")");
   const j=await r.json();if(!j.ok){const e=new Error(j.error||"Gagal");e.code=j.code;throw e;}return j;}
 
@@ -845,7 +848,7 @@ function gate(kind,msg){
       <button class="btn pri" type="submit">Masuk</button><p class="gmsg" id="gMsg">${msg||"Gunakan akun yang sama dengan Portal Monitoring Manpower."}</p></form>`
    :kind==="setup"?`<p>Alamat Google Apps Script belum diisi. Tempel URL <b>/exec</b> dari deployment Apps Script Anda.</p>
       <form id="gSet" class="gform"><label class="f">URL Apps Script<input type="url" id="gUrl" required placeholder="https://script.google.com/macros/s/…/exec" value="${gasUrl()}"></label><button class="btn pri" type="submit">Simpan</button></form>`
-   :`<p>${msg}</p><p class="muted">Masuk sebagai <b>${em}</b></p><div class="gform"><button class="btn" type="button" id="gOut">Keluar</button></div>`;
+   :`<p>${msg}</p><p class="muted">Masuk sebagai <b>${em}</b></p><div class="gform"><button class="btn pri" type="button" onclick="location.reload()">Coba lagi</button><button class="btn" type="button" id="gOut">Keluar</button></div>`;
   const f=$("gForm");if(f)f.onsubmit=async e=>{e.preventDefault();const email=$("gEm").value.trim().toLowerCase(),pw=$("gPw").value;$("gMsg").textContent="Memproses…";
     const r=pw?await SB.auth.signInWithPassword({email,password:pw}):await SB.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:false}});
     $("gMsg").textContent=r.error?(/invalid login/i.test(r.error.message)?"Email atau password salah.":"Gagal masuk: "+r.error.message):pw?"Berhasil masuk…":"Link masuk dikirim ke "+email+". Buka email lalu klik linknya.";};
@@ -859,6 +862,7 @@ async function start(){
   let first=true;SB.auth.onAuthStateChange((ev,s)=>{if(first){first=false;return;}if(ev==="SIGNED_IN"&&!SESSION||ev==="SIGNED_OUT")location.reload();SESSION=s;});
   if(!SESSION){gate("login");return;}
   if(!gasUrl()){gate("setup");return;}
+  const gm=document.querySelector("#gBody .gmsg");if(gm)gm.textContent="Menghubungkan ke Google Drive…";
   try{WHO=await call("whoami",{});}catch(e){gate("error",e.code==="forbidden"?"Akun ini belum didaftarkan Pemilik untuk Web Notulensi. Minta Pemilik menambahkan email Anda di menu Akses.":"Tidak bisa terhubung ke Google Drive: "+e.message);return;}
   try{await pull(true);}catch(e){}
   $("gate").hidden=true;readyRes();
