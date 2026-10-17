@@ -670,6 +670,8 @@ body{background:radial-gradient(1200px 500px at 85% 0%,#E9E6FB 0%,rgba(233,230,2
 .gform .btn.pri{height:44px;justify-content:center;background:linear-gradient(135deg,#7C3AED,#6D28D9);border-color:#6D28D9;color:#fff;border-radius:11px;font-weight:700}
 .gmsg{font-size:12.5px!important;color:#7D7A99!important}
 @media print{.gate{display:none!important}}
+.gate{animation:gdelay .25s ease .7s both}@keyframes gdelay{from{opacity:0}to{opacity:1}}
+@media (prefers-reduced-motion:reduce){.gate{animation:none}}
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -794,12 +796,15 @@ async function call(op,body){
   if(!r.ok)throw new Error("Server Drive tidak menjawab ("+r.status+")");
   const j=await r.json();if(!j.ok){const e=new Error(j.error||"Gagal");e.code=j.code;throw e;}return j;}
 
+const CK="notu-cache";
+function saveCache(){try{if(WHO)localStorage.setItem(CK,JSON.stringify({email:WHO.email,who:WHO,rev:REV,data:STATE,at:Date.now()}));}catch(e){}}
+function loadCache(email){try{const c=JSON.parse(localStorage.getItem(CK)||"null");return c&&c.email===email?c:null;}catch(e){return null;}}
 function emit(c){const docs=Object.entries(STATE[c]||{}).map(([id,d])=>({id,data:()=>d}));(subs[c]||[]).forEach(cb=>{try{cb({docs});}catch(e){console.error(e);}});}
 function emitAll(){COLS.forEach(emit);}
 function setSync(t,on){const l=$("liveTxt");if(l)l.textContent=t;const b=$("live");if(b)b.classList.toggle("on",!!on);}
 async function pull(force){
   if(queue.length||flushing)return;
-  try{const j=await call("state",{rev:force?0:REV});if(!j.same&&j.data){COLS.forEach(c=>STATE[c]=j.data[c]||{});REV=j.rev;emitAll();}setSync("Live · Drive",true);}
+  try{const j=await call("state",{rev:force?0:REV});if(!j.same&&j.data){COLS.forEach(c=>STATE[c]=j.data[c]||{});REV=j.rev;emitAll();saveCache();}setSync("Live · Drive",true);}
   catch(e){setSync("Offline",false);}}
 function enqueue(o){queue.push(o);setSync("Menyimpan…",true);flush();}
 async function flush(){
@@ -807,7 +812,7 @@ async function flush(){
   try{while(queue.length){const ops=queue.splice(0,60);
       let tries=0;for(;;){try{const j=await call("write",{ops});const expect=REV+1;REV=j.rev;if(j.rev!==expect)setTimeout(()=>pull(true),50);break;}
         catch(e){if(e.code==="readonly"||e.code==="forbidden"||++tries>3){toastErr(e);break;}await new Promise(r=>setTimeout(r,1500*tries));}}}
-    setSync("Tersimpan di Drive",true);}
+    setSync("Tersimpan di Drive",true);saveCache();}
   finally{flushing=false;}}
 function toastErr(e){try{toast("Gagal menyimpan ke Drive: "+(e.message||e));}catch(_){alert(e.message||e);}}
 window.addEventListener("beforeunload",e=>{if(queue.length||flushing){e.preventDefault();e.returnValue="";}});
@@ -862,12 +867,20 @@ async function start(){
   let first=true;SB.auth.onAuthStateChange((ev,s)=>{if(first){first=false;return;}if(ev==="SIGNED_IN"&&!SESSION||ev==="SIGNED_OUT")location.reload();SESSION=s;});
   if(!SESSION){gate("login");return;}
   if(!gasUrl()){gate("setup");return;}
-  const gm=document.querySelector("#gBody .gmsg");if(gm)gm.textContent="Menghubungkan ke Google Drive…";
-  try{WHO=await call("whoami",{});}catch(e){gate("error",e.code==="forbidden"?"Akun ini belum didaftarkan Pemilik untuk Web Notulensi. Minta Pemilik menambahkan email Anda di menu Akses.":"Tidak bisa terhubung ke Google Drive: "+e.message);return;}
-  try{await pull(true);}catch(e){}
-  $("gate").hidden=true;readyRes();
-  pollT=setInterval(()=>{if(!document.hidden)pull(false);},20000);
-  document.addEventListener("visibilitychange",()=>{if(!document.hidden)pull(false);});
+  const cached=loadCache(SESSION.user?.email);
+  const openApp=()=>{$("gate").hidden=true;readyRes();
+    pollT=pollT||setInterval(()=>{if(!document.hidden)pull(false);},20000);
+    if(!openApp.done){openApp.done=true;document.addEventListener("visibilitychange",()=>{if(!document.hidden)pull(false);});}};
+  if(cached&&cached.who&&cached.data){
+    /* buka langsung dari salinan terakhir di perangkat ini, lalu cek login & data terbaru di latar */
+    WHO=cached.who;REV=cached.rev||0;COLS.forEach(c=>STATE[c]=cached.data[c]||{});openApp();setSync("Sinkron…",true);
+    call("whoami",{}).then(w=>{const changed=w.role!==WHO.role;WHO=w;saveCache();if(changed)location.reload();else pull(false);})
+      .catch(e=>{if(e.code==="forbidden"){try{localStorage.removeItem(CK);}catch(_){}location.reload();}else setSync("Offline · data terakhir",false);});
+  }else{
+    const gm=document.querySelector("#gBody .gmsg");if(gm)gm.textContent="Menghubungkan ke Google Drive… (hanya saat pertama kali)";
+    try{WHO=await call("whoami",{});}catch(e){gate("error",e.code==="forbidden"?"Akun ini belum didaftarkan Pemilik untuk Web Notulensi. Minta Pemilik menambahkan email Anda di menu Akses.":"Tidak bisa terhubung ke Google Drive: "+e.message);return;}
+    try{await pull(true);}catch(e){}
+    saveCache();openApp();}
   setTimeout(wireTop,600);}
 
 /* ---------- menu akun + akses ---------- */
@@ -875,7 +888,7 @@ function wireTop(){
   const who=document.querySelector(".who");if(!who)return;who.style.cursor="pointer";who.setAttribute("role","button");who.tabIndex=0;
   const role={owner:"Pemilik",editor:"Editor",viewer:"Viewer"}[WHO.role]||WHO.role;
   const nm=$("meName");if(nm)nm.title=WHO.email+" · "+role;
-  who.onclick=e=>{e.stopPropagation();openMenu(who,[{head:WHO.email+" · "+role},...(WHO.role==="owner"?[{label:"Akses pengguna…",run:accessModal}]:[]),{label:"Buka folder di Google Drive",run:()=>window.open("https://drive.google.com/drive/search?q=%22Web%20Notulensi%22","_blank","noopener")},{label:"Keluar",run:async()=>{await SB.auth.signOut();location.reload();}}]);};}
+  who.onclick=e=>{e.stopPropagation();openMenu(who,[{head:WHO.email+" · "+role},...(WHO.role==="owner"?[{label:"Akses pengguna…",run:accessModal}]:[]),{label:"Buka folder di Google Drive",run:()=>window.open("https://drive.google.com/drive/search?q=%22Web%20Notulensi%22","_blank","noopener")},{label:"Keluar",run:async()=>{try{localStorage.removeItem(CK);}catch(_){}await SB.auth.signOut();location.reload();}}]);};}
 async function accessModal(){
   openModal(mHead("Akses pengguna")+`<div class="mb"><p class="stamp">Pemilik (${WHO.email}) selalu punya akses penuh. <b>Editor</b> bisa mengubah data, <b>Viewer</b> hanya melihat. Orang lain tidak bisa membuka web ini. Akun harus sudah terdaftar di login Portal Manpower.</p>
     <form class="rowx" id="acF" style="margin:12px 0;flex-wrap:wrap"><input type="email" id="acE" placeholder="email@contoh.com" required style="flex:1;min-width:200px"><select id="acR"><option value="editor">Editor</option><option value="viewer">Viewer</option></select><button class="btn pri" type="submit">Tambah</button></form>
