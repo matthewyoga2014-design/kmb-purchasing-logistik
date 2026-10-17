@@ -283,7 +283,6 @@ td .pg { min-width: 130px; }
 .cc-note { margin-top: 8px; font-size: 12.5px; color: var(--ink-2); }
 .hs.no { background: var(--crit-soft); color: var(--crit); }
 @media print {
-  @page { size: A4; margin: 10mm; }
   .side, .top, .scrim, #toast, #printBtn, .mtools, .acts, .btn, .modal { display: none !important; }
   .main { margin: 0 !important; }
   .content { max-width: none; padding: 0 !important; }
@@ -563,20 +562,16 @@ body.nop img { -webkit-user-drag: none; pointer-events: auto; }
   body.nop #nopr { display: block !important; margin: 60mm auto 0; text-align: center; font: 600 16px/1.6 var(--f); color: #1E1B3A; }
   #wm, #shield { display: none !important; }
 }
-/* ===== cetak seperti dokumen: tabel utuh selebar kertas, judul kolom berulang, nomor halaman ===== */
+/* ===== cetak: tampilan sama seperti di web, ukuran kertas / orientasi / skala / margin diatur bebas dari jendela Print ===== */
 body.pp .noprint { display: none !important; }
 @media print {
-  .noprint, .seg, .mtools, .toolbar .seg, #pq2, .upx, #view input[type="search"] { display: none !important; }
-  #view .card:has(table), #view .card:has(.tw) { break-inside: auto !important; box-shadow: none !important; }
-  #view .card { box-shadow: none !important; }
+  .noprint, .seg, .mtools, #pq2, .upx, #view input[type="search"] { display: none !important; }
+  #view .card:has(table), #view .card:has(.tw) { break-inside: auto !important; }
   .tw { overflow: visible !important; }
   table.t { width: 100% !important; }
   table.t thead { display: table-header-group; }
   table.t tfoot { display: table-footer-group; }
-  table.t tr, table.t td, table.t th { break-inside: avoid; }
-  table.t th { background: #EEEDF7 !important; color: #1E1B3A !important; }
-  a.fchip2 { background: none !important; padding: 0 !important; text-decoration: none !important; color: inherit !important; }
-  .mhead, .head { break-after: avoid; }
+  table.t tr { break-inside: avoid; }
 }
 .edf { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .edf input { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
@@ -2433,7 +2428,7 @@ let _ozT; window.addEventListener('resize', () => { clearTimeout(_ozT); _ozT = s
 window.addEventListener('beforeprint', () => {
   if (ui.page !== 'org') return;
   let s = document.getElementById('orgPrintCss'); if (!s) { s = document.createElement('style'); s.id = 'orgPrintCss'; document.head.appendChild(s); }
-  s.textContent = '@page { size: A4 portrait; margin: 8mm; }';
+  s.textContent = '';
   const og = document.querySelector('#orgSizer .org'); if (og && og.querySelector('.orgroot.out')) { og.classList.remove('pos-left', 'pos-right'); og.classList.add('pos-bottom'); }
   if (og) { const sz = document.getElementById('orgSizer'); og.style.transform = 'none'; og.style.zoom = ''; const w = og.offsetWidth; og.style.zoom = String(Math.min(1, 660 / w)); if (sz) { sz.style.width = 'auto'; sz.style.height = 'auto'; } }
 });
@@ -3491,30 +3486,11 @@ candidates = function (p) { return _candidates23(p).map((c) => (c.note && /inter
   window.addEventListener('blur', end);
 })();
 
-// ================= Print seperti dokumen biasa =================
-// Tabel lebar dicetak landscape dan diperkecil agar semua kolom muat; kolom Aksi disembunyikan;
-// judul kolom berulang di tiap halaman; kaki halaman berisi nama laporan, waktu cetak, dan nomor halaman.
+// ================= Print: sama seperti tampilan web, pengaturan kertas bebas dari jendela Print =================
 (function () {
-  const WIDE = { mpp: 1, pelamar: 1, karyawan: 1, unit: 1 };
-  const q = (s) => String(s).replace(/["\\]/g, '');
-  let zoomed = [];
   window.addEventListener('beforeprint', () => {
-    const page = (typeof ui !== 'undefined' && ui.page) || '';
-    const land = !!WIDE[page];
-    const d = new Date(), p = (n) => String(n).padStart(2, '0');
-    const when = `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
-    const lbl = ((PAGES.find((x) => x.id === page) || {}).label || '');
-    const sn = (typeof siteName === 'function' && siteName()) || ''; const proj = (document.title || 'Monitoring Manpower') + (sn && !(document.title || '').includes(sn) ? ' · ' + sn : '');
-    const who = (typeof GUARD_WHO !== 'undefined' && GUARD_WHO) ? ' · ' + GUARD_WHO : '';
-    let s = document.getElementById('docPrintCss'); if (!s) { s = document.createElement('style'); s.id = 'docPrintCss'; document.head.appendChild(s); }
-    s.textContent = `@page { ${page === 'org' ? '' : `size: A4 ${land ? 'landscape' : 'portrait'};`} margin: 10mm 8mm 12mm;
-      @top-left { content: "${q(proj.trim())}"; font: 600 8pt 'Plus Jakarta Sans', sans-serif; color: #6D28D9; }
-      @top-right { content: "${q(lbl)}"; font: 600 8pt 'Plus Jakarta Sans', sans-serif; color: #555; }
-      @bottom-left { content: "Dicetak ${q(when)}${q(who)}"; font: 8pt 'Plus Jakarta Sans', sans-serif; color: #777; }
-      @bottom-right { content: "Halaman " counter(page) " dari " counter(pages); font: 8pt 'Plus Jakarta Sans', sans-serif; color: #777; } }`;
-    if (page === 'org') return;
+    if (typeof ui !== 'undefined' && ui.page === 'org') return;
     document.body.classList.add('pp');
-    // sembunyikan kolom tombol (Aksi)
     document.querySelectorAll('#view table.t').forEach((t) => {
       const ths = [...t.querySelectorAll('thead th')];
       ths.forEach((th, i) => {
@@ -3523,19 +3499,21 @@ candidates = function (p) { return _candidates23(p).map((c) => (c.note && /inter
         t.querySelectorAll('tbody tr, tfoot tr').forEach((tr) => { const c = tr.children[i]; if (c && tr.children.length === ths.length) c.classList.add('noprint'); });
       });
     });
-    // perkecil tabel yang lebih lebar dari kertas
-    const avail = land ? 1040 : 720;
-    zoomed = [];
-    document.querySelectorAll('#view .tw').forEach((w) => {
+    // tabel dicetak persis seperti di web, diperkecil mengikuti lebar kertas yang dipilih di jendela Print
+    let css = '';
+    document.querySelectorAll('#view .tw').forEach((w, k) => {
       const t = w.querySelector('table'); if (!t) return;
-      w.style.zoom = ''; const need = t.scrollWidth;
-      if (need > avail) { w.style.zoom = String(Math.max(0.45, avail / need)); zoomed.push(w); }
+      const W = Math.max(t.scrollWidth, w.clientWidth); w.classList.add('pz' + k);
+      for (let pw = 300; pw < W; pw += 20) css += `@media print and (min-width:${pw}px){.pz${k}{zoom:${(pw / W).toFixed(3)}}}`;
+      css += `@media print and (min-width:${W}px){.pz${k}{zoom:1}}`;
     });
+    let st = document.getElementById('pzCss'); if (!st) { st = document.createElement('style'); st.id = 'pzCss'; document.head.appendChild(st); }
+    st.textContent = css;
   });
   window.addEventListener('afterprint', () => {
     document.body.classList.remove('pp');
-    zoomed.forEach((w) => { w.style.zoom = ''; }); zoomed = [];
     document.querySelectorAll('#view .noprint').forEach((e) => e.classList.remove('noprint'));
+    const st = document.getElementById('pzCss'); if (st) st.textContent = '';
   });
 })();
 
