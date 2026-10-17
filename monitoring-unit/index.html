@@ -270,8 +270,8 @@ td.ket{max-width:260px;font-size:12px;color:var(--muted)}
 .kpi .kbar{margin-top:8px;height:4px}
 .tabs-wrap{margin-top:16px}
 section.panel{padding-top:16px;gap:16px}
-.masonry{columns:3 330px;column-gap:14px}
-.masonry>.card{break-inside:avoid;display:block;margin-bottom:14px;width:100%}
+.masonry{display:grid;grid-template-columns:repeat(var(--mc,3),minmax(0,1fr));gap:14px;align-items:start}
+.mcol{display:flex;flex-direction:column;gap:14px;min-width:0}
 .tcard-head{padding:12px 14px 10px;gap:10px}
 .tcard-head .tile-ic{width:36px;height:36px;border-radius:10px}
 .tcard-head .tile-ic svg.i{width:18px;height:18px}
@@ -494,8 +494,8 @@ svg.i.up{transform:rotate(180deg)}
   .stats{grid-template-columns:repeat(4,minmax(0,1fr))!important}
   .dash{grid-template-columns:minmax(0,1.65fr) minmax(0,1fr)!important}
   .grid2{grid-template-columns:repeat(2,minmax(0,1fr))!important}
-  .masonry{columns:auto!important;display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
-  .masonry>.card{margin:0!important;break-inside:auto!important}
+  .masonry{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+  .mcol>.card{break-inside:auto!important}
   [hidden],.masonry[hidden]{display:none!important}
   .irow{grid-template-columns:minmax(0,1.5fr) minmax(70px,1fr) 44px auto auto!important}
   .irow .ibar{grid-column:auto!important;order:0!important}
@@ -1131,7 +1131,7 @@ function renderRingkasan(){
   if(!ps.length){
     $("#projCards").innerHTML=`<div class="card">${emptyState(L?"Memuat data…":"Belum ada project",L?"":"Tambahkan project dan item unit yang direncanakan dikirim.",canWrite&&!L?`<button class="btn primary small" data-act="addProj" type="button">+ Project</button>`:"")}</div>`;
   } else {
-    $("#projCards").innerHTML=ps.map(p=>{
+    const cardsHtml=ps.map(p=>{
       const c=projColor(p.id), s=projStats(p.id), q=pct(s.tiba,s.rencana);
       const sub=[p.nama,p.lokasi].filter(Boolean).join(" · ");
       const rows=s.items.map(k=>{ const n=tibaItem(k), r=Number(k.rencana)||0, sisa=r-n, ket=k.eta?`ETA ${fmtDate(k.eta)}${k.catatan&&!/^Jadwal/.test(k.catatan)?" · "+k.catatan:""}`:(k.catatan||"");
@@ -1149,7 +1149,8 @@ function renderRingkasan(){
         ${rows?`<div class="rows">${rows}</div>`:`<div class="rows"><div class="row"><span class="nm muted">Belum ada item unit</span></div></div>`}
         <div class="tfoot"><span class="note">${p.catatan?`${ic("alert")}${esc(p.catatan)}`:`${q}% unit tiba`}</span><span>${ic("clock")}${s.last?fmtTime(s.last):"—"}</span></div>
       </div>`;
-    }).join("");
+    });
+    $("#projCards").innerHTML=packCols(cardsHtml,ps.map(p=>150+itemsOf(p.id).length*36+(p.catatan?20:0)));
   }
   const next=S.mobs.filter(m=>isAktif(m)&&(!P||mobProj(m)===P.id)).sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam)).slice(0,5);
   $("#nextMob").innerHTML=next.length?next.map(m=>`<div class="li"><span class="when">${fmtDate(m.tanggal)}<br>${esc(m.jam||"")}</span><span class="what"><span class="plate">${esc(m.unitKode)}</span> <span class="ptag">${esc(projKode(mobProj(m)))}</span><span style="display:block">${esc(m.dari)} → <b>${esc(m.ke)}</b></span><span class="small muted" style="display:block">${esc(m.moda||"")}${m.jarak?` · ${m.jarak} km`:""}</span></span>${chip(MOB_STATUS,m.status)}</div>`).join("")
@@ -1419,6 +1420,20 @@ $("#btnPrint").addEventListener("click",()=>{
   const ph=$("#printHead"); ph.innerHTML=`<b>${esc(judul)}</b><span>${P&&P.nama?esc(P.nama)+"<br>":""}Dicetak ${esc(new Date().toLocaleString("id-ID",{dateStyle:"long",timeStyle:"short"}))} · ${esc(meEmail)}</span>`;
   const oldTitle=document.title; document.title=judul.replace(/ · /g," - ")+" - "+todayStr();
   setTimeout(()=>{ window.print(); setTimeout(()=>{ document.title=oldTitle; },500); },50); });
+
+/* ---------- susunan kartu project: 3 kolom rapat ---------- */
+let PRINT_COLS=0, lastCols=0;
+function colCount(){ if(PRINT_COLS) return PRINT_COLS; const w=window.innerWidth||1280; return w<=560?1:w<=900?2:3; }
+function packCols(html,weights){
+  const n=colCount(); lastCols=n;
+  const cols=Array.from({length:n},()=>({h:0,items:[]}));
+  html.forEach((h,i)=>{ const c=cols.reduce((a,b)=>b.h<a.h?b:a); c.items.push(h); c.h+=weights[i]+14; });
+  $("#projCards").style.setProperty("--mc",n);
+  return cols.map(c=>`<div class="mcol">${c.items.join("")}</div>`).join("");
+}
+window.addEventListener("beforeprint",()=>{ PRINT_COLS=3; renderRingkasan(); });
+window.addEventListener("afterprint",()=>{ PRINT_COLS=0; renderRingkasan(); });
+window.addEventListener("resize",()=>{ if(colCount()!==lastCols) renderRingkasan(); });
 
 /* ---------- dokumentasi bukti per tahap ---------- */
 const TAHAP=[
