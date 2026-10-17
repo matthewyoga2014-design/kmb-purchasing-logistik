@@ -775,7 +775,7 @@ body{background:radial-gradient(1200px 500px at 85% 0%,#E9E6FB 0%,rgba(233,230,2
 window.NOTU_SA=true;
 (function(){
 const SUPA={url:"https://yoviojbfyvgpllxisjvy.supabase.co",key:"sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9"};
-const GAS_DEFAULT="@@GAS_URL@@";
+const GAS_DEFAULT="https://script.google.com/macros/s/AKfycbxEVSGJYpi-q9BiO8iiRSirX9OuVnvP0rVNUYQR4SlcSgkvkfAsYsw8vc1iIzXKFR4X/exec";
 const gasUrl=()=>{try{return localStorage.getItem("notu-gas")||(GAS_DEFAULT.startsWith("@@")?"":GAS_DEFAULT);}catch(e){return GAS_DEFAULT.startsWith("@@")?"":GAS_DEFAULT;}};
 const COLS=["folders","series","versions","files"];
 let SB=null,SESSION=null,WHO=null,REV=0,STATE={folders:{},series:{},versions:{},files:{}};
