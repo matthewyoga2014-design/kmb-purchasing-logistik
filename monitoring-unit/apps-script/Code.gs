@@ -42,7 +42,12 @@ const NUM_KEYS = { urut: 1, rencanaAwal: 1, rencana: 1, hm: 1, jarak: 1, lama: 1
 
 /* ---------------- web API ---------------- */
 function doGet() {
-  return json_({ ok: true, state: buildState_() });
+  const cache = CacheService.getScriptCache();
+  const hit = cache.get('state');
+  if (hit) return ContentService.createTextOutput('{"ok":true,"state":' + hit + '}').setMimeType(ContentService.MimeType.JSON);
+  const txt = JSON.stringify(buildState_());
+  try { if (txt.length < 95000) cache.put('state', txt, 21600); } catch (err) {}
+  return ContentService.createTextOutput('{"ok":true,"state":' + txt + '}').setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
@@ -269,7 +274,10 @@ function docFolder_(projectKode) {
 
 /* ---------------- penanda perubahan ---------------- */
 function getRev_() { return Number(PropertiesService.getScriptProperties().getProperty('rev') || 0); }
-function bumpRev_() { PropertiesService.getScriptProperties().setProperty('rev', String(getRev_() + 1)); }
+function bumpRev_() {
+  PropertiesService.getScriptProperties().setProperty('rev', String(getRev_() + 1));
+  try { CacheService.getScriptCache().remove('state'); } catch (err) {}
+}
 
 /**
  * Edit langsung di sheet: beri ID baris baru, isi "Diperbarui", dan catat
