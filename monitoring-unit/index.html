@@ -471,6 +471,7 @@ svg.i.up{transform:rotate(180deg)}
 .sync.err::before{background:var(--bad)}
 @keyframes pulse{50%{opacity:.25}}
 @media (max-width:560px){.sync{display:none}}
+.hero p#heroDesc{max-width:78ch}
 .print-head{display:none}
 @media print{
   @page{margin:8mm}
@@ -569,8 +570,8 @@ svg.i.up{transform:rotate(180deg)}
   <div class="wrap">
     <div class="crumbs" id="crumbs" hidden><button type="button" class="back" data-act="backAll">← Semua project</button><span>/</span><span id="crumbName"></span></div>
     <span class="eyebrow" id="heroEyebrow">Integrated Monitoring</span>
-    <h1 id="heroTitle">Monitoring Unit &amp; Mobilisasi All Project</h1>
-    <p id="heroDesc">Rencana kirim unit per project, unit yang sudah tiba di jobsite, rencana mobilisasi ke area kerja, dan riwayat perubahan jumlah unit.</p>
+    <h1 id="heroTitle">Monitoring Unit All Project</h1>
+    <p id="heroDesc">Sistem digital untuk memantau perencanaan, proses pengiriman, hingga penerimaan unit di seluruh project secara real-time dilengkapi status progres dan bukti pendukung untuk memastikan setiap tahapan terpantau dan terdokumentasi dengan baik.</p>
     <div class="hero-actions" id="heroActions"><button class="btn" data-act="addProj" type="button">+ Project</button></div>
   </div>
 </div>
@@ -1047,8 +1048,8 @@ function renderHero(){
   $("#crumbs").hidden=!p;
   if(p){ $("#crumbName").textContent=p.kode; $("#heroEyebrow").textContent="Dashboard project"; $("#heroTitle").textContent="Monitoring Unit "+p.kode;
     $("#heroDesc").textContent=[p.nama,p.lokasi].filter(Boolean).join(" · ")||"Rencana kirim, unit di lokasi, dan mobilisasi project ini."; }
-  else { $("#heroEyebrow").textContent="Integrated Monitoring"; $("#heroTitle").textContent="Monitoring Unit & Mobilisasi All Project";
-    $("#heroDesc").textContent="Rencana kirim unit per project, unit yang sudah tiba di jobsite, rencana mobilisasi ke area kerja, dan riwayat perubahan jumlah unit."; }
+  else { $("#heroEyebrow").textContent="Integrated Monitoring"; $("#heroTitle").textContent="Monitoring Unit All Project";
+    $("#heroDesc").textContent="Sistem digital untuk memantau perencanaan, proses pengiriman, hingga penerimaan unit di seluruh project secara real-time dilengkapi status progres dan bukti pendukung untuk memastikan setiap tahapan terpantau dan terdokumentasi dengan baik."; }
 }
 function renderSummary(){ if(!$("#summary")) return;
   const L=!S.ready, P=curProj();
