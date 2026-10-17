@@ -563,6 +563,21 @@ body.nop img { -webkit-user-drag: none; pointer-events: auto; }
   body.nop #nopr { display: block !important; margin: 60mm auto 0; text-align: center; font: 600 16px/1.6 var(--f); color: #1E1B3A; }
   #wm, #shield { display: none !important; }
 }
+/* ===== cetak seperti dokumen: tabel utuh selebar kertas, judul kolom berulang, nomor halaman ===== */
+body.pp .noprint { display: none !important; }
+@media print {
+  .noprint, .seg, .mtools, .toolbar .seg, #pq2, .upx, #view input[type="search"] { display: none !important; }
+  #view .card:has(table), #view .card:has(.tw) { break-inside: auto !important; box-shadow: none !important; }
+  #view .card { box-shadow: none !important; }
+  .tw { overflow: visible !important; }
+  table.t { width: 100% !important; }
+  table.t thead { display: table-header-group; }
+  table.t tfoot { display: table-footer-group; }
+  table.t tr, table.t td, table.t th { break-inside: avoid; }
+  table.t th { background: #EEEDF7 !important; color: #1E1B3A !important; }
+  a.fchip2 { background: none !important; padding: 0 !important; text-decoration: none !important; color: inherit !important; }
+  .mhead, .head { break-after: avoid; }
+}
 .edf { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
 .edf input { flex: 1 1 200px; min-width: 0; font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
 .edl { display: grid; gap: 6px; }
@@ -3474,6 +3489,54 @@ candidates = function (p) { return _candidates23(p).map((c) => (c.note && /inter
   const end = () => { if (!P) return; if (P.on) { const w = P.w; w.classList.remove('panning'); const eat = (ev) => { ev.stopPropagation(); ev.preventDefault(); }; window.addEventListener('click', eat, true); setTimeout(() => window.removeEventListener('click', eat, true), 0); } P = null; };
   document.addEventListener('mouseup', end);
   window.addEventListener('blur', end);
+})();
+
+// ================= Print seperti dokumen biasa =================
+// Tabel lebar dicetak landscape dan diperkecil agar semua kolom muat; kolom Aksi disembunyikan;
+// judul kolom berulang di tiap halaman; kaki halaman berisi nama laporan, waktu cetak, dan nomor halaman.
+(function () {
+  const WIDE = { mpp: 1, pelamar: 1, karyawan: 1, unit: 1 };
+  const q = (s) => String(s).replace(/["\\]/g, '');
+  let zoomed = [];
+  window.addEventListener('beforeprint', () => {
+    const page = (typeof ui !== 'undefined' && ui.page) || '';
+    const land = !!WIDE[page];
+    const d = new Date(), p = (n) => String(n).padStart(2, '0');
+    const when = `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+    const lbl = ((PAGES.find((x) => x.id === page) || {}).label || '');
+    const sn = (typeof siteName === 'function' && siteName()) || ''; const proj = (document.title || 'Monitoring Manpower') + (sn && !(document.title || '').includes(sn) ? ' · ' + sn : '');
+    const who = (typeof GUARD_WHO !== 'undefined' && GUARD_WHO) ? ' · ' + GUARD_WHO : '';
+    let s = document.getElementById('docPrintCss'); if (!s) { s = document.createElement('style'); s.id = 'docPrintCss'; document.head.appendChild(s); }
+    s.textContent = `@page { ${page === 'org' ? '' : `size: A4 ${land ? 'landscape' : 'portrait'};`} margin: 10mm 8mm 12mm;
+      @top-left { content: "${q(proj.trim())}"; font: 600 8pt 'Plus Jakarta Sans', sans-serif; color: #6D28D9; }
+      @top-right { content: "${q(lbl)}"; font: 600 8pt 'Plus Jakarta Sans', sans-serif; color: #555; }
+      @bottom-left { content: "Dicetak ${q(when)}${q(who)}"; font: 8pt 'Plus Jakarta Sans', sans-serif; color: #777; }
+      @bottom-right { content: "Halaman " counter(page) " dari " counter(pages); font: 8pt 'Plus Jakarta Sans', sans-serif; color: #777; } }`;
+    if (page === 'org') return;
+    document.body.classList.add('pp');
+    // sembunyikan kolom tombol (Aksi)
+    document.querySelectorAll('#view table.t').forEach((t) => {
+      const ths = [...t.querySelectorAll('thead th')];
+      ths.forEach((th, i) => {
+        if (!/^aksi$/i.test(th.textContent.trim())) return;
+        th.classList.add('noprint');
+        t.querySelectorAll('tbody tr, tfoot tr').forEach((tr) => { const c = tr.children[i]; if (c && tr.children.length === ths.length) c.classList.add('noprint'); });
+      });
+    });
+    // perkecil tabel yang lebih lebar dari kertas
+    const avail = land ? 1040 : 720;
+    zoomed = [];
+    document.querySelectorAll('#view .tw').forEach((w) => {
+      const t = w.querySelector('table'); if (!t) return;
+      w.style.zoom = ''; const need = t.scrollWidth;
+      if (need > avail) { w.style.zoom = String(Math.max(0.45, avail / need)); zoomed.push(w); }
+    });
+  });
+  window.addEventListener('afterprint', () => {
+    document.body.classList.remove('pp');
+    zoomed.forEach((w) => { w.style.zoom = ''; }); zoomed = [];
+    document.querySelectorAll('#view .noprint').forEach((e) => e.classList.remove('noprint'));
+  });
 })();
 
 // ================= WEB: standalone mode (GitHub Pages + Supabase, no Claude) =================
