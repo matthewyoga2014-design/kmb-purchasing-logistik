@@ -646,20 +646,52 @@ body{background:radial-gradient(1200px 500px at 85% 0%,#E9E6FB 0%,rgba(233,230,2
 .printhead{display:none}
 .v3 .prbtn{height:40px}
 @media print{
-  @page{margin:8mm}
+  @page{margin:10mm}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  html,body{background:#fff!important}
-  .v3 .top,.v3 .scene,.v3 .side-l,.v3 .side-r,.toast,.modal,.menu,#gate,.banner,.ed-only,.v3 .fbar .btn,.v3 .go,.v3 .tstep.add,#sMenu,#phBtn,#wdRegen,#attBtn,.v3 .wordbar .btn,.back,[data-act=updMeeting],[data-act=word],[data-act=xlsx],[data-act=print],.fsplit .tree .rules,.hint,.v3 .fbar,.v3 .seg,.v3 .nmsum{display:none!important}
-  .printhead{display:flex!important;justify-content:space-between;align-items:baseline;gap:16px;border-bottom:2px solid #6D28D9;padding:0 0 8px;margin:0 0 12px}
-  .printhead b{font-size:18px;color:#1E1B3A}.printhead span{font-size:11px;color:#4B4868}
-  .v3 .page{padding:0!important;max-width:none!important;gap:12px}
-  .v3 .card,.v3 .ucard,.v3 .kpt,.v3 .fbar,.v3 .nbar{box-shadow:none!important;border:1px solid #DCD9EC!important;break-inside:avoid;transform:none!important}
-  .v3 .ugrid,.v3 .tot,.v3 .row2,.v3 .row2b{gap:10px}
-  .v3 .hero{padding-left:0;min-height:0}.v3 .hero .sub,.v3 .hero .tag{display:none}.v3 .hero h1{font-size:26px}
+  html,body{background:#fff!important;font-size:12px}
+  .v3 .top,.v3 .scene,.v3 .side-l,.v3 .side-r,.toast,.modal,.menu,#gate,.banner,.ed-only,.v3 .fbar,.v3 .go,.v3 .tstep.add,#sMenu,#phBtn,#wdRegen,#attBtn,.v3 .wordbar .btn,.back,[data-act=updMeeting],[data-act=word],[data-act=xlsx],[data-act=print],.fsplit .tree .rules,.hint,.v3 .seg,.v3 .nmsum,.v3 .hero,.v3 .ch .stamp,.v3 .switch,.legend2,.v3 .sites svg,.v3 .uh::before{display:none!important}
+  .printhead{display:flex!important;justify-content:space-between;align-items:baseline;gap:16px;border-bottom:2px solid #6D28D9;padding:0 0 6px;margin:0 0 8px}
+  .printhead b{font-size:16px;color:#1E1B3A}.printhead span{font-size:10px;color:#4B4868}
+  .v3 .page,.v3 .page{padding:0!important;margin:0!important;max-width:none!important;width:auto!important;gap:8px!important}
+  .v3 #v-dash,.v3 #v-series,.v3 #v-edit,.v3 .view{gap:8px!important}
+  /* kartu boleh terpotong antar halaman; yang dijaga utuh hanya baris & potongan kecil */
+  .v3 .card,.v3 .ucard,.v3 .kpt,.v3 .nbar{box-shadow:none!important;border:1px solid #DCD9EC!important;transform:none!important;border-radius:10px!important;backdrop-filter:none!important}
+  .v3 .kpt,.v3 .ucard,.v3 .nbar,.v3 .ust>div,.v3 .sites button,.v3 .att .it,.v3 .tstep,.v3 .meta>div,.v3 .ch,.v3 .sh,.chg-sum,tr,li,.fl,figure,.printhead{break-inside:avoid;page-break-inside:avoid}
+  h1,h2,h3,.v3 .ch,.v3 .sh,.v3 .uh,thead{break-after:avoid;page-break-after:avoid}
+  thead{display:table-header-group}
+  .v3 .cpad{padding:10px 12px!important}
+  .v3 .ch,.v3 .sh{margin-bottom:6px!important}
+  .v3 .ch h2,.v3 .sh h2{font-size:13px!important}
+  /* kotak angka */
+  .v3 .tot{gap:6px!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}
+  .v3 .kpt{min-height:0!important;padding:8px 10px!important;gap:8px!important;border:0!important}
+  .v3 .kpt .ti{width:30px;height:30px}.v3 .kpt .ti svg{width:16px;height:16px}
+  .v3 .kpt b{font-size:20px!important}.v3 .kpt small{font-size:9px!important}.v3 .kpt em{font-size:10px!important}.v3 .kpt .tb{display:none}
+  /* kartu unit */
+  .v3 .ugrid{gap:6px!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .v3 .ust{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+  .v3 .uh{min-height:0!important;padding:6px 10px!important;gap:8px!important;background:#F6F3FE!important}
+  .v3 .uic{width:28px;height:28px;border-radius:8px;box-shadow:none}.v3 .uic svg{width:15px;height:15px}
+  .v3 .ut h2{font-size:13px!important}.v3 .ut p{font-size:10px!important}
+  .v3 .ub{padding:6px 10px 8px!important;gap:5px!important}
+  .v3 .ust{gap:4px!important}.v3 .ust>div{padding:4px 8px!important;gap:6px!important;border-radius:6px}
+  .v3 .ust b{font-size:14px!important}.v3 .ust span{font-size:9px!important}.v3 .ust svg{width:12px;height:12px}
+  .v3 .ubar{height:5px}.v3 .umeta{font-size:10px!important}.v3 .umeta .pill{font-size:9px;padding:2px 6px}
+  .v3 .sites button{padding:4px 8px!important;font-size:10.5px!important;gap:8px!important}.v3 .sites .n small{font-size:9px}.v3 .sites .pill{font-size:9px;padding:2px 6px}
+  /* grafik */
+  .v3 .row2{gap:6px!important;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)!important}
+  .v3 #bars svg{max-height:150px!important;width:auto!important;max-width:100%}
+  .donut{grid-template-columns:96px minmax(0,1fr)!important}.donut svg{width:96px!important;height:96px!important}.donut .lg{padding:2px 0;font-size:11px}
+  .v3 .row2b{gap:6px!important;grid-template-columns:minmax(0,2fr) minmax(0,1fr)!important}
+  /* tabel */
   .tbl-wrap{max-height:none!important;overflow:visible!important}
-  .ntbl{min-width:0!important;font-size:10.5px}.ntbl th{position:static!important}
-  .ntbl tr,.restbl tr{break-inside:avoid}
-  .v3 .uh::before{opacity:.6}
+  table{font-size:10.5px}th,td{padding:4px 6px!important}
+  .ntbl,.etbl{min-width:0!important;font-size:10px}.ntbl th{position:static!important}
+  .pill{font-size:9.5px;padding:2px 6px}
+  /* halaman notulensi */
+  .v3 .tline{gap:6px}.v3 .tstep{padding:6px 8px!important;min-width:0}
+  .v3 .sh2 h1{font-size:18px}.v3 .meta{gap:6px 16px!important}.v3 .meta dd{font-size:11px}
+  .phgrid{grid-template-columns:repeat(4,1fr)!important;gap:6px}
 }
 
 .gate{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:16px;background:radial-gradient(1200px 500px at 85% 0%,#E9E6FB 0%,rgba(233,230,251,0) 70%),linear-gradient(180deg,#F4F3FB 0%,#ECEEF7 60%,#E6E9F3 100%)}
