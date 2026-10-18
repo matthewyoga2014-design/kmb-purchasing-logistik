@@ -668,6 +668,21 @@ body.locked > *:not(#lockScr):not(#toast):not(.modal):not(#modal) { visibility: 
 .tico .apdimg { width: 32px; height: 32px; object-fit: contain; }
 #nav .ct { margin-left: auto; min-width: 20px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; background: var(--line); color: var(--ink); text-align: center; }
 #nav .ct.al { background: var(--crit, #DC2626); color: #fff; }
+.dialog.wide { width: min(1080px, 100%); }
+.dialog:has(#gaForm) { width: min(1180px, 100%); }
+.gat input { width: 100%; min-width: 0; padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background: var(--card); color: var(--ink); }
+.gat td { vertical-align: top; }
+.gat td:nth-child(2) { min-width: 200px; } .gat td:nth-child(8) { min-width: 220px; }
+.gaset { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.gaset > div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.gaset small { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; } .gaset b { font-size: 13.5px; word-break: break-all; }
+.pick { display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow: auto; margin: 10px 0; }
+.pick label { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px; padding: 10px; cursor: pointer; font-size: 13px; }
+.pick input { margin-top: 3px; }
+.gapic { border: 1px dashed var(--line); border-radius: 10px; min-height: 70px; display: flex; align-items: center; justify-content: center; padding: 6px; background: #fff; }
+.gapic img { max-height: 80px; max-width: 100%; }
+.gaview { overflow: auto; border: 1px solid var(--line); border-radius: 12px; margin-top: 10px; background: #fff; }
+.gaview .gadoc { min-width: 860px; }
 </style></head><body>
 <aside class="side" id="side" aria-label="Menu">
   <div class="brand"><span class="lg">M</span><div><b>Monitoring</b><span>APD KMB</span></div></div>
@@ -693,6 +708,362 @@ body.locked > *:not(#lockScr):not(#toast):not(.modal):not(#modal) { visibility: 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>'use strict';
+// ================= Form GA Request (khusus Pemilik) =================
+// Nomor: <prefix>/<bulan romawi>/<tahun>-<urut 3 digit>, contoh HO01/HO-KMB/GA-REG/X/2026-007
+const GA_DEF = { prefix: 'HO01/HO-KMB/GA-REG', lokasi: 'HO / JS WS', dept: 'HRGA', notes: '1. GA Req terlampir berdasarkan Material Request Dept. HRGA',
+  sign: [{ title: 'Diajukan Oleh,', name: '', dept: 'Dept. HRGA' }, { title: 'Disetujui Oleh,', name: '', dept: '' }, { title: 'Diterima Oleh,', name: '', dept: '' }],
+  logo: '', lastSeq: {}, catalog: [] };
+const ROMAN = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+const SIG_KEY = 'apd-ga-sig';
+const LIBS = { jszip: ['https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js', 'JSZip'] };
+let GA_ED = null;
+
+function gaNorm(v) {
+  v = v && typeof v === 'object' ? v : {};
+  const s = v.settings && typeof v.settings === 'object' ? v.settings : {};
+  const sign = [0, 1, 2].map((i) => ({ ...GA_DEF.sign[i], ...((Array.isArray(s.sign) && s.sign[i]) || {}) }));
+  return { settings: { ...GA_DEF, ...s, sign, lastSeq: s.lastSeq && typeof s.lastSeq === 'object' ? s.lastSeq : {}, catalog: Array.isArray(s.catalog) ? s.catalog : [] },
+    docs: (Array.isArray(v.docs) ? v.docs : []).map((d) => ({ ...d, items: Array.isArray(d.items) ? d.items : [], signDates: Array.isArray(d.signDates) ? d.signDates : [] })) };
+}
+function gaValidate(g, codes) {
+  const nos = new Set();
+  for (const d of g.docs) {
+    if (!d.id || !d.no || !d.date) return 'Form GA Request harus punya nomor dan tanggal.';
+    if (nos.has(d.no)) return 'Nomor GA Request ' + d.no + ' kembar.'; nos.add(d.no);
+    if (!d.items.length) return 'Form GA Request ' + d.no + ' belum ada barangnya.';
+    for (const it of d.items) {
+      if (!String(it.desc || '').trim() || !Number.isInteger(Number(it.qty)) || Number(it.qty) < 1) return 'Setiap baris barang di ' + d.no + ' harus punya deskripsi dan jumlah minimal 1.';
+      if (Number(it.price || 0) < 0) return 'Estimasi harga tidak boleh minus.';
+      if (it.type && !codes.includes(it.type)) return 'Jenis APD ' + it.type + ' di ' + d.no + ' tidak dikenal.';
+    }
+  }
+  return '';
+}
+const gaSig = () => { try { return localStorage.getItem(SIG_KEY) || ''; } catch (e) { return ''; } };
+const gaSetSig = (v) => { try { if (v) localStorage.setItem(SIG_KEY, v); else localStorage.removeItem(SIG_KEY); } catch (e) {} };
+const rp = (n) => (Number(n) || 0).toLocaleString('id-ID');
+const dmy = (s) => { const [y, m, d] = String(s || '').slice(0, 10).split('-'); return y && m && d ? `${d}/${m}/${y}` : ''; };
+const gaTotal = (d) => d.items.reduce((a, it) => a + (Number(it.qty) || 0) * (Number(it.price) || 0), 0);
+function gaNextNo(date) {
+  const g = S.state.ga, st = g.settings, y = Number(String(date).slice(0, 4)) || new Date().getFullYear(), m = Number(String(date).slice(5, 7)) || 1;
+  const used = g.docs.filter((d) => Number(d.year) === y).map((d) => Number(d.seq) || 0);
+  const seq = Math.max(Number(st.lastSeq[y]) || 0, ...used, 0) + 1;
+  return { seq, year: y, no: `${st.prefix}/${ROMAN[m - 1]}/${y}-${String(seq).padStart(3, '0')}` };
+}
+function gaDesc(t, v) { const l = tLabel(t); if (!v || v === 'BELUM DIISI') return l; return /^\d+$/.test(v) ? `${l} (${v})` : `${l} ${v}`; }
+function loadLib(k) {
+  const [url, g] = LIBS[k]; if (window[g]) return Promise.resolve(window[g]);
+  return new Promise((ok, no) => { const s = document.createElement('script'); s.src = url; s.onload = () => (window[g] ? ok(window[g]) : no(new Error('Modul gagal dimuat'))); s.onerror = () => no(new Error('Modul gagal dimuat. Periksa koneksi.')); document.head.appendChild(s); });
+}
+
+// ---------- halaman ----------
+function pageGA() {
+  const g = S.state.ga, st = g.settings;
+  const docs = [...g.docs].sort((a, b) => String(b.date).localeCompare(String(a.date)) || (Number(b.seq) || 0) - (Number(a.seq) || 0));
+  const open = docs.filter((d) => d.status !== 'CLOSE').length;
+  const waiting = S.state.requests.filter((r) => (r.status === 'pending' || r.status === 'approved') && !r.gaId).length;
+  const ready = st.sign.every((x) => x.name);
+  const rows = docs.map((d) => `<tr><td class="b nw">${esc(d.no)}</td><td class="nw">${fmt(d.date)}</td><td class="nw">${esc(d.lokasi)}<div class="small">Dept ${esc(d.dept)}</div></td><td style="min-width:240px">${d.items.slice(0, 3).map((it) => `${esc(it.desc)} × ${it.qty}`).join('<br>')}${d.items.length > 3 ? `<div class="small">+${d.items.length - 3} barang lain</div>` : ''}</td><td class="b nw">Rp ${rp(gaTotal(d))}</td><td>${d.status === 'CLOSE' ? `<span class="hs ok">Barang datang</span><div class="small">${fmt(d.receivedAt)}</div>` : `<span class="hs hd">Open</span>${d.due ? `<div class="small ${daysUntil(d.due) < 0 ? 'red' : ''}">Target ${fmt(d.due)}</div>` : ''}`}</td>
+    <td class="nw"><button type="button" class="btn btn-p btn-sm" data-gax="${esc(d.id)}">Excel</button> <button type="button" class="btn btn-g btn-sm" data-gapv="${esc(d.id)}">Lihat / PDF</button> <button type="button" class="btn btn-g btn-sm" data-gaed="${esc(d.id)}">Edit</button>${d.status !== 'CLOSE' ? ` <button type="button" class="btn btn-g btn-sm" data-garcv="${esc(d.id)}">Barang Datang</button>` : ''} <button type="button" class="btn btn-g btn-sm red" data-gadel="${esc(d.id)}">Hapus</button></td></tr>`).join('') || '<tr><td colspan="7" class="empty">Belum ada Form GA Request. Klik <b>+ Buat Form GA</b>.</td></tr>';
+  const set = `<div class="card s12"><div class="ch"><div><div class="eyebrow">Format form</div><h2>Pengaturan Form GA Request</h2><p>Kop, nomor urut, catatan, dan nama penanda tangan. Cara tercepat: <b>Ambil dari Form Excel</b> lalu pilih file Form GA Request yang biasa dipakai.</p></div><div class="mtools"><button type="button" class="btn btn-p" id="gaImp">Ambil dari Form Excel</button><button type="button" class="btn btn-g" id="gaSet">Ubah Pengaturan</button></div><input type="file" id="gaImpIn" accept=".xlsx" hidden></div>
+    <div class="gaset"><div><small>Format nomor</small><b>${esc(st.prefix)}/${ROMAN[new Date().getMonth()]}/${new Date().getFullYear()}-${String(gaNextNo(today()).seq).padStart(3, '0')}</b><span class="small">nomor berikutnya</span></div><div><small>Lokasi / Dept</small><b>${esc(st.lokasi)} · ${esc(st.dept)}</b></div>
+    ${st.sign.map((x) => `<div><small>${esc(x.title.replace(/,$/, ''))}</small><b>${esc(x.name) || '<span class="red">belum diisi</span>'}</b><span class="small">${esc(x.dept)}</span></div>`).join('')}
+    <div><small>Logo & tanda tangan</small><b>${st.logo ? 'Logo ✓' : 'Logo belum ada'} · ${gaSig() ? 'TTD ✓' : 'TTD belum ada'}</b><span class="small">TTD hanya disimpan di perangkat ini</span></div></div></div>`;
+  return header('Pengadaan', 'Form GA Request', 'Buat pengajuan barang ke Purchasing langsung dari web, unduh Excel sesuai format asli, atau cetak PDF. Saat barang datang, stok gudang otomatis bertambah.', '<button type="button" class="btn btn-p" data-gaed="">+ Buat Form GA</button>') +
+    `${!ready ? '<div class="srcnote">Nama penanda tangan belum lengkap. Klik <b>Ambil dari Form Excel</b> agar kop, nomor terakhir, logo, nama, dan tanda tangan terisi otomatis dari file Form Anda.</div>' : ''}${waiting ? `<div class="srcnote"><b>${waiting} permintaan APD</b> belum masuk Form GA. Klik <b>+ Buat Form GA</b> lalu <b>Ambil dari Permintaan</b>.</div>` : ''}
+    <div class="mstats" style="grid-template-columns:repeat(3,minmax(0,1fr))"><div><b>${docs.length}</b><span>Form GA dibuat</span></div><div><b style="color:var(--warn,#B45309)">${open}</b><span>Open (barang belum datang)</span></div><div><b style="color:var(--good)">${docs.length - open}</b><span>Barang sudah datang</span></div></div>
+    <div class="grid"><div class="card s12"><div class="tw"><table class="t"><thead><tr><th>No. Urut</th><th>Tanggal</th><th>Lokasi</th><th>Barang</th><th>Total</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${rows}</tbody></table></div></div></div><div class="grid">${set}</div>`;
+}
+
+// ---------- editor form ----------
+function gaEdit(id, reqIds, draft) {
+  if (!isOwner()) return;
+  const g = S.state.ga, st = g.settings, old = g.docs.find((x) => x.id === (draft ? draft.d.id : id));
+  const d = draft ? draft.d : old ? structuredClone(old) : (() => { const n = gaNextNo(today()); return { id: uid(), ...n, date: today(), lokasi: st.lokasi, dept: st.dept, notes: st.notes, due: '', items: [], signDates: [today(), today(), today()], status: 'OPEN' }; })();
+  GA_ED = draft || { d, auto: !old };
+  if (reqIds) gaAddReqs(reqIds);
+  modal(`${mh('Form GA Request', old ? 'Edit ' + esc(d.no) : 'Buat Form GA Request')}<form id="gaForm" novalidate><div class="fgrid c3">
+    <div class="fld"><label for="ga_no">No. Urut</label><input id="ga_no" required value="${esc(d.no)}"></div><div class="fld"><label for="ga_d">Tanggal</label><input id="ga_d" type="date" required value="${esc(d.date)}"></div><div class="fld"><label for="ga_due">Target barang datang</label><input id="ga_due" type="date" value="${esc(d.due || '')}"></div>
+    <div class="fld"><label for="ga_l">Lokasi / Site</label><input id="ga_l" value="${esc(d.lokasi)}"></div><div class="fld"><label for="ga_dp">Dept</label><input id="ga_dp" value="${esc(d.dept)}"></div><div class="fld"><label for="ga_n">Notes</label><input id="ga_n" value="${esc(d.notes)}"></div></div>
+    <div class="ch" style="margin:16px 0 8px"><div><h2 style="font-size:15px">Barang / Jasa</h2></div><div class="mtools"><button type="button" class="btn btn-g btn-sm" id="gaPick">Ambil dari Permintaan</button><button type="button" class="btn btn-g btn-sm" id="gaAdd">+ Tambah Baris</button></div></div>
+    <div class="tw"><table class="t gat"><thead><tr><th>No</th><th>Deskripsi Barang / Jasa</th><th>Jumlah</th><th>Satuan</th><th>Estimasi Harga (Rp)</th><th>Total (Rp)</th><th>Site</th><th>Keterangan</th><th></th></tr></thead><tbody id="gaRows"></tbody><tfoot><tr><td></td><td class="b" style="text-align:right">TOTAL</td><td colspan="3"></td><td class="b" id="gaTot"></td><td colspan="3"></td></tr></tfoot></table></div>
+    <datalist id="gaCat">${st.catalog.map((c) => `<option value="${esc(c.desc)}">`).join('')}</datalist>
+    <div class="fgrid c3" style="margin-top:14px">${st.sign.map((x, i) => `<div class="fld"><label for="ga_s${i}">${esc(x.title.replace(/,$/, ''))}: ${esc(x.name || '—')} · Tgl</label><input id="ga_s${i}" type="date" value="${esc(d.signDates[i] || '')}"></div>`).join('')}</div>
+    ${actions(old ? 'Simpan Perubahan' : 'Simpan Form GA')}</form>`);
+  gaRows();
+  $('ga_d').onchange = () => { if (GA_ED.auto) { const n = gaNextNo($('ga_d').value); Object.assign(GA_ED.d, n); $('ga_no').value = n.no; } };
+  $('ga_no').oninput = () => { GA_ED.auto = false; };
+  $('gaAdd').onclick = () => { gaRead(); GA_ED.d.items.push({ desc: '', qty: 1, unit: 'Pcs', price: 0, site: '', note: '' }); gaRows(); const r = document.querySelectorAll('#gaRows [data-f="desc"]'); if (r.length) r[r.length - 1].focus(); };
+  $('gaPick').onclick = () => { gaRead(); gaPicker(); };
+  $('gaForm').onsubmit = (e) => { e.preventDefault(); gaRead(); gaSave(); };
+}
+function gaRows() {
+  const it = GA_ED.d.items;
+  $('gaRows').innerHTML = it.map((x, i) => `<tr data-i="${i}"><td>${i + 1}</td><td><input data-f="desc" list="gaCat" value="${esc(x.desc)}" aria-label="Deskripsi baris ${i + 1}">${x.reqId ? '<div class="small">dari Permintaan APD</div>' : ''}</td><td><input data-f="qty" type="number" min="1" step="1" value="${esc(x.qty)}" style="width:70px" aria-label="Jumlah"></td><td><input data-f="unit" value="${esc(x.unit)}" style="width:80px" aria-label="Satuan"></td><td><input data-f="price" type="number" min="0" step="500" value="${esc(x.price || 0)}" style="width:120px" aria-label="Estimasi harga"></td><td class="nw" data-tot>${rp((Number(x.qty) || 0) * (Number(x.price) || 0))}</td><td><input data-f="site" value="${esc(x.site)}" style="width:120px" aria-label="Site"></td><td><input data-f="note" value="${esc(x.note)}" aria-label="Keterangan"></td><td><button type="button" class="btn btn-g btn-sm red" data-garm="${i}" aria-label="Hapus baris">×</button></td></tr>`).join('') || '<tr><td colspan="9" class="empty">Belum ada barang. Klik <b>Ambil dari Permintaan</b> atau <b>+ Tambah Baris</b>.</td></tr>';
+  $('gaTot').textContent = rp(gaTotal(GA_ED.d));
+  $('gaRows').oninput = (e) => {
+    const tr = e.target.closest('tr[data-i]'); if (!tr) return; const x = GA_ED.d.items[Number(tr.dataset.i)], f = e.target.dataset.f;
+    x[f] = f === 'qty' || f === 'price' ? Number(e.target.value) || 0 : e.target.value;
+    if (f === 'desc') { const c = S.state.ga.settings.catalog.find((k) => k.desc.toLowerCase() === e.target.value.trim().toLowerCase()); if (c) { x.unit = c.unit || x.unit; x.price = Number(c.price) || x.price; tr.querySelector('[data-f="unit"]').value = x.unit; tr.querySelector('[data-f="price"]').value = x.price; } }
+    tr.querySelector('[data-tot]').textContent = rp((Number(x.qty) || 0) * (Number(x.price) || 0)); $('gaTot').textContent = rp(gaTotal(GA_ED.d));
+  };
+  $('gaRows').onclick = (e) => { const b = e.target.closest('[data-garm]'); if (!b) return; GA_ED.d.items.splice(Number(b.dataset.garm), 1); gaRows(); };
+}
+function gaRead() {
+  const d = GA_ED.d; d.no = $('ga_no').value.trim(); d.date = $('ga_d').value; d.due = $('ga_due').value; d.lokasi = $('ga_l').value.trim(); d.dept = $('ga_dp').value.trim(); d.notes = $('ga_n').value.trim();
+  d.signDates = [0, 1, 2].map((i) => $('ga_s' + i).value);
+}
+function gaFree() { const inDoc = new Set(GA_ED ? GA_ED.d.items.map((x) => x.reqId).filter(Boolean) : []); return S.state.requests.filter((r) => (r.status === 'pending' || r.status === 'approved') && (!r.gaId || (GA_ED && r.gaId === GA_ED.d.id)) && !inDoc.has(r.id)); }
+function gaAddReqs(ids) {
+  ids.forEach((id) => {
+    const r = S.state.requests.find((x) => x.id === id); if (!r || GA_ED.d.items.some((x) => x.reqId === id)) return;
+    const p = person(r.person) || { name: personName(r.person), position: '', site: r.site || '' };
+    const ty = S.state.types.find((t) => t.code === r.type) || {};
+    GA_ED.d.items.push({ desc: gaDesc(r.type, variant(r)), qty: Number(r.qty) || 1, unit: ty.unit || 'Pcs', price: Number(ty.price) || 0, site: p.site || r.site || '', note: `${p.name} (${r.reason ? r.reason + ' ' : ''}${p.position || ''})`.replace(/\s+\)/, ')'), type: r.type, variant: r.variant || '', reqId: r.id });
+  });
+}
+function gaPicker() {
+  const free = gaFree(), snap = GA_ED;
+  modal(`${mh('Form GA Request', 'Ambil dari Permintaan APD')}<p class="small">Pilih permintaan yang akan diajukan ke Purchasing. Setiap permintaan menjadi satu baris barang.</p><form id="gpForm"><div class="pick">${free.map((r) => { const p = person(r.person) || { name: personName(r.person), site: r.site }; const z = variantStocks(r.type)[variant(r)] || { NEW: 0, REUSE: 0 }; return `<label><input type="checkbox" name="r" value="${esc(r.id)}" ${z.NEW + z.REUSE < r.qty ? 'checked' : ''}><span><b>${esc(p.name)}</b> · ${esc(p.site || '')}<br>${r.qty} ${esc(gaDesc(r.type, variant(r)))} · ${esc(r.reason || '')} · <i>${REQ_ST[r.status][0]}</i> · stok ${z.NEW + z.REUSE}</span></label>`; }).join('') || '<div class="empty">Tidak ada permintaan yang menunggu atau semua sudah masuk Form GA.</div>'}</div><p class="small">Yang stoknya tidak cukup sudah dicentang otomatis.</p><div class="factions"><span style="flex:1"></span><button type="button" class="btn btn-g" id="gpBack">Kembali</button><button type="submit" class="btn btn-p">Tambahkan ke Form</button></div></form>`);
+  const x = $('dialog').querySelector('.cm-h [data-close]'); if (x) { x.removeAttribute('data-close'); x.id = 'gpX'; }
+  const back = (ids) => { GA_ED = snap; gaAddReqs(ids); gaEdit(null, null, snap); };
+  $('gpBack').onclick = () => back([]); if ($('gpX')) $('gpX').onclick = () => back([]);
+  $('gpForm').onsubmit = (e) => { e.preventDefault(); back([...document.querySelectorAll('#gpForm [name=r]:checked')].map((i) => i.value)); };
+}
+function gaSave() {
+  const d = GA_ED.d;
+  if (!d.items.length) { toast('Tambahkan minimal satu barang.', true); return; }
+  const n = structuredClone(S.state), g = n.ga; const i = g.docs.findIndex((x) => x.id === d.id);
+  d.items = d.items.map((x) => ({ ...x, desc: String(x.desc || '').trim(), qty: Number(x.qty) || 0, price: Number(x.price) || 0 }));
+  const m = String(d.no).match(/-(\d{1,5})$/); if (m) d.seq = Number(m[1]); d.year = Number(String(d.date).slice(0, 4));
+  if (i >= 0) g.docs[i] = d; else g.docs.push(d);
+  // tautkan permintaan APD ke form ini
+  const ids = new Set(d.items.map((x) => x.reqId).filter(Boolean));
+  n.requests.forEach((r) => { if (ids.has(r.id)) { r.gaId = d.id; r.gaNo = d.no; } else if (r.gaId === d.id) { delete r.gaId; delete r.gaNo; } });
+  // katalog harga: deskripsi terakhir yang dipakai
+  d.items.forEach((x) => { if (!x.desc) return; const c = g.settings.catalog.find((k) => k.desc.toLowerCase() === x.desc.toLowerCase()); if (c) { c.unit = x.unit; if (x.price) c.price = x.price; } else g.settings.catalog.push({ desc: x.desc, unit: x.unit, price: x.price }); });
+  g.settings.catalog = g.settings.catalog.slice(-300);
+  persist(n, `Form GA ${d.no} tersimpan. Klik Excel untuk mengunduh.`);
+}
+
+// ---------- barang datang → stok masuk ----------
+function gaReceive(id) {
+  const d = S.state.ga.docs.find((x) => x.id === id); if (!d || !isOwner()) return;
+  modal(`${mh('Barang datang', esc(d.no))}<div class="srcnote">Barang APD yang datang langsung masuk <b>Stok Masuk</b> gudang terpilih (kondisi baru). Baris non-APD (mis. kabel roll) biarkan "Bukan stok APD".</div><form id="grForm"><div class="fgrid"><div class="fld"><label for="gr_d">Tanggal datang</label><input id="gr_d" type="date" required value="${today()}"></div><div class="fld"><label for="gr_w">Masuk ke gudang</label>${whSel('gr_w', WH[0], 'wh')}</div></div>
+    <div class="tw" style="margin-top:12px"><table class="t"><thead><tr><th>Barang</th><th>Diajukan</th><th>Jenis APD</th><th>Ukuran / Warna</th><th>Qty datang</th></tr></thead><tbody>${d.items.map((x, i) => `<tr><td>${esc(x.desc)}</td><td>${x.qty} ${esc(x.unit)}</td><td><select data-gt="${i}" aria-label="Jenis APD"><option value="">Bukan stok APD</option>${TYPES.map((t) => `<option value="${esc(t)}" ${x.type === t ? 'selected' : ''}>${esc(tLabel(t))}</option>`).join('')}</select></td><td data-gvw="${i}">${gaVSel(x.type, x.variant, i)}</td><td><input type="number" min="0" step="1" data-gq="${i}" value="${x.qty}" style="width:80px" aria-label="Qty datang"></td></tr>`).join('')}</tbody></table></div>${actions('Simpan & Tambah Stok')}</form>`);
+  $('grForm').addEventListener('change', (e) => { const t = e.target.dataset.gt; if (t != null) $('dialog').querySelector(`[data-gvw="${t}"]`).innerHTML = gaVSel(e.target.value, '', t); });
+  $('grForm').onsubmit = (e) => {
+    e.preventDefault(); const n = structuredClone(S.state), doc = n.ga.docs.find((x) => x.id === id), date = $('gr_d').value, wh = $('gr_w').value; let k = 0;
+    for (const [i, x] of doc.items.entries()) {
+      const t = $('dialog').querySelector(`[data-gt="${i}"]`).value, v = ($('dialog').querySelector(`[data-gv="${i}"]`) || {}).value || '', q = Number($('dialog').querySelector(`[data-gq="${i}"]`).value) || 0;
+      x.got = q; if (!t || q < 1) continue;
+      if ((VARIANTS[t] || []).length && !v) { toast('Pilih ukuran/warna untuk ' + x.desc + '.', true); return; }
+      n.stockIn.push({ id: uid(), date, type: t, grade: 'NEW', variant: v, qty: q, location: wh, note: 'GA ' + doc.no, gaId: doc.id }); k++;
+    }
+    doc.status = 'CLOSE'; doc.receivedAt = date;
+    persist(n, k ? `${k} jenis barang masuk stok ${wh}. Form GA ditutup.` : 'Form GA ditandai barang datang.');
+  };
+}
+const gaVSel = (t, v, i) => !t || !(VARIANTS[t] || []).length ? '<span class="small">—</span>' : `<select data-gv="${i}" aria-label="Ukuran/warna"><option value="">Pilih</option>${VARIANTS[t].map((z) => `<option value="${esc(z)}" ${z === v ? 'selected' : ''}>${esc(vText(t, z))}</option>`).join('')}</select>`;
+function gaDelete(id) {
+  const d = S.state.ga.docs.find((x) => x.id === id); if (!d) return;
+  confirmBox('Hapus Form GA ' + d.no + '?', `${d.items.length} baris barang, total Rp ${rp(gaTotal(d))}. ${d.status === 'CLOSE' ? 'Stok masuk dari form ini tetap ada (hapus di Stok & Gudang bila perlu).' : 'Permintaan APD yang tertaut kembali bisa diajukan.'}`, () => {
+    const n = structuredClone(S.state); n.ga.docs = n.ga.docs.filter((x) => x.id !== id); n.requests.forEach((r) => { if (r.gaId === id) { delete r.gaId; delete r.gaNo; } });
+    return persist(n, 'Form GA dihapus.', { kind: 'ga', id, data: { no: d.no, date: d.date, qty: d.items.length, note: 'Total Rp ' + rp(gaTotal(d)) } });
+  });
+}
+
+// ---------- pengaturan ----------
+function gaSettings() {
+  const st = S.state.ga.settings, y = new Date().getFullYear();
+  modal(`${mh('Form GA Request', 'Pengaturan Form')}<form id="gsForm"><div class="fgrid c3">
+    <div class="fld"><label for="gs_p">Awalan nomor</label><input id="gs_p" required value="${esc(st.prefix)}"></div><div class="fld"><label for="gs_l">Lokasi / Site</label><input id="gs_l" value="${esc(st.lokasi)}"></div><div class="fld"><label for="gs_d">Dept</label><input id="gs_d" value="${esc(st.dept)}"></div>
+    <div class="fld"><label for="gs_s">Nomor terakhir tahun ${y}</label><input id="gs_s" type="number" min="0" step="1" value="${Number(st.lastSeq[y]) || 0}"><small class="small">Form baru melanjutkan dari nomor ini.</small></div><div class="fld" style="grid-column:span 2"><label for="gs_n">Notes bawaan</label><input id="gs_n" value="${esc(st.notes)}"></div>
+    ${st.sign.map((x, i) => `<div class="fld"><label for="gs_t${i}">Judul ${i + 1}</label><input id="gs_t${i}" value="${esc(x.title)}"><label for="gs_m${i}" style="margin-top:6px">Nama</label><input id="gs_m${i}" value="${esc(x.name)}"><label for="gs_x${i}" style="margin-top:6px">Jabatan / Dept</label><input id="gs_x${i}" value="${esc(x.dept)}"></div>`).join('')}
+    <div class="fld"><label>Logo kop</label><div class="gapic">${st.logo ? `<img src="${esc(st.logo)}" alt="Logo">` : '<span class="small">Belum ada</span>'}</div><label class="btn btn-g btn-sm" style="margin-top:6px">Pilih Logo<input type="file" id="gs_lg" accept="image/png,image/jpeg" hidden></label></div>
+    <div class="fld"><label>Tanda tangan (${esc(st.sign[0].name || 'Diajukan')})</label><div class="gapic">${gaSig() ? `<img src="${esc(gaSig())}" alt="Tanda tangan">` : '<span class="small">Belum ada</span>'}</div><div class="mtools" style="margin-top:6px"><label class="btn btn-g btn-sm">Pilih TTD<input type="file" id="gs_tt" accept="image/png,image/jpeg" hidden></label>${gaSig() ? '<button type="button" class="btn btn-g btn-sm red" id="gs_ttx">Hapus</button>' : ''}</div><small class="small">Disimpan di perangkat ini saja, tidak ikut ke server, agar tanda tangan tidak bisa diambil orang lain.</small></div>
+    </div>${actions('Simpan Pengaturan')}</form>`);
+  let logo = st.logo;
+  $('gs_lg').onchange = async (e) => { const f = e.target.files[0]; if (!f) return; try { logo = await gaImgFile(f, 600); $('dialog').querySelector('.gapic').innerHTML = `<img src="${logo}" alt="Logo">`; } catch (er) { toast(er.message, true); } };
+  $('gs_tt').onchange = async (e) => { const f = e.target.files[0]; if (!f) return; try { gaSetSig(await gaClear(await gaImgFile(f, 400))); toast('Tanda tangan tersimpan di perangkat ini.'); gaSettings(); } catch (er) { toast(er.message, true); } };
+  if ($('gs_ttx')) $('gs_ttx').onclick = () => { gaSetSig(''); gaSettings(); };
+  $('gsForm').onsubmit = (e) => {
+    e.preventDefault(); const n = structuredClone(S.state), s = n.ga.settings;
+    s.prefix = $('gs_p').value.trim().replace(/\/+$/, ''); s.lokasi = $('gs_l').value.trim(); s.dept = $('gs_d').value.trim(); s.notes = $('gs_n').value.trim(); s.lastSeq = { ...s.lastSeq, [y]: Math.max(0, Number($('gs_s').value) || 0) };
+    s.sign = [0, 1, 2].map((i) => ({ title: $('gs_t' + i).value.trim(), name: $('gs_m' + i).value.trim(), dept: $('gs_x' + i).value.trim() })); s.logo = logo;
+    persist(n, 'Pengaturan Form GA tersimpan.');
+  };
+}
+// latar putih tanda tangan dibuat transparan agar tidak menutupi nama
+async function gaClear(uri) {
+  const im = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('Gambar tidak terbaca')); i.src = uri; });
+  const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight; const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+  const d = x.getImageData(0, 0, c.width, c.height), p = d.data;
+  for (let i = 0; i < p.length; i += 4) { const m = Math.min(p[i], p[i + 1], p[i + 2]); if (m > 235) p[i + 3] = 0; else if (m > 200) p[i + 3] = Math.round(p[i + 3] * (235 - m) / 35); }
+  x.putImageData(d, 0, 0); return c.toDataURL('image/png');
+}
+async function gaImgFile(f, max) {
+  if (!/^image\/(png|jpeg)$/.test(f.type)) throw new Error('Pilih gambar PNG atau JPG.');
+  const raw = await new Promise((ok, no) => { const r = new FileReader(); r.onload = () => ok(String(r.result)); r.onerror = () => no(new Error('Gagal membaca gambar')); r.readAsDataURL(f); });
+  const im = await new Promise((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('Gambar tidak terbaca')); i.src = raw; });
+  const s = Math.min(1, max / Math.max(im.naturalWidth, im.naturalHeight)), c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * s); c.height = Math.round(im.naturalHeight * s);
+  c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); return c.toDataURL('image/png');
+}
+// baca Form GA Request .xlsx lama → pengaturan, nomor terakhir, logo, tanda tangan, katalog harga
+async function gaImport(file) {
+  const JSZip = await loadLib('jszip'); const z = await JSZip.loadAsync(await file.arrayBuffer());
+  const P = (s) => new DOMParser().parseFromString(s, 'application/xml');
+  const txt = async (p) => (z.file(p) ? z.file(p).async('string') : '');
+  const sheetPath = Object.keys(z.files).filter((k) => /^xl\/worksheets\/sheet\d+\.xml$/.test(k)).sort()[0]; if (!sheetPath) throw new Error('Sheet tidak ditemukan.');
+  const ss = [...P(await txt('xl/sharedStrings.xml')).getElementsByTagName('si')].map((si) => [...si.getElementsByTagName('t')].map((t) => t.textContent).join(''));
+  const cell = {};
+  [...P(await txt(sheetPath)).getElementsByTagName('c')].forEach((c) => { const t = c.getAttribute('t'), v = c.getElementsByTagName('v')[0]; cell[c.getAttribute('r')] = t === 's' ? ss[Number(v && v.textContent)] : t === 'inlineStr' ? [...c.getElementsByTagName('t')].map((x) => x.textContent).join('') : v ? v.textContent : ''; });
+  const val = (r) => String(cell[r] ?? '').trim();
+  const out = structuredClone(S.state.ga.settings); let found = 0;
+  for (let r = 1; r <= 6; r++) { const k = val('G' + r).toLowerCase(), v = val('H' + r); if (!v) continue;
+    if (k.startsWith('no')) { const m = v.match(/^(.*)\/([IVXL]+)\/(\d{4})-(\d+)$/); if (m) { out.prefix = m[1].trim(); out.lastSeq = { ...out.lastSeq, [m[3]]: Math.max(Number(out.lastSeq[m[3]]) || 0, Number(m[4])) }; found++; } }
+    if (k.startsWith('lokasi')) { out.lokasi = v; found++; } if (k.startsWith('dept')) { out.dept = v; found++; } }
+  const rows = [...new Set(Object.keys(cell).map((k) => Number(k.replace(/^[A-Z]+/, ''))))].sort((a, b) => a - b);
+  const hdr = rows.find((r) => /^no$/i.test(val('A' + r)) && /deskripsi/i.test(val('B' + r)));
+  const tot = rows.find((r) => r > (hdr || 0) && /^total$/i.test(val('B' + r)));
+  if (hdr && tot) for (let r = hdr + 1; r < tot; r++) { const desc = val('B' + r); if (!desc) continue; const price = Number(cell['E' + r]) || 0; const c = out.catalog.find((k) => k.desc.toLowerCase() === desc.toLowerCase()); if (c) { c.unit = val('D' + r) || c.unit; if (price) c.price = price; } else out.catalog.push({ desc, unit: val('D' + r), price }); }
+  const nr = rows.find((r) => /^notes/i.test(val('A' + r)));
+  const sr = rows.find((r) => /diajukan/i.test(val('B' + r)));
+  if (nr) { const lines = rows.filter((r) => r > nr && (!sr || r < sr) && val('A' + r)).map((r) => val('A' + r)); if (lines.length) { out.notes = lines.join('\n'); found++; } }
+  if (sr) { ['B', 'E', 'H'].forEach((col, i) => { out.sign[i] = { title: val(col + sr) || out.sign[i].title, name: val(col + (sr + 2)) || out.sign[i].name, dept: val(col + (sr + 3)) || out.sign[i].dept }; }); found++; }
+  // gambar: di atas tabel = logo; di area tanda tangan = TTD
+  let logo = '', sig = '';
+  const rel = P(await txt(sheetPath.replace('worksheets/', 'worksheets/_rels/') + '.rels'));
+  const dRel = [...rel.getElementsByTagName('Relationship')].find((x) => /drawing/.test(x.getAttribute('Type')));
+  if (dRel) {
+    const dp = 'xl/' + dRel.getAttribute('Target').replace(/^\.\.\//, '').replace(/^\/xl\//, '');
+    const dx = P(await txt(dp)), dr = P(await txt(dp.replace('drawings/', 'drawings/_rels/') + '.rels'));
+    const map = Object.fromEntries([...dr.getElementsByTagName('Relationship')].map((x) => [x.getAttribute('Id'), 'xl/' + x.getAttribute('Target').replace(/^\.\.\//, '')]));
+    for (const a of [...dx.getElementsByTagName('*')].filter((e) => /(two|one)CellAnchor$/.test(e.localName))) {
+      const from = [...a.getElementsByTagName('*')].find((e) => e.localName === 'from'); const row = from ? Number([...from.getElementsByTagName('*')].find((e) => e.localName === 'row').textContent) + 1 : 0;
+      const blip = [...a.getElementsByTagName('*')].find((e) => e.localName === 'blip'); if (!blip) continue;
+      const path = map[blip.getAttribute('r:embed') || blip.getAttributeNS('http://schemas.openxmlformats.org/officeDocument/2006/relationships', 'embed')]; if (!path || !z.file(path)) continue;
+      const ext = path.split('.').pop().toLowerCase(), mime = ext === 'png' ? 'image/png' : ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ''; if (!mime) continue;
+      const uri = `data:${mime};base64,` + await z.file(path).async('base64');
+      if (hdr && row <= hdr) logo = uri; else if (sr && row >= sr - 1) sig = uri;
+    }
+  }
+  if (logo) { out.logo = logo; found++; }
+  if (!found) throw new Error('Format Form GA Request tidak dikenali.');
+  if (sig) gaSetSig(await gaClear(sig));
+  const n = structuredClone(S.state); n.ga.settings = out;
+  const y = Object.keys(out.lastSeq).sort().pop();
+  await persist(n, `Format Form GA diambil dari ${file.name}: nomor terakhir ${y ? out.lastSeq[y] : '-'}, ${out.sign.filter((x) => x.name).length} penanda tangan${logo ? ', logo' : ''}${sig ? ', tanda tangan (disimpan di perangkat ini)' : ''}.`);
+}
+
+// ---------- unduh Excel (format sama dengan Form GA Request) ----------
+async function gaXlsx(id) {
+  const d = S.state.ga.docs.find((x) => x.id === id); if (!d) return;
+  const JSZip = await loadLib('jszip'); const st = S.state.ga.settings, sig = gaSig();
+  const X = (s) => esc(s);
+  const col = (n) => 'ABCDEFGH'[n];
+  const cells = {}; const H = {}; const merges = [];
+  const put = (ref, s, v, k) => { cells[ref] = { s, v, k }; };
+  const serial = (iso) => { const [y, m, dd] = String(iso).split('-').map(Number); return (Date.UTC(y, m - 1, dd) - Date.UTC(1899, 11, 30)) / 864e5; };
+  [['No. Urut', d.no], ['Lokasi/Site', d.lokasi], ['Dept', d.dept]].forEach(([a, b], i) => { put('G' + (i + 1), 1, a); put('H' + (i + 1), 2, b); });
+  put('G4', 1, 'Tanggal'); put('H4', 15, serial(d.date), 'n');
+  [1, 2, 3, 4].forEach((r) => { H[r] = 13; }); H[5] = 10; H[6] = 26;
+  ['No', 'Deskripsi Barang / Jasa', 'Jumlah', 'Satuan', 'Estimasi Harga (Rp)', 'Total (Rp)', 'Site', 'Keterangan'].forEach((t, i) => put(col(i) + '6', 3, t));
+  d.items.forEach((x, i) => {
+    const r = 7 + i, q = Number(x.qty) || 0, p = Number(x.price) || 0;
+    put('A' + r, 4, i + 1, 'n'); put('B' + r, 5, x.desc); put('C' + r, 4, q, 'n'); put('D' + r, 4, x.unit || ''); put('E' + r, 6, p ? p : '', p ? 'n' : ''); put('F' + r, 6, { f: `C${r}*E${r}`, v: q * p }, 'f'); put('G' + r, 4, x.site || ''); put('H' + r, 5, x.note || '');
+  });
+  const tr = 7 + d.items.length; H[tr] = 22;
+  ['A', 'C', 'D', 'E', 'G', 'H'].forEach((c) => put(c + tr, 9, '')); put('B' + tr, 7, 'TOTAL'); put('F' + tr, 8, { f: `SUM(F7:F${tr - 1})`, v: gaTotal(d) }, 'f');
+  const nr = tr + 2; put('A' + nr, 10, 'Notes:'); H[nr] = 13;
+  const notes = String(d.notes || '').split(/\n/).filter(Boolean); notes.forEach((t, i) => { put('A' + (nr + 1 + i), 11, t); H[nr + 1 + i] = 13; });
+  const sr = nr + 1 + Math.max(1, notes.length) + 2; H[sr] = 18; H[sr + 1] = 45; H[sr + 2] = 18; H[sr + 3] = 16; H[sr + 4] = 16;
+  st.sign.forEach((x, i) => { const c = ['B', 'E', 'H'][i]; put(c + sr, 12, x.title); put(c + (sr + 2), 12, x.name); put(c + (sr + 3), 13, x.dept); put(c + (sr + 4), 14, 'Tgl: ' + (dmy(d.signDates[i]) || '')); });
+  [sr, sr + 2, sr + 3, sr + 4].forEach((r) => merges.push(`E${r}:F${r}`));
+  const rowsXml = Object.keys({ ...H, ...Object.fromEntries(Object.keys(cells).map((k) => [Number(k.replace(/^[A-Z]+/, '')), 1])) }).map(Number).sort((a, b) => a - b).map((r) => {
+    const cs = Object.keys(cells).filter((k) => Number(k.replace(/^[A-Z]+/, '')) === r).sort().map((k) => { const c = cells[k];
+      if (c.k === 'n') return `<c r="${k}" s="${c.s}"><v>${c.v}</v></c>`;
+      if (c.k === 'f') return `<c r="${k}" s="${c.s}"><f>${c.v.f}</f><v>${c.v.v}</v></c>`;
+      return c.v === '' ? `<c r="${k}" s="${c.s}"/>` : `<c r="${k}" s="${c.s}" t="inlineStr"><is><t xml:space="preserve">${X(c.v)}</t></is></c>`; }).join('');
+    return `<row r="${r}"${H[r] ? ` ht="${H[r]}" customHeight="1"` : ''}>${cs}</row>`;
+  }).join('');
+  // gambar
+  const imgs = [];
+  const dim = (uri) => new Promise((ok) => { const i = new Image(); i.onload = () => ok([i.naturalWidth, i.naturalHeight]); i.onerror = () => ok([1, 1]); i.src = uri; });
+  const fit = ([w, h], bw, bh) => { const s = Math.min(bw / w, bh / h); return [Math.round(w * s), Math.round(h * s)]; };
+  if (st.logo) { const [w, h] = fit(await dim(st.logo), 125, 76); imgs.push({ uri: st.logo, col: 0, colOff: 9, row: 0, rowOff: 5, w, h }); }
+  if (sig) { const [w, h] = fit(await dim(sig), 94, 112); imgs.push({ uri: sig, col: 1, colOff: Math.max(0, Math.round((180 - w) / 2)), row: sr - 1, rowOff: 20, w, h, clear: true }); }
+  const E = 9525;
+  const drawing = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">${imgs.map((m, i) => `<xdr:oneCellAnchor><xdr:from><xdr:col>${m.col}</xdr:col><xdr:colOff>${m.colOff * E}</xdr:colOff><xdr:row>${m.row}</xdr:row><xdr:rowOff>${m.rowOff * E}</xdr:rowOff></xdr:from><xdr:ext cx="${m.w * E}" cy="${m.h * E}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="${i + 2}" name="Gambar ${i + 1}"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId${i + 1}">${m.clear ? '<a:clrChange><a:clrFrom><a:srgbClr val="FFFFFF"/></a:clrFrom><a:clrTo><a:srgbClr val="FFFFFF"><a:alpha val="0"/></a:srgbClr></a:clrTo></a:clrChange>' : ''}</a:blip><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${m.w * E}" cy="${m.h * E}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor>`).join('')}</xdr:wsDr>`;
+  const B = (l, r, t, b) => `<border><left${l ? ` style="${l}"><color auto="1"/></left>` : '/>'}<right${r ? ` style="${r}"><color auto="1"/></right>` : '/>'}<top${t ? ` style="${t}"><color auto="1"/></top>` : '/>'}<bottom${b ? ` style="${b}"><color auto="1"/></bottom>` : '/>'}<diagonal/></border>`;
+  const xf = (font, fill, border, ha, numFmt, wrap) => `<xf numFmtId="${numFmt || 0}" fontId="${font}" fillId="${fill}" borderId="${border}" xfId="0"${font ? ' applyFont="1"' : ''}${fill ? ' applyFill="1"' : ''}${border ? ' applyBorder="1"' : ''}${numFmt ? ' applyNumberFormat="1"' : ''}${ha || wrap ? ` applyAlignment="1"><alignment${ha ? ` horizontal="${ha}"` : ''} vertical="center"${wrap ? ' wrapText="1"' : ''}/></xf>` : '/>'}`;
+  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><numFmts count="1"><numFmt numFmtId="164" formatCode="dd/mm/yyyy"/></numFmts>
+<fonts count="4"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><color rgb="FFFFFFFF"/><name val="Arial"/></font><font><i/><sz val="10"/><name val="Arial"/></font></fonts>
+<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF1F4E78"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE6EEF4"/><bgColor indexed="64"/></patternFill></fill></fills>
+<borders count="4">${B()}${B('thin', 'thin', 'thin', 'thin')}${B('thin', 'thin', 'medium', 'medium')}${B('thin', 'thin', 'thin', 'double')}</borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="16">${[xf(0, 0, 0), xf(1, 0, 0, 'right'), xf(0, 0, 0, 'left'), xf(2, 2, 2, 'center', 0, true), xf(0, 0, 1, 'center'), xf(0, 0, 1, 'left'), xf(0, 0, 1, 'right', 3), xf(1, 3, 3, 'right'), xf(1, 3, 3, 'right', 3), xf(0, 3, 3), xf(1, 0, 0), xf(3, 0, 0), xf(1, 0, 0, 'center'), xf(0, 0, 0, 'center'), xf(3, 0, 0, 'center'), xf(0, 0, 0, 'left', 164)].join('')}</cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const last = Math.max(...Object.keys(H).map(Number), sr + 4);
+  const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><dimension ref="A1:H${last}"/><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="13"/>
+<cols><col min="1" max="1" width="6" customWidth="1"/><col min="2" max="2" width="25" customWidth="1"/><col min="3" max="3" width="10" customWidth="1"/><col min="4" max="4" width="9" customWidth="1"/><col min="5" max="5" width="18" customWidth="1"/><col min="6" max="6" width="14" customWidth="1"/><col min="7" max="7" width="16" customWidth="1"/><col min="8" max="8" width="35" customWidth="1"/></cols>
+<sheetData>${rowsXml}</sheetData><mergeCells count="${merges.length}">${merges.map((m) => `<mergeCell ref="${m}"/>`).join('')}</mergeCells><pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/>${imgs.length ? '<drawing r:id="rId1"/>' : ''}</worksheet>`;
+  const name = 'GA Request';
+  const zip = new JSZip(), ext = (u) => (u.startsWith('data:image/png') ? 'png' : 'jpeg');
+  zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${imgs.length ? '<Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>' : ''}</Types>`);
+  zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
+  zip.file('xl/workbook.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="${name}" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm.Print_Area" localSheetId="0">'${name}'!$A$1:$H$${last}</definedName></definedNames><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`);
+  zip.file('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+  zip.file('xl/styles.xml', styles); zip.file('xl/worksheets/sheet1.xml', sheet);
+  if (imgs.length) {
+    zip.file('xl/worksheets/_rels/sheet1.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>');
+    zip.file('xl/drawings/drawing1.xml', drawing);
+    zip.file('xl/drawings/_rels/drawing1.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${imgs.map((m, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image${i + 1}.${ext(m.uri)}"/>`).join('')}</Relationships>`);
+    imgs.forEach((m, i) => zip.file(`xl/media/image${i + 1}.${ext(m.uri)}`, m.uri.split(',')[1], { base64: true }));
+  }
+  const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', compression: 'DEFLATE' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `GA_Request_${d.no.replace(/[\\/:*?"<>| ]+/g, '_')}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  window.__gaLast = blob;
+}
+
+// ---------- pratinjau & cetak PDF ----------
+function gaHtml(d) {
+  const st = S.state.ga.settings, sig = gaSig();
+  return `<div class="gadoc"><div class="gah"><div class="galogo">${st.logo ? `<img src="${esc(st.logo)}" alt="Logo">` : ''}</div><table class="gameta"><tr><th>No. Urut</th><td>${esc(d.no)}</td></tr><tr><th>Lokasi/Site</th><td>${esc(d.lokasi)}</td></tr><tr><th>Dept</th><td>${esc(d.dept)}</td></tr><tr><th>Tanggal</th><td>${dmy(d.date)}</td></tr></table></div>
+  <table class="gatb"><thead><tr><th>No</th><th>Deskripsi Barang / Jasa</th><th>Jumlah</th><th>Satuan</th><th>Estimasi Harga (Rp)</th><th>Total (Rp)</th><th>Site</th><th>Keterangan</th></tr></thead><tbody>${d.items.map((x, i) => `<tr><td class="c">${i + 1}</td><td>${esc(x.desc)}</td><td class="c">${x.qty}</td><td class="c">${esc(x.unit)}</td><td class="r">${x.price ? rp(x.price) : ''}</td><td class="r">${rp((Number(x.qty) || 0) * (Number(x.price) || 0))}</td><td class="c">${esc(x.site)}</td><td>${esc(x.note)}</td></tr>`).join('')}<tr class="tot"><td></td><td class="r">TOTAL</td><td></td><td></td><td></td><td class="r">${rp(gaTotal(d))}</td><td></td><td></td></tr></tbody></table>
+  <div class="ganote"><b>Notes:</b>${String(d.notes || '').split(/\n/).map((t) => `<i>${esc(t)}</i>`).join('')}</div>
+  <div class="gasign">${st.sign.map((x, i) => `<div><b>${esc(x.title)}</b><span class="gs">${i === 0 && sig ? `<img src="${esc(sig)}" alt="">` : ''}</span><b>${esc(x.name)}</b><span>${esc(x.dept)}</span><i>Tgl: ${dmy(d.signDates[i])}</i></div>`).join('')}</div></div>`;
+}
+const GA_CSS = `.gadoc{font:10pt Arial,sans-serif;color:#000;background:#fff;padding:18px}.gah{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}.galogo img{max-width:130px;max-height:78px}.gameta th{text-align:right;padding:0 6px 0 0;font-weight:700}.gameta td{padding:0}.gameta{border-collapse:collapse;font-size:10pt}.gatb{width:100%;border-collapse:collapse;font-size:10pt}.gatb th{background:#1F4E78;color:#fff;border:1px solid #000;border-top:2px solid #000;border-bottom:2px solid #000;padding:6px 4px}.gatb td{border:1px solid #000;padding:2px 5px}.gatb .c{text-align:center}.gatb .r{text-align:right}.gatb .tot td{background:#E6EEF4;font-weight:700;border-bottom:3px double #000;height:22px}.ganote{margin-top:16px}.ganote b,.ganote i{display:block}.gasign{display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center;margin-top:36px}.gasign div{display:flex;flex-direction:column;align-items:center;gap:2px}.gasign .gs{height:64px;display:flex;align-items:center}.gasign .gs img{max-height:90px;max-width:100px;position:relative;top:14px}`;
+function gaPreview(id) {
+  const d = S.state.ga.docs.find((x) => x.id === id); if (!d) return;
+  modal(`${mh('Form GA Request', esc(d.no))}<div class="gaview"><style>${GA_CSS}</style>${gaHtml(d)}</div><div class="factions"><span style="flex:1"></span><button type="button" class="btn btn-g" data-close>Tutup</button><button type="button" class="btn btn-g" data-gax="${esc(d.id)}">Download Excel</button><button type="button" class="btn btn-p" id="gaPrint">Print / Simpan PDF</button></div>`);
+  $('dialog').classList.add('wide');
+  $('gaPrint').onclick = () => {
+    const f = document.createElement('iframe'); f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0'; document.body.appendChild(f);
+    f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><title>${esc(d.no)}</title><style>@page{size:A4 portrait;margin:12mm}body{margin:0}${GA_CSS}.gadoc{padding:0}</style></head><body>${gaHtml(d)}</body></html>`;
+    f.onload = () => { setTimeout(() => { f.contentWindow.focus(); f.contentWindow.print(); setTimeout(() => f.remove(), 60000); }, 150); };
+  };
+}
+
+// ---------- event ----------
+function gaClick(e) {
+  if (!isOwner()) return false; const c = (s) => e.target.closest(s);
+  const ed = c('[data-gaed]'); if (ed) { gaEdit(ed.dataset.gaed || null); return true; }
+  const x = c('[data-gax]'); if (x) { gaXlsx(x.dataset.gax).catch((er) => toast('Gagal membuat Excel: ' + er.message, true)); return true; }
+  const pv = c('[data-gapv]'); if (pv) { gaPreview(pv.dataset.gapv); return true; }
+  const rc = c('[data-garcv]'); if (rc) { gaReceive(rc.dataset.garcv); return true; }
+  const dl = c('[data-gadel]'); if (dl) { gaDelete(dl.dataset.gadel); return true; }
+  const fr = c('[data-gafrom]'); if (fr) { go('ga'); gaEdit(null, fr.dataset.gafrom.split(',').filter(Boolean)); return true; }
+  if (c('#gaSet')) { gaSettings(); return true; }
+  if (c('#gaImp')) { $('gaImpIn').click(); return true; }
+  return false;
+}
+document.addEventListener('change', (e) => {
+  if (e.target.id !== 'gaImpIn' || !isOwner()) return; const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
+  gaImport(f).catch((er) => toast('Gagal membaca Form Excel: ' + er.message, true));
+});
+
 // ================= Monitoring APD KMB — template & aturan akses sama dengan Monitoring Manpower =================
 const CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
 const OWNER = 'matthewyoga2014@gmail.com', APP = 'apd';
@@ -749,13 +1120,13 @@ function genImg(code, color) {
 function empty() { return normalize({}); }
 function normalize(v) {
   v = v || {};
-  const types = arr(v.types).length ? arr(v.types).filter((t) => t && t.code).map((t) => ({ code: String(t.code), label: String(t.label || t.code), vlabel: String(t.vlabel || 'Ukuran'), variants: arr(t.variants).map(String).filter(Boolean), color: t.color || '#64748B', desc: String(t.desc || '') })) : JSON.parse(JSON.stringify(DEF_TYPES));
+  const types = arr(v.types).length ? arr(v.types).filter((t) => t && t.code).map((t) => ({ code: String(t.code), label: String(t.label || t.code), vlabel: String(t.vlabel || 'Ukuran'), variants: arr(t.variants).map(String).filter(Boolean), color: t.color || '#64748B', desc: String(t.desc || ''), unit: String(t.unit || (t.code === 'SEPATU' ? 'Pasang' : 'Pcs')), price: Math.max(0, Number(t.price) || 0) })) : JSON.parse(JSON.stringify(DEF_TYPES)).map((t) => ({ ...t, unit: t.code === 'SEPATU' ? 'Pasang' : 'Pcs', price: 0 }));
   const codes = types.map((t) => t.code);
   const d = { types, stockIn: arr(v.stockIn), receipts: arr(v.receipts), returns: arr(v.returns), adjust: arr(v.adjust), transfers: arr(v.transfers), requests: arr(v.requests),
     limits: Object.fromEntries(codes.map((t) => [t, Math.max(0, Number(v.limits && v.limits[t]) || 0)])),
     images: Object.fromEntries(codes.filter((t) => typeof (v.images && v.images[t]) === 'string' && v.images[t].startsWith('data:image/')).map((t) => [t, v.images[t]])),
     personOverrides: v.personOverrides && typeof v.personOverrides === 'object' && !Array.isArray(v.personOverrides) ? v.personOverrides : {},
-    dashboardLayout: v.dashboardLayout, warehouses: arr(v.warehouses).map(String).filter(Boolean) };
+    dashboardLayout: v.dashboardLayout, ga: gaNorm(v.ga), warehouses: arr(v.warehouses).map(String).filter(Boolean) };
   // gudang: daftar tersimpan + semua lokasi yang pernah dipakai (data lama tetap terbaca)
   const used = [...d.stockIn.map((x) => x.location), ...d.adjust.map((x) => x.location), ...d.receipts.filter((x) => x.source === 'NEW' || x.source === 'REUSE').map((x) => x.warehouse), ...d.transfers.flatMap((x) => [x.from, x.to])].map((x) => String(x || '').trim()).filter(Boolean);
   d.warehouses = [...new Set([...(d.warehouses.length ? d.warehouses : ['Workshop']), ...used])];
@@ -814,6 +1185,7 @@ function validate(d) {
     if (!['REUSE', 'DESTROY'].includes(x.action) || !Number.isInteger(Number(x.qty)) || Number(x.qty) < 1) return 'Jumlah/kondisi pengembalian tidak valid.';
     back[r.id] = (back[r.id] || 0) + Number(x.qty); if (back[r.id] > Number(r.qty)) return 'Jumlah pengembalian melebihi APD yang diterima karyawan.';
   }
+  const gi = gaValidate(d.ga, codes); if (gi) return gi;
   const ev = moves(d).sort((a, b) => a.date.localeCompare(b.date) || a.p - b.p), bal = {};
   for (const x of ev) { const k = [x.t, x.v, x.g, x.w].join('|'); bal[k] = (bal[k] || 0) + x.n; if (bal[k] < 0) return `Stok ${x.t} (${x.v === 'BELUM DIISI' ? 'belum diisi' : x.v}, ${x.g === 'NEW' ? 'baru' : 'bekas'}) di gudang ${x.w} tidak mencukupi pada ${fmt(x.date)}.`; }
   return '';
@@ -878,15 +1250,16 @@ async function findRole() {
     S.grant = g.data || null;
   }
 }
-const OWNER_KEYS = ['stockIn', 'adjust', 'transfers', 'limits', 'images', 'types', 'warehouses'];
+const OWNER_KEYS = ['stockIn', 'adjust', 'transfers', 'limits', 'images', 'types', 'warehouses', 'ga'];
 function editorGuard(next) {
   // Editor tidak boleh mengubah gudang/stok/jenis APD, dan hanya boleh: mengajukan permintaan baru,
   // membatalkan permintaannya sendiri yang masih menunggu, atau menandai permintaan disetujui sebagai selesai.
-  for (const k of OWNER_KEYS) if (JSON.stringify(next[k]) !== JSON.stringify(S.state[k])) return 'Stok gudang, gudang, gambar, dan jenis APD hanya bisa diubah Pemilik.';
+  for (const k of OWNER_KEYS) if (JSON.stringify(next[k]) !== JSON.stringify(S.state[k])) return 'Stok gudang, gudang, gambar, jenis APD, dan Form GA hanya bisa diubah Pemilik.';
   const before = Object.fromEntries(S.state.requests.map((r) => [r.id, r]));
   for (const r of next.requests) {
     const b = before[r.id];
     if (!b) { if (r.status !== 'pending') return 'Permintaan baru harus berstatus Menunggu.'; continue; }
+    if ((b.gaId || '') !== (r.gaId || '')) return 'Form GA Request hanya diatur Pemilik.';
     if (b.status === r.status) continue;
     if (b.status === 'pending' && r.status === 'cancelled' && (b.by || '').toLowerCase() === S.user.email.toLowerCase()) continue;
     if (b.status === 'approved' && r.status === 'fulfilled') continue;
@@ -921,6 +1294,7 @@ async function loadGrants() { const { data } = await S.sb.from('kta_print_grants
 const IC = {
   dashboard: '<path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
   requests: '<path d="M9 4h6l1 2h3v14H5V6h3zM9 11h6M9 15h4" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>',
+  ga: '<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7M9 8h3" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>',
   people: '<path d="M9 11a4 4 0 100-8 4 4 0 000 8zM2 21c0-4 3-7 7-7s7 3 7 7M16 4a4 4 0 010 7M18 14c2.5 1 4 3.5 4 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
   out: '<path d="M14 4h6v6M20 4l-9 9M10 6H5a1 1 0 00-1 1v12a1 1 0 001 1h12a1 1 0 001-1v-5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
   stock: '<path d="M3 8l9-5 9 5v8l-9 5-9-5zM3 8l9 5 9-5M12 13v8" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
@@ -933,6 +1307,7 @@ const IC = {
 const PAGES = [
   { id: 'dashboard', label: 'Dashboard', grp: 'Ringkasan' },
   { id: 'requests', label: 'Permintaan APD', grp: 'Pengelolaan APD' },
+  { id: 'ga', label: 'Form GA Request', grp: 'Pengelolaan APD', owner: true },
   { id: 'people', label: 'Manpower Aktif', grp: 'Pengelolaan APD' },
   { id: 'out', label: 'Manpower Keluar', grp: 'Pengelolaan APD' },
   { id: 'stock', label: 'Stok & Gudang', grp: 'Pengelolaan APD', owner: true },
@@ -956,6 +1331,7 @@ function navCounts() {
   set('out', S.people.filter((p) => p.status === 'OUT' && held(p.id) > 0).length, true);
   set('dashboard', schedules().filter((x) => x.days <= 0).length, true);
   set('requests', isOwner() ? S.state.requests.filter((r) => r.status === 'pending').length : S.state.requests.filter((r) => r.status === 'approved').length, true);
+  if (isOwner()) set('ga', S.state.ga.docs.filter((d) => d.status !== 'CLOSE').length);
   if (isOwner()) set('setting', (S.grants || []).filter((g) => g.status === 'pending').length, true);
 }
 function header(eyebrow, ttl, desc, extra) {
@@ -979,7 +1355,7 @@ function render() {
   unlock();
   if (PAGES.some((p) => p.id === ui.page && p.owner) && !isOwner()) ui.page = 'dashboard';
   if (ui.wh !== 'ALL' && !WH.includes(ui.wh)) ui.wh = 'ALL';
-  const map = { dashboard: pageDash, requests: pageRequests, people: () => pagePeople(false), out: () => pagePeople(true), detail: pageDetail, stock: pageStock, history: pageHistory, images: pageImages, guide: pageGuide, deleted: pageDeleted, setting: pageSetting };
+  const map = { dashboard: pageDash, requests: pageRequests, ga: pageGA, people: () => pagePeople(false), out: () => pagePeople(true), detail: pageDetail, stock: pageStock, history: pageHistory, images: pageImages, guide: pageGuide, deleted: pageDeleted, setting: pageSetting };
   $('view').innerHTML = S.loaded ? (map[ui.page] || pageDash)() : '<div class="empty"><span class="spin"></span><p>Menyiapkan Monitoring APD…</p></div>';
   navCounts(); guardSync();
 }
@@ -1063,9 +1439,9 @@ function pageRequests() {
     if (r.status === 'pending' && isOwner()) acts.push(`<button type="button" class="btn btn-p btn-sm" data-rqact="approve|${esc(r.id)}">Setujui</button>`, `<button type="button" class="btn btn-g btn-sm red" data-rqact="reject|${esc(r.id)}">Tolak</button>`);
     if (r.status === 'pending' && !isOwner() && can() && (r.by || '').toLowerCase() === S.user.email.toLowerCase()) acts.push(`<button type="button" class="btn btn-g btn-sm red" data-rqact="cancel|${esc(r.id)}">Batalkan</button>`);
     if (r.status === 'approved' && can()) acts.push(`<button type="button" class="btn btn-p btn-sm" data-rqact="fulfill|${esc(r.id)}">Bagikan</button>`);
-    return `<tr><td class="nw">${fmt(r.date)}</td><td class="b"><a href="#" data-person="${esc(r.person)}">${esc(p.name)}</a><div class="small">${esc(p.position)} · ${esc(p.site)}</div></td><td>${esc(tLabel(r.type))}<div class="small">${esc(vText(r.type, variant(r)))}</div></td><td class="b">${r.qty}</td><td><span class="small">${avail >= r.qty ? '✓ ' : '⚠ '}${avail} di gudang</span></td><td>${esc(r.reason || '—')}<div class="small">oleh ${esc(r.by || '—')}</div></td><td><span class="hs ${st[1]}">${st[0]}</span>${r.decidedBy ? `<div class="small">${esc(r.decidedBy)} · ${fmt(r.decidedAt)}</div>` : ''}${r.decisionNote ? `<div class="small">${esc(r.decisionNote)}</div>` : ''}</td><td class="nw">${acts.join(' ')}</td></tr>`;
+    return `<tr><td class="nw">${fmt(r.date)}</td><td class="b"><a href="#" data-person="${esc(r.person)}">${esc(p.name)}</a><div class="small">${esc(p.position)} · ${esc(p.site)}</div></td><td>${esc(tLabel(r.type))}<div class="small">${esc(vText(r.type, variant(r)))}</div></td><td class="b">${r.qty}</td><td><span class="small">${avail >= r.qty ? '✓ ' : '⚠ '}${avail} di gudang</span></td><td>${esc(r.reason || '—')}<div class="small">oleh ${esc(r.by || '—')}</div></td><td><span class="hs ${st[1]}">${st[0]}</span>${r.gaNo ? `<div class="small">${isOwner() ? `<a href="#" data-go="ga">GA ${esc(r.gaNo)}</a>` : 'Sudah diajukan ke GA'}</div>` : ''}${r.decidedBy ? `<div class="small">${esc(r.decidedBy)} · ${fmt(r.decidedAt)}</div>` : ''}${r.decisionNote ? `<div class="small">${esc(r.decisionNote)}</div>` : ''}</td><td class="nw">${acts.join(' ')}</td></tr>`;
   }).join('') || `<tr><td colspan="8" class="empty">Belum ada permintaan di kategori ini.</td></tr>`;
-  return header('Alur permintaan', 'Permintaan APD', 'Admin jobsite (Editor) mengajukan kebutuhan APD → Pemilik menyetujui → gudang membagikan ke karyawan.', can() ? '<button type="button" class="btn btn-p" data-newreq="1">+ Ajukan Permintaan</button>' : '') +
+  return header('Alur permintaan', 'Permintaan APD', 'Admin jobsite (Editor) mengajukan kebutuhan APD → Pemilik menyetujui → gudang membagikan ke karyawan.', (isOwner() && S.state.requests.some((r) => (r.status === 'pending' || r.status === 'approved') && !r.gaId) ? `<button type="button" class="btn btn-g" data-gafrom="${esc(S.state.requests.filter((r) => (r.status === 'pending' || r.status === 'approved') && !r.gaId).map((r) => r.id).join(','))}">Buat Form GA</button>` : '') + (can() ? '<button type="button" class="btn btn-p" data-newreq="1">+ Ajukan Permintaan</button>' : '')) +
     `<div class="mstats" style="grid-template-columns:repeat(4,minmax(0,1fr))"><div><b style="color:var(--warn,#B45309)">${cnt('pending')}</b><span>Menunggu persetujuan</span></div><div><b style="color:var(--primary)">${cnt('approved')}</b><span>Disetujui, belum dibagikan</span></div><div><b style="color:var(--good)">${cnt('fulfilled')}</b><span>Selesai dibagikan</span></div><div><b style="color:var(--crit)">${cnt('rejected') + cnt('cancelled')}</b><span>Ditolak / dibatalkan</span></div></div>
     <div class="card"><div class="toolbar"><div class="seg" role="group" aria-label="Status permintaan">${tabs.map(([k, l]) => `<button type="button" data-rq="${k}" aria-pressed="${ui.rq === k}">${l}${k !== 'all' ? ` (${k === 'rejected' ? cnt('rejected') + cnt('cancelled') : cnt(k)})` : ''}</button>`).join('')}</div><span class="small">${list.length} permintaan</span></div>
     <div class="tw"><table class="t"><thead><tr><th>Tanggal</th><th>Karyawan</th><th>APD</th><th>Qty</th><th>Stok</th><th>Alasan / Pengaju</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
@@ -1187,6 +1563,7 @@ function pageGuide() {
   const g = [
     ['Data karyawan', 'Otomatis dari Monitoring Manpower KMB (MP Aktif & MP Out semua jobsite). Kalau perlu, Pemilik/Editor bisa mengubah nama, jabatan, jobsite, atau status khusus di APD lewat tombol Edit.'],
     ['Permintaan APD', 'Admin jobsite (Editor) klik Minta APD pada karyawan atau + Ajukan Permintaan. Pemilik menyetujui atau menolak di halaman Permintaan APD. Setelah disetujui, klik Bagikan untuk mencatat serah terima; stok gudang otomatis berkurang.'],
+    ['Form GA Request', 'Khusus Pemilik: menu Form GA Request → + Buat Form GA → Ambil dari Permintaan (atau isi baris manual) → Simpan. Klik Excel untuk unduh sesuai format GA Request, atau Lihat / PDF untuk cetak. Saat barang datang klik Barang Datang: stok gudang bertambah otomatis.'],
     ['Catat APD lama', 'Detail karyawan → Catat APD Lama. Isi tanggal diterima, jumlah yang masih dipegang, dan kondisinya. Tidak mengurangi stok gudang dan tidak membuat jadwal ganti.'],
     ['Stok per gudang', 'Khusus Pemilik: Stok & Gudang → + Stok Masuk (pilih gudang), Mutasi untuk memindahkan stok antar gudang, dan Edit Stok Gudang untuk stok opname. Daftar gudang diatur di Pengaturan → Gudang.'],
     ['Jenis APD', 'Pemilik bisa menambah jenis APD baru (sarung tangan, kacamata, masker, rompi, earplug, dll.) beserta ukuran/warnanya di Pengaturan → Jenis APD, lalu memasang gambarnya di menu Gambar APD.'],
@@ -1197,13 +1574,13 @@ function pageGuide() {
   return header('Panduan', 'Tata Cara Monitoring APD', 'Langkah singkat mengelola permintaan, APD karyawan, dan stok gudang.') + `<div class="card"><ol class="guide">${g.map((x) => `<li><b>${x[0]}</b><p>${x[1]}</p></li>`).join('')}</ol></div>`;
 }
 function pageDeleted() {
-  const lb = { stock: 'Stok masuk', receipt: 'Penerimaan APD', return: 'Pengembalian APD', adjust: 'Koreksi stok', transfer: 'Mutasi gudang', type: 'Jenis APD', warehouse: 'Gudang' };
-  const rows = (S.audit || []).map((x) => { const d = x.record_data || {}; return `<tr><td class="nw">${new Date(x.deleted_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'short' })} WIB</td><td>${esc(x.deleted_by)}</td><td>${lb[x.kind] || esc(x.kind)}</td><td>${esc(d.type || d.code || '—')}</td><td>${esc(x.kind === 'receipt' ? personName(d.person) : d.location || d.from || d.name || '—')}</td><td>${esc(d.qty ?? '—')}</td><td class="nw">${fmt(d.date)}</td><td>${esc(d.note || '—')}</td></tr>`; }).join('');
+  const lb = { ga: 'Form GA Request', stock: 'Stok masuk', receipt: 'Penerimaan APD', return: 'Pengembalian APD', adjust: 'Koreksi stok', transfer: 'Mutasi gudang', type: 'Jenis APD', warehouse: 'Gudang' };
+  const rows = (S.audit || []).map((x) => { const d = x.record_data || {}; return `<tr><td class="nw">${new Date(x.deleted_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'short' })} WIB</td><td>${esc(x.deleted_by)}</td><td>${lb[x.kind] || esc(x.kind)}</td><td>${esc(d.type || d.code || d.no || '—')}</td><td>${esc(x.kind === 'receipt' ? personName(d.person) : d.location || d.from || d.name || '—')}</td><td>${esc(d.qty ?? '—')}</td><td class="nw">${fmt(d.date)}</td><td>${esc(d.note || '—')}</td></tr>`; }).join('');
   return header('Audit khusus Pemilik', 'Riwayat Hapus APD', 'Siapa yang menghapus, kapan, dan data apa yang terhapus.') + `<div class="card"><div class="tw"><table class="t"><thead><tr><th>Waktu hapus</th><th>Oleh</th><th>Jenis</th><th>APD</th><th>Karyawan / Gudang</th><th>Qty</th><th>Tanggal data</th><th>Keterangan</th></tr></thead><tbody>${S.audit === null ? '<tr><td colspan="8" class="empty"><span class="spin sm"></span> Memuat…</td></tr>' : rows || '<tr><td colspan="8" class="empty">Belum ada data yang dihapus.</td></tr>'}</tbody></table></div></div>`;
 }
 
 // ---------- pengaturan ----------
-function usedType(c) { const s = S.state; return [...s.stockIn, ...s.receipts, ...s.adjust, ...s.transfers, ...s.requests].some((x) => x.type === c); }
+function usedType(c) { const s = S.state; return [...s.stockIn, ...s.receipts, ...s.adjust, ...s.transfers, ...s.requests, ...s.ga.docs.flatMap((d) => d.items)].some((x) => x.type === c); }
 function usedWh(w) { const s = S.state; return s.stockIn.some((x) => whOf(x.location) === w) || s.adjust.some((x) => whOf(x.location) === w) || s.transfers.some((x) => x.from === w || x.to === w) || s.receipts.some((x) => (x.source === 'NEW' || x.source === 'REUSE') && whOf(x.warehouse) === w) || s.returns.some((x) => x.warehouse === w); }
 function pageSetting() {
   const role = `<div class="card s6"><div class="ch"><div><div class="eyebrow">Akses</div><h2>Pemilik, Editor & Pelihat</h2></div><span class="pill ${can() ? 'live' : ''}">${$('roleTag').textContent}</span></div>
@@ -1231,7 +1608,7 @@ function pageSetting() {
 
 // ---------- form & modal ----------
 function modal(html) { $('dialog').innerHTML = html; $('modal').hidden = false; const f = $('dialog').querySelector('input:not([readonly]):not([type=hidden]),select'); if (f) setTimeout(() => f.focus(), 30); }
-function closeModal() { $('modal').hidden = true; $('dialog').innerHTML = ''; }
+function closeModal() { $('modal').hidden = true; $('dialog').innerHTML = ''; $('dialog').className = 'dialog'; }
 const mh = (eyebrow, ttl) => `<div class="cm-h"><div><div class="eyebrow">${eyebrow}</div><h2 id="mTitle">${ttl}</h2></div><button type="button" class="x" data-close aria-label="Tutup">×</button></div>`;
 const actions = (label, danger) => `<div class="factions">${danger || ''}<span style="flex:1"></span><button type="button" class="btn btn-g" data-close>Batal</button><button type="submit" class="btn btn-p">${label}</button></div>`;
 const vSel = (t, v, id) => `<div class="fld"><label for="${id}">${esc((ART[t] || {}).vlabel || 'Ukuran')}</label><select id="${id}" name="variant" ${(VARIANTS[t] || []).length ? 'required' : ''}>${(VARIANTS[t] || []).length ? '<option value="">Pilih</option>' : '<option value="">Tanpa ukuran</option>'}${(VARIANTS[t] || []).map((z) => `<option value="${esc(z)}" ${z === v ? 'selected' : ''}>${esc(vText(t, z))}</option>`).join('')}${v === 'BELUM DIISI' ? '<option value="BELUM DIISI" selected>Belum diisi (data lama)</option>' : ''}</select></div>`;
@@ -1340,7 +1717,7 @@ function minForm(t) {
 }
 function typeForm(code) {
   if (!isOwner()) return;
-  const t = S.state.types.find((x) => x.code === code) || { code: '', label: '', vlabel: 'Ukuran', variants: [], color: PALETTE[S.state.types.length % PALETTE.length], desc: '' };
+  const t = S.state.types.find((x) => x.code === code) || { code: '', label: '', vlabel: 'Ukuran', unit: 'Pcs', price: 0, variants: [], color: PALETTE[S.state.types.length % PALETTE.length], desc: '' };
   const used = code ? usedType(code) : false;
   modal(`${mh('Jenis APD', code ? 'Edit ' + esc(t.label) : 'Tambah Jenis APD')}<form id="yForm"><div class="fgrid">
     <div class="fld"><label for="yf_l">Nama APD</label><input id="yf_l" required value="${esc(t.label)}" placeholder="mis. Sarung Tangan"></div>
@@ -1348,6 +1725,8 @@ function typeForm(code) {
     <div class="fld"><label for="yf_v">Label ukuran / warna</label><input id="yf_v" value="${esc(t.vlabel)}" placeholder="mis. Ukuran, Warna"></div>
     <div class="fld"><label for="yf_col">Warna grafik</label><input id="yf_col" type="color" value="${esc(t.color)}" style="height:40px;padding:2px"></div>
     <div class="fld full"><label for="yf_vs">Daftar ukuran / warna (pisahkan dengan koma)</label><input id="yf_vs" value="${esc(t.variants.join(', '))}" placeholder="mis. S, M, L, XL — kosongkan jika tanpa ukuran"><small class="small">${used ? 'Ukuran yang sudah dipakai di transaksi tidak bisa dihapus.' : ''}</small></div>
+    <div class="fld"><label for="yf_u">Satuan (Form GA)</label><input id="yf_u" value="${esc(t.unit || 'Pcs')}" placeholder="Pcs / Pasang / Set"></div>
+    <div class="fld"><label for="yf_p">Estimasi harga satuan (Rp)</label><input id="yf_p" type="number" min="0" step="500" value="${Number(t.price) || 0}"></div>
     <div class="fld full"><label for="yf_d">Keterangan singkat</label><input id="yf_d" value="${esc(t.desc)}" placeholder="mis. Pelindung tangan saat bekerja"></div></div>${actions(code ? 'Simpan' : 'Tambah Jenis APD')}</form>`);
   if (!code) $('yf_l').oninput = () => { $('yf_c').value = $('yf_l').value.toUpperCase().replace(/[^A-Z0-9]+/g, '').slice(0, 12); };
   $('yForm').onsubmit = (e) => {
@@ -1356,7 +1735,7 @@ function typeForm(code) {
     if (!c) { toast('Isi kode singkat.', true); return; }
     if (!code && S.state.types.some((x) => x.code === c)) { toast('Kode ' + c + ' sudah dipakai.', true); return; }
     const vs = [...new Set($('yf_vs').value.split(',').map((x) => x.trim()).filter(Boolean))];
-    const nt = { code: c, label: $('yf_l').value.trim(), vlabel: $('yf_v').value.trim() || 'Ukuran', variants: vs, color: $('yf_col').value, desc: $('yf_d').value.trim() };
+    const nt = { code: c, label: $('yf_l').value.trim(), vlabel: $('yf_v').value.trim() || 'Ukuran', variants: vs, color: $('yf_col').value, desc: $('yf_d').value.trim(), unit: $('yf_u').value.trim() || 'Pcs', price: Math.max(0, Number($('yf_p').value) || 0) };
     const n = structuredClone(S.state); const i = n.types.findIndex((x) => x.code === c); if (i >= 0) n.types[i] = nt; else n.types.push(nt);
     if (n.limits[c] == null) n.limits[c] = 0;
     persist(n, code ? 'Jenis APD diperbarui.' : `Jenis APD ${nt.label} ditambahkan. Pasang gambarnya di menu Gambar APD.`);
@@ -1401,6 +1780,7 @@ function exportExcel() {
   if (isOwner()) add('STOK MASUK', [['Tanggal', 'Gudang', 'Jenis', 'Ukuran/Warna', 'Kondisi', 'Jumlah', 'Keterangan'], ...S.state.stockIn.map((x) => [x.date, whOf(x.location), x.type, vText(x.type, variant(x)), x.grade === 'NEW' ? 'Baru' : 'Bekas layak', Number(x.qty), x.note || ''])], [12, 16, 10, 14, 12, 8, 30]);
   if (isOwner() && S.state.transfers.length) add('MUTASI GUDANG', [['Tanggal', 'Jenis', 'Ukuran/Warna', 'Kondisi', 'Jumlah', 'Dari', 'Ke', 'Keterangan', 'Oleh'], ...S.state.transfers.map((x) => [x.date, x.type, vText(x.type, variant(x)), x.grade === 'REUSE' ? 'Bekas layak' : 'Baru', Number(x.qty), x.from, x.to, x.note || '', x.by || ''])], [12, 10, 14, 12, 8, 16, 16, 28, 26]);
   if (isOwner() && S.state.adjust.length) add('KOREKSI STOK', [['Tanggal', 'Gudang', 'Jenis', 'Warna/Ukuran', 'Kondisi', 'Selisih', 'Alasan', 'Oleh'], ...S.state.adjust.map((x) => [x.date, whOf(x.location), x.type, vText(x.type, variant(x)), x.grade === 'REUSE' ? 'Bekas layak' : 'Baru', Number(x.qty), x.note || '', x.by || ''])], [12, 16, 10, 14, 12, 9, 34, 26]);
+  if (isOwner() && S.state.ga.docs.length) add('FORM GA REQUEST', [['No. Urut', 'Tanggal', 'Lokasi', 'Dept', 'Deskripsi', 'Jumlah', 'Satuan', 'Estimasi Harga', 'Total', 'Site', 'Keterangan', 'Status', 'Tgl Datang', 'Qty Datang'], ...S.state.ga.docs.flatMap((d) => d.items.map((x) => [d.no, d.date, d.lokasi, d.dept, x.desc, Number(x.qty), x.unit, Number(x.price) || 0, (Number(x.qty) || 0) * (Number(x.price) || 0), x.site, x.note, d.status === 'CLOSE' ? 'Barang datang' : 'Open', d.receivedAt || '', x.got ?? '']))], [30, 12, 14, 8, 26, 8, 8, 14, 14, 16, 34, 14, 12, 10]);
   add('PENERIMAAN APD', [['Nama', 'Jobsite', 'Jenis', 'Ukuran/Warna', 'Asal', 'Gudang / Asal', 'Tanggal', 'Jumlah', 'Masih Dipegang', 'Kondisi', 'Jatah Bulan', 'Jadwal Ganti', 'Keterangan'], ...S.state.receipts.map((r) => [personName(r.person), (person(r.person) || {}).site || '', r.type, vText(r.type, variant(r)), SRC_LABEL[r.source], r.source === 'OLD' ? '' : r.source === 'EXTERNAL' ? r.warehouse || '' : whOf(r.warehouse), r.date, Number(r.qty), heldLot(r), r.condition || '', r.source === 'OLD' ? '' : Number(r.months || 6), r.source === 'OLD' ? '' : addMonths(r.date, r.months), r.note || ''])], [24, 18, 9, 12, 18, 16, 12, 8, 13, 15, 11, 13, 28]);
   add('PENGEMBALIAN', [['Tanggal', 'Nama', 'Jenis', 'Jumlah', 'Hasil', 'Ke Gudang', 'Keterangan'], ...S.state.returns.map((x) => { const r = S.state.receipts.find((a) => a.id === x.receiptId) || {}; return [x.date, personName(r.person), r.type || '', Number(x.qty), x.action === 'REUSE' ? 'Layak - stok bekas' : 'Tidak layak - dimusnahkan', x.action === 'REUSE' ? whOf(x.warehouse || r.warehouse) : '', x.note || '']; })], [12, 24, 9, 8, 24, 16, 30]);
   add('JADWAL GANTI', [['Nama', 'Jabatan', 'Jobsite', 'Jenis', 'Terakhir Terima', 'Jatah Bulan', 'Jadwal Ganti', 'Sisa Hari', 'Status'], ...schedules().map((x) => [x.p.name, x.p.position, x.p.site, x.t, x.x.date, Number(x.x.months), x.d, x.days, x.days <= 0 ? 'JATUH TEMPO' : x.days <= 30 ? 'SEGERA' : 'TERJADWAL'])], [24, 20, 18, 9, 14, 11, 13, 9, 13]);
@@ -1470,6 +1850,7 @@ function openLogin() {
 document.addEventListener('click', async (e) => {
   const t = e.target, c = (s) => t.closest(s);
   if (c('[data-close]') || t.id === 'modal') { closeModal(); return; }
+  if (gaClick(e)) return;
   const g = c('[data-go]'); if (g) { e.preventDefault(); go(g.dataset.go); return; }
   const pp = c('[data-person]'); if (pp) { e.preventDefault(); ui.person = pp.dataset.person; go('detail'); return; }
   if (c('#menuBtn')) { document.body.classList.add('nav-open'); $('scrim').hidden = false; return; }
