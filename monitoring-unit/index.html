@@ -758,6 +758,21 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .tcl-done .plate{font-size:11px;margin:2px 2px 0 0}
 .mobnote{margin-top:8px;font-size:12.5px;color:var(--ink-2,#4B4868);background:#F4F1FD;border:1px solid #E4DCFB;border-radius:10px;padding:8px 12px;max-width:640px}
 .mobnote .linkish{font-weight:700;color:var(--pri-2,#5B21B6);text-decoration:underline;background:none;border:0;padding:0;cursor:pointer;font-size:inherit}
+
+/* KPI 5 kartu & status perjalanan */
+#kpis{grid-template-columns:repeat(5,minmax(0,1fr));gap:18px}
+@media (max-width:1300px){#kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:800px){#kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}}
+.kpt5{background:linear-gradient(115deg,#2563EB,#60A5FA)}
+.kpt{padding:16px 16px;gap:12px}
+.kpt .ti{width:46px;height:46px}
+.kpt b{font-size:30px}
+.bchart .b.j{background:linear-gradient(180deg,#FDBA74,#F7871F)}
+.bchart .b{width:min(20px,26%)}
+.bchart .bg{gap:4px}
+.st.jalan{background:#FFF1E2;color:#C2410C}
+.sub.jalan{display:block;color:#C2410C;font-size:11px;font-weight:600}
+@media print{#kpis{grid-template-columns:repeat(5,minmax(0,1fr))!important}}
 /* tingkat perkecilan mengikuti lebar kertas (lebar desain 1180px) */
 @media print and (max-width:560px){ .wrap{zoom:.44} }
 @media print and (min-width:561px) and (max-width:680px){ .wrap{zoom:.54} }
@@ -843,7 +858,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
     <div id="projDash" hidden></div>
     <div id="homeTop">
       <div class="row2">
-        <div class="card cpad"><div class="ch"><h2>Rencana vs Unit Tiba per Project</h2><span class="hint">Klik batang untuk membuka project</span></div><div id="bars"></div></div>
+        <div class="card cpad"><div class="ch"><h2>Rencana, Perjalanan & Unit Tiba per Project</h2><span class="hint">Klik batang untuk membuka project</span></div><div id="bars"></div></div>
         <div class="card cpad"><div class="ch"><h2>Status Unit di Lokasi</h2></div><div id="donut"></div></div>
       </div>
       <div class="sh"><div><h2>Progres per Project</h2><p>Klik kartu untuk membuka dashboard project: rencana kirim, unit di lokasi, mobilisasi, dan dokumentasi.</p></div><span class="hint" id="projHint"></span></div>
@@ -1018,6 +1033,9 @@ async function pindahkanUnit(u,m){
 }
 const tujuanList = () => [...new Set([...projects().map(p=>p.kode),...lokasiList()])];
 const inFilter = pid => S.fProj==="all" || pid===S.fProj;
+const jalanItem = k => unitsOfItem(k).filter(u=>u.status==="Dalam perjalanan").length;
+const sisaItem = k => Math.max(0,(Number(k.rencana)||0)-Math.min(tibaItem(k),Number(k.rencana)||0)-jalanItem(k));
+const keluarMobs = pids => S.mobs.filter(m=>{ const T=projByName(m.ke); const src=m.projectId||mobProj(m); return T && T.id!==src && pids.includes(src) && m.status!=="Ditunda"; });
 function projStats(pid){
   const items=itemsOf(pid);
   const rencana=items.reduce((a,k)=>a+(Number(k.rencana)||0),0);
@@ -1026,7 +1044,8 @@ function projStats(pid){
   const mob=S.mobs.filter(m=>isAktif(m)&&mobProj(m)===pid).length;
   const revs=S.revisi.filter(r=>r.projectId===pid);
   const times=[...items.map(k=>k.updatedAt),...S.units.filter(u=>u.projectId===pid).map(u=>u.updatedAt),...revs.map(r=>r.waktu)].filter(Boolean).sort();
-  return {items,rencana,tiba,sisa:Math.max(0,rencana-tiba),unitCount,mob,revs,last:times[times.length-1]};
+  const jalan=items.reduce((a,k)=>a+jalanItem(k),0);
+  return {items,rencana,tiba,jalan,sisa:items.reduce((a,k)=>a+sisaItem(k),0),unitCount,mob,revs,last:times[times.length-1]};
 }
 function projIcon(pid){
   const t=itemsOf(pid).map(k=>k.tipe.toLowerCase()).join(" ");
@@ -1447,17 +1466,20 @@ function totals(P){
   const items=P?itemsOf(P.id):S.kirim, pids=P?[P.id]:projects().map(p=>p.id);
   const rencana=items.reduce((a,k)=>a+(Number(k.rencana)||0),0), tiba=items.reduce((a,k)=>a+Math.min(tibaItem(k),Number(k.rencana)||0),0);
   const mobAll=S.mobs.filter(m=>pids.includes(mobProj(m)));
-  return {items,rencana,tiba,sisa:Math.max(0,rencana-tiba),mob:mobAll.filter(isAktif).length,mobDone:mobAll.filter(m=>m.status==="Selesai").length,mobAll:mobAll.length,
+  const jalan=items.reduce((a,k)=>a+jalanItem(k),0), keluar=keluarMobs(pids);
+  return {items,rencana,tiba,jalan,keluar:keluar.length,keluarJalan:keluar.filter(isAktif).length,keluarDone:keluar.filter(m=>m.status==="Selesai").length,
+    sisa:items.reduce((a,k)=>a+sisaItem(k),0),mob:mobAll.filter(isAktif).length,mobDone:mobAll.filter(m=>m.status==="Selesai").length,mobAll:mobAll.length,
     revs:S.revisi.filter(r=>pids.includes(r.projectId)).length,units:S.units.filter(u=>arrived(u)&&pids.includes(u.projectId))};
 }
 function renderKpi(){
   const L=!S.ready, P=curProj(), t=totals(P), v=x=>L?"–":x, q=pct(t.tiba,t.rencana);
   const nP=projects().length;
   const cards=[
-    {c:"kpt1",go:"pengiriman",goName:"Rencana kirim",lab:"Rencana kirim",icon:"ship",val:v(t.rencana),sub:L?"Memuat…":`${t.items.length} item unit${P?"":` · ${nP} project`} · ${t.revs}× revisi`,bar:100},
-    {c:"kpt2",go:"pengiriman",goName:"Rencana kirim",lab:"Sisa kirim",icon:"hourglass",val:v(t.sisa),sub:L?"":`${pct(t.sisa,t.rencana)}% belum tiba di lokasi`,bar:pct(t.sisa,t.rencana)},
-    {c:"kpt3",go:"mobilisasi",goName:"Mobilisasi",lab:"Mobilisasi aktif",icon:"route",val:v(t.mob),sub:L?"":`${t.units.filter(u=>u.status==="Tiba").length} unit menunggu jadwal · ${t.mobDone} selesai`,bar:pct(t.mobDone,t.mobAll)},
-    {c:"kpt4",go:"unit",goName:"Unit di lokasi",lab:"Unit tiba",icon:"pin",val:L?"–":q+"%",sub:L?"":`${t.tiba}/${t.rencana} unit sudah di lokasi`,bar:q}
+    {c:"kpt1",go:"pengiriman",goName:"Rencana kirim",lab:"Rencana kirim",icon:"box",val:v(t.rencana),sub:L?"Memuat…":`${t.items.length} item unit${P?"":` · ${nP} project`} · ${t.revs}× revisi`,bar:100},
+    {c:"kpt2",go:"pengiriman",goName:"Rencana kirim",lab:"Sisa kirim",icon:"hourglass",val:v(t.sisa),sub:L?"":`${pct(t.sisa,t.rencana)}% belum berangkat`,bar:pct(t.sisa,t.rencana)},
+    {c:"kpt3",go:"pengiriman",goName:"Rencana kirim",lab:"Dalam perjalanan",icon:"ship",val:v(t.jalan),sub:L?"":`${pct(t.jalan,t.rencana)}% sedang menuju site`,bar:pct(t.jalan,t.rencana)},
+    {c:"kpt4",go:"unit",goName:"Unit di lokasi",lab:"Unit tiba",icon:"pin",val:v(t.tiba),sub:L?"":`${q}% · ${t.tiba}/${t.rencana} unit sudah di lokasi`,bar:q},
+    {c:"kpt5",go:"mobilisasi",goName:"Mobilisasi",lab:"Dikirim ke site lain",icon:"route",val:v(t.keluar),sub:L?"":(t.keluar?`${t.keluarJalan} di jalan · ${t.keluarDone} sudah sampai`:"Belum ada unit dipindah"),bar:t.keluar?pct(t.keluarDone,t.keluar):0}
   ];
   $("#kpis").innerHTML=cards.map(kpiCard).join("");
 }
@@ -1477,11 +1499,11 @@ function renderCharts(){
   const bx=$("#bars"), dn=$("#donut"); if(!bx||!dn) return;
   const ps=projects();
   if(!S.ready||!ps.length){ bx.innerHTML=`<div class="muted">${S.ready?"Belum ada project.":"Memuat data…"}</div>`; dn.innerHTML=""; return; }
-  const data=ps.map(p=>{ const st=projStats(p.id); return {p,r:st.rencana,t:st.tiba}; });
+  const data=ps.map(p=>{ const st=projStats(p.id); return {p,r:st.rencana,t:st.tiba,j:st.jalan}; });
   const max=Math.max(1,...data.map(d=>d.r)), step=max<=5?1:max<=10?2:max<=25?5:max<=50?10:20, top=Math.ceil(max/step)*step;
   const ticks=[]; for(let y=top;y>=0;y-=step) ticks.push(y);
-  bx.innerHTML=`<div class="bchart"><div class="yax">${ticks.map(y=>`<span>${y}</span>`).join("")}</div><div class="plot" style="--n:${data.length}">${ticks.map((y,i)=>`<i class="gl" style="top:${i/(ticks.length-1)*100}%"></i>`).join("")}${data.map(d=>`<button type="button" class="bg" data-proj="${d.p.id}" title="${esc(d.p.kode)}: ${d.t}/${d.r} unit tiba"><span class="b r" style="height:${d.r/top*100}%"><em>${d.r}</em></span><span class="b t" style="height:${d.t/top*100}%"><em>${d.t}</em></span></button>`).join("")}</div><div class="xax" style="--n:${data.length}">${data.map(d=>`<span>${esc(d.p.kode)}</span>`).join("")}</div></div>
-    <div class="lg"><span><i style="background:#C4B5FD"></i>Rencana kirim</span><span><i style="background:#6D28D9"></i>Unit tiba</span></div>`;
+  bx.innerHTML=`<div class="bchart"><div class="yax">${ticks.map(y=>`<span>${y}</span>`).join("")}</div><div class="plot" style="--n:${data.length}">${ticks.map((y,i)=>`<i class="gl" style="top:${i/(ticks.length-1)*100}%"></i>`).join("")}${data.map(d=>`<button type="button" class="bg" data-proj="${d.p.id}" title="${esc(d.p.kode)}: rencana ${d.r} · perjalanan ${d.j} · tiba ${d.t}"><span class="b r" style="height:${d.r/top*100}%"><em>${d.r}</em></span><span class="b j" style="height:${d.j/top*100}%"><em>${d.j}</em></span><span class="b t" style="height:${d.t/top*100}%"><em>${d.t}</em></span></button>`).join("")}</div><div class="xax" style="--n:${data.length}">${data.map(d=>`<span>${esc(d.p.kode)}</span>`).join("")}</div></div>
+    <div class="lg"><span><i style="background:#C4B5FD"></i>Rencana kirim</span><span><i style="background:#F7871F"></i>Dalam perjalanan</span><span><i style="background:#6D28D9"></i>Unit tiba</span></div>`;
   const us=S.units.filter(arrived), tot=us.length, t=totals(null);
   let acc=0; const segs=UNIT_STATUS.map(x=>{ const n=us.filter(u=>u.status===x.k).length, a0=acc; acc+=n; return {x,n,a0}; });
   const grad=tot?segs.filter(o=>o.n).map(o=>`${o.x.col} ${o.a0/tot*360}deg ${(o.a0+o.n)/tot*360}deg`).join(","):"#EDEBF5 0deg 360deg";
@@ -1502,7 +1524,8 @@ function renderProjDash(P){
     const nd=(S.dok||[]).filter(d=>d.kirimId===k.id), ndT=new Set(nd.map(d=>d.tahap)).size;
     const lamb0=nl.length||nk?`<small class="lamb">No. lambung: ${nl.length?esc(nl.join(", ")):""}${nk?`${nl.length?" · ":""}<span style="color:var(--warn)">${nk} belum diisi</span>`:""}</small>`:"";
     const lamb=lamb0+(nd.length?`<small class="lamb">Bukti: ${nd.length} file · ${ndT}/5 tahap</small>`:"");
-    const pill=sisa>0?`<span class="st todo">${sisa} sisa</span>`:sisa<0?`<span class="st over">+${-sisa}</span>`:`<span class="st done">Lengkap</span>`;
+    const jl=jalanItem(k), sk=sisaItem(k);
+    const pill=jl&&sisa>0?`<span class="st jalan">${jl} jalan</span>${sk?`<span class="st todo">${sk} sisa</span>`:""}`:sisa>0?`<span class="st todo">${sisa} sisa</span>`:sisa<0?`<span class="st over">+${-sisa}</span>`:`<span class="st done">Lengkap</span>`;
     return `<div class="irow"><span class="nm"><b title="${esc(k.tipe)}">${esc(k.tipe)}</b>${ket?`<small title="${esc(ket)}">${esc(ket)}</small>`:""}${lamb}</span><span class="ibar${q>=100?" full":""}"><i style="width:${q}%"></i></span><span class="ct">${n}/${r}</span>${pill}<span class="acts">${canWrite?`${sisa>0?`<button class="btn small" data-act="tibaItem" data-id="${k.id}" type="button">+ Tiba</button>`:""}<button class="btn small ghost" data-act="jumlah" data-id="${k.id}" type="button">Ubah jumlah</button>`:""}</span></div>`; }).join("");
   const sc=UNIT_STATUS.map(x=>({x,n:us.filter(u=>u.status===x.k).length}));
   const stack=us.length?sc.filter(o=>o.n).map(o=>`<i style="width:${o.n/us.length*100}%;background:${o.x.col}" title="${o.x.k}: ${o.n}"></i>`).join(""):"";
@@ -1539,8 +1562,8 @@ function renderRingkasan(){
     const cardsHtml=ps.map(p=>{
       const c=projColor(p.id), s=projStats(p.id), q=pct(s.tiba,s.rencana);
       const sub=[p.nama,p.lokasi].filter(Boolean).join(" · ");
-      const rows=s.items.filter(itemOk).map(k=>{ const n=tibaItem(k), r=Number(k.rencana)||0, sisa=r-n, ket=k.eta?`ETA ${fmtDate(k.eta)}${k.catatan&&!/^Jadwal/.test(k.catatan)?" · "+k.catatan:""}`:(k.catatan||"");
-        const st=sisa>0?`<span class="st todo">${sisa} sisa</span>`:sisa<0?`<span class="st over">+${-sisa}</span>`:`<span class="st done">Lengkap</span>`;
+      const rows=s.items.filter(itemOk).map(k=>{ const n=tibaItem(k), r=Number(k.rencana)||0, jl=jalanItem(k), sisa=r-n-jl, ket=k.eta?`ETA ${fmtDate(k.eta)}${k.catatan&&!/^Jadwal/.test(k.catatan)?" · "+k.catatan:""}`:(k.catatan||"");
+        const st=(jl?`<span class="st jalan">${jl} jalan</span>`:"")+(sisa>0?`<span class="st todo">${sisa} sisa</span>`:r-n<0?`<span class="st over">+${n-r}</span>`:r-n===0?`<span class="st done">Lengkap</span>`:"");
         return `<div class="row"><span class="nm"><b title="${esc(k.tipe)}">${esc(k.tipe)}</b>${ket?`<small title="${esc(ket)}">${esc(ket)}</small>`:""}</span><span class="ct">${n}/${r}</span>${st}</div>`; }).join("");
       return `<div class="card tcard ${c}" data-proj="${p.id}" tabindex="0" role="link" aria-label="Buka dashboard ${esc(p.kode)}">
         <div class="tcard-head"><span class="tile-ic">${ic(projIcon(p.id))}</span><div class="tcard-title"><h3>${esc(p.kode)}</h3><span>${esc(sub||"—")}</span></div><button class="btn open small" data-act="openProj" data-id="${p.id}" type="button">Buka →</button></div>
@@ -1548,7 +1571,7 @@ function renderRingkasan(){
           <div class="stat">${ic("box","c-purple")}<span><b>${s.rencana}</b><small>Rencana</small></span></div>
           <div class="stat">${ic("pin","c-blue")}<span><b>${s.tiba}</b><small>Tiba</small></span></div>
           <div class="stat">${ic("hourglass","c-red")}<span><b class="c-red">${s.sisa}</b><small>Sisa kirim</small></span></div>
-          <div class="stat">${ic("route","c-orange")}<span><b class="c-orange">${s.mob}</b><small>Mobilisasi</small></span></div>
+          <div class="stat">${ic("ship","c-orange")}<span><b class="c-orange">${s.jalan}</b><small>Perjalanan</small></span></div>
         </div>
         <div class="pbar"><i style="width:${q}%"></i></div>
         ${rows?`<div class="rows">${rows}</div>`:`<div class="rows"><div class="row"><span class="nm muted">${s.items.length?"Tidak ada item di filter ini":"Belum ada item unit"}</span></div></div>`}
@@ -1749,12 +1772,12 @@ function renderKirim(){
   if(!ps.length){ $("#tKirim").innerHTML=`<tr><td colspan="9">${emptyState(S.ready?"Belum ada rencana kirim":"Memuat data…",S.ready?"Tambahkan project lalu item unit yang akan dikirim.":"")}</td></tr>`; }
   else $("#tKirim").innerHTML=ps.map(p=>{
     const s=projStats(p.id), c=projColor(p.id);
-    const head=`<tr class="grp"><td colspan="9"><div class="grp-in"><div class="gt"><span class="tile-ic" style="background:var(--g-${c})">${ic(projIcon(p.id))}</span><div><b>${esc(p.kode)}</b> <span class="small">${esc([p.nama,p.lokasi].filter(Boolean).join(" · "))}</span><div class="small muted">${s.rencana} unit rencana · ${s.tiba} tiba · ${s.sisa} sisa${p.catatan?` · ${esc(p.catatan)}`:""}</div></div></div>${canWrite?`<div class="actions"><button class="btn small" data-act="addItem" data-id="${p.id}" type="button">+ Item</button><button class="btn small edit" data-act="editProj" data-id="${p.id}" type="button"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit project</button>${s.items.length?"":`<button class="btn small ghost danger" data-act="delProj" data-id="${p.id}" type="button">Hapus</button>`}</div>`:""}</div></td></tr>`;
+    const head=`<tr class="grp"><td colspan="9"><div class="grp-in"><div class="gt"><span class="tile-ic" style="background:var(--g-${c})">${ic(projIcon(p.id))}</span><div><b>${esc(p.kode)}</b> <span class="small">${esc([p.nama,p.lokasi].filter(Boolean).join(" · "))}</span><div class="small muted">${s.rencana} unit rencana · ${s.jalan} dlm perjalanan · ${s.tiba} tiba · ${s.sisa} sisa kirim${p.catatan?` · ${esc(p.catatan)}`:""}</div></div></div>${canWrite?`<div class="actions"><button class="btn small" data-act="addItem" data-id="${p.id}" type="button">+ Item</button><button class="btn small edit" data-act="editProj" data-id="${p.id}" type="button"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit project</button>${s.items.length?"":`<button class="btn small ghost danger" data-act="delProj" data-id="${p.id}" type="button">Hapus</button>`}</div>`:""}</div></td></tr>`;
     const rows=s.items.map(k=>{ const n=tibaItem(k), r=Number(k.rencana)||0, aw=Number(k.rencanaAwal)||0, sisa=r-n, revs=S.revisi.filter(x=>x.kirimId===k.id).length;
       return `<tr>
         <td><button type="button" class="itemTg" data-act="slotTg" data-id="${k.id}">${esc(k.tipe)}</button>${revs?`<span class="sub">${revs}× direvisi</span>`:""}<button type="button" class="slotTg" data-act="slotTg" data-id="${k.id}" aria-expanded="${SLOT_OPEN.has(k.id)}">${SLOT_OPEN.has(k.id)?"▾ Tutup":"▸ Lihat"} ${Math.max(r,unitsOfItem(k).length)} unit</button></td>
-        <td class="n">${aw}</td><td class="n"><b>${r}</b></td><td class="n">${deltaChip(r-aw)}</td><td class="n">${n}</td>
-        <td class="n">${sisa>=0?`<b class="${sisa?"c-red":""}">${sisa}</b>`:`<span class="c-orange">lebih ${-sisa}</span>`}</td>
+        <td class="n">${aw}</td><td class="n"><b>${r}</b></td><td class="n">${deltaChip(r-aw)}</td><td class="n">${n}${jalanItem(k)?`<span class="sub jalan">${jalanItem(k)} dlm perjalanan</span>`:""}</td>
+        <td class="n">${sisa>=0?`<b class="${sisaItem(k)?"c-red":""}">${sisaItem(k)}</b>`:`<span class="c-orange">lebih ${-sisa}</span>`}</td>
         <td>${k.eta?fmtDate(k.eta):(sisa>0?'<span class="muted">—</span>':'<span class="chip s-ok">Lengkap</span>')}</td>
         <td class="ket">${esc(k.catatan||"")}${k.moda||k.asal?`<span class="sub">${esc([k.moda?"Via "+k.moda:"",k.asal?"dari "+k.asal:""].filter(Boolean).join(" · "))}</span>`:""}</td>
         <td class="act">${canWrite?`<button class="btn small edit" data-act="editKirim" data-id="${k.id}" type="button"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit</button><button class="btn small primary" data-act="jumlah" data-id="${k.id}" type="button">Ubah jumlah</button> ${sisa>0?`<button class="btn small" data-act="tibaItem" data-id="${k.id}" type="button">+ Tiba</button>`:""}<button class="btn small ghost danger" data-act="delKirim" data-id="${k.id}" type="button">Hapus</button>`:""}</td>
