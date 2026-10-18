@@ -643,7 +643,7 @@ document.body.insertAdjacentHTML('afterbegin', `
 <div class="main">
   <header class="top">
     <button class="ibtn" id="menuBtn" type="button" aria-label="Buka menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
-    <a class="btn btn-g backbtn" href="../" title="Kembali ke halaman utama Monitoring"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Kembali</span></a>
+    <a class="btn btn-g backbtn" href="../" title="Kembali"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Kembali</span></a>
     <div class="ttl">Monitoring Manpower KTA - TRA</div>
     <span class="pill" id="roleTag">Pelihat</span>
     <button class="btn btn-p" id="upBtn" type="button" hidden><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Sinkronkan Excel</button>
@@ -4348,6 +4348,35 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
     if (CAN_EDIT) { try { ASSETS = await claude.use('assets'); } catch (e) { ASSETS = null; } }
     render();
   } catch (e) { render(); }
+})();
+</script>
+<script>// Tombol Kembali bertingkat (seperti Back di folder): halaman sebelumnya di web ini → halaman induk → halaman utama
+(function () {
+  const path = location.pathname;
+  const PARENT = /\/manpower-(?!portal)[^/]+\/?/.test(path) ? '../manpower-portal/' : '../';
+  const KEY = 'navstack:' + path;
+  const rd = () => { try { return JSON.parse(sessionStorage.getItem(KEY) || '[]'); } catch (e) { return []; } };
+  const wr = (a) => { try { sessionStorage.setItem(KEY, JSON.stringify(a.slice(-30))); } catch (e) {} };
+  const U = () => { try { return typeof ui !== 'undefined' ? ui : null; } catch (e) { return null; } };
+  let goingBack = false;
+  const orig = typeof window.go === 'function' ? window.go : null;
+  if (orig) window.go = function (id) {
+    const u = U(), cur = u && u.page;
+    if (!goingBack && cur && cur !== id) { const st = rd(), top = st[st.length - 1], en = { p: cur, x: (u && u.person) || '' }; if (!top || top.p !== en.p || top.x !== en.x) st.push(en); wr(st); }
+    const r = orig.apply(this, arguments); label(); return r;
+  };
+  function label() {
+    const st = rd(), t = st.length ? 'Kembali ke halaman sebelumnya' : PARENT === '../' ? 'Kembali ke halaman utama Monitoring' : 'Kembali ke Monitoring MPP semua project';
+    document.querySelectorAll('.backbtn').forEach((b) => { b.title = t; b.setAttribute('aria-label', t); });
+  }
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('.backbtn'); if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    const st = rd(), prev = st.pop(); wr(st);
+    if (prev && typeof window.go === 'function') { goingBack = true; try { const u = U(); if (prev.x && u) u.person = prev.x; window.go(prev.p); } finally { goingBack = false; label(); } }
+    else location.href = PARENT;
+  }, true);
+  label();
 })();
 </script>
 </body></html>

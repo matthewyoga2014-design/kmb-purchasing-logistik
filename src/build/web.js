@@ -747,3 +747,32 @@ document.addEventListener('click', async (e) => {
     });
   }
 }, true);
+
+// Tombol Kembali bertingkat (seperti Back di folder): halaman sebelumnya di web ini → halaman induk → halaman utama
+(function () {
+  const path = location.pathname;
+  const PARENT = /\/manpower-(?!portal)[^/]+\/?/.test(path) ? '../manpower-portal/' : '../';
+  const KEY = 'navstack:' + path;
+  const rd = () => { try { return JSON.parse(sessionStorage.getItem(KEY) || '[]'); } catch (e) { return []; } };
+  const wr = (a) => { try { sessionStorage.setItem(KEY, JSON.stringify(a.slice(-30))); } catch (e) {} };
+  const U = () => { try { return typeof ui !== 'undefined' ? ui : null; } catch (e) { return null; } };
+  let goingBack = false;
+  const orig = typeof window.go === 'function' ? window.go : null;
+  if (orig) window.go = function (id) {
+    const u = U(), cur = u && u.page;
+    if (!goingBack && cur && cur !== id) { const st = rd(), top = st[st.length - 1], en = { p: cur, x: (u && u.person) || '' }; if (!top || top.p !== en.p || top.x !== en.x) st.push(en); wr(st); }
+    const r = orig.apply(this, arguments); label(); return r;
+  };
+  function label() {
+    const st = rd(), t = st.length ? 'Kembali ke halaman sebelumnya' : PARENT === '../' ? 'Kembali ke halaman utama Monitoring' : 'Kembali ke Monitoring MPP semua project';
+    document.querySelectorAll('.backbtn').forEach((b) => { b.title = t; b.setAttribute('aria-label', t); });
+  }
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('.backbtn'); if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    const st = rd(), prev = st.pop(); wr(st);
+    if (prev && typeof window.go === 'function') { goingBack = true; try { const u = U(); if (prev.x && u) u.person = prev.x; window.go(prev.p); } finally { goingBack = false; label(); } }
+    else location.href = PARENT;
+  }, true);
+  label();
+})();
