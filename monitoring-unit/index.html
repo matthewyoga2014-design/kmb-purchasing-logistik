@@ -756,6 +756,8 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .tcl-empty{border:1px dashed var(--line-2,#DCD9EC);border-radius:12px;padding:12px;font-size:13px;color:var(--muted);background:#FCFBFF}
 .tcl-done{margin-top:6px;font-size:12px;color:var(--muted)}
 .tcl-done .plate{font-size:11px;margin:2px 2px 0 0}
+.mobnote{margin-top:8px;font-size:12.5px;color:var(--ink-2,#4B4868);background:#F4F1FD;border:1px solid #E4DCFB;border-radius:10px;padding:8px 12px;max-width:640px}
+.mobnote .linkish{font-weight:700;color:var(--pri-2,#5B21B6);text-decoration:underline;background:none;border:0;padding:0;cursor:pointer;font-size:inherit}
 /* tingkat perkecilan mengikuti lebar kertas (lebar desain 1180px) */
 @media print and (max-width:560px){ .wrap{zoom:.44} }
 @media print and (min-width:561px) and (max-width:680px){ .wrap{zoom:.54} }
@@ -894,8 +896,9 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
   <!-- MOBILISASI -->
   <section class="panel" id="p-mobilisasi" role="tabpanel" hidden>
     <div class="sec-head">
-      <div><h2>Rencana mobilisasi</h2><p>Perjalanan unit dari titik kedatangan ke area kerja. Ubah status ke <b>Berjalan</b> atau <b>Selesai</b> dan posisi unit ikut diperbarui.</p></div>
-      <div class="actions"><button class="btn primary" id="addMob" type="button">+ Buat rencana</button></div>
+      <div><h2>Mobilisasi / kirim lanjutan</h2><p>Perpindahan unit <b>setelah tiba di site</b>: dari titik kedatangan ke area kerja, ke workshop, atau ke site/project lain. Ubah status ke <b>Berjalan</b> atau <b>Selesai</b> dan posisi unit ikut diperbarui.</p>
+        <div class="mobnote">Pengiriman awal ke site (persiapan kirim → dalam perjalanan → tiba) dicatat di tab <button type="button" class="linkish" data-goto="pengiriman">Rencana kirim</button>, di tabel unit tiap item.</div></div>
+      <div class="actions"><button class="btn primary" id="addMob" type="button">+ Kirim lanjutan</button></div>
     </div>
     <div class="toolbar"><div class="filters" id="fMob"></div></div>
     <div class="tbl-wrap"><table>
@@ -1792,7 +1795,7 @@ function renderMob(){
   $("#fMob").innerHTML=fs.map(f=>`<button type="button" data-fm="${f}" aria-pressed="${S.fMob===f}">${f}</button>`).join("");
   const base=S.mobs.filter(m=>inFilter(mobProj(m)));
   const rows=base.filter(m=>S.fMob==="Semua"||(S.fMob==="Aktif"?(isAktif(m)||m.status==="Ditunda"):m.status===S.fMob)).sort((a,b)=>(a.tanggal+(a.jam||"")).localeCompare(b.tanggal+(b.jam||"")));
-  if(!rows.length){ $("#tMob").innerHTML=`<tr><td colspan="8">${base.length?emptyState("Tidak ada di filter ini","Pilih filter lain untuk melihat rencana."):emptyState(S.ready?"Belum ada rencana mobilisasi":"Memuat data…",S.ready?"Buat rencana perjalanan untuk unit yang sudah tiba di titik kedatangan.":"")}</td></tr>`; return; }
+  if(!rows.length){ $("#tMob").innerHTML=`<tr><td colspan="8">${base.length?emptyState("Tidak ada di filter ini","Pilih filter lain untuk melihat rencana."):emptyState(S.ready?"Belum ada mobilisasi":"Memuat data…",S.ready?(S.units.some(u=>arrived(u)&&inFilter(u.projectId))?"Belum ada unit yang dipindah setelah tiba. Pakai + Kirim lanjutan atau tombol Kirim lagi di baris unit.":"Mobilisasi dipakai setelah unit tiba di site. Selama unit masih dikirim ke site, pantau di tab Rencana kirim."):"")}</td></tr>`; return; }
   $("#tMob").innerHTML=rows.map(m=>{ const e=estimasi(m), u=unitOfMob(m);
     return `<tr>
     <td><b>${fmtDate(m.tanggal)}</b><span class="sub">${esc(m.jam||"—")}</span></td>
