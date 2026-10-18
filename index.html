@@ -186,6 +186,19 @@ body.locked #prBtn, body.locked #dlBtn { display: none !important; }
   body.nop #nopr { display: block !important; margin: 60mm auto 0; text-align: center; font: 600 16px/1.6 "Plus Jakarta Sans", sans-serif; color: #1E1B3A; }
 }
 #toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 60; background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 12px; font-size: 13.5px; font-weight: 600; max-width: calc(100vw - 32px); }
+a.hb { text-decoration: none; }
+.acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-top: 1px dashed var(--line); padding-top: 12px; }
+.acts .chip { margin-right: auto; }
+.ab { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: #fff; color: var(--ink-2); border-radius: 10px; height: 34px; padding: 0 12px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; text-decoration: none; }
+.ab:hover { background: var(--p-soft); color: var(--p-ink); }
+.chip.vw { background: #FEF3C7; color: #92400E; }
+.dlg .fl { display: block; font-size: 12.5px; font-weight: 700; color: var(--ink-2); margin: 8px 0 6px; }
+.seg2 { display: inline-flex; flex-wrap: wrap; gap: 4px; background: #F3F2FA; border-radius: 12px; padding: 4px; margin-bottom: 6px; }
+.seg2 button { border: 0; background: none; padding: 8px 12px; border-radius: 9px; font: inherit; font-size: 13px; font-weight: 700; color: var(--ink-2); cursor: pointer; }
+.seg2 button[aria-pressed="true"] { background: #fff; color: var(--p-ink); box-shadow: 0 2px 8px rgba(30,27,58,.08); }
+.shl { display: flex; gap: 8px; margin-top: 12px; } .shl input { margin: 0 !important; }
+.dlg .row.l { justify-content: flex-start; margin-top: 8px; flex-wrap: wrap; } .dlg .row.l .btn { text-decoration: none; font-size: 13px; }
+.dlg .row { margin-top: 12px; }
 /* banner judul: gambar desain Pemilik */
 .scene { display: none; }
 .vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -243,12 +256,18 @@ body.setmode .hero { display: none; }
 .gd { margin: 0; padding-left: 20px; display: grid; gap: 12px; } .gd b { display: block; } .gd span { font-size: 13px; color: var(--ink-2); }
 #page { position: relative; z-index: 1; }
 #toast.err { background: #B91C1C; }
+
+.hb.sa { background: var(--p); color: #fff; border-color: var(--p); } .hb.sa:hover { background: var(--p-ink); color: #fff; }
+.ckl { display: grid; gap: 6px; border: 1px solid var(--line); border-radius: 12px; padding: 8px; max-height: 260px; overflow: auto; }
+.ckl label { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink); margin: 0 !important; cursor: pointer; }
+.ckl label:hover { background: var(--p-soft); } .ckl label.all { border-bottom: 1px dashed var(--line); border-radius: 8px 8px 0 0; }
+.ckl small { margin-left: auto; color: var(--muted); font-weight: 600; } .ckl input { width: 17px !important; height: 17px; accent-color: var(--p); padding: 0 !important; }
 </style></head><body>
 
 <div class="side-l" aria-hidden="true"></div><div class="side-r" aria-hidden="true"></div><div class="scene" aria-hidden="true"></div><div class="bscene" aria-hidden="true"></div><div class="helmet" aria-hidden="true"></div>
 <header class="top">
   <span class="lg">M</span><div class="bn"><b>Monitoring</b></div>
-  <div class="hbtns"><button type="button" class="hb" id="prBtn" title="Print halaman" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Print</span></button><button type="button" class="hb" id="setBtn" title="Pengaturan: akses, bagikan link & izin" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Pengaturan</span><i class="dot" hidden></i></button></div>
+  <div class="hbtns"><button type="button" class="hb sa" id="saBtn" title="Bagikan link ke semua web sekaligus" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 11 21 3l-8 18-2-8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Bagikan</span></button><button type="button" class="hb" id="prBtn" title="Print halaman" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Print</span></button><button type="button" class="hb" id="setBtn" title="Pengaturan: akses, bagikan link & izin" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Pengaturan</span><i class="dot" hidden></i></button></div>
   <div class="who" id="who"><button type="button" id="whoBtn" aria-haspopup="menu" aria-expanded="false"><span class="av"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c1.2-3.6 4.2-5.5 8-5.5s6.8 1.9 8 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span class="wt"><small id="whoL">Belum masuk</small><b id="whoE">Masuk</b></span><svg class="wt" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="menu" id="menu" role="menu" hidden></div></div>
 </header>
@@ -340,18 +359,20 @@ const chip = (r) => `<span class="chip ${r === 'owner' ? 'own' : r === 'viewer' 
 })();
 const inviteToken = () => { try { return localStorage.getItem('kta-invite') || ''; } catch (e) { return ''; } };
 const dropInvite = () => { try { localStorage.removeItem('kta-invite'); } catch (e) {} S.invite = null; };
+const tokens = () => inviteToken().split('.').map((x) => x.trim()).filter(Boolean).slice(0, 12);
 async function peekInvite() {
-  const t = inviteToken(); if (!t) { S.invite = null; return; }
-  const { data } = await S.sb.rpc('kta_invite_peek', { p_token: t });
-  S.invite = (data && data[0]) ? { ...data[0], token: t } : { status: 'invalid', token: t };
+  const ts = tokens(); if (!ts.length) { S.invite = null; return; }
+  S.invite = await Promise.all(ts.map(async (t) => { const { data } = await S.sb.rpc('kta_invite_peek', { p_token: t }); return (data && data[0]) ? { ...data[0], token: t } : { status: 'invalid', token: t }; }));
 }
 async function redeemInvite() {
-  const t = inviteToken(); if (!t || !S.user) return;
-  const { data, error } = await S.sb.rpc('kta_invite_redeem', { p_token: t });
-  const r = (data && data[0]) || {};
-  if (error) { S.inviteRes = { status: 'error', msg: error.message }; return; }
-  S.inviteRes = { ...r, sub: subOf(r.app_id) };
-  dropInvite();
+  const ts = tokens(); if (!ts.length || !S.user) return;
+  const out = [];
+  for (const t of ts) {
+    const { data, error } = await S.sb.rpc('kta_invite_redeem', { p_token: t });
+    const r = (data && data[0]) || {};
+    out.push(error ? { status: 'error', msg: error.message } : { ...r, sub: subOf(r.app_id) });
+  }
+  S.inviteRes = out; dropInvite();
 }
 
 // ---------- data ----------
@@ -425,7 +446,7 @@ function apdOf() {
 function render() {
   whoUI();
   document.body.classList.toggle('setmode', ui.page !== 'home' && !!S.user && S.loaded);
-  $('prBtn').hidden = !S.user; $('setBtn').hidden = !S.user;
+  $('prBtn').hidden = !S.user; $('setBtn').hidden = !S.user; $('saBtn').hidden = !S.user || !staffApps().length;
   const pc = Object.values(S.pend).reduce((a, b) => a + b, 0); $('setBtn').querySelector('.dot').hidden = !pc;
   if (!S.loaded) { $('tot').innerHTML = ''; $('grid').innerHTML = '<div class="lock"><span class="lg">M</span><p>Menyiapkan…</p></div>'; $('page').hidden = true; return; }
   if (!S.user) { $('tot').innerHTML = ''; $('note').innerHTML = ''; $('page').hidden = true; $('grid').innerHTML = loginHtml(); return; }
@@ -478,10 +499,11 @@ function whoUI() {
 
 // ---------- masuk & undangan ----------
 function inviteBox() {
-  const v = S.invite; if (!v) return '';
-  const sub = subOf(v.app_id);
-  if (v.status !== 'ok') return `<div class="nb warn"><b>Link undangan tidak berlaku</b> (${v.status === 'revoked' ? 'sudah dicabut' : v.status === 'expired' ? 'kedaluwarsa' : 'tidak dikenal'}). Minta link baru kepada Pemilik atau Editor yang membagikannya.</div>`;
-  return `<div class="invite"><span class="chip ${v.role === 'viewer' ? 'vw' : ''}">Undangan ${ROLE_L[v.role]}</span><h3>${esc(sub ? sub.portal + ' · ' + sub.name : v.app_id)}</h3><p>Undangan ini untuk email <b>${esc(v.email_hint)}</b>. Masuk dengan email tersebut untuk menerima akses.</p></div>`;
+  const L = S.invite; if (!L || !L.length) return '';
+  const ok = L.filter((v) => v.status === 'ok'), bad = L.length - ok.length;
+  if (!ok.length) return `<div class="nb warn"><b>Link undangan tidak berlaku</b> (sudah dicabut, kedaluwarsa, atau tidak dikenal). Minta link baru kepada Pemilik atau Editor yang membagikannya.</div>`;
+  const v = ok[0];
+  return `<div class="invite"><span class="chip ${v.role === 'viewer' ? 'vw' : ''}">Undangan ${ROLE_L[v.role]}</span><h3>${ok.length > 1 ? `${ok.length} web monitoring` : esc((subOf(v.app_id) || {}).portal + ' · ' + (subOf(v.app_id) || {}).name)}</h3>${ok.length > 1 ? `<p>${ok.map((x) => { const sb = subOf(x.app_id); return esc(sb ? sb.name : x.app_id) + ` (${ROLE_L[x.role]})`; }).join(' · ')}</p>` : ''}<p>Undangan ini untuk email <b>${esc(v.email_hint)}</b>. Masuk dengan email tersebut untuk menerima akses.${bad ? ` ${bad} link lain sudah tidak berlaku.` : ''}</p></div>`;
 }
 function loginHtml() {
   return `<div class="lock lgc"><span class="lg">M</span><h2>Masuk</h2><p>Gunakan email yang diundang atau didaftarkan Pemilik.</p>${inviteBox()}
@@ -496,11 +518,43 @@ async function doLogin(e) {
   toast(pw ? 'Berhasil masuk.' : `Link masuk dikirim ke ${em}. Buka email lalu klik linknya.`);
 }
 function resultBox() {
-  const r = S.inviteRes; if (!r) return '';
-  const name = r.sub ? `${r.sub.portal} · ${r.sub.name}` : 'web ini';
-  if (r.status === 'ok') return `<div class="nb ok"><b>Akses diterima.</b> Anda sekarang ${ROLE_L[r.role] || r.role} di ${esc(name)}. <a href="${esc(r.sub ? r.sub.url : '#')}" class="btn btn-p btn-s">Buka sekarang →</a> <button type="button" class="btn btn-g btn-s" data-dismiss>Tutup</button></div>`;
-  if (r.status === 'requested') return `<div class="nb warn"><b>Email Anda berbeda dengan email undangan.</b> Permintaan akses Pelihat untuk ${esc(name)} sudah dikirim ke Pemilik/Editor. Anda bisa membuka setelah disetujui. <button type="button" class="btn btn-g btn-s" data-dismiss>Tutup</button></div>`;
-  return `<div class="nb warn"><b>Link undangan tidak bisa dipakai</b> (${r.status === 'revoked' ? 'sudah dicabut' : r.status === 'expired' ? 'kedaluwarsa' : r.msg ? esc(r.msg) : 'tidak dikenal'}). Minta link baru. <button type="button" class="btn btn-g btn-s" data-dismiss>Tutup</button></div>`;
+  const L = S.inviteRes; if (!L || !L.length) return '';
+  const nm = (r) => r.sub ? `${r.sub.portal} · ${r.sub.name}` : 'web';
+  const ok = L.filter((r) => r.status === 'ok'), rq = L.filter((r) => r.status === 'requested'), bad = L.filter((r) => r.status !== 'ok' && r.status !== 'requested');
+  let h = '';
+  if (ok.length) h += `<div class="nb ok"><b>Akses diterima.</b> ${ok.map((r) => `${esc(nm(r))} (${ROLE_L[r.role] || r.role})`).join(', ')}.${ok.length === 1 && ok[0].sub ? ` <a href="${esc(ok[0].sub.url)}" class="btn btn-p btn-s">Buka sekarang →</a>` : ' Pilih web di bawah untuk membuka.'} <button type="button" class="btn btn-g btn-s" data-dismiss>Tutup</button></div>`;
+  if (rq.length) h += `<div class="nb warn"><b>Email Anda berbeda dengan email undangan.</b> Permintaan akses Pelihat untuk ${rq.map((r) => esc(nm(r))).join(', ')} sudah dikirim ke Pemilik/Editor. Anda bisa membuka setelah disetujui. <button type="button" class="btn btn-g btn-s" data-dismiss>Tutup</button></div>`;
+  if (bad.length) h += `<div class="nb warn"><b>${bad.length} link undangan tidak bisa dipakai</b> (dicabut, kedaluwarsa, atau tidak dikenal). Minta link baru. <button type="button" class="btn btn-g btn-s" data-dismiss>Tutup</button></div>`;
+  return h;
+}
+
+// ---------- bagikan link menyeluruh (beberapa web sekaligus) ----------
+function shareAll() {
+  const list = staffApps(); if (!list.length) return;
+  const own = list.some((x) => roleOf(x.app) === 'owner');
+  modal(`${mh('Bagikan link menyeluruh', 'Satu link untuk beberapa web')}<div class="nb">Centang web yang boleh dibuka. Penerima cukup membuka <b>satu link</b> dan masuk dengan emailnya. Link hanya berlaku untuk email yang Anda isi.${own ? '' : ' Sebagai Editor, Anda hanya bisa membagikan link <b>Pelihat</b>.'}</div><form id="saForm" class="lf" novalidate>
+    <label for="sa_e">Email penerima</label><input id="sa_e" type="email" required placeholder="nama@email.com" autocomplete="off">
+    <label>Bagikan sebagai</label><div class="seg2" role="group" aria-label="Peran">${own ? '<button type="button" data-sar="editor" aria-pressed="false">Editor (bisa mengubah)</button>' : ''}<button type="button" data-sar="viewer" aria-pressed="true">Pelihat (hanya melihat)</button></div>
+    <label>Web yang dibagikan</label><div class="ckl"><label class="all"><input type="checkbox" id="saAll" checked> <b>Semua web</b></label>${list.map((x) => `<label><input type="checkbox" data-saapp="${x.app}" checked> ${esc(x.portal + ' · ' + x.name)} <small>${ROLE_L[roleOf(x.app)]}</small></label>`).join('')}</div>
+    <div id="saOut"></div>${acts('Buat Link')}</form>`);
+  let role = 'viewer';
+  $('saForm').addEventListener('click', (e) => { const b = e.target.closest('[data-sar]'); if (!b) return; role = b.dataset.sar; $('saForm').querySelectorAll('[data-sar]').forEach((x) => x.setAttribute('aria-pressed', x === b)); });
+  $('saForm').addEventListener('change', (e) => { if (e.target.id === 'saAll') $('saForm').querySelectorAll('[data-saapp]').forEach((c) => { c.checked = e.target.checked; }); else if (e.target.dataset.saapp) $('saAll').checked = [...$('saForm').querySelectorAll('[data-saapp]')].every((c) => c.checked); });
+  $('saForm').onsubmit = async (e) => {
+    e.preventDefault(); const em = $('sa_e').value.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { toast('Format email belum benar.', true); return; }
+    const apps = [...$('saForm').querySelectorAll('[data-saapp]:checked')].map((c) => c.dataset.saapp).filter((a) => role === 'viewer' || roleOf(a) === 'owner');
+    if (!apps.length) { toast('Centang minimal satu web.', true); return; }
+    const btn = $('saForm').querySelector('[type=submit]'); btn.disabled = true; btn.textContent = 'Membuat link…';
+    const toks = [], fail = [];
+    for (const a of apps) { const { data, error } = await S.sb.rpc('kta_invite_create', { p_app: a, p_email: em, p_role: role }); if (error || !data) fail.push(subOf(a).name); else toks.push(data); }
+    btn.disabled = false; btn.textContent = 'Buat Link Lain';
+    if (!toks.length) { toast('Gagal membuat link: ' + fail.join(', '), true); return; }
+    const link = BASE + '?i=' + toks.join('.'), names = apps.filter((a) => !fail.includes(subOf(a).name)).map((a) => subOf(a).name).join(', ');
+    const body = `Halo,\n\nAnda diundang sebagai ${ROLE_L[role]} di Monitoring (${names}).\nBuka link berikut lalu masuk dengan email ${em}:\n${link}\n\nLink hanya berlaku untuk email ini dan aktif 30 hari.`;
+    $('saOut').innerHTML = `<div class="shl"><input type="text" id="shUrl" readonly value="${esc(link)}" aria-label="Link undangan"><button type="button" class="btn btn-p" id="shCopy">Salin Link</button></div><div class="row l"><a class="btn btn-g btn-s" href="mailto:${esc(em)}?subject=${encodeURIComponent('Undangan ' + ROLE_L[role] + ' Monitoring')}&body=${encodeURIComponent(body)}">Kirim lewat email</a><a class="btn btn-g btn-s" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(body)}">Kirim lewat WhatsApp</a></div><p class="small">Satu link untuk <b>${esc(em)}</b> sebagai <b>${ROLE_L[role]}</b>: ${esc(names)}. Aktif 30 hari.${fail.length ? ` Gagal: ${esc(fail.join(', '))}.` : ''}</p>`;
+    $('sa_e').value = ''; Object.keys(S.acc).forEach((a) => loadAccess(a));
+  };
 }
 
 // ---------- bagikan link ----------
@@ -534,7 +588,7 @@ function pageSet() {
   const app = ui.app, r = roleOf(app), A = S.acc[app];
   if (!A) loadAccess(app);
   const seg = `<div class="seg2 big" role="group" aria-label="Pilih web">${list.map((x) => `<button type="button" data-akses="${x.app}" aria-pressed="${x.app === app}">${esc((x.app === 'apd' ? 'APD' : 'MPP') + ' · ' + x.name)}${S.pend[x.app] ? ` <span class="ct">${S.pend[x.app]}</span>` : ''}</button>`).join('')}</div>`;
-  const top = head('Akses & Bagikan', 'Pemilik membagikan link Editor atau Pelihat. Editor hanya bisa membagikan link Pelihat. Semua link wajib login dengan email yang diundang.') + seg;
+  const top = head('Akses & Bagikan', 'Pemilik membagikan link Editor atau Pelihat. Editor hanya bisa membagikan link Pelihat. Semua link wajib login dengan email yang diundang.') + `<div class="nb"><b>Ingin membagikan semua web sekaligus?</b> Satu link untuk satu email, langsung bisa membuka semua web yang dicentang. <button type="button" class="btn btn-p btn-s" data-shareall>Bagikan link menyeluruh</button></div>` + seg;
   if (!A || A.members === null) return top + '<div class="lock"><p>Memuat…</p></div>';
   const pend = A.reqs.filter((q) => q.status === 'pending');
   const reqC = `<div class="scard"><div class="sch"><div><div class="eb2">Permintaan</div><h2>Permintaan Akses</h2><p class="small">Orang yang membuka link bukan untuk emailnya, atau meminta akses dari halaman terkunci. Disetujui = Pelihat.</p></div><span class="rolepill">${pend.length} menunggu</span></div><div class="al">${pend.map((q) => `<div><span class="em">${esc(q.email)}</span><small class="small">${when(q.requested_at)}${q.token ? ' · dari link undangan' : ''}</small><button type="button" class="btn btn-p btn-s" data-dec="1|${q.id}">Setujui</button><button type="button" class="rm" data-dec="0|${q.id}">Tolak</button></div>`).join('') || '<div class="small">Tidak ada permintaan.</div>'}</div></div>`;
@@ -580,6 +634,7 @@ document.addEventListener('click', async (e) => {
   if (!c('#who')) $('menu').hidden = true;
   const pg = c('[data-page]'); if (pg) { goPage(pg.dataset.page); return; }
   if (c('#setBtn')) { goPage('set'); return; }
+  if (c('#saBtn') || c('[data-shareall]')) { shareAll(); return; }
   if (c('#prBtn')) { window.print(); return; }
   if (c('#outBtn')) { await S.sb.auth.signOut(); return; }
   if (c('#inBtn')) { goPage('home'); setTimeout(() => $('lg_e') && $('lg_e').focus(), 50); return; }
@@ -613,7 +668,7 @@ async function boot() {
   await redeemInvite();
   await loadApps();
   S.loaded = true; render();
-  if (S.inviteRes && S.inviteRes.status === 'ok' && S.inviteRes.sub) setTimeout(() => { if (S.inviteRes) location.href = S.inviteRes.sub.url; }, 2500);
+  const IR = S.inviteRes; if (IR && IR.length === 1 && IR[0].status === 'ok' && IR[0].sub) setTimeout(() => { if (S.inviteRes) location.href = IR[0].sub.url; }, 2500);
 }
 async function init() {
   render();
