@@ -24,7 +24,7 @@ table.mt tr:hover td { background: var(--card-2); }
 .pcount:hover { border-color: var(--primary-2); }
 .plist { display: grid; margin-top: 8px; min-width: 210px; }
 .plist div { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; padding: 3px 0; border-bottom: 1px dashed var(--line); }
-.plist b { font-weight: 700; } .plist span { color: var(--muted); white-space: nowrap; }
+.plist b { font-weight: 700; } .plist span { color: var(--muted); white-space: nowrap; } .plist .off b { font-weight: 400; color: var(--muted); } .plist .on b { font-weight: 800; color: var(--ink); }
 .ptkc { min-width: 140px; }
 td .pg { min-width: 130px; }
 .pgl { font-size: 11px; color: var(--ink-2); margin-top: 4px; white-space: nowrap; }

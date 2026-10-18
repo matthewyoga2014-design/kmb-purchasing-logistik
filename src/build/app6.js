@@ -107,7 +107,7 @@ function pageMPP(D) {
         <td>${p.no}</td>
         <td class="${isVacant(p) ? 'vacn' : 'b'}">${esc(p.nama)}</td>
         <td>${esc(p.jabatan)}<div class="small">${esc(p.group || p.section || '')}</div></td>
-        <td>${cs.length ? `<button type="button" class="pcount" data-cands="${i}">${cs.length} Pelamar</button>${fl.length ? `<div class="plist">${fl.map((x) => `<div><b>${esc(x.name)}</b><span>${x.status === 'No Response' ? 'NO RESPONSE' : STAGE_UP[x.stage] + ' ' + STAGE_PCT[x.stage] + '%'}</span></div>`).join('')}</div>` : ''}` : '<span class="dash">-</span>'}</td>
+        <td>${cs.length ? `<button type="button" class="pcount" data-cands="${i}">${cs.length} Pelamar</button>${cs.length ? `<div class="plist">${[...cs.filter((x) => x.st !== 'no'), ...cs.filter((x) => x.st === 'no')].map((x) => `<div class="${x.st === 'no' ? 'off' : 'on'}"><b>${esc(x.name)}</b><span>${x.st === 'no' ? esc(String(x.status || 'Tidak Lolos').toUpperCase()) : x.st === 'ok' ? 'DITERIMA' : x.status === 'Hold' ? 'HOLD · ' + STAGE_UP[x.stage] : STAGE_UP[x.stage] + ' ' + STAGE_PCT[x.stage] + '%'}</span></div>`).join('')}</div>` : ''}` : '<span class="dash">-</span>'}</td>
         <td class="ket">${esc(p.ket || '-')}</td>
         <td class="ptkc">${esc(p.ptk || '-')}</td>
         <td>${hasPTK(p) ? `<span class="stt ${/close/i.test(p.status) ? 'close' : /continue/i.test(p.status) ? 'cont' : 'open'}">${esc(p.status)}</span>` : '<span class="dash">-</span>'}</td>
