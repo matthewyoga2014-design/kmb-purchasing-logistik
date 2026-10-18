@@ -732,7 +732,7 @@ body{background:radial-gradient(1200px 500px at 85% 0%,#E9E6FB 0%,rgba(233,230,2
 .gate{animation:gdelay .25s ease .7s both}@keyframes gdelay{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.gate{animation:none}}
 
-.dragh{cursor:grab;display:inline-block;margin-right:4px;padding:2px 3px;border-radius:6px;color:#9A96B8;font-size:15px;line-height:1;user-select:none;vertical-align:-1px}.dragh:hover{background:#EFE9FE;color:#6D28D9}.dragh:active{cursor:grabbing}tr.dragging td{opacity:.45}tr.drop-b td{box-shadow:inset 0 3px 0 #6D28D9}tr.drop-a td{box-shadow:inset 0 -3px 0 #6D28D9}</style>
+.dragh{cursor:grab;display:inline-block;margin-right:4px;padding:2px 3px;border-radius:6px;color:#9A96B8;font-size:15px;line-height:1;user-select:none;vertical-align:-1px}.dragh:hover{background:#EFE9FE;color:#6D28D9}.dragh:active{cursor:grabbing}tr.dragging td{opacity:.45}tr.drop-b td{box-shadow:inset 0 3px 0 #6D28D9}tr.drop-a td{box-shadow:inset 0 -3px 0 #6D28D9}.mgc{margin-top:4px;display:flex;gap:6px}.mgb{border:1px dashed #C9C4E6;background:#fff;color:#6D28D9;border-radius:8px;padding:2px 8px;font-weight:600;font-size:11.5px;line-height:1.5;font-family:inherit;cursor:pointer;opacity:0;transition:opacity .12s}td:hover>.mgc .mgb,td:focus-within>.mgc .mgb,.mgb:focus-visible{opacity:1}.mgadd{display:block;margin-top:6px;border:0;background:none;color:#6D28D9;font-weight:700;font-size:12px;line-height:1.4;font-family:inherit;cursor:pointer;padding:2px 0;opacity:0;transition:opacity .12s}td:hover>.mgadd,td:focus-within>.mgadd,.mgadd:focus-visible{opacity:1}td.mgd{background:#FBFAFF;vertical-align:top}td.mgv{vertical-align:middle}@media (hover:none){.mgb,.mgadd{opacity:1}}</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
 <body>
@@ -1072,7 +1072,20 @@ function nextAsk(sid){
 function reopenAsk(sid,then){const s=sById(sid);if(!s)return;
   openModal(mHead("Buka kembali notulensi?")+`<div class="mb"><b>${esc(s.title)}</b> ditutup tanpa meeting pada ${fmtD(s.ended?.date)}. Jika dibuka kembali, tindak lanjut yang tadinya Open/Continue kembali ke status semula.</div><div class="mf"><button class="btn" type="button" data-x>Batal</button><button class="btn pri" type="button" id="roOk">Buka kembali${then?" & update":""}</button></div>`,
   b=>b.querySelector("#roOk").onclick=async()=>{try{await S.db.collection("series").doc(sid).update({ended:null,...stamp()});s.ended=null;closeModal();toast("Notulensi dibuka kembali");render();then&&then();}catch(err){toast("Gagal: "+errMsg(err));}});}
-function cnt(rows){const c={open:0,continue:0,close:0,total:0};(rows||[]).forEach(r=>{c[r.st||"open"]++;c.total++;});return c;}
+/* Sel gabung ala Excel: dalam satu topik, sel Hasil Pembahasan / Tindak Lanjut / PIC / Due / Status bisa digabung dengan baris di atasnya.
+   r.mg = {bahas,tl,pic,due,st}: true = tergabung ke atas. Tanpa r.mg: pembahasan kosong/sama dan tindak lanjut sama dianggap tergabung. */
+const MF=["bahas","tl","pic","due","st"];
+const mfv=(r,f)=>f==="due"?(r.due||r.dueText||""):f==="st"?(r.st||"open"):(r[f]||"");
+const sameTopic=(a,b)=>!!(a&&b&&(a.sec||"")===(b.sec||"")&&clean(a.topik)&&norm(a.topik)===norm(b.topik));
+function covMap(rows){const cov=rows.map(()=>({})),top=rows.map(()=>({}));
+  rows.forEach((r,i)=>{const p=rows[i-1],blk=i>0&&sameTopic(p,r),mg=r.mg||null;
+    MF.forEach(f=>{let c=false;if(blk){if(mg&&f in mg)c=!!mg[f];else if(f==="bahas")c=!clean(r.bahas)||norm(r.bahas)===norm(mfv(rows[top[i-1].bahas],"bahas"));
+        else if(f==="tl")c=!!clean(r.tl)&&norm(r.tl)===norm(mfv(rows[top[i-1].tl],"tl"));else c=!!cov[i].tl&&norm(mfv(r,f))===norm(mfv(rows[top[i-1][f]],f));}
+      cov[i][f]=c;top[i][f]=c?top[i-1][f]:i;});});
+  const span=rows.map(()=>({}));for(let i=rows.length-1;i>=0;i--)MF.forEach(f=>{let n=1,k=i+1;while(k<rows.length&&cov[k][f]){n++;k++;}span[i][f]=cov[i][f]?0:n;});
+  return{cov,top,span};}
+function uniqRows(rows){rows=rows||[];const{cov}=covMap(rows);return rows.filter((r,i)=>!(cov[i].tl&&cov[i].st));}
+function cnt(rows){const c={open:0,continue:0,close:0,total:0};uniqRows(rows).forEach(r=>{c[r.st||"open"]++;c.total++;});return c;}
 function vStatus(v){const c=cnt(v&&v.rows);if(!c.total)return"open";if(c.close===c.total)return"close";if(c.close||c.continue)return"continue";return"open";}
 const pct=(n,t)=>t?Math.round(n/t*100):0;
 const stackBar=c=>`<div class="stack" title="Open ${c.open} · Continue ${c.continue} · Close ${c.close}">${STK.map(k=>c[k]?`<span class="m-${k}" style="width:${c[k]/c.total*100}%"></span>`:"").join("")}</div>`;
@@ -1337,16 +1350,17 @@ function renderSeries(){
   const cell=(r,f,html)=>{const ch=d&&d.rows[r.k]&&d.rows[r.k].ch&&d.rows[r.k].ch[f]!==undefined;return{cls:ch?" chg":"",pre:ch?`<span class="oldv">${esc(f==="st"?ST[d.rows[r.k].ch[f]]:d.rows[r.k].ch[f])||"(kosong)"}</span>`:"",html};};
   const td=(cls,c,rs)=>`<td class="${cls}${c.cls}"${rs?` rowspan="${rs}"`:""}>${c.pre}${c.html}</td>`;
   const body=groups.map(g=>`${g.sec?`<tr class="secrow"><td colspan="${7+cols.length}">${esc(g.sec)}</td></tr>`:""}${g.topics.map(t=>{no++;const n=t.rows.length;const gst=t.rows.every(r=>(r.st||"open")===(t.rows[0].st||"open"))?(t.rows[0].st||"open"):"";
-    const bset=new Set(t.rows.map(r=>clean(r.bahas))),bsame=bset.size<=1,bahas=[...bset].filter(Boolean).join("\n");
+    const TM=covMap(t.rows);
     return t.rows.map((r,i)=>{const isNew=d&&d.rows[r.k]&&d.rows[r.k].isNew;const sst=r.st||"open";
       const stc=cell(r,"st",`${pill(sst)}`);if(stc.cls){stc.pre="";stc.html=`<div class="stc"><span class="oldv" style="text-decoration:none;display:inherit">${pill(d.rows[r.k].ch.st)}</span><span class="arrow oldv" style="text-decoration:none">▼</span>${pill(sst)}</div>`;}
       if(r.auto){stc.html=`${pill("close")}<div class="stamp" style="margin-top:3px" title="Ditutup otomatis karena tidak ada meeting lanjutan">dari ${ST[r.auto]} · otomatis</div>`;}
       const dl=eDue(r)?daysTo(eDue(r)):null;
-      return `<tr class="r-${sst}">${i===0?`<td class="no grp g-${gst}" rowspan="${n}">${no}</td>${td("tp grp g-"+gst,cell(t.rows[0],"topik",esc(t.topik)||"<span class='muted'>—</span>"),n)}${bsame?td("bh grp g-"+gst,cell(t.rows[0],"bahas",esc(bahas)||"<span class='muted'>—</span>"),n):""}`:""}${bsame?"":td("bh",cell(r,"bahas",esc(r.bahas)||"<span class='muted'>—</span>"))}
-        ${td("tlc",cell(r,"tl",(isNew?`<span class="pill upd newtag" style="margin-right:6px">Baru</span>`:"")+esc(r.tl||"—")))}
-        ${td("pc",cell(r,"pic",esc(r.pic||"—")))}
-        ${td("du",cell(r,"due",`<span class="${isLate(r)?"late":""}">${esc(dueLabel(r))}</span>${isLate(r)?`<div class="late" style="font-size:11.5px">Telat ${-dl} hari</div>`:""}`))}
-        <td class="sc${stc.cls}">${stc.html}</td>
+      const sp=f=>TM.cov[i][f]?0:TM.span[i][f];const tdm=(f,cls,c)=>sp(f)?td(cls+(sp(f)>1?" mgv":""),c,sp(f)>1?sp(f):0):"";
+      return `<tr class="r-${sst}">${i===0?`<td class="no grp g-${gst}" rowspan="${n}">${no}</td>${td("tp grp g-"+gst,cell(t.rows[0],"topik",esc(t.topik)||"<span class='muted'>—</span>"),n)}`:""}${tdm("bahas","bh",cell(r,"bahas",esc(r.bahas)||"<span class='muted'>—</span>"))}
+        ${tdm("tl","tlc",cell(r,"tl",(isNew?`<span class="pill upd newtag" style="margin-right:6px">Baru</span>`:"")+esc(r.tl||"—")))}
+        ${tdm("pic","pc",cell(r,"pic",esc(r.pic||"—")))}
+        ${tdm("due","du",cell(r,"due",`<span class="${isLate(r)?"late":""}">${esc(dueLabel(r))}</span>${isLate(r)?`<div class="late" style="font-size:11.5px">Telat ${-dl} hari</div>`:""}`))}
+        ${sp("st")?`<td class="sc${stc.cls}${sp("st")>1?" mgv":""}"${sp("st")>1?` rowspan="${sp("st")}"`:""}>${stc.html}</td>`:""}
         ${cols.map(c=>td("kt",cell(r,"x:"+c.id,esc((r.x||{})[c.id]||"")))).join("")}</tr>`;}).join("");}).join("")}`).join("");
   const c=cnt(vrows);
   const nbar=!isLatest||!nx?"":nx.k==="ended"?`<div class="nbar nb-ended"><span class="nic">✓</span><div class="grow"><b>Notulensi selesai, tanpa meeting lanjutan</b><div class="stamp">Ditutup ${fmtD(en.date)}${en.from?` (jadwal next meeting ${fmtD(en.from)})`:""}${en.note?` · ${esc(en.note)}`:""}. Semua tindak lanjut Open/Continue otomatis menjadi Close.</div></div><button class="btn sm ed-only" type="button" data-act="reopen" data-id="${s.id}">Buka kembali</button></div>`
@@ -1430,19 +1444,25 @@ function renderEdit(){
     :E.mode==="fix"?`Memperbaiki isi Meeting ke-${E.no} tanpa membuat meeting baru. Pakai ini untuk salah ketik atau hasil baca file yang kurang tepat.`
     :"Isi notulensi meeting pertama. Setiap meeting berikutnya dibuat lewat tombol Update Meeting.";
   const M=E.meta,groups=[];E.rows.forEach((r,i)=>{if(!groups.length||groups[groups.length-1].sec!==(r.sec||""))groups.push({sec:r.sec||"",idx:[]});groups[groups.length-1].idx.push(i);});
-  let no=0,lastTop=null;
+  let no=0,lastTop=null;const CM=covMap(E.rows);
   const tdF=(r,i,f,inner,cls)=>{const ch=edChanged(r,f);return `<td class="${cls}${ch?" chg":""}" data-cell="${i}:${f}">${inner}<div class="was">semula: ${esc(edOld(r,f))}</div></td>`;};
   const ta=(i,f,v,ph)=>`<textarea data-i="${i}" data-f="${f}" rows="1" placeholder="${ph||""}" aria-label="${ph||f}">${esc(v)}</textarea>`;
   const cols=E.cols;
   const body=groups.map((g,gi)=>`<tr class="secrow"><td colspan="${9+cols.length}"><div class="rowx"><input type="text" data-sec="${gi}" value="${esc(g.sec)}" placeholder="Bagian / project (opsional), mis. A. FMC Project SKA" aria-label="Nama bagian"><button class="btn sm" type="button" data-addtop="${g.idx[g.idx.length-1]}">+ Topik di bagian ini</button></div></td></tr>`+
-    g.idx.map(i=>{const r=E.rows[i];const same=lastTop&&norm(lastTop.topik)===norm(r.topik)&&r.topik&&lastTop.sec===r.sec;if(!same)no++;lastTop=r;const isNew=E.mode!=="new"&&!E.base.some(b=>b.k===r.k);
-      return `<tr class="r-${r.st||"open"} ${isNew?"isnew":""}" data-row="${i}"><td class="c-no">${same?"":`<span class="dragh" draggable="true" data-dragrow="${i}" title="Seret untuk memindah urutan topik ini" aria-label="Seret untuk memindah">⠿</span>${no}`}${isNew?`<div class="pill upd" style="font-size:10px;padding:2px 5px;margin-top:4px">Baru</div>`:""}</td>
-        ${tdF(r,i,"topik",ta(i,"topik",r.topik,"Topik"),"c-tp")}${tdF(r,i,"bahas",ta(i,"bahas",r.bahas,"Hasil pembahasan"),"c-bh")}${tdF(r,i,"tl",ta(i,"tl",r.tl,"Tindak lanjut"),"c-tl")}
-        ${tdF(r,i,"pic",ta(i,"pic",r.pic,"PIC"),"c-pc")}
-        ${tdF(r,i,"due",`<input type="date" data-i="${i}" data-f="due" value="${esc(r.due)}" aria-label="Due date">${!r.due&&r.dueText?`<div class="duetxt">Teks asli: ${esc(r.dueText)}</div>`:""}`,"c-du")}
-        ${tdF(r,i,"st",`<select class="stsel s-${r.st||"open"}" data-i="${i}" data-f="st" aria-label="Status">${STK.map(k=>`<option value="${k}" ${r.st===k?"selected":""}>${ST[k]}</option>`).join("")}</select>`,"c-st")}
+    g.idx.map(i=>{const r=E.rows[i];const same=lastTop&&sameTopic(lastTop,r);if(!same)no++;lastTop=r;const isNew=E.mode!=="new"&&!E.base.some(b=>b.k===r.k);
+      let bend=i;while(bend+1<E.rows.length&&sameTopic(E.rows[bend+1],r))bend++;const tspan=bend-i+1;
+      const mtd=(f,cls,inner)=>{if(CM.cov[i][f])return"";const n=CM.span[i][f];const first=i>0&&sameTopic(E.rows[i-1],r);
+        const ctl=n>1?`<button type="button" class="mgb" data-split="${i}:${f}" title="Pisahkan sel gabung ini per baris">Pisah</button>`:first?`<button type="button" class="mgb" data-join="${i}:${f}" title="Gabung dengan sel di atasnya">Gabung ↑</button>`:"";
+        const ch=edChanged(r,f);return `<td class="${cls}${ch?" chg":""}${n>1?" mgd":""}" data-cell="${i}:${f}"${n>1?` rowspan="${n}"`:""}>${inner}${ctl?`<div class="mgc">${ctl}</div>`:""}<div class="was">semula: ${esc(edOld(r,f))}</div></td>`;};
+      return `<tr class="r-${r.st||"open"} ${isNew?"isnew":""}" data-row="${i}">${same?"":`<td class="c-no" rowspan="${tspan}"><span class="dragh" draggable="true" data-dragrow="${i}" title="Seret untuk memindah urutan topik ini" aria-label="Seret untuk memindah">⠿</span>${no}${isNew?`<div class="pill upd" style="font-size:10px;padding:2px 5px;margin-top:4px">Baru</div>`:""}</td>
+        ${tdF(r,i,"topik",`<textarea data-i="${i}" data-f="topik" data-blk="${i}-${bend}" rows="1" placeholder="Topik" aria-label="Topik">${esc(r.topik)}</textarea>`,"c-tp").replace('<td class="c-tp','<td rowspan="'+tspan+'" class="c-tp')}`}
+        ${mtd("bahas","c-bh",ta(i,"bahas",r.bahas,"Hasil pembahasan")+`<button type="button" class="mgadd" data-addbh="${i}" title="Tambah hasil pembahasan baru di topik ini (tindak lanjut ikut tergabung sampai dipisah)">+ Pembahasan</button>`)}
+        ${mtd("tl","c-tl",ta(i,"tl",r.tl,"Tindak lanjut"))}
+        ${mtd("pic","c-pc",ta(i,"pic",r.pic,"PIC"))}
+        ${mtd("due","c-du",`<input type="date" data-i="${i}" data-f="due" value="${esc(r.due)}" aria-label="Due date">${!r.due&&r.dueText?`<div class="duetxt">Teks asli: ${esc(r.dueText)}</div>`:""}`)}
+        ${mtd("st","c-st",`<select class="stsel s-${r.st||"open"}" data-i="${i}" data-f="st" aria-label="Status">${STK.map(k=>`<option value="${k}" ${r.st===k?"selected":""}>${ST[k]}</option>`).join("")}</select>`)}
         ${cols.map(c=>tdF(r,i,"x:"+c.id,ta(i,"x:"+c.id,(r.x||{})[c.id]||"",c.name),"c-kt")).join("")}
-        <td class="c-ac"><div class="ac"><button type="button" data-addtl="${i}" title="Tambah tindak lanjut untuk topik ini">+ TL</button><button type="button" data-up="${i}" title="Naikkan">▲</button><button type="button" data-down="${i}" title="Turunkan">▼</button><button type="button" class="dz" data-del="${i}" title="Hapus baris">Hapus</button></div></td></tr>`;}).join("")).join("");
+        <td class="c-ac"><div class="ac"><button type="button" data-addtl="${i}" title="Tambah tindak lanjut untuk hasil pembahasan ini">+ TL</button><button type="button" data-up="${i}" title="Naikkan">▲</button><button type="button" data-down="${i}" title="Turunkan">▼</button><button type="button" class="dz" data-del="${i}" title="Hapus baris">Hapus</button></div></td></tr>`;}).join("")).join("");
   const removed=E.mode==="new"?[]:E.base.filter(b=>!E.rows.some(r=>r.k===b.k)&&!(E.mode==="next"&&b.st==="close"));
   const arch=E.mode==="next"?E.base.filter(b=>b.st==="close"&&!E.rows.some(r=>r.k===b.k)):[];
   box.innerHTML=`<div class="rowx"><button class="back" type="button" id="edBack">‹ Batal</button><span class="crumb">${esc(E.title||"")}</span></div>
@@ -1479,7 +1499,7 @@ function wireEdit(){
   ["date","time","place","next","agenda","lead","people"].forEach(k=>{const el=$("m_"+k);el.oninput=()=>{E.meta[k]=el.value;mark();};});
   const mt=$("mTitle");if(mt)mt.oninput=()=>{E.title=mt.value;mark();};if($("edLoc")){const bx=$("v-edit");wireLoc(bx,"ed");const l=$("edLoc");l.addEventListener("change",()=>{if(l.value!=="__new")E.folderId=l.value||null;});}
   box.querySelectorAll("[data-i][data-f]").forEach(el=>{const i=+el.dataset.i,f=el.dataset.f;
-    const h=()=>{const r=E.rows[i];if(f==="due"){r.due=el.value;if(el.value)r.dueText="";}else if(f.startsWith("x:")){r.x={...(r.x||{}),[f.slice(2)]:el.value};}else r[f]=el.value;
+    const h=()=>{const r=E.rows[i];if(f==="topik"&&el.dataset.blk){const[a,b]=el.dataset.blk.split("-").map(Number);for(let k=a;k<=b;k++)E.rows[k].topik=el.value;}else if(f==="due"){r.due=el.value;if(el.value)r.dueText="";}else if(f.startsWith("x:")){r.x={...(r.x||{}),[f.slice(2)]:el.value};}else r[f]=el.value;
       if(el.tagName==="TEXTAREA")autosize(el);
       const td=box.querySelector(`[data-cell="${i}:${f}"]`);if(td)td.classList.toggle("chg",edChanged(r,f));
       if(f==="st"){el.className="stsel s-"+el.value;el.closest("tr").className=el.closest("tr").className.replace(/r-\w+/,"r-"+el.value);}
@@ -1489,8 +1509,16 @@ function wireEdit(){
     E.rows.forEach(r=>{if(r._g===gi)r.sec=el.value;delete r._g;});mark();});
   box.querySelectorAll("[data-sec]").forEach(el=>el.onchange=()=>renderEdit());
   const struct=fn=>{fn();E.dirty=true;const y=window.scrollY;renderEdit();window.scrollTo(0,y);};
-  box.querySelectorAll("[data-addtl]").forEach(b=>b.onclick=()=>struct(()=>{const i=+b.dataset.addtl,r=E.rows[i];let j=i;while(j+1<E.rows.length&&E.rows[j+1].sec===r.sec&&norm(E.rows[j+1].topik)===norm(r.topik)&&r.topik)j++;
-    E.rows.splice(j+1,0,{...blankRow(r.sec),topik:r.topik});}));
+  /* sel gabung */
+  const spanEnd=(i,f)=>{const C=covMap(E.rows);const t=C.top[i][f];return t+C.span[t][f]-1;};
+  box.querySelectorAll("[data-addtl]").forEach(b=>b.onclick=()=>struct(()=>{const i=+b.dataset.addtl,r=E.rows[i];const j=clean(r.topik)?spanEnd(i,"bahas"):i;
+    E.rows.splice(j+1,0,{...blankRow(r.sec),topik:r.topik,mg:{bahas:true,tl:false,pic:false,due:false,st:false}});}));
+  box.querySelectorAll("[data-addbh]").forEach(b=>b.onclick=()=>{const i=+b.dataset.addbh,r=E.rows[i];if(!clean(r.topik))return toast("Isi topik dulu, lalu tambah pembahasan");struct(()=>{const C=covMap(E.rows);const j=spanEnd(i,"bahas"),tl=E.rows[C.top[j].tl];
+    E.rows.splice(j+1,0,{...blankRow(r.sec),topik:r.topik,bahas:"",tl:"",pic:tl.pic||"",due:tl.due||"",dueText:tl.dueText||"",st:tl.st||"open",mg:{bahas:false,tl:true,pic:true,due:true,st:true}});});});
+  box.querySelectorAll("[data-split]").forEach(b=>b.onclick=()=>struct(()=>{const[i,f]=b.dataset.split.split(":");const top=+i,C=covMap(E.rows),n=C.span[top][f],tv=E.rows[top];
+    for(let k=top+1;k<top+n;k++){const r=E.rows[k];r.mg={...(r.mg||{}),[f]:false};if(f==="tl"||f==="bahas"){if(norm(r[f])===norm(tv[f]))r[f]="";}else if(f==="due"){r.due=tv.due;r.dueText=tv.dueText||"";}else r[f]=tv[f];}}));
+  box.querySelectorAll("[data-join]").forEach(b=>b.onclick=()=>struct(()=>{const[i,f]=b.dataset.join.split(":");const r=E.rows[+i];r.mg={...(r.mg||{}),[f]:true};
+    if(f==="tl"){["pic","due","st"].forEach(g=>{r.mg[g]=true;});}}));
   box.querySelectorAll("[data-addtop]").forEach(b=>b.onclick=()=>struct(()=>{const i=+b.dataset.addtop;E.rows.splice(i+1,0,blankRow(E.rows[i].sec));}));
   box.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>struct(()=>{const i=+b.dataset.up;if(i>0){const t=E.rows[i-1];E.rows[i-1]=E.rows[i];E.rows[i]=t;if(E.rows[i].sec!==E.rows[i-1].sec)E.rows[i-1].sec=E.rows[i].sec;}}));
   /* seret-lepas urutan: satu topik (beserta semua tindak lanjutnya) dipindah sekaligus */
@@ -1507,7 +1535,7 @@ function wireEdit(){
       const A=box.querySelector(`tr[data-row="${ta}"]`).getBoundingClientRect(),Bb=box.querySelector(`tr[data-row="${tb}"]`).getBoundingClientRect();const after=e.clientY>(A.top+Bb.bottom)/2;
       box.querySelectorAll(".drop-b,.drop-a").forEach(x=>x.classList.remove("drop-b","drop-a"));box.querySelector(`tr[data-row="${after?tb:ta}"]`).classList.add(after?"drop-a":"drop-b");tr._after=after;});
     tr.addEventListener("drop",e=>{if(dragFrom===null)return;e.preventDefault();const f=dragFrom,t=+tr.dataset.row,after=!!tr._after;dragFrom=null;clr();struct(()=>moveBlock(f,t,after));});});
-  box.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>struct(()=>{E.rows.splice(+b.dataset.del,1);if(!E.rows.length)E.rows.push(blankRow(""));}));
+  box.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>struct(()=>{const di=+b.dataset.del,C=covMap(E.rows),nx=E.rows[di+1];if(nx&&C.cov[di+1])MF.forEach(f=>{if(C.cov[di+1][f]&&!C.cov[di][f]){if(f==="due"){nx.due=E.rows[di].due;nx.dueText=E.rows[di].dueText||"";}else nx[f]=E.rows[di][f];nx.mg={...(nx.mg||{}),[f]:false};}});E.rows.splice(di,1);if(!E.rows.length)E.rows.push(blankRow(""));}));
   $("addCol").onclick=()=>struct(()=>E.cols.push({id:"c"+uid().slice(0,6),name:"Kolom "+(E.cols.length+1)}));
   box.querySelectorAll("[data-colname]").forEach(el=>el.oninput=()=>{E.cols[+el.dataset.colname].name=el.value;mark();});
   box.querySelectorAll("[data-coldel]").forEach(b=>b.onclick=()=>struct(()=>{const c=E.cols.splice(+b.dataset.coldel,1)[0];E.rows.forEach(r=>{if(r.x)delete r.x[c.id];});}));
@@ -1526,7 +1554,8 @@ async function saveEdit(){
   if(!E.meta.date)return toast("Isi tanggal meeting dulu");
   if(E.mode==="new"&&!clean(E.title))return toast("Isi judul notulensi dulu");
   let loc=null;if(E.mode==="new"&&$("edLoc")){loc=readLoc($("v-edit"),"ed");if(loc.err)return toast(loc.err);}
-  const rows=E.rows.filter(r=>clean(r.tl)||clean(r.topik)||clean(r.bahas)).map(r=>({k:r.k,sec:clean(r.sec),topik:r.topik.trim(),bahas:r.bahas.trim(),tl:r.tl.trim(),pic:r.pic.trim(),due:r.due||"",dueText:r.due?"":(r.dueText||""),st:r.st||"open",ket:(r.ket||"").trim(),...(E.cols.length?{x:Object.fromEntries(E.cols.map(c=>[c.id,((r.x||{})[c.id]||"").trim()]))}:{})}));
+  const SC=covMap(E.rows);E.rows.forEach((r,i)=>{const mg={};MF.forEach(f=>{mg[f]=!!SC.cov[i][f];if(SC.cov[i][f]){const t=E.rows[SC.top[i][f]];if(f==="due"){r.due=t.due;r.dueText=t.dueText||"";}else if(f!=="bahas"||clean(r.bahas))r[f]=t[f];}});r.mg=mg;});
+  const rows=E.rows.filter(r=>clean(r.tl)||clean(r.topik)||clean(r.bahas)).map(r=>({mg:r.mg,k:r.k,sec:clean(r.sec),topik:r.topik.trim(),bahas:r.bahas.trim(),tl:r.tl.trim(),pic:r.pic.trim(),due:r.due||"",dueText:r.due?"":(r.dueText||""),st:r.st||"open",ket:(r.ket||"").trim(),...(E.cols.length?{x:Object.fromEntries(E.cols.map(c=>[c.id,((r.x||{})[c.id]||"").trim()]))}:{})}));
   const cols=E.cols.map(c=>({id:c.id,name:clean(c.name)||"Kolom"}));
   if(E.mode==="next"){const lv=latestV(E.sid);if(lv&&lv.no>=E.no)return toast(`Meeting ke-${lv.no} sudah dibuat orang lain. Tutup editor lalu update dari meeting terbaru.`);}
   btn.disabled=true;toast("Menyimpan…",true);
@@ -1921,11 +1950,11 @@ function buildDocx(v,title,photos,opt={}){const FM=!!opt.form;
     if(g.sec){const h=SECRE.test(g.sec)?g.sec:String.fromCharCode(65+letter)+". "+g.sec;letter++;body.push(wP(wRun(h,{b:true,color:"1D5C45",sz:20}),{bf:160,af:60,keep:true}));}
     const rows=[hdrRow];
     g.topics.forEach(t=>{no++;const gst=t.rows.every(r=>(r.st||"open")===(t.rows[0].st||"open"))?(t.rows[0].st||"open"):"open";const gf=FILL[gst];
-      const bset=new Set(t.rows.map(r=>clean(r.bahas))),bsame=bset.size<=1,bahas=[...bset].filter(Boolean).join("\n");
+      const WM=covMap(t.rows),vmf=(i,f)=>WM.cov[i][f]?"cont":WM.span[i][f]>1?"restart":"";
       t.rows.forEach((r,i)=>{const st=r.st||"open",f=FILL[st],isNew=d&&d.rows[r.k]&&d.rows[r.k].isNew;const vm=t.rows.length>1?(i?"cont":"restart"):"";
-        const cells=[wTc(i?"":wP(wRun(String(no),{b:true}),{al:"center"}),{w:widths[0],vm,fill:gf}),wTc(i?"":val(r,"topik",t.topik),{w:widths[1],vm,fill:gf}),(bsame?wTc(i?"":val(r,"bahas",bahas),{w:widths[2],vm,fill:gf}):wTc(val(r,"bahas",r.bahas),{w:widths[2],fill:f})),
-          wTc(val(r,"tl",r.tl),{w:widths[3],fill:isNew?NEWF:f}),wTc(val(r,"pic",r.pic),{w:widths[4],fill:f}),wTc(val(r,"due",dueLabel(r)==="—"?"":dueLabel(r)),{w:widths[5],fill:f}),
-          wTc(val(r,"st",ST[st]),{w:widths[6],fill:f}),...cols.map((c,ci)=>wTc(val(r,"x:"+c.id,(r.x||{})[c.id]),{w:widths[7+ci],fill:f})),...(FM?[wTc(wP(wRun(r.k,{sz:14,color:"8A9A94"})),{w:widths[7+cols.length]})]:[])];
+        const cells=[wTc(i?"":wP(wRun(String(no),{b:true}),{al:"center"}),{w:widths[0],vm,fill:gf}),wTc(i?"":val(r,"topik",t.topik),{w:widths[1],vm,fill:gf}),wTc(WM.cov[i].bahas?"":val(r,"bahas",r.bahas),{w:widths[2],vm:vmf(i,"bahas"),fill:f}),
+          wTc(WM.cov[i].tl?"":val(r,"tl",r.tl),{w:widths[3],vm:vmf(i,"tl"),fill:isNew?NEWF:f}),wTc(WM.cov[i].pic?"":val(r,"pic",r.pic),{w:widths[4],vm:vmf(i,"pic"),fill:f}),wTc(WM.cov[i].due?"":val(r,"due",dueLabel(r)==="—"?"":dueLabel(r)),{w:widths[5],vm:vmf(i,"due"),fill:f}),
+          wTc(WM.cov[i].st?"":val(r,"st",ST[st]),{w:widths[6],vm:vmf(i,"st"),fill:f}),...cols.map((c,ci)=>wTc(val(r,"x:"+c.id,(r.x||{})[c.id]),{w:widths[7+ci],fill:f})),...(FM?[wTc(wP(wRun(r.k,{sz:14,color:"8A9A94"})),{w:widths[7+cols.length]})]:[])];
         rows.push(wTr(cells.join("")));});});
     body.push(wTbl(rows,widths));
   });
