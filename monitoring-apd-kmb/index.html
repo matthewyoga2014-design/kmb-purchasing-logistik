@@ -683,6 +683,7 @@ body.locked > *:not(#lockScr):not(#toast):not(.modal):not(#modal) { visibility: 
 .gapic img { max-height: 80px; max-width: 100%; }
 .gaview { overflow: auto; border: 1px solid var(--line); border-radius: 12px; margin-top: 10px; background: #fff; }
 .gaview .gadoc { min-width: 860px; }
+.tohub { display: block; margin: 0 0 10px; padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--primary); text-decoration: none; background: var(--soft, #F4F3FA); }
 </style></head><body>
 <aside class="side" id="side" aria-label="Menu">
   <div class="brand"><span class="lg">M</span><div><b>Monitoring</b><span>APD KMB</span></div></div>
@@ -1093,12 +1094,12 @@ const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 
 const DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const HELM_DOT = { Putih: '#FFFFFF', Kuning: '#F5C518', Biru: '#2563EB' };
 
-const S = { sb: null, user: null, role: '', state: null, revision: 0, ver: null, people: [], access: null, audit: null, share: null, grant: null, grants: null, saving: false, noAccess: false, loaded: false };
+const S = { perms: {}, asked: false, sb: null, user: null, role: '', state: null, revision: 0, ver: null, people: [], access: null, audit: null, share: null, grant: null, grants: null, saving: false, noAccess: false, loaded: false };
 const ui = { page: 'dashboard', person: '', q: '', site: 'ALL', period: 'bulanan', year: new Date().getFullYear(), hq: '', ht: 'ALL', wh: 'ALL', rq: 'pending' };
-let SHARE_KEY = '';
+// link anonim ?k= tidak dipakai lagi: semua wajib masuk dengan email yang diundang (Pusat Monitoring)
+const SHARE_KEY = '', HUB = '../';
 (function () {
-  const sk = 'kta-share:' + APP;
-  try { const u = new URL(location.href); const k = u.searchParams.get('k'); if (k) { localStorage.setItem(sk, k); u.searchParams.delete('k'); history.replaceState(null, '', u.pathname + u.search + u.hash); } SHARE_KEY = localStorage.getItem(sk) || ''; } catch (e) {}
+  try { localStorage.removeItem('kta-share:' + APP); const u = new URL(location.href); if (u.searchParams.has('k')) { u.searchParams.delete('k'); history.replaceState(null, '', u.pathname + u.search + u.hash); } } catch (e) {}
   try { const h = (location.hash || '').slice(1); if (h) ui.page = h; } catch (e) {}
 })();
 
@@ -1114,6 +1115,15 @@ const cleanName = (s) => String(s || '').trim().replace(/\s+/g, ' ').toLocaleUpp
 const title = (s) => String(s || '').toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
 const can = () => S.role === 'owner' || S.role === 'editor';
 const isOwner = () => S.role === 'owner';
+// izin menu & unduh dari Pemilik (Pusat Monitoring). detail karyawan mengikuti menu Manpower Aktif.
+const PERM_FIXED = ['dashboard', 'setting'];
+function permOf(id, k) {
+  if (S.role === 'owner') return true; if (S.role !== 'editor' && S.role !== 'viewer') return false;
+  id = id === 'detail' ? 'people' : id;
+  if (k === 'v' && PERM_FIXED.includes(id)) return true;
+  const p = ((S.perms || {})[S.role] || {})[id]; if (p && typeof p[k] === 'boolean') return p[k];
+  return k === 'v' ? true : S.role === 'editor';
+}
 const variant = (x) => x.variant || 'BELUM DIISI';
 const tLabel = (t) => (ART[t] || {}).label || t;
 const vText = (t, v) => v === 'BELUM DIISI' ? 'Belum diisi' : t === 'HELM' ? v : /^\d+$/.test(v) ? 'No. ' + v : v;
@@ -1248,7 +1258,7 @@ async function loadAll(silent) {
     const ok = await loadApd();
     if (ok) await loadPeople(); else S.people = [];
     S.loaded = true;
-    if (isOwner()) { loadAccess(); loadAudit(); loadShare(); loadGrants(); }
+    if (isOwner()) { loadAudit(); loadGrants(); }
   } catch (e) { if (!silent) toast('Data APD belum bisa dimuat: ' + ((e && e.message) || 'periksa koneksi.'), true); }
   render();
 }
@@ -1257,9 +1267,10 @@ async function findRole() {
   const em = ((S.user && S.user.email) || '').toLowerCase();
   if (!em) return;
   if (em === OWNER) { S.role = 'owner'; return; }
-  const { data } = await S.sb.from('app_access_roles').select('role').eq('app_id', APP).eq('email', em).maybeSingle();
-  S.role = (data && data.role) || '';
-  if (S.role !== 'owner' && S.role !== 'editor') {
+  const r = await S.sb.rpc('kta_member_role', { p_app: APP });
+  S.role = (!r.error && typeof r.data === 'string') ? r.data : '';
+  if (S.role) { const p = await S.sb.from('kta_app_perms').select('perms').eq('app_id', APP).maybeSingle(); S.perms = (p.data && p.data.perms) || {}; }
+  if (S.role === 'viewer') {
     const g = await S.sb.from('kta_print_grants').select('status,requested_at').eq('app_id', APP).eq('email', em).maybeSingle();
     S.grant = g.data || null;
   }
@@ -1333,7 +1344,7 @@ const PAGES = [
 ];
 function navHtml() {
   let g = '';
-  return PAGES.filter((p) => !p.owner || isOwner()).map((p) => {
+  return `<a class="tohub" href="${HUB}">← Pusat Monitoring</a>` + PAGES.filter((p) => (!p.owner || isOwner()) && permOf(p.id, 'v')).map((p) => {
     const lbl = p.grp !== g ? `<div class="lbl">${p.grp}</div>` : ''; g = p.grp;
     const cur = ui.page === p.id || (ui.page === 'detail' && p.id === ((person(ui.person) || {}).status === 'OUT' ? 'out' : 'people'));
     return `${lbl}<button type="button" data-go="${p.id}" ${cur ? 'aria-current="page"' : ''}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">${IC[p.id]}</svg>${p.label}<span class="ct" data-ct="${p.id}" hidden></span></button>`;
@@ -1361,13 +1372,14 @@ function render() {
   if (!S.state) { S.state = empty(); applyTypes(); }
   const locked = S.loaded && S.noAccess;
   $('nav').innerHTML = navHtml();
-  $('roleTag').textContent = S.role === 'owner' ? 'Pemilik · Editor' : S.role === 'editor' ? 'Editor' : 'Pelihat';
+  $('roleTag').textContent = S.role === 'owner' ? 'Pemilik · Editor' : S.role === 'editor' ? 'Editor' : S.role === 'viewer' ? 'Pelihat' : 'Belum ada akses';
   $('roleTag').className = 'pill' + (can() ? ' live' : '');
   $('authBtn').textContent = S.user ? 'Keluar' : 'Masuk';
   $('authBtn').title = S.user ? 'Masuk sebagai ' + S.user.email : 'Masuk untuk mengedit';
   if (locked) { lockScreen(); return; }
   unlock();
   if (PAGES.some((p) => p.id === ui.page && p.owner) && !isOwner()) ui.page = 'dashboard';
+  if (!permOf(ui.page, 'v')) ui.page = 'dashboard';
   if (ui.wh !== 'ALL' && !WH.includes(ui.wh)) ui.wh = 'ALL';
   const map = { dashboard: pageDash, requests: pageRequests, ga: pageGA, people: () => pagePeople(false), out: () => pagePeople(true), detail: pageDetail, stock: pageStock, history: pageHistory, images: pageImages, guide: pageGuide, deleted: pageDeleted, setting: pageSetting };
   $('view').innerHTML = S.loaded ? (map[ui.page] || pageDash)() : '<div class="empty"><span class="spin"></span><p>Menyiapkan Monitoring APD…</p></div>';
@@ -1610,12 +1622,13 @@ function usedWh(w) { const s = S.state; return s.stockIn.some((x) => whOf(x.loca
 function pageSetting() {
   const role = `<div class="card s6"><div class="ch"><div><div class="eyebrow">Akses</div><h2>Pemilik, Editor & Pelihat</h2></div><span class="pill ${can() ? 'live' : ''}">${$('roleTag').textContent}</span></div>
     <div class="role"><b>Pemilik</b><span>${OWNER}. Mengatur semua data, stok & gudang, jenis APD, gambar, akses, link Pelihat, dan menyetujui permintaan APD.</span></div>
-    <div class="role"><b>Editor (admin jobsite)</b><span>Mengajukan permintaan APD, mencatat APD lama, membagikan APD yang sudah disetujui, dan pengembalian. Tidak bisa mengubah stok gudang, jenis APD, atau menyetujui permintaan.</span></div>
-    <div class="role"><b>Pelihat</b><span>Orang yang membuka lewat <b>Link untuk Pelihat</b> dari Pemilik. Hanya melihat; print & unduh dikunci sampai disetujui Pemilik. Tidak bisa membuka web lain.</span></div>
+    <div class="role"><b>Editor (admin jobsite)</b><span>Diundang lewat link Editor. Mengajukan permintaan APD, mencatat APD lama, membagikan APD yang sudah disetujui, pengembalian, dan membagikan link Pelihat. Tidak bisa mengubah stok gudang, jenis APD, atau menyetujui permintaan.</span></div>
+    <div class="role"><b>Pelihat</b><span>Email yang diundang lewat <b>link Pelihat</b> (wajib masuk). Hanya melihat menu yang diizinkan; print & unduh mengikuti izin menu dari Pemilik atau izin cetak per orang. Tidak bisa membuka web lain.</span></div>
     <p class="small" style="margin:12px 0 0">${S.user ? `Masuk sebagai <b style="color:var(--ink)">${esc(S.user.email)}</b>.` : 'Anda melihat sebagai Pelihat. Klik Masuk di kanan atas untuk mengedit.'}</p></div>`;
-  if (!isOwner()) return header('Sistem', 'Pengaturan', 'Hak akses Monitoring APD.') + `<div class="grid">${role}</div>`;
+  if (!isOwner()) return header('Sistem', 'Pengaturan', 'Hak akses Monitoring APD.') + `<div class="grid">${role}${can() ? `<div class="card s6"><div class="ch"><div><div class="eyebrow">Bagikan</div><h2>Bagikan Link Pelihat</h2><p>Editor bisa mengundang Pelihat lewat Pusat Monitoring. Link hanya berlaku untuk email yang diundang.</p></div></div><a class="btn btn-p" style="text-decoration:none" href="${HUB}#akses:${APP}">Bagikan Link Pelihat →</a></div>` : ''}</div>`;
   const types = `<div class="card s12"><div class="ch"><div><div class="eyebrow">Master data</div><h2>Jenis APD</h2><p>Tambah jenis APD baru beserta ukuran/warnanya. Jenis yang sudah punya transaksi tidak bisa dihapus.</p></div><button type="button" class="btn btn-p" data-typeform="">+ Tambah Jenis APD</button></div>
     <div class="tw"><table class="t"><thead><tr><th></th><th>Kode</th><th>Nama</th><th>Ukuran / Warna</th><th>Stok</th><th>Min.</th><th>Aksi</th></tr></thead><tbody>${S.state.types.map((t) => { const z = stock(t.code); return `<tr><td style="width:46px"><span class="tico">${img(t.code)}</span></td><td class="b"><i class="dot" style="background:${esc(t.color)}"></i>${esc(t.code)}</td><td>${esc(t.label)}<div class="small">${esc(t.desc || '')}</div></td><td><span class="small">${esc(t.vlabel)}:</span> ${t.variants.map((v) => esc(vText(t.code, v))).join(', ') || '—'}</td><td class="b">${z.NEW + z.REUSE}</td><td>${Number(S.state.limits[t.code] || 0)}</td><td class="nw"><button type="button" class="btn btn-g btn-sm" data-typeform="${esc(t.code)}">Edit</button>${usedType(t.code) ? '' : ` <button type="button" class="btn btn-g btn-sm red" data-deltype="${esc(t.code)}">Hapus</button>`}</td></tr>`; }).join('')}</tbody></table></div></div>`;
+  const hubC = `<div class="card s6"><div class="ch"><div><div class="eyebrow">Bagikan</div><h2>Akses & Bagikan Link</h2><p>Link undangan Editor & Pelihat, daftar anggota, permintaan akses, serta izin menu & unduh Monitoring APD dikelola di Pusat Monitoring. Setiap link hanya berlaku untuk email yang diundang.</p></div></div><a class="btn btn-p" style="text-decoration:none" href="${HUB}#akses:${APP}">Buka Akses & Bagikan →</a></div>`;
   const whs = `<div class="card s6"><div class="ch"><div><div class="eyebrow">Lokasi stok</div><h2>Gudang</h2><p>Stok APD dihitung per gudang. Tambah gudang di jobsite agar stok tersebar tercatat rapi.</p></div></div>
     <form id="whForm" class="edf" novalidate><input id="whName" placeholder="Nama gudang, mis. Gudang C4" aria-label="Nama gudang baru" autocomplete="off"><button type="submit" class="btn btn-p">+ Tambah Gudang</button></form>
     <div class="edl">${WH.map((w) => { const n = TYPES.reduce((a, t) => { const z = stock(t, S.state, w); return a + z.NEW + z.REUSE; }, 0); return `<div><span class="em">${esc(w)}</span><span class="hs pr">${n} unit</span>${usedWh(w) || WH.length < 2 ? '' : `<button type="button" class="btn btn-g btn-sm red" data-delwh="${esc(w)}">Hapus</button>`}</div>`; }).join('')}</div></div>`;
@@ -1628,7 +1641,7 @@ function pageSetting() {
   const g = S.grants || [];
   const grants = `<div class="card s6"><div class="ch"><div><div class="eyebrow">Keamanan</div><h2>Izin Cetak Pelihat</h2><p>Pelihat yang login bisa meminta izin print/unduh. Setujui atau tolak di sini atau dari email.</p></div></div><div class="pgl2">${g.map((r) => `<div><span class="em">${esc(r.email)}</span><span class="hs ${r.status === 'approved' ? 'ok' : r.status === 'pending' ? 'hd' : 'no'}">${r.status === 'approved' ? 'Disetujui' : r.status === 'pending' ? 'Menunggu' : 'Ditolak'}</span>${r.status !== 'approved' ? `<button type="button" class="btn btn-p btn-sm" data-grant="approved|${esc(r.email)}">Setujui</button>` : ''}${r.status !== 'denied' ? `<button type="button" class="btn btn-g btn-sm red" data-grant="denied|${esc(r.email)}">${r.status === 'approved' ? 'Cabut' : 'Tolak'}</button>` : ''}<small>Diminta ${new Date(r.requested_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })}</small></div>`).join('') || '<div class="small">Belum ada permintaan.</div>'}</div></div>`;
   const data = `<div class="card s6"><div class="ch"><div><div class="eyebrow">Data</div><h2>Download & Backup</h2><p>Excel lengkap (ringkasan, stok per gudang, karyawan, permintaan, penerimaan, pengembalian, mutasi, koreksi, jadwal ganti) dan backup .json.</p></div></div><div class="mtools"><button type="button" class="btn btn-p" id="xlsBtn">Download Excel</button><button type="button" class="btn btn-g" id="bkBtn">Download Backup</button><button type="button" class="btn btn-g" id="rsBtn">Pulihkan dari Backup</button></div><input type="file" id="rsIn" accept=".json,application/json" hidden></div>`;
-  return header('Sistem', 'Pengaturan', 'Jenis APD, gudang, akses, link Pelihat, izin cetak, dan data Monitoring APD.') + `<div class="grid">${types}</div><div class="grid">${whs}${editors}${share}${grants}${role}${data}</div>`;
+  return header('Sistem', 'Pengaturan', 'Jenis APD, gudang, akses, link Pelihat, izin cetak, dan data Monitoring APD.') + `<div class="grid">${types}</div><div class="grid">${hubC}${whs}${grants}${role}${data}</div>`;
 }
 
 // ---------- form & modal ----------
@@ -1815,7 +1828,7 @@ function exportExcel() {
 function download(name, text) { const u = URL.createObjectURL(new Blob([text], { type: 'application/json' })); const a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 3000); }
 
 // ---------- Pelihat: watermark, anti-screenshot, izin cetak ----------
-const PRINT_OK = () => can() || (S.grant && S.grant.status === 'approved');
+const PRINT_OK = () => isOwner() || permOf(ui.page, 'd') || (!can() && !!S.grant && S.grant.status === 'approved');
 function wmPaint() {
   const d = new Date(), p = (n) => String(n).padStart(2, '0'), who = (S.user && S.user.email) || 'Pelihat · tanpa login';
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="380" height="220"><g transform="rotate(-22 190 110)" font-family="Plus Jakarta Sans,Segoe UI,sans-serif" text-anchor="middle" fill="#1E1B3A" fill-opacity=".085"><text x="190" y="100" font-size="17" font-weight="800">MONITORING APD · RAHASIA</text><text x="190" y="126" font-size="13" font-weight="600">${esc(who)} · ${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}</text></g></svg>`;
@@ -1827,6 +1840,7 @@ window.addEventListener('blur', shieldOn);
 document.addEventListener('visibilitychange', () => { if (document.hidden) shieldOn(); });
 window.addEventListener('focus', () => setTimeout(() => { $('shield').hidden = true; }, 250));
 function askPrint() {
+  if (can()) { modal(`${mh('Print & unduh', 'Dimatikan di menu ini')}<p class="small">Pemilik tidak mengizinkan print / unduh di menu ini untuk Editor.</p><form id="ap0">${actions('Tutup')}</form>`); $('ap0').onsubmit = (e) => { e.preventDefault(); closeModal(); }; return; }
   if (!S.user) {
     modal(`${mh('Izin cetak', 'Print & unduh perlu izin Pemilik')}<p class="small">Sebagai Pelihat, Anda hanya bisa melihat. Masuk dengan email Anda, lalu kirim permintaan izin ke Pemilik.</p><form id="ap1">${actions('Masuk')}</form>`);
     $('ap1').onsubmit = (e) => { e.preventDefault(); closeModal(); openLogin(); }; return;
@@ -1855,11 +1869,17 @@ window.addEventListener('beforeprint', () => { if (!PRINT_OK()) document.body.cl
 // ---------- kunci & login ----------
 function lockScreen() {
   let el = $('lockScr');
-  if (!el) { document.body.insertAdjacentHTML('beforeend', '<div id="lockScr" role="dialog" aria-modal="true" aria-labelledby="lockT"><div class="lk"><span class="lkm">M</span><h2 id="lockT"></h2><p id="lockP"></p><button type="button" class="btn btn-p" id="lockIn">Masuk</button></div></div>'); el = $('lockScr'); }
-  $('lockT').textContent = SHARE_KEY ? 'Link ini sudah tidak berlaku' : 'Akses terbatas';
-  $('lockP').innerHTML = (SHARE_KEY ? 'Pemilik sudah mengganti link Monitoring APD. Minta link terbaru kepada Pemilik.' : 'Monitoring APD hanya bisa dibuka lewat link dari Pemilik, atau oleh Editor yang sudah terdaftar.') + (S.user ? `<br><span class="small">Masuk sebagai ${esc(S.user.email)} (belum terdaftar di Monitoring APD).</span>` : '');
-  $('lockIn').hidden = !!S.user; el.hidden = false; document.body.classList.add('locked');
+  if (!el) { document.body.insertAdjacentHTML('beforeend', `<div id="lockScr" role="dialog" aria-modal="true" aria-labelledby="lockT"><div class="lk"><span class="lkm">M</span><h2 id="lockT"></h2><p id="lockP"></p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button type="button" class="btn btn-p" id="lockIn">Masuk</button><button type="button" class="btn btn-p" id="lockAsk" hidden>Minta Akses</button><a class="btn btn-g" href="${HUB}" style="text-decoration:none">Pusat Monitoring</a></div></div></div>`); el = $('lockScr'); }
+  $('lockT').textContent = S.user ? 'Belum punya akses ke Monitoring APD' : 'Masuk untuk membuka';
+  $('lockP').innerHTML = S.user ? `Akun <b>${esc(S.user.email)}</b> belum terdaftar di Monitoring APD. Buka link undangan yang dikirim ke email Anda, atau klik <b>Minta Akses</b> agar Pemilik/Editor menyetujuinya.${S.asked ? '<br><b>Permintaan sudah terkirim.</b> Muat ulang setelah disetujui.' : ''}` : 'Monitoring APD hanya bisa dibuka oleh email yang diundang Pemilik atau Editor. Masuk dengan email Anda, atau buka dari <b>Pusat Monitoring</b>.';
+  $('lockIn').hidden = !!S.user; $('lockAsk').hidden = !S.user || S.asked; el.hidden = false; document.body.classList.add('locked');
 }
+document.addEventListener('click', async (e) => {
+  if (!e.target.closest('#lockAsk')) return; e.stopPropagation();
+  const { data, error } = await S.sb.rpc('kta_access_ask', { p_app: APP, p_note: null });
+  if (error) { toast('Gagal mengirim permintaan: ' + error.message, true); return; }
+  S.asked = true; toast(data === 'member' ? 'Akun ini sudah punya akses. Muat ulang halaman.' : 'Permintaan akses terkirim ke Pemilik/Editor.'); lockScreen();
+}, true);
 function unlock() { const el = $('lockScr'); if (el) el.hidden = true; document.body.classList.remove('locked'); }
 function openLogin() {
   modal(`${mh('Masuk', 'Masuk ke Monitoring')}<p class="small">Editor: gunakan email yang didaftarkan Pemilik. Isi password jika akun sudah punya; kosongkan untuk menerima <b>link masuk</b> lewat email. Login berlaku juga di web Monitoring lain.</p><form id="lgForm"><div class="fgrid"><div class="fld full"><label for="lg_e">Email</label><input id="lg_e" type="email" autocomplete="email" required placeholder="nama@email.com"></div><div class="fld full"><label for="lg_p">Password (opsional)</label><input id="lg_p" type="password" autocomplete="current-password"></div></div>${actions('Masuk')}</form>`);

@@ -3299,7 +3299,7 @@ renameForm = function (kind, sec, grp) {
 let PRINT_OK = false;            // set true by the web adapter when the Pemilik approved this viewer
 let GUARD_WHO = '';              // email shown in the watermark (web adapter fills it after login)
 const LOCK_SEL = '#printBtn,[data-oexp],#xlsxBtn,#bkBtn,#csvPel';
-const guardFree = () => CAN_EDIT || PRINT_OK;
+const guardFree = () => (typeof DL_OK === 'function' ? DL_OK() : (CAN_EDIT || PRINT_OK));
 document.body.insertAdjacentHTML('beforeend', `<div id="wm" aria-hidden="true"></div>
 <div id="shield" hidden><div><b>Tampilan disembunyikan</b><span>Screenshot dan rekam layar tidak diizinkan untuk Pelihat. Klik di sini untuk melanjutkan.</span></div></div>
 <div id="nopr"><b>Monitoring Manpower</b><br>Cetak tidak diizinkan. Minta izin cetak ke Pemilik melalui tombol Print di web.</div>`);
@@ -3540,12 +3540,27 @@ if (!PROJ.sites && PROJ.cfg) PARSE_CFG = PROJ.cfg;
 const cacheKey = () => WEB_ID === 'main' ? 'kta-web-cache' : 'kta-web-cache:' + WEB_ID;
 const WEB = { sb: null, user: null, role: 'viewer', ver: null, editors: null, edErr: null, ready: false, offline: false, empty: false, grant: null, grants: null, gch: null };
 const WEB_PRINT = 'kta_print_grants';
-// link khusus Pelihat: ?k=<kunci proyek>. Disimpan per proyek di browser ini, lalu dihapus dari alamat.
-let SHARE_KEY = '';
+// Link anonim ?k= sudah tidak dipakai: semua orang wajib masuk dengan email yang diundang (Pusat Monitoring).
+const SHARE_KEY = '';
+const HUB = '../';
 (function () {
-  const sk = 'kta-share:' + PROJ.app;
-  try { const u = new URL(location.href); const k = u.searchParams.get('k'); if (k) { localStorage.setItem(sk, k); u.searchParams.delete('k'); history.replaceState(null, '', u.pathname + u.search + u.hash); } SHARE_KEY = localStorage.getItem(sk) || ''; } catch (e) {}
+  try { localStorage.removeItem('kta-share:' + PROJ.app); const u = new URL(location.href); if (u.searchParams.has('k')) { u.searchParams.delete('k'); history.replaceState(null, '', u.pathname + u.search + u.hash); } } catch (e) {}
 })();
+// izin menu & unduh dari Pemilik (Pusat Monitoring → Akses & Bagikan → Izin Menu)
+let PERMS = {};
+const PERM_FIXED = ['dashboard', 'setting'];
+function permOf(id, k) {
+  const r = WEB.role; if (r === 'owner') return true; if (r !== 'editor' && r !== 'viewer') return false;
+  if (k === 'v' && PERM_FIXED.includes(id)) return true;
+  const p = (PERMS[r] || {})[id]; if (p && typeof p[k] === 'boolean') return p[k];
+  return k === 'v' ? true : r === 'editor';
+}
+function DL_OK() { try { if (!WEB.ready) return CAN_EDIT || PRINT_OK; return IS_OWNER || permOf(ui.page, 'd') || (!CAN_EDIT && PRINT_OK); } catch (e) { return CAN_EDIT || PRINT_OK; } }
+async function loadPerms() {
+  PERMS = {}; if (!WEB.sb || !WEB.user || WEB.role === 'none') return;
+  const { data } = await WEB.sb.from('kta_app_perms').select('perms').eq('app_id', WEB_ROLE_APP).maybeSingle();
+  PERMS = (data && data.perms) || {};
+}
 IS_TOP = true;
 DL = { async save({ filename, data }) {
   const blob = data instanceof Blob ? data : new Blob([data], { type: /\.csv$/i.test(filename) ? 'text/csv;charset=utf-8' : /\.json$/i.test(filename) ? 'application/json' : 'application/octet-stream' });
@@ -3599,21 +3614,30 @@ function lockWeb() {
   if (CAN_EDIT) return;
   try { localStorage.removeItem(cacheKey()); } catch (e) {}
   let el = document.getElementById('lockScr');
-  if (!el) { document.body.insertAdjacentHTML('beforeend', '<div id="lockScr" role="dialog" aria-modal="true" aria-labelledby="lockT"><div class="lk"><span class="lkm">M</span><h2 id="lockT"></h2><p id="lockP"></p><button type="button" class="btn btn-p" id="lockIn">Masuk</button></div></div>'); el = document.getElementById('lockScr'); }
-  document.getElementById('lockT').textContent = SHARE_KEY ? 'Link ini sudah tidak berlaku' : 'Akses terbatas';
-  document.getElementById('lockP').innerHTML = (SHARE_KEY ? 'Pemilik sudah mengganti link web ini. Minta link terbaru kepada Pemilik.' : 'Web ini hanya bisa dibuka lewat link yang dibagikan Pemilik, atau oleh Editor yang sudah terdaftar.') + (WEB.user ? `<br><span class="small">Masuk sebagai ${esc(WEB.user.email)} (belum terdaftar di proyek ini).</span>` : '');
+  if (!el) { document.body.insertAdjacentHTML('beforeend', '<div id="lockScr" role="dialog" aria-modal="true" aria-labelledby="lockT"><div class="lk"><span class="lkm">M</span><h2 id="lockT"></h2><p id="lockP"></p><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button type="button" class="btn btn-p" id="lockIn">Masuk</button><button type="button" class="btn btn-p" id="lockAsk" hidden>Minta Akses</button><a class="btn btn-g" href="' + HUB + '" style="text-decoration:none">Pusat Monitoring</a></div></div></div>'); el = document.getElementById('lockScr'); }
+  document.getElementById('lockT').textContent = WEB.user ? 'Belum punya akses ke web ini' : 'Masuk untuk membuka';
+  document.getElementById('lockP').innerHTML = WEB.user
+    ? `Akun <b>${esc(WEB.user.email)}</b> belum terdaftar di ${esc(PROJ.title || 'web ini')}. Buka link undangan yang dikirim ke email Anda, atau klik <b>Minta Akses</b> agar Pemilik/Editor menyetujuinya.${WEB.asked ? '<br><b>Permintaan sudah terkirim.</b> Halaman terbuka otomatis setelah disetujui (muat ulang).' : ''}`
+    : `${esc(PROJ.title || 'Web ini')} hanya bisa dibuka oleh email yang diundang Pemilik atau Editor. Masuk dengan email Anda, atau buka dari <b>Pusat Monitoring</b>.`;
   document.getElementById('lockIn').hidden = !!WEB.user;
+  document.getElementById('lockAsk').hidden = !WEB.user || !!WEB.asked;
   el.hidden = false; document.body.classList.add('locked');
 }
+document.addEventListener('click', async (e) => {
+  if (!e.target.closest('#lockAsk')) return; e.stopPropagation();
+  const { data, error } = await WEB.sb.rpc('kta_access_ask', { p_app: WEB_ROLE_APP, p_note: null });
+  if (error) { toast('Gagal mengirim permintaan: ' + error.message, true); return; }
+  WEB.asked = true; toast(data === 'member' ? 'Akun ini sudah punya akses. Muat ulang halaman.' : 'Permintaan akses terkirim ke Pemilik/Editor.'); lockWeb();
+}, true);
 function unlockWeb() { const el = document.getElementById('lockScr'); if (el) el.hidden = true; document.body.classList.remove('locked'); }
 document.addEventListener('click', (e) => { if (e.target.closest('#lockIn')) { e.stopPropagation(); openLogin(); } }, true);
 async function webRole() {
   const email = ((WEB.user && WEB.user.email) || '').trim().toLowerCase();
-  if (!email) return 'viewer';
-  const r = await WEB.sb.rpc('kta_web_role_for', { app: WEB_ROLE_APP });
-  if (!r.error && typeof r.data === 'string') return r.data;
+  if (!email) return 'none';
+  const r = await WEB.sb.rpc('kta_member_role', { p_app: WEB_ROLE_APP });
+  if (!r.error && typeof r.data === 'string') return r.data || 'none';
   const q = await WEB.sb.from('app_access_roles').select('role').eq('app_id', WEB_ROLE_APP).eq('email', email).maybeSingle();
-  return q.error ? 'viewer' : ((q.data && q.data.role) || 'viewer');
+  return q.error ? 'none' : ((q.data && q.data.role) || 'none');
 }
 async function applyRole() {
   WEB.role = await webRole();
@@ -3621,12 +3645,13 @@ async function applyRole() {
   CAN_EDIT = WEB.role === 'owner' || WEB.role === 'editor';
   ROLE = IS_OWNER ? 'Pemilik · Editor' : CAN_EDIT ? 'Editor' : 'Pelihat';
   ASSETS = CAN_EDIT ? WEB_ASSETS : null;
-  { const tp = document.getElementById('toPortal'); if (tp) tp.hidden = !CAN_EDIT; }
+  { const tp = document.getElementById('toPortal'); if (tp) tp.hidden = WEB.role === 'none'; }
+  await loadPerms();
   WEB.editors = null; WEB.grants = null;
   GUARD_WHO = WEB.user ? WEB.user.email : '';
   await loadGrant();
   WEB.mail = null;
-  if (IS_OWNER) { loadEditors(); loadGrants(); loadMail(); loadShare(); }
+  if (IS_OWNER) { loadGrants(); loadMail(); }
   watchGrants();
   authBtn();
   render();
@@ -3716,11 +3741,10 @@ function pageSetting(D) {
   <div class="grid">
     <div class="card s6"><div class="ch"><div><div class="eyebrow">Akses</div><h2>Pemilik & Editor</h2></div><span class="pill ${CAN_EDIT ? 'live' : ''}">${ROLE}</span></div>
       <div class="role"><b>Pemilik</b><span>${esc(WEB_OWNER)}. Bisa mengedit semua data dan menentukan siapa saja editornya.</span></div>
-      <div class="role"><b>Editor</b><span>Email yang didaftarkan Pemilik. Masuk lewat tombol Masuk, lalu bisa mengubah data posisi yang sudah ada, mengelola pelamar, upload berkas, dan menata Struktur Organisasi. Menambah / menghapus posisi, nama section / sub-section / jabatan baru, sinkron Excel, dan pulihkan backup hanya oleh Pemilik.</span></div>
-      <div class="role"><b>Pelihat</b><span>Orang yang membuka web lewat <b>Link untuk Pelihat</b> dari Pemilik. Hanya bisa melihat proyek ini (tidak bisa membuka Portal atau proyek lain) dan mencari. Hanya bisa melihat dan mencari. Print, PDF/PNG, dan unduhan dikunci sampai Pemilik menyetujui permintaan izin cetaknya. Tampilan diberi watermark dan disembunyikan saat mencoba screenshot.</span></div>
-      <p class="small" style="margin:12px 0 0">${WEB.user ? `Masuk sebagai <b style="color:var(--ink)">${esc(WEB.user.email)}</b> — ${IS_OWNER ? '<b style="color:var(--good)">Pemilik</b>' : CAN_EDIT ? '<b style="color:var(--good)">Editor</b>' : '<b>Pelihat</b> (email ini belum didaftarkan sebagai Editor)'}.` : 'Anda melihat sebagai <b>Pelihat</b>. Klik <b>Masuk</b> di pojok kanan atas untuk mengedit.'}</p></div>
-    ${shareCard()}
-    ${editorsCard()}
+      <div class="role"><b>Editor</b><span>Email yang didaftarkan Pemilik. Diundang lewat link Editor dari Pemilik. Bisa membagikan link Pelihat, mengubah data posisi yang sudah ada, mengelola pelamar, upload berkas, dan menata Struktur Organisasi. Menambah / menghapus posisi, nama section / sub-section / jabatan baru, sinkron Excel, dan pulihkan backup hanya oleh Pemilik.</span></div>
+      <div class="role"><b>Pelihat</b><span>Email yang diundang lewat <b>link Pelihat</b> (wajib masuk). Hanya melihat menu yang diizinkan Pemilik di proyek ini, tidak bisa membuka proyek lain. Print & unduhan mengikuti izin menu, atau setelah Pemilik menyetujui permintaan izin cetaknya. Tampilan diberi watermark dan disembunyikan saat mencoba screenshot.</span></div>
+      <p class="small" style="margin:12px 0 0">${WEB.user ? `Masuk sebagai <b style="color:var(--ink)">${esc(WEB.user.email)}</b> — ${IS_OWNER ? '<b style="color:var(--good)">Pemilik</b>' : CAN_EDIT ? '<b style="color:var(--good)">Editor</b>' : '<b>Pelihat</b> (diundang sebagai Pelihat)'}.` : 'Anda melihat sebagai <b>Pelihat</b>. Klik <b>Masuk</b> di pojok kanan atas untuk mengedit.'}</p></div>
+    ${accessCard()}
     ${printCard()}
     ${mailCard()}
     <div class="card s6"><div class="ch"><div><div class="eyebrow">Sinkronisasi</div><h2>Sinkronkan Excel</h2><p>Ganti seluruh data web dengan isi file Excel Monitoring Manpower KMB (sheet DASHBOARD, MPP KMB, MP Aktif, MP Out). Pelamar yang hilang dari Keterangan tetap disimpan sebagai riwayat.</p></div></div>
@@ -3772,7 +3796,7 @@ async function webInit() {
   try { const { data } = await WEB.sb.auth.getSession(); WEB.user = (data && data.session && data.session.user) || null; } catch (e) {}
   try { await webLoad(); } catch (e) { toast('Data terbaru belum bisa dimuat: ' + ((e && e.message) || 'periksa koneksi.'), true); }
   await applyRole();
-  WEB.ready = true;
+  WEB.ready = true; render();
   if (WEB.noAccess && !CAN_EDIT) lockWeb();
   setInterval(() => { if (!CAN_EDIT && !document.hidden && WEB.sb) { webLoad().catch(() => {}); if (PROJ.sites) loadAllSites(); } }, 60000);
   if (CAN_EDIT && WEB.empty && !WEB.noAccess) await commit(() => {}, 'Data awal tersimpan di server.');
@@ -3819,6 +3843,7 @@ function watchGrants() {
 }
 function PRINT_ASK() {
   const info = (title, intro, submit, fn) => openForm({ eyebrow: 'Izin cetak', title, intro, values: {}, fields: [], submit, onSave: fn || (() => true) });
+  if (CAN_EDIT) { info('Print & unduh dimatikan', 'Pemilik tidak mengizinkan print / unduh di menu ini untuk Editor. Hubungi Pemilik bila perlu.', 'Tutup'); return; }
   if (!WEB.sb) { info('Cetak & unduh perlu izin Pemilik', 'Server belum terhubung. Periksa koneksi lalu muat ulang.', 'Tutup'); return; }
   if (!WEB.user) { info('Cetak & unduh perlu izin Pemilik', 'Sebagai Pelihat, Anda hanya bisa melihat. Masuk dengan email Anda dulu, lalu kirim permintaan izin cetak ke Pemilik.', 'Masuk', () => { setTimeout(openLogin, 50); return true; }); return; }
   const g = WEB.grant;
@@ -3917,6 +3942,16 @@ function grantPopup() {
     <p class="small" style="margin:12px 0 0">Bisa diubah kapan saja di Pengaturan → Izin Cetak Pelihat.</p></div>`;
   document.getElementById('modal').hidden = false;
 }
+const _renderPerm = render;
+render = function () {
+  if (WEB.ready && !permOf(ui.page, 'v')) ui.page = 'dashboard';
+  _renderPerm.apply(this, arguments);
+  if (!WEB.ready || IS_OWNER) return;
+  const nav = document.getElementById('nav'); if (!nav) return;
+  nav.querySelectorAll('[data-go]').forEach((b) => { b.hidden = !permOf(b.dataset.go, 'v'); });
+  nav.querySelectorAll('.lbl').forEach((l) => { let n = l.nextElementSibling, any = false; while (n && !n.classList.contains('lbl')) { if (!n.hidden) any = true; n = n.nextElementSibling; } l.hidden = !any; });
+};
+document.addEventListener('click', (e) => { const g = e.target.closest('[data-go]'); if (g && WEB.ready && !permOf(g.dataset.go, 'v')) { e.preventDefault(); e.stopPropagation(); toast('Menu ini tidak diizinkan untuk akun Anda.', true); } }, true);
 const _renderPg = render;
 render = function () {
   _renderPg.apply(this, arguments);
@@ -3967,7 +4002,7 @@ render = function () { _renderSite.apply(this, arguments); siteBar(); };
 // ---------- tautan kembali ke portal ----------
 (function () {
   const brand = document.querySelector('.side .brand');
-  if (brand && !document.getElementById('toPortal')) brand.insertAdjacentHTML('afterend', '<a id="toPortal" class="toportal" hidden href="../manpower-portal/">← Portal semua proyek</a>');
+  if (brand && !document.getElementById('toPortal')) brand.insertAdjacentHTML('afterend', '<a id="toPortal" class="toportal" hidden href="../">← Pusat Monitoring</a>');
 })();
 
 // ---------- mutasi antar jobsite (proyek dengan beberapa jobsite, mis. KMB) ----------
@@ -4209,7 +4244,12 @@ document.addEventListener('click', (e) => {
 }, true);
 document.addEventListener('change', (e) => { if (e.target.id === 'purgeOk') { const g = document.getElementById('purgeGo'); if (g) g.disabled = !e.target.checked; } });
 
-// ---------- Pemilik: link khusus Pelihat per proyek ----------
+// ---------- Akses & bagikan: dikelola di Pusat Monitoring ----------
+function accessCard() {
+  const staff = IS_OWNER || CAN_EDIT;
+  return `<div class="card s6"><div class="ch"><div><div class="eyebrow">Bagikan</div><h2>Akses & Bagikan Link</h2><p>${staff ? `Link undangan ${IS_OWNER ? 'Editor & Pelihat' : 'Pelihat'}, daftar anggota, permintaan akses${IS_OWNER ? ', dan izin menu & unduh' : ''} untuk ${esc(PROJ.short || PROJ.title)} dikelola di Pusat Monitoring. Setiap link hanya berlaku untuk email yang diundang.` : 'Akses web ini diatur Pemilik di Pusat Monitoring.'}</p></div></div>${staff ? `<a class="btn btn-p" style="text-decoration:none" href="${HUB}#akses:${WEB_ROLE_APP}">Buka Akses & Bagikan →</a>` : ''}</div>`;
+}
+// (lama) link khusus Pelihat ?k= — tidak dipakai lagi
 async function loadShare() {
   if (!IS_OWNER) return;
   const { data } = await WEB.sb.from('kta_share_links').select('key,updated_at').eq('app_id', WEB_ROLE_APP).maybeSingle();
