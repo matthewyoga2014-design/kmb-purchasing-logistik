@@ -11,8 +11,8 @@
  * 4. Buka https://matthewyoga2014-design.github.io/kmb-purchasing-logistik/monitoring-unit/ , masuk sebagai Pemilik, klik nama Anda di kanan atas,
  *    lalu tempel URL tadi di "Sambungkan Google Sheets".
  *
- * Aturan: siapa pun boleh membaca data. Menyimpan dari web hanya untuk akun yang
- * terdaftar sebagai Pemilik/Editor aplikasi "unit-monitoring" di portal (Supabase).
+ * Aturan: membaca data hanya untuk akun yang diundang (Pemilik/Editor/Pelihat aplikasi
+ * "unit-monitoring" di halaman utama Monitoring). Menyimpan hanya untuk Pemilik/Editor.
  * Edit langsung di spreadsheet mengikuti hak share Google Sheets.
  *
  * Dokumentasi: file bukti (foto/PDF) disimpan di Google Drive, folder
@@ -41,7 +41,10 @@ const TS_KEYS = { updatedAt: 1, waktu: 1 };
 const NUM_KEYS = { urut: 1, rencanaAwal: 1, rencana: 1, hm: 1, jarak: 1, lama: 1, baru: 1 };
 
 /* ---------------- web API ---------------- */
-function doGet() {
+function doGet(e) {
+  const who = verify_(e && e.parameter && e.parameter.token);
+  if (!who) return json_({ ok: false, error: 'not_signed_in' });
+  if (!who.role) return json_({ ok: false, error: 'forbidden', email: who.email });
   const cache = CacheService.getScriptCache();
   const hit = cache.get('state2');
   if (hit) return ContentService.createTextOutput('{"ok":true,"state":' + hit + '}').setMimeType(ContentService.MimeType.JSON);
@@ -77,16 +80,23 @@ function json_(o) {
 /* ---------------- cek login & peran (sama dengan portal) ---------------- */
 function verify_(token) {
   if (!token) return null;
+  const cache = CacheService.getScriptCache();
+  const key = 'vf_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token));
+  const hit = cache.get(key); if (hit) return JSON.parse(hit);
   const h = { apikey: SB_KEY, Authorization: 'Bearer ' + token };
   const r = UrlFetchApp.fetch(SB_URL + '/auth/v1/user', { headers: h, muteHttpExceptions: true });
   if (r.getResponseCode() !== 200) return null;
   const email = String((JSON.parse(r.getContentText()) || {}).email || '').toLowerCase();
   if (!email) return null;
-  if (email === OWNER_EMAIL) return { email: email, role: 'owner' };
-  const q = UrlFetchApp.fetch(SB_URL + '/rest/v1/app_access_roles?select=role&app_id=eq.' + APP + '&email=eq.' + encodeURIComponent(email), { headers: h, muteHttpExceptions: true });
-  let role = 'viewer';
-  try { const arr = JSON.parse(q.getContentText() || '[]'); if (arr[0] && arr[0].role) role = arr[0].role; } catch (err) {}
-  return { email: email, role: role };
+  let role = email === OWNER_EMAIL ? 'owner' : '';
+  if (!role) {
+    // peran dari sistem undangan (Pemilik/Editor/Pelihat); kosong = belum diundang
+    const q = UrlFetchApp.fetch(SB_URL + '/rest/v1/rpc/kta_member_role', { method: 'post', contentType: 'application/json', headers: h, payload: JSON.stringify({ p_app: APP }), muteHttpExceptions: true });
+    try { const v = JSON.parse(q.getContentText() || '""'); if (v === 'owner' || v === 'editor' || v === 'viewer') role = v; } catch (err) {}
+  }
+  const who = { email: email, role: role };
+  try { cache.put(key, JSON.stringify(who), 300); } catch (err) {}
+  return who;
 }
 
 /* ---------------- baca sheet ---------------- */

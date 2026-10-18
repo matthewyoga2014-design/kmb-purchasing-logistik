@@ -40,16 +40,18 @@ const PHASE2 = [
 const WEBS = [
   { key: 'mpp', title: 'Monitoring MPP Achievement All Jobsite', url: 'manpower-portal/', icon: 'miner', tile: 't1', show: () => MPP.some((p) => roleOf(p.app)) },
   { key: 'apd', title: 'Monitoring APD', url: 'monitoring-apd-kmb/', icon: 'vest', tile: 't2', show: () => !!roleOf('apd') },
-  { key: 'unit', title: 'Monitoring Unit & Mobilisasi', url: 'monitoring-unit/', icon: 'truck', tile: 't3', show: () => isOwner() },
-  { key: 'notulensi', title: 'Notulensi Meeting', url: 'notulensi/', icon: 'note', tile: 't4', show: () => isOwner() },
+  { key: 'unit', title: 'Monitoring Unit & Mobilisasi', url: 'monitoring-unit/', icon: 'truck', tile: 't3', show: () => !!roleOf('unit-monitoring') },
+  { key: 'notulensi', title: 'Notulensi Meeting', url: 'notulensi/', icon: 'note', tile: 't4', show: () => !!roleOf('notulensi') },
 ];
-const SUBS = [...MPP.map((s) => ({ ...s, portal: 'Monitoring MPP' })), { ...APD, portal: 'Monitoring APD' }];
+const SUBS = [...MPP.map((s) => ({ ...s, portal: 'Monitoring MPP' })), { ...APD, portal: 'Monitoring APD' },
+  { app: 'unit-monitoring', key: 'unit', name: 'Monitoring Unit', url: 'monitoring-unit/', portal: 'Monitoring Unit' },
+  { app: 'notulensi', key: 'notulensi', name: 'Notulensi', url: 'notulensi/', portal: 'Notulensi' }];
 const subOf = (app) => SUBS.find((s) => s.app === app);
 const MENUS = {
   mpp: [['dashboard', 'Dashboard', 1], ['mpp', 'MPP (Manpower Planning)'], ['pelamar', 'Data Pelamar'], ['org', 'Struktur Organisasi'], ['karyawan', 'MP Aktif & MP Out'], ['unit', 'Populasi Unit'], ['setting', 'Pengaturan · Download Excel & Backup', 1]],
   apd: [['dashboard', 'Dashboard', 1], ['requests', 'Permintaan APD'], ['people', 'Manpower Aktif & Detail APD'], ['out', 'Manpower Keluar'], ['history', 'Riwayat Transaksi'], ['guide', 'Tata Cara'], ['setting', 'Pengaturan · Download Excel', 1]],
 };
-const menusOf = (app) => MENUS[app === 'apd' ? 'apd' : 'mpp'];
+const menusOf = (app) => app === 'apd' ? MENUS.apd : ['kta-tra', 'bupr-ampah', 'mbj', 'kmb'].includes(app) ? MENUS.mpp : null;
 const ROLE_L = { owner: 'Pemilik', editor: 'Editor', viewer: 'Pelihat' };
 const S = { sb: null, user: null, apps: {}, loaded: false, pend: {}, invite: null, inviteRes: null, acc: {}, rows: null, apd: null };
 const ui = { page: 'home', app: '' };
@@ -304,7 +306,7 @@ function pageSet() {
   if (!list.find((s) => s.app === ui.app)) ui.app = list[0].app;
   const app = ui.app, r = roleOf(app), A = S.acc[app];
   if (!A) loadAccess(app);
-  const seg = `<div class="seg2 big" role="group" aria-label="Pilih web">${list.map((x) => `<button type="button" data-akses="${x.app}" aria-pressed="${x.app === app}">${esc((x.app === 'apd' ? 'APD' : 'MPP') + ' · ' + x.name)}${S.pend[x.app] ? ` <span class="ct">${S.pend[x.app]}</span>` : ''}</button>`).join('')}</div>`;
+  const seg = `<div class="seg2 big" role="group" aria-label="Pilih web">${list.map((x) => `<button type="button" data-akses="${x.app}" aria-pressed="${x.app === app}">${esc(x.portal === 'Monitoring MPP' ? 'MPP · ' + x.name : x.name)}${S.pend[x.app] ? ` <span class="ct">${S.pend[x.app]}</span>` : ''}</button>`).join('')}</div>`;
   const top = head('Akses & Bagikan', 'Pemilik membagikan link Editor atau Pelihat. Editor hanya bisa membagikan link Pelihat. Semua link wajib login dengan email yang diundang.') + `<div class="nb"><b>Ingin membagikan semua web sekaligus?</b> Satu link untuk satu email, langsung bisa membuka semua web yang dicentang. <button type="button" class="btn btn-p btn-s" data-shareall>Bagikan link menyeluruh</button></div>` + seg;
   if (!A || A.members === null) return top + '<div class="lock"><p>Memuat…</p></div>';
   const pend = A.reqs.filter((q) => q.status === 'pending');
@@ -312,7 +314,7 @@ function pageSet() {
   const memC = `<div class="scard"><div class="sch"><div><div class="eb2">Anggota</div><h2>Siapa yang punya akses</h2><p class="small">${r === 'owner' ? 'Ubah peran atau hapus akses. Menghapus juga mencabut undangan yang belum dipakai.' : 'Hanya Pemilik yang bisa mengubah peran atau menghapus anggota.'}</p></div><button type="button" class="btn btn-p btn-s" data-share="${app}">+ Bagikan link</button></div><div class="al">${A.members.map((m) => `<div><span class="em">${esc(m.email)}</span>${r === 'owner' && m.role !== 'owner' ? `<select data-mrole="${esc(m.email)}" aria-label="Peran ${esc(m.email)}"><option value="editor" ${m.role === 'editor' ? 'selected' : ''}>Editor</option><option value="viewer" ${m.role === 'viewer' ? 'selected' : ''}>Pelihat</option></select><button type="button" class="rm" data-mrm="${esc(m.email)}">Hapus</button>` : chip(m.role)}</div>`).join('')}</div></div>`;
   const st = (i) => i.revoked ? ['Dicabut', 'no'] : i.used_at ? ['Dipakai', 'ok'] : new Date(i.expires_at) < new Date() ? ['Kedaluwarsa', 'no'] : ['Aktif', 'hd'];
   const invC = `<div class="scard wide2"><div class="sch"><div><div class="eb2">Link</div><h2>Link Undangan</h2><p class="small">Setiap link terikat ke satu email. Cabut link yang belum dipakai jika salah kirim.</p></div></div><div class="tw2"><table class="tb2"><thead><tr><th>Email</th><th>Sebagai</th><th>Dibuat oleh</th><th>Dibuat</th><th>Status</th><th></th></tr></thead><tbody>${A.inv.map((i) => { const [l, c] = st(i); return `<tr><td><b>${esc(i.email)}</b></td><td>${ROLE_L[i.role]}</td><td>${esc(i.created_by)}</td><td class="nw">${when(i.created_at)}</td><td><span class="stt ${c}">${l}</span></td><td class="nw">${l === 'Aktif' ? `<button type="button" class="btn btn-g btn-s" data-copyinv="${esc(i.token)}">Salin</button> <button type="button" class="rm" data-revoke="${esc(i.token)}">Cabut</button>` : ''}</td></tr>`; }).join('') || '<tr><td colspan="6" class="small">Belum ada link undangan.</td></tr>'}</tbody></table></div></div>`;
-  return top + `<div class="sgrid">${reqC}${memC}${invC}${r === 'owner' ? permCard(app, A) : ''}<div class="scard wide2">${roleInfo()}</div></div>`;
+  return top + `<div class="sgrid">${reqC}${memC}${invC}${r === 'owner' && menusOf(app) ? permCard(app, A) : ''}<div class="scard wide2">${roleInfo()}</div></div>`;
 }
 function roleInfo() {
   return `<div class="sch"><div><div class="eb2">Peran</div><h2>Pemilik, Editor & Pelihat</h2></div></div><div class="role"><b>Pemilik</b><span>Semua hak: data, stok, persetujuan, link Editor/Pelihat, dan izin menu.</span></div><div class="role"><b>Editor</b><span>Mengisi & mengubah data di site yang diberikan, dan membagikan link Pelihat.</span></div><div class="role"><b>Pelihat</b><span>Hanya melihat menu yang diizinkan. Print & unduh mengikuti izin Pemilik.</span></div>`;

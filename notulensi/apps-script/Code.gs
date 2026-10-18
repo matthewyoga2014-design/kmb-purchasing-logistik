@@ -31,7 +31,7 @@ function doPost(e) {
   try {
     var req = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     var who = auth_(req.token);
-    var role = roleOf_(who.email);
+    var role = roleOf_(who.email, req.token);
     if (role === 'none') return out_({ ok: false, code: 'forbidden', email: who.email, error: 'Akun ini belum didaftarkan Pemilik.' });
     var canWrite = role === 'owner' || role === 'editor';
     var op = req.op;
@@ -128,9 +128,26 @@ function auth_(token) {
 function roles_() {
   try { return JSON.parse(PropertiesService.getScriptProperties().getProperty('roles') || '{}'); } catch (e) { return {}; }
 }
-function roleOf_(email) {
+function roleOf_(email, token) {
   if (email === OWNER) return 'owner';
+  // 1) sistem undangan di halaman utama Monitoring (app "notulensi"), 2) daftar lama di web Notulensi
+  var sb = sbRole_(token);
+  if (sb === 'editor' || sb === 'viewer' || sb === 'owner') return sb;
   return roles_()[email] || 'none';
+}
+function sbRole_(token) {
+  if (!token) return '';
+  var cache = CacheService.getScriptCache();
+  var key = 'rl_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token));
+  var hit = cache.get(key); if (hit !== null) return hit;
+  var v = '';
+  try {
+    var res = UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/rpc/kta_member_role', { method: 'post', contentType: 'application/json',
+      headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + token }, payload: JSON.stringify({ p_app: 'notulensi' }), muteHttpExceptions: true });
+    if (res.getResponseCode() === 200) v = String(JSON.parse(res.getContentText() || '""') || '');
+  } catch (e) {}
+  cache.put(key, v, 300);
+  return v;
 }
 
 /* ---------- Drive ---------- */
