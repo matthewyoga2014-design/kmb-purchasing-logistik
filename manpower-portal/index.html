@@ -195,12 +195,25 @@ body.locked #prBtn, body.locked #dlBtn { display: none !important; }
   body.nop #nopr { display: block !important; margin: 60mm auto 0; text-align: center; font: 600 16px/1.6 "Plus Jakarta Sans", sans-serif; color: #1E1B3A; }
 }
 #toast { position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%); z-index: 60; background: var(--ink); color: #fff; padding: 11px 18px; border-radius: 12px; font-size: 13.5px; font-weight: 600; max-width: calc(100vw - 32px); }
+a.hb { text-decoration: none; }
+.acts { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; border-top: 1px dashed var(--line); padding-top: 12px; }
+.acts .chip { margin-right: auto; }
+.ab { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: #fff; color: var(--ink-2); border-radius: 10px; height: 34px; padding: 0 12px; font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer; text-decoration: none; }
+.ab:hover { background: var(--p-soft); color: var(--p-ink); }
+.chip.vw { background: #FEF3C7; color: #92400E; }
+.dlg .fl { display: block; font-size: 12.5px; font-weight: 700; color: var(--ink-2); margin: 8px 0 6px; }
+.seg2 { display: inline-flex; flex-wrap: wrap; gap: 4px; background: #F3F2FA; border-radius: 12px; padding: 4px; margin-bottom: 6px; }
+.seg2 button { border: 0; background: none; padding: 8px 12px; border-radius: 9px; font: inherit; font-size: 13px; font-weight: 700; color: var(--ink-2); cursor: pointer; }
+.seg2 button[aria-pressed="true"] { background: #fff; color: var(--p-ink); box-shadow: 0 2px 8px rgba(30,27,58,.08); }
+.shl { display: flex; gap: 8px; margin-top: 12px; } .shl input { margin: 0 !important; }
+.dlg .row.l { justify-content: flex-start; margin-top: 8px; flex-wrap: wrap; } .dlg .row.l .btn { text-decoration: none; font-size: 13px; }
+.dlg .row { margin-top: 12px; }
 </style></head>
 <body>
 <div class="side-l" aria-hidden="true"></div><div class="side-r" aria-hidden="true"></div><div class="scene" aria-hidden="true"></div><div class="bscene" aria-hidden="true"></div><div class="helmet" aria-hidden="true"></div>
 <header class="top">
   <a href="../" class="lg" title="Kembali ke halaman utama Monitoring" style="text-decoration:none">M</a><a href="../" class="bn" style="text-decoration:none;color:inherit"><b>Monitoring</b></a>
-  <div class="hbtns"><button type="button" class="hb" id="prBtn" title="Print halaman portal"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Print</span></button><button type="button" class="hb" id="dlBtn" title="Pengaturan: akses unduhan & unduh data"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Pengaturan</span></button></div>
+  <div class="hbtns"><a class="hb" href="../" title="Kembali ke halaman utama Monitoring"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Kembali</span></a><button type="button" class="hb" id="prBtn" title="Print halaman portal"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Print</span></button><button type="button" class="hb" id="dlBtn" title="Pengaturan: akses unduhan & unduh data"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Pengaturan</span></button></div>
   <div class="who" id="who"><button type="button" id="whoBtn" aria-haspopup="menu" aria-expanded="false"><span class="av"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c1.2-3.6 4.2-5.5 8-5.5s6.8 1.9 8 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span class="wt"><small id="whoL">Belum masuk</small><b id="whoE">Masuk</b></span><svg class="wt" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="menu" id="menu" role="menu" hidden></div></div>
 </header>
@@ -301,6 +314,7 @@ function cardHtml(p, s, per, last) {
       <div class="bar" title="${s ? s.pct : 0}% terisi"><i style="width:${s ? s.pct : 0}%"></i></div>
       ${sites}
       <div class="meta"><span>${s ? s.pct : 0}% MPP terisi</span><span class="tm">${I.clock}Diperbarui ${fmtDate(last)}</span></div>
+      ${actsHtml(p)}
     </div></article>`;
 }
 function skeleton() { document.getElementById('tot').innerHTML = totHtml(null); document.getElementById('grid').innerHTML = PROJECTS.map((p) => cardHtml(p, null, null, null)).join(''); }
@@ -358,11 +372,42 @@ async function loadPerm() {
     const em = USER.email.toLowerCase();
     if (em === OWNER) { CAN = true; IS_OWNER = true; DLAPPS = Object.values(APP_OF); }
     else { try { const r = await SB.from('kta_download_access').select('app_id').eq('email', em); DLAPPS = (r.data || []).map((x) => x.app_id); } catch (e) {} }
-    try { const r = await SB.from('app_access_roles').select('app_id,role').eq('email', em); ROLES = r.data || []; if (ROLES.some((x) => x.role === 'owner' || x.role === 'editor')) CAN = true; } catch (e) {}
+    try { const r = await SB.rpc('kta_my_apps'); ROLES = r.data || []; if (ROLES.some((x) => x.role === 'owner' || x.role === 'editor')) CAN = true; } catch (e) {}
     try { const g = await SB.from('kta_print_grants').select('status').eq('email', em).eq('status', 'approved'); if ((g.data || []).length) CAN = true; } catch (e) {}
   }
   guard(); setRender();
+  if (ROWS && ROWS.length) render(ROWS);
 }
+// ---------- bagikan link per site ----------
+const ROLE_L = { owner: 'Pemilik', editor: 'Editor', viewer: 'Pelihat' };
+function roleFor(key) { if (IS_OWNER) return 'owner'; const r = (ROLES || []).find((x) => x.app_id === APP_OF[key]); return r ? r.role : ''; }
+function actsHtml(p) {
+  const r = roleFor(p.key); if (!r) return '';
+  const staff = r === 'owner' || r === 'editor';
+  return `<div class="acts"><span class="chip ${r === 'owner' ? 'own' : r === 'viewer' ? 'vw' : ''}">${ROLE_L[r]}</span>${staff ? `<button type="button" class="ab" data-shr="${p.key}"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 11 21 3l-8 18-2-8z"/></svg>Bagikan link</button><a class="ab" href="../#akses:${APP_OF[p.key]}">Akses</a>` : ''}</div>`;
+}
+function shareOpen(key) {
+  const P = PROJECTS.find((x) => x.key === key), r = roleFor(key), app = APP_OF[key]; if (!P || (r !== 'owner' && r !== 'editor')) return;
+  let m = document.getElementById('shModal'); if (!m) { document.body.insertAdjacentHTML('beforeend', '<div class="modal" id="shModal" hidden><div class="dlg wide" role="dialog" aria-modal="true" aria-labelledby="shT" id="shDlg"></div></div>'); m = document.getElementById('shModal'); }
+  document.getElementById('shDlg').innerHTML = `<h3 id="shT">Bagikan link · ${esc(P.name)}</h3><p>Link hanya berlaku untuk <b>email yang Anda isi</b>. Jika diteruskan ke orang lain, orang itu harus minta izin dulu.${r === 'editor' ? ' Sebagai Editor, Anda hanya bisa membagikan link <b>Pelihat</b>.' : ''}</p>
+    <form id="shF" novalidate><label class="fl" for="shE">Email penerima</label><input type="email" id="shE" placeholder="nama@email.com" autocomplete="off" required>
+    <label class="fl">Bagikan sebagai</label><div class="seg2">${r === 'owner' ? '<button type="button" data-role="editor" aria-pressed="false">Editor (bisa mengubah)</button>' : ''}<button type="button" data-role="viewer" aria-pressed="true">Pelihat (hanya melihat)</button></div>
+    <div id="shOut"></div><div class="row"><button type="button" class="btn btn-g" id="shX">Tutup</button><button type="submit" class="btn btn-p">Buat Link</button></div></form>`;
+  m.hidden = false; setTimeout(() => document.getElementById('shE').focus(), 30);
+  let role = 'viewer';
+  document.getElementById('shF').addEventListener('click', (e) => { const b = e.target.closest('[data-role]'); if (b) { role = b.dataset.role; document.querySelectorAll('#shF [data-role]').forEach((x) => x.setAttribute('aria-pressed', x === b)); } if (e.target.closest('#shX')) m.hidden = true; if (e.target.closest('#shCp')) { const u = document.getElementById('shU'); navigator.clipboard.writeText(u.value).then(() => toast('Link disalin.'), () => { u.select(); toast('Tekan Ctrl+C untuk menyalin.'); }); } });
+  document.getElementById('shF').onsubmit = async (e) => {
+    e.preventDefault(); const em = document.getElementById('shE').value.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { toast('Format email belum benar.'); return; }
+    const { data, error } = await SB.rpc('kta_invite_create', { p_app: app, p_email: em, p_role: role });
+    if (error) { toast('Gagal: ' + error.message); return; }
+    const base = new URL('../', location.href).href, link = base + '?i=' + data;
+    const body = `Halo,\n\nAnda diundang sebagai ${ROLE_L[role]} di Monitoring MPP · ${P.name}.\nBuka link berikut lalu masuk dengan email ${em}:\n${link}\n\nLink hanya berlaku untuk email ini dan aktif 30 hari.`;
+    document.getElementById('shOut').innerHTML = `<div class="shl"><input type="text" id="shU" readonly value="${esc(link)}" aria-label="Link undangan"><button type="button" class="btn btn-p" id="shCp">Salin Link</button></div><div class="row l"><a class="btn btn-g" href="mailto:${esc(em)}?subject=${encodeURIComponent('Undangan ' + ROLE_L[role] + ' Monitoring MPP ' + P.name)}&body=${encodeURIComponent(body)}">Kirim lewat email</a><a class="btn btn-g" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(body)}">Kirim lewat WhatsApp</a></div><p class="small">Link untuk <b>${esc(em)}</b> sebagai <b>${ROLE_L[role]}</b>, aktif 30 hari.</p>`;
+    document.getElementById('shE').value = ''; document.querySelector('#shF [type=submit]').textContent = 'Buat Link Lain';
+  };
+}
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-shr]'); if (b) { e.preventDefault(); shareOpen(b.dataset.shr); } if (e.target.id === 'shModal') e.target.hidden = true; });
 function wmPaint() {
   const d = new Date(), p = (n) => String(n).padStart(2, '0'), who = USER ? USER.email : 'Pelihat · tanpa login';
   const s = `<svg xmlns="http://www.w3.org/2000/svg" width="380" height="220"><g transform="rotate(-22 190 110)" font-family="Plus Jakarta Sans,Segoe UI,sans-serif" text-anchor="middle" fill="#1E1B3A" fill-opacity=".08"><text x="190" y="100" font-size="17" font-weight="800">MONITORING MANPOWER · RAHASIA</text><text x="190" y="126" font-size="13" font-weight="600">${esc(who)} · ${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}</text></g></svg>`;
