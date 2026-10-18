@@ -685,6 +685,32 @@ body.tabview .hero .crumbs{margin-bottom:6px}
 body.tabview main .wrap{padding-top:18px;gap:16px}
 body.tabview .fbar{padding:12px 16px}
 @media (max-width:760px){body.tabview .fbar .ff:not(:first-child),body.tabview .fbar #fReset{display:none}body.tabview .fbar .fsum{display:none}}
+
+/* rincian per unit */
+.slotTg{all:unset;display:inline-flex;margin-top:6px;font-size:11.5px;font-weight:700;color:var(--pri-2,#5B21B6);background:var(--p-soft,#EFE9FE);border-radius:8px;padding:3px 9px;cursor:pointer;white-space:nowrap}
+.slotTg:hover{background:#E4D8FD}
+.slotTg:focus-visible{outline:2px solid var(--pri,#6D28D9)}
+tr.slots>td{background:#FBFAFF;padding:10px 14px 14px!important;border-bottom:1px solid var(--line)}
+.slotHead{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px;color:var(--ink-2,#4B4868);margin-bottom:9px}
+.slotHead span{display:inline-flex;align-items:center;gap:6px}
+.slotHead i{width:9px;height:9px;border-radius:50%}
+.slotGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(176px,1fr));gap:8px}
+.slot{all:unset;box-sizing:border-box;display:flex;gap:9px;align-items:flex-start;background:#fff;border:1px solid var(--line-2,#DCD9EC);border-radius:12px;padding:9px 10px;cursor:pointer;min-width:0;transition:border-color .15s,box-shadow .15s}
+.slot:not([disabled]):hover{border-color:#C4B5FD;box-shadow:0 6px 16px rgba(109,40,217,.10)}
+.slot:focus-visible{outline:2px solid var(--pri,#6D28D9)}
+.slot[disabled]{cursor:default}
+.slot.empty{background:transparent;border-style:dashed;color:var(--muted)}
+.slot.over{border-color:#FDBA74}
+.slot .no{flex:none;width:24px;height:24px;border-radius:50%;background:var(--p-soft,#EFE9FE);color:var(--pri-2,#5B21B6);display:grid;place-items:center;font-size:11.5px;font-weight:800}
+.slot.empty .no{background:#EEEDF5;color:var(--muted)}
+.slot .sk{display:flex;flex-direction:column;gap:3px;min-width:0;align-items:flex-start}
+.slot .sk b{font-size:13px;font-weight:800;color:var(--fg,#1E1B3A);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.slot .sk b.tmp{color:var(--warn);font-weight:700;font-size:12px}
+.slot.empty .sk b{color:var(--muted);font-weight:700;font-size:12.5px}
+.slot .sk small{font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.slot .chip{font-size:10.5px;padding:1px 7px}
+@media (max-width:560px){.slotGrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media print{.slotTg{display:none!important}.slotGrid{grid-template-columns:repeat(6,minmax(0,1fr))!important}.slot{break-inside:avoid}}
 /* tingkat perkecilan mengikuti lebar kertas (lebar desain 1180px) */
 @media print and (max-width:560px){ .wrap{zoom:.44} }
 @media print and (min-width:561px) and (max-width:680px){ .wrap{zoom:.54} }
@@ -861,6 +887,12 @@ const UNIT_STATUS = [
   {k:"Beroperasi",cls:"s-ok",col:"var(--ok)"},
   {k:"Breakdown",cls:"s-bad",col:"var(--bad)"}
 ];
+const PRE_STATUS = [
+  {k:"Persiapan kirim",cls:"s-idle",col:"#A8A5C4"},
+  {k:"Dalam perjalanan",cls:"s-warn",col:"var(--warn)"}
+];
+const ALL_STATUS = [...PRE_STATUS, ...UNIT_STATUS];
+const arrived = u => !PRE_STATUS.some(x=>x.k===u.status);
 const MOB_STATUS = [{k:"Direncanakan",cls:"s-idle"},{k:"Berjalan",cls:"s-info"},{k:"Selesai",cls:"s-ok"},{k:"Ditunda",cls:"s-warn"}];
 const MODA = {"Jalan sendiri (self-propelled)":15,"Lowboy trailer":25,"Dump truck/carrier":30,"Tongkang":10,"Bongkar-rakit (knock down)":20};
 const COLORS = ["purple","blue","red","orange","teal","pink"];
@@ -909,7 +941,7 @@ const projColor = id => { const i=projects().findIndex(p=>p.id===id); return COL
 const projKode = id => (projOf(id)||{}).kode || "—";
 const itemsOf = pid => S.kirim.filter(k=>k.projectId===pid).sort((a,b)=>(Number(a.urut)||99)-(Number(b.urut)||99)||String(a.tipe).localeCompare(b.tipe));
 const unitsOfItem = k => S.units.filter(u=>u.kirimId===k.id || (!u.kirimId && u.projectId===k.projectId && u.tipe===k.tipe));
-const tibaItem = k => unitsOfItem(k).length;
+const tibaItem = k => unitsOfItem(k).filter(arrived).length;
 const unitOfMob = m => S.units.find(u=>u.id===m.unitId) || S.units.find(u=>u.kode===m.unitKode);
 const mobProj = m => { const u=unitOfMob(m); return (u&&u.projectId) || m.projectId || ""; };
 const isAktif = m => m.status==="Direncanakan"||m.status==="Berjalan";
@@ -1063,7 +1095,7 @@ function formKirim(k,presetProj){
       {key:"tipe",label:"Nama / tipe unit",req:true,ph:"ZX470"},
       ...(k?[]:[{key:"rencanaAwal",label:"Jumlah rencana (unit)",type:"number",min:0,req:true}]),
       {key:"eta",label:"ETA / tanggal kirim",type:"date"},
-      {key:"moda",label:"Moda kirim",list:["Kapal RoRo","Tongkang","Trailer darat","Self-propelled"]},
+      {key:"moda",label:"Via",list:["Kapal RoRo","Tongkang","Trailer darat","Perjalanan darat","Self-propelled"],ph:"Perjalanan darat"},
       {key:"asal",label:"Asal",ph:"Banjarmasin"},
       {key:"catatan",label:"Keterangan",type:"textarea",full:true,ph:"Rental / milik sendiri, menunggu info PIC, dll."}
     ],
@@ -1133,7 +1165,7 @@ function formUnit(u,presetItem){
       const pv=$("#f_preview"); if(!pv) return;
       const list=parseLambung($("#f_kode").value), it=S.kirim.find(k=>k.id===sel.value);
       if(!list.length){ pv.innerHTML='<span class="muted">Nomor lambung yang diketik muncul di sini.</span>'; return; }
-      const dup=list.filter(k=>S.units.some(x=>x.kode===k)), twice=list.filter((k,i)=>list.indexOf(k)!==i);
+      const dup=list.filter(k=>S.units.some(x=>x.kode===k&&arrived(x))), twice=list.filter((k,i)=>list.indexOf(k)!==i);
       const sisa=it?Math.max(0,(Number(it.rencana)||0)-tibaItem(it)):null;
       pv.innerHTML=`<b>${list.length} unit</b> akan dicatat tiba: ${list.map(k=>`<span class="plate" style="margin:2px 2px 0 0">${esc(k)}</span>`).join("")}`
         +(dup.length?`<br><span style="color:var(--bad)">Sudah terdaftar: ${esc(dup.join(", "))}</span>`:"")
@@ -1150,15 +1182,19 @@ function formUnit(u,presetItem){
       const list=parseLambung(d.kode);
       if(!list.length){ toast("Isi nomor lambung unit."); return false; }
       const twice=list.filter((k,i)=>list.indexOf(k)!==i); if(twice.length){ toast(`Nomor lambung ${twice[0]} diketik dua kali.`); return false; }
-      const dup=list.find(k=>S.units.some(x=>x.kode===k)); if(dup){ toast(`Nomor lambung ${dup} sudah terdaftar.`); return false; }
-      (async()=>{ for(const k of list){ await store.add(COL.units,{...d,kode:k}); }
+      const dup=list.find(k=>S.units.some(x=>x.kode===k&&(arrived(x)||x.kirimId!==d.kirimId))); if(dup){ toast(`Nomor lambung ${dup} sudah terdaftar.`); return false; }
+      const it=S.kirim.find(k=>k.id===d.kirimId), pool=it?unitsOfItem(it).filter(x=>!arrived(x)):[];
+      (async()=>{ for(const k of list){
+          const m=pool.find(x=>x.kode===k)||pool.find(x=>x.kodeSementara)||pool[0];
+          if(m){ pool.splice(pool.indexOf(m),1); await store.update(COL.units,m.id,{...d,kode:k,kodeSementara:false}); }
+          else await store.add(COL.units,{...d,kode:k}); }
         toast(list.length>1?`${list.length} unit tercatat tiba di ${projKode(d.projectId)}.`:`${list[0]} tercatat tiba di ${projKode(d.projectId)}.`); })().catch(()=>{});
     }
   });
 }
 function formMob(m,presetUnit){
-  if(!S.units.length){ toast("Catat unit yang sudah tiba dulu sebelum membuat rencana mobilisasi."); return; }
-  const pool=S.units.filter(u=>inFilter(u.projectId)); const list=(pool.length?pool:S.units).slice().sort((a,b)=>a.kode.localeCompare(b.kode,"id",{numeric:true}));
+  if(!S.units.some(arrived)){ toast("Catat unit yang sudah tiba dulu sebelum membuat rencana mobilisasi."); return; }
+  const pool=S.units.filter(u=>arrived(u)&&inFilter(u.projectId)); const list=(pool.length?pool:S.units.filter(arrived)).slice().sort((a,b)=>a.kode.localeCompare(b.kode,"id",{numeric:true}));
   const opts=list.map(u=>({v:u.kode,l:`${u.kode} · ${projKode(u.projectId)} · ${u.tipe}`}));
   const pu=presetUnit || (m?null:list.find(u=>u.status==="Tiba"));
   openForm({
@@ -1208,7 +1244,7 @@ function render(){
   $("#sheetTabs").hidden=true;
   const tn=$("#topNew"); if(tn) tn.hidden=!canWrite||!S.kirim.length;
   $("#heroActions").hidden=!!P0||!canWrite;
-  $("#cUnit").textContent=S.units.filter(u=>inFilter(u.projectId)).length;
+  $("#cUnit").textContent=S.units.filter(u=>arrived(u)&&inFilter(u.projectId)).length;
   $("#cMob").textContent=S.mobs.filter(m=>isAktif(m)&&inFilter(mobProj(m))).length;
   $("#cRev").textContent=S.revisi.filter(r=>inFilter(r.projectId)).length;
   ["addUnit","addMob","addKirim"].forEach(id=>$("#"+id).hidden=!canWrite); $("#addProj").hidden=true;
@@ -1249,7 +1285,7 @@ function totals(P){
   const rencana=items.reduce((a,k)=>a+(Number(k.rencana)||0),0), tiba=items.reduce((a,k)=>a+Math.min(tibaItem(k),Number(k.rencana)||0),0);
   const mobAll=S.mobs.filter(m=>pids.includes(mobProj(m)));
   return {items,rencana,tiba,sisa:Math.max(0,rencana-tiba),mob:mobAll.filter(isAktif).length,mobDone:mobAll.filter(m=>m.status==="Selesai").length,mobAll:mobAll.length,
-    revs:S.revisi.filter(r=>pids.includes(r.projectId)).length,units:S.units.filter(u=>pids.includes(u.projectId))};
+    revs:S.revisi.filter(r=>pids.includes(r.projectId)).length,units:S.units.filter(u=>arrived(u)&&pids.includes(u.projectId))};
 }
 function renderKpi(){
   const L=!S.ready, P=curProj(), t=totals(P), v=x=>L?"–":x, q=pct(t.tiba,t.rencana);
@@ -1283,7 +1319,7 @@ function renderCharts(){
   const ticks=[]; for(let y=top;y>=0;y-=step) ticks.push(y);
   bx.innerHTML=`<div class="bchart"><div class="yax">${ticks.map(y=>`<span>${y}</span>`).join("")}</div><div class="plot" style="--n:${data.length}">${ticks.map((y,i)=>`<i class="gl" style="top:${i/(ticks.length-1)*100}%"></i>`).join("")}${data.map(d=>`<button type="button" class="bg" data-proj="${d.p.id}" title="${esc(d.p.kode)}: ${d.t}/${d.r} unit tiba"><span class="b r" style="height:${d.r/top*100}%"><em>${d.r}</em></span><span class="b t" style="height:${d.t/top*100}%"><em>${d.t}</em></span></button>`).join("")}</div><div class="xax" style="--n:${data.length}">${data.map(d=>`<span>${esc(d.p.kode)}</span>`).join("")}</div></div>
     <div class="lg"><span><i style="background:#C4B5FD"></i>Rencana kirim</span><span><i style="background:#6D28D9"></i>Unit tiba</span></div>`;
-  const us=S.units, tot=us.length, t=totals(null);
+  const us=S.units.filter(arrived), tot=us.length, t=totals(null);
   let acc=0; const segs=UNIT_STATUS.map(x=>{ const n=us.filter(u=>u.status===x.k).length, a0=acc; acc+=n; return {x,n,a0}; });
   const grad=tot?segs.filter(o=>o.n).map(o=>`${o.x.col} ${o.a0/tot*360}deg ${(o.a0+o.n)/tot*360}deg`).join(","):"#EDEBF5 0deg 360deg";
   dn.innerHTML=`<div class="dwrap"><div class="ring" style="background:conic-gradient(${grad})"><div><b>${tot}</b><small>unit di lokasi</small></div></div>
@@ -1295,7 +1331,7 @@ function renderPFilter(){
   el.innerHTML=`<button type="button" data-fp="all" aria-pressed="${S.fProj==="all"}">Semua project</button>`+projects().map(p=>`<button type="button" data-fp="${p.id}" aria-pressed="${S.fProj===p.id}"><i style="background:${DOT[projColor(p.id)]}"></i>${esc(p.kode)}</button>`).join("");
 }
 function renderProjDash(P){
-  const st=projStats(P.id), us=S.units.filter(u=>u.projectId===P.id);
+  const st=projStats(P.id), us=S.units.filter(u=>arrived(u)&&u.projectId===P.id);
   const head=`<div class="irow head"><span>Item unit</span><span>Progres</span><span style="text-align:right">Tiba</span><span>Status</span><span></span></div>`;
   const rows=st.items.filter(itemOk).map(k=>{ const n=tibaItem(k), r=Number(k.rencana)||0, sisa=r-n, q=r?Math.min(100,pct(n,r)):0, aw=Number(k.rencanaAwal)||0;
     const ket=[k.eta?`ETA ${fmtDate(k.eta)}`:"",k.catatan&&!/^Jadwal/.test(k.catatan)?k.catatan:"",r!==aw?`direvisi ${r-aw>0?"+":""}${r-aw}`:""].filter(Boolean).join(" · ");
@@ -1366,6 +1402,52 @@ function renderRingkasan(){
     :`<div class="muted">${L?"Memuat data…":"Belum ada perubahan rencana. Pakai Ubah jumlah di tab Rencana kirim saat jumlah unit berubah."}</div>`;
   if(P){ $("#pNext").innerHTML=$("#nextMob").innerHTML; $("#pRev").innerHTML=$("#lastRev").innerHTML; }
 }
+const SLOT_CLOSED=new Set((()=>{ try{ return JSON.parse(localStorage.getItem("mu_slot_closed")||"[]"); }catch(e){ return []; } })());
+function unitItem(u){ return S.kirim.find(k=>!u.kirimId&&k.projectId===u.projectId&&k.tipe===u.tipe); }
+function slotUnits(k){ return unitsOfItem(k).slice().sort((a,b)=>(a.kodeSementara-b.kodeSementara)||String(a.kode).localeCompare(String(b.kode),"id",{numeric:true})); }
+function slotRow(k){
+  if(SLOT_CLOSED.has(k.id)) return "";
+  const us=slotUnits(k), r=Number(k.rencana)||0, n=Math.max(r,us.length);
+  const cnt=ALL_STATUS.map(x=>({k:x.k,n:us.filter(u=>u.status===x.k).length})).filter(o=>o.n);
+  const cards=Array.from({length:n},(_,i)=>{ const u=us[i];
+    if(!u) return `<button type="button" class="slot empty" data-act="slotNew" data-id="${k.id}" data-no="${i+1}" ${canWrite?"":"disabled"}><span class="no">${i+1}</span><span class="sk"><b>Belum dikirim</b><small>${canWrite?"Klik untuk isi":"Belum ada data"}</small></span></button>`;
+    const st=statusOf(ALL_STATUS,u.status);
+    const info=[u.lokasi,arrived(u)&&u.tglTiba?"tiba "+fmtDate(u.tglTiba):""].filter(Boolean).join(" · ");
+    return `<button type="button" class="slot${i>=r?" over":""}" data-act="slotEdit" data-id="${u.id}" ${canWrite?"":"disabled"} title="${esc(u.catatan||"")}"><span class="no">${i+1}</span><span class="sk"><b class="${u.kodeSementara?"tmp":""}">${u.kodeSementara?"No. lambung belum diisi":esc(u.kode)}</b><span class="chip ${st.cls}">${esc(u.status)}</span><small>${esc(info||"—")}</small></span></button>`; }).join("");
+  return `<tr class="slots"><td colspan="9"><div class="slotHead">${cnt.length?cnt.map(o=>`<span><i style="background:${statusOf(ALL_STATUS,o.k).col}"></i>${o.k} <b>${o.n}</b></span>`).join(""):`<span class="muted">Belum ada unit yang diisi.</span>`}${n-us.length>0?`<span><i style="background:#E4E2EF"></i>Belum dikirim <b>${n-us.length}</b></span>`:""}</div><div class="slotGrid">${cards}</div></td></tr>`;
+}
+function tmpKode(k,no){ const base=String(k.tipe).toUpperCase().replace(/[^A-Z0-9]+/g,"").slice(0,10)||"UNIT"; let i=no, c;
+  do{ c=`${base}-${pad(i)}`; i++; }while(S.units.some(x=>x.kode===c)); return c; }
+function formSlot(k,u,no){
+  const pre=!u||!arrived(u);
+  openForm({
+    title:u?`Update unit ${u.kodeSementara?"#"+no:u.kode}`:`Isi unit #${no}`,
+    desc:`${projKode(k.projectId)} · ${k.tipe}${k.moda?" · via "+k.moda:""}. Ubah status setiap kali unit ini bergerak: persiapan kirim → dalam perjalanan → tiba.`,
+    values:u?{...u,kode:u.kodeSementara?"":u.kode}:{status:"Persiapan kirim",lokasi:k.asal||"",hm:0},
+    fields:[
+      {key:"kode",label:"Nomor lambung",ph:u&&u.kodeSementara?`Sementara: ${u.kode}`:"Contoh: DT375-01",hint:"Boleh dikosongkan dulu kalau belum tahu."},
+      {key:"status",label:"Status",type:"select",options:[...ALL_STATUS.map(x=>x.k),...(u?[{v:"__hapus",l:"— Kosongkan slot (hapus data unit ini) —"}]:[])]},
+      {key:"lokasi",label:"Posisi sekarang",list:lokasiList(),ph:"Pelabuhan Banjarmasin / KM 45 jalan hauling"},
+      {key:"tglTiba",label:"Tanggal tiba",type:"date",hint:"Isi saat unit sudah sampai. Kosong = otomatis hari ini saat status Tiba."},
+      {key:"hm",label:"Hour meter (HM)",type:"number",min:0,step:"0.1"},
+      {key:"catatan",label:"Catatan",type:"textarea",full:true,ph:"Nama kapal/trailer, sopir, kondisi unit, kendala di jalan…"}
+    ],
+    ok:u?"Simpan update":"Simpan",
+    onSubmit:d=>{
+      if(d.status==="__hapus"){ setTimeout(()=>confirmBox(`Kosongkan slot #${no}?`,`Data unit ${u.kode} dihapus dan slot kembali "Belum dikirim".`,"Hapus",()=>store.remove(COL.units,u.id).then(()=>toast("Slot dikosongkan.")).catch(()=>{})),0); return; }
+      let kode=String(d.kode||"").trim().toUpperCase(), sem=false;
+      if(!kode){ if(u&&u.kodeSementara) kode=u.kode; else if(u) { toast("Isi nomor lambung."); return false; } else kode=tmpKode(k,no); sem=!u||u.kodeSementara?true:false; }
+      if(S.units.some(x=>x.kode===kode && (!u||x.id!==u.id))){ toast(`Nomor lambung ${kode} sudah terdaftar.`); return false; }
+      const isArr=!PRE_STATUS.some(x=>x.k===d.status);
+      if(isArr && !d.tglTiba) d.tglTiba=todayStr();
+      if(d.hm==="") d.hm=0;
+      const rec={...d,kode,kodeSementara:sem,projectId:k.projectId,kirimId:k.id,tipe:k.tipe,updatedAt:nowIso()};
+      if(u && /^Kode sementara/.test(rec.catatan||"") && !sem) rec.catatan="";
+      if(u) store.update(COL.units,u.id,rec).then(()=>toast(`Unit #${no} ${sem?"":kode+" "}diperbarui: ${d.status}.`)).catch(()=>{});
+      else store.add(COL.units,rec).then(()=>toast(`Unit #${no} ${k.tipe} tersimpan: ${d.status}.`)).catch(()=>{});
+    }
+  });
+}
 function renderKirim(){
   const ps=projects().filter(p=>inFilter(p.id));
   if(!ps.length){ $("#tKirim").innerHTML=`<tr><td colspan="9">${emptyState(S.ready?"Belum ada rencana kirim":"Memuat data…",S.ready?"Tambahkan project lalu item unit yang akan dikirim.":"")}</td></tr>`; }
@@ -1374,13 +1456,13 @@ function renderKirim(){
     const head=`<tr class="grp"><td colspan="9"><div class="grp-in"><div class="gt"><span class="tile-ic" style="background:var(--g-${c})">${ic(projIcon(p.id))}</span><div><b>${esc(p.kode)}</b> <span class="small">${esc([p.nama,p.lokasi].filter(Boolean).join(" · "))}</span><div class="small muted">${s.rencana} unit rencana · ${s.tiba} tiba · ${s.sisa} sisa${p.catatan?` · ${esc(p.catatan)}`:""}</div></div></div>${canWrite?`<div class="actions"><button class="btn small" data-act="addItem" data-id="${p.id}" type="button">+ Item</button><button class="btn small ghost" data-act="editProj" data-id="${p.id}" type="button">Ubah project</button>${s.items.length?"":`<button class="btn small ghost danger" data-act="delProj" data-id="${p.id}" type="button">Hapus</button>`}</div>`:""}</div></td></tr>`;
     const rows=s.items.map(k=>{ const n=tibaItem(k), r=Number(k.rencana)||0, aw=Number(k.rencanaAwal)||0, sisa=r-n, revs=S.revisi.filter(x=>x.kirimId===k.id).length;
       return `<tr>
-        <td><b>${esc(k.tipe)}</b>${revs?`<span class="sub">${revs}× direvisi</span>`:""}</td>
+        <td><b>${esc(k.tipe)}</b>${revs?`<span class="sub">${revs}× direvisi</span>`:""}<button type="button" class="slotTg" data-act="slotTg" data-id="${k.id}" aria-expanded="${!SLOT_CLOSED.has(k.id)}">${SLOT_CLOSED.has(k.id)?"▸":"▾"} Rincian ${Math.max(r,unitsOfItem(k).length)} unit</button></td>
         <td class="n">${aw}</td><td class="n"><b>${r}</b></td><td class="n">${deltaChip(r-aw)}</td><td class="n">${n}</td>
         <td class="n">${sisa>=0?`<b class="${sisa?"c-red":""}">${sisa}</b>`:`<span class="c-orange">lebih ${-sisa}</span>`}</td>
         <td>${k.eta?fmtDate(k.eta):(sisa>0?'<span class="muted">—</span>':'<span class="chip s-ok">Lengkap</span>')}</td>
-        <td class="ket">${esc(k.catatan||"")}${k.moda||k.asal?`<span class="sub">${esc([k.moda,k.asal].filter(Boolean).join(" · "))}</span>`:""}</td>
+        <td class="ket">${esc(k.catatan||"")}${k.moda||k.asal?`<span class="sub">${esc([k.moda?"Via "+k.moda:"",k.asal?"dari "+k.asal:""].filter(Boolean).join(" · "))}</span>`:""}</td>
         <td class="act">${canWrite?`<button class="btn small primary" data-act="jumlah" data-id="${k.id}" type="button">Ubah jumlah</button> ${sisa>0?`<button class="btn small" data-act="tibaItem" data-id="${k.id}" type="button">+ Tiba</button>`:""}<button class="btn small ghost" data-act="editKirim" data-id="${k.id}" type="button">Info</button><button class="btn small ghost danger" data-act="delKirim" data-id="${k.id}" type="button">Hapus</button>`:""}</td>
-      </tr>`; }).join("");
+      </tr>`+slotRow(k); }).join("");
     return head+(rows||`<tr><td colspan="9" class="muted small">Belum ada item unit di project ini.</td></tr>`);
   }).join("");
   const rv=S.revisi.filter(r=>inFilter(r.projectId));
@@ -1392,7 +1474,7 @@ function renderKirim(){
   }).join(""):`<div class="muted" style="padding-left:16px">${S.ready?"Belum ada perubahan. Setiap kali jumlah unit yang dikirim berubah, catatannya muncul di sini.":"Memuat data…"}</div>`;
 }
 function renderUnit(){
-  const base=S.units.filter(u=>inFilter(u.projectId));
+  const base=S.units.filter(u=>arrived(u)&&inFilter(u.projectId));
   const fs=["Semua",...UNIT_STATUS.map(s=>s.k)];
   $("#fUnit").innerHTML=fs.map(f=>{const n=f==="Semua"?base.length:base.filter(u=>u.status===f).length; return `<button type="button" data-fu="${f}" aria-pressed="${S.fUnit===f}">${f} <span class="num">${n}</span></button>`;}).join("");
   const q=S.q.toLowerCase();
@@ -1448,6 +1530,9 @@ document.addEventListener("click",e=>{
   const id=a.dataset.id, act=a.dataset.act;
   const U=S.units.find(x=>x.id===id), M=S.mobs.find(x=>x.id===id), K=S.kirim.find(x=>x.id===id), P=S.projects.find(x=>x.id===id);
   if(act==="openProj"&&P){ openProject(P.id); }
+  if(act==="slotTg"&&K){ SLOT_CLOSED.has(K.id)?SLOT_CLOSED.delete(K.id):SLOT_CLOSED.add(K.id); try{ localStorage.setItem("mu_slot_closed",JSON.stringify([...SLOT_CLOSED])); }catch(e){} renderKirim(); }
+  if(act==="slotNew"&&K&&canWrite){ formSlot(K,null,Number(a.dataset.no)||1); }
+  if(act==="slotEdit"&&U&&canWrite){ const k=S.kirim.find(x=>x.id===U.kirimId)||unitItem(U); if(k){ const no=slotUnits(k).findIndex(x=>x.id===U.id)+1; formSlot(k,U,no); } else formUnit(U); }
   if(act==="backAll"){ e.preventDefault(); backAll(); }
   if(act==="akses") showAccount();
   if(act==="addProj") formProject(null);
@@ -1609,7 +1694,7 @@ async function downloadExcel(){
     await loadXlsx();
     const P=curProj(), ps=P?[P]:projects(), pids=new Set(ps.map(p=>p.id));
     const sum=ps.map(p=>{ const st=projStats(p.id); return {"Project":p.kode,"Nama":p.nama||"","Lokasi":p.lokasi||"","Rencana kirim":st.rencana,"Sudah tiba":st.tiba,"Sisa kirim":st.sisa,"% tiba":pct(st.tiba,st.rencana)/100,"Mobilisasi aktif":st.mob,"Catatan":p.catatan||""}; });
-    const items=[]; ps.forEach(p=>itemsOf(p.id).forEach(k=>{ const n=tibaItem(k), r=Number(k.rencana)||0; items.push({"Project":p.kode,"Item unit":k.tipe,"Rencana awal":Number(k.rencanaAwal)||0,"Rencana kini":r,"Perubahan":r-(Number(k.rencanaAwal)||0),"Sudah tiba":n,"Sisa kirim":Math.max(0,r-n),"ETA":k.eta||"","Moda":k.moda||"","Asal":k.asal||"","Keterangan":k.catatan||""}); }));
+    const items=[]; ps.forEach(p=>itemsOf(p.id).forEach(k=>{ const n=tibaItem(k), r=Number(k.rencana)||0; items.push({"Project":p.kode,"Item unit":k.tipe,"Rencana awal":Number(k.rencanaAwal)||0,"Rencana kini":r,"Perubahan":r-(Number(k.rencanaAwal)||0),"Sudah tiba":n,"Sisa kirim":Math.max(0,r-n),"ETA":k.eta||"","Via":k.moda||"","Asal":k.asal||"","Keterangan":k.catatan||""}); }));
     const units=S.units.filter(u=>pids.has(u.projectId)).sort((a,b)=>projKode(a.projectId).localeCompare(projKode(b.projectId))||a.kode.localeCompare(b.kode,"id",{numeric:true})).map(u=>({"No. lambung":u.kodeSementara?"":u.kode,"Kode sementara":u.kodeSementara?u.kode:"","Project":projKode(u.projectId),"Tipe unit":u.tipe,"Posisi":u.lokasi||"","Tanggal tiba":u.tglTiba||"","HM":Number(u.hm)||0,"Status":u.status||"","Catatan":u.catatan||""}));
     const mobs=S.mobs.filter(m=>pids.has(mobProj(m))).sort((a,b)=>(a.tanggal+(a.jam||"")).localeCompare(b.tanggal+(b.jam||""))).map(m=>{ const e=estimasi(m); return {"Tanggal":m.tanggal||"","Jam":m.jam||"","Unit":m.unitKode,"Project":projKode(mobProj(m)),"Dari":m.dari||"","Ke":m.ke||"","Jarak (km)":Number(m.jarak)||0,"Moda":m.moda||"","Estimasi tempuh":e?e.durasi:"","Pengawalan":m.escort||"","PIC":m.pic||"","Status":m.status||"","Catatan":m.catatan||""}; });
     const revs=S.revisi.filter(r=>pids.has(r.projectId)).map(r=>({"Waktu":fmtTime(r.waktu),"Project":projKode(r.projectId),"Item unit":r.tipe,"Jumlah lama":r.lama,"Jumlah baru":r.baru,"Selisih":r.baru-r.lama,"ETA lama":r.etaLama||"","ETA baru":r.etaBaru||"","Alasan":r.alasan||"","Oleh":r.oleh||""}));
@@ -1619,7 +1704,7 @@ async function downloadExcel(){
       if(name==="Ringkasan Project"){ const rng=XLSX.utils.decode_range(ws["!ref"]); for(let R=1;R<=rng.e.r;R++){ const c=ws[XLSX.utils.encode_cell({r:R,c:6})]; if(c) c.z="0%"; } }
       XLSX.utils.book_append_sheet(wb,ws,name); };
     add(sum,"Ringkasan Project",["Project","Nama","Lokasi","Rencana kirim","Sudah tiba","Sisa kirim","% tiba","Mobilisasi aktif","Catatan"]);
-    add(items,"Rencana Kirim",["Project","Item unit","Rencana awal","Rencana kini","Perubahan","Sudah tiba","Sisa kirim","ETA","Moda","Asal","Keterangan"]);
+    add(items,"Rencana Kirim",["Project","Item unit","Rencana awal","Rencana kini","Perubahan","Sudah tiba","Sisa kirim","ETA","Via","Asal","Keterangan"]);
     add(units,"Unit di Lokasi",["No. lambung","Kode sementara","Project","Tipe unit","Posisi","Tanggal tiba","HM","Status","Catatan"]);
     add(mobs,"Mobilisasi",["Tanggal","Jam","Unit","Project","Dari","Ke","Jarak (km)","Moda","Estimasi tempuh","Pengawalan","PIC","Status","Catatan"]);
     add((S.dok||[]).filter(d=>pids.has(d.projectId)).map(d=>({"Tahap":d.tahap,"Tanggal":d.tanggal||"","Project":projKode(d.projectId),"Item unit":d.tipe||"","No. lambung":d.unitKode||"","Lokasi":d.lokasi||"","Keterangan":d.catatan||"","Nama file":d.fileName||"","Link file":d.fileUrl||"","Oleh":d.oleh||""})),"Dokumentasi",["Tahap","Tanggal","Project","Item unit","No. lambung","Lokasi","Keterangan","Nama file","Link file","Oleh"]);
