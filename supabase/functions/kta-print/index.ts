@@ -8,6 +8,7 @@ const APPS: Record<string, { name: string; web: string }> = {
   "bupr-ampah": { name: "BUPR Ampah", web: "manpower-bupr/" },
   "mbj": { name: "MBJ", web: "manpower-mbj/" },
   "kmb": { name: "KMB", web: "manpower-kmb/" },
+  "apd": { name: "APD KMB", web: "monitoring-apd-kmb/" },
 };
 const appOf = (a: unknown) => (typeof a === "string" && APPS[a] ? a : "kta-tra");
 const BASE = "https://matthewyoga2014-design.github.io/kmb-purchasing-logistik/";
