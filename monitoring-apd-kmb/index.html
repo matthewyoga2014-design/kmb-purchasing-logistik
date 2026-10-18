@@ -823,14 +823,16 @@ function gaFree() { const inDoc = new Set(GA_ED ? GA_ED.d.items.map((x) => x.req
 function gaAddReqs(ids) {
   ids.forEach((id) => {
     const r = S.state.requests.find((x) => x.id === id); if (!r || GA_ED.d.items.some((x) => x.reqId === id)) return;
-    const p = person(r.person) || { name: personName(r.person), position: '', site: r.site || '' };
     const ty = S.state.types.find((t) => t.code === r.type) || {};
-    GA_ED.d.items.push({ desc: gaDesc(r.type, variant(r)), qty: Number(r.qty) || 1, unit: ty.unit || 'Pcs', price: Number(ty.price) || 0, site: p.site || r.site || '', note: `${p.name} (${r.reason ? r.reason + ' ' : ''}${p.position || ''})`.replace(/\s+\)/, ')'), type: r.type, variant: r.variant || '', reqId: r.id });
+    const base = { desc: gaDesc(r.type, variant(r)), qty: Number(r.qty) || 1, unit: ty.unit || 'Pcs', price: Number(ty.price) || 0, type: r.type, variant: r.variant || '', reqId: r.id };
+    if (isStockReq(r)) { GA_ED.d.items.push({ ...base, site: r.warehouse, wh: r.warehouse, note: `Stok ${/^gudang/i.test(r.warehouse) ? "" : "gudang "}${r.warehouse}${r.reason ? ' (' + r.reason + ')' : ''}` }); return; }
+    const p = person(r.person) || { name: personName(r.person), position: '', site: r.site || '' };
+    GA_ED.d.items.push({ ...base, site: p.site || r.site || '', note: `${p.name} (${r.reason ? r.reason + ' ' : ''}${p.position || ''})`.replace(/\s+\)/, ')') });
   });
 }
 function gaPicker() {
   const free = gaFree(), snap = GA_ED;
-  modal(`${mh('Form GA Request', 'Ambil dari Permintaan APD')}<p class="small">Pilih permintaan yang akan diajukan ke Purchasing. Setiap permintaan menjadi satu baris barang.</p><form id="gpForm"><div class="pick">${free.map((r) => { const p = person(r.person) || { name: personName(r.person), site: r.site }; const z = variantStocks(r.type)[variant(r)] || { NEW: 0, REUSE: 0 }; return `<label><input type="checkbox" name="r" value="${esc(r.id)}" ${z.NEW + z.REUSE < r.qty ? 'checked' : ''}><span><b>${esc(p.name)}</b> · ${esc(p.site || '')}<br>${r.qty} ${esc(gaDesc(r.type, variant(r)))} · ${esc(r.reason || '')} · <i>${REQ_ST[r.status][0]}</i> · stok ${z.NEW + z.REUSE}</span></label>`; }).join('') || '<div class="empty">Tidak ada permintaan yang menunggu atau semua sudah masuk Form GA.</div>'}</div><p class="small">Yang stoknya tidak cukup sudah dicentang otomatis.</p><div class="factions"><span style="flex:1"></span><button type="button" class="btn btn-g" id="gpBack">Kembali</button><button type="submit" class="btn btn-p">Tambahkan ke Form</button></div></form>`);
+  modal(`${mh('Form GA Request', 'Ambil dari Permintaan APD')}<p class="small">Pilih permintaan yang akan diajukan ke Purchasing. Setiap permintaan menjadi satu baris barang.</p><form id="gpForm"><div class="pick">${free.map((r) => { const p = isStockReq(r) ? { name: 'Stok ' + r.warehouse, site: 'gudang site' } : person(r.person) || { name: personName(r.person), site: r.site }; const z = variantStocks(r.type)[variant(r)] || { NEW: 0, REUSE: 0 }; return `<label><input type="checkbox" name="r" value="${esc(r.id)}" ${z.NEW + z.REUSE < r.qty ? 'checked' : ''}><span><b>${esc(p.name)}</b> · ${esc(p.site || '')}<br>${r.qty} ${esc(gaDesc(r.type, variant(r)))} · ${esc(r.reason || '')} · <i>${REQ_ST[r.status][0]}</i> · stok ${z.NEW + z.REUSE}</span></label>`; }).join('') || '<div class="empty">Tidak ada permintaan yang menunggu atau semua sudah masuk Form GA.</div>'}</div><p class="small">Yang stoknya tidak cukup sudah dicentang otomatis.</p><div class="factions"><span style="flex:1"></span><button type="button" class="btn btn-g" id="gpBack">Kembali</button><button type="submit" class="btn btn-p">Tambahkan ke Form</button></div></form>`);
   const x = $('dialog').querySelector('.cm-h [data-close]'); if (x) { x.removeAttribute('data-close'); x.id = 'gpX'; }
   const back = (ids) => { GA_ED = snap; gaAddReqs(ids); gaEdit(null, null, snap); };
   $('gpBack').onclick = () => back([]); if ($('gpX')) $('gpX').onclick = () => back([]);
@@ -855,19 +857,22 @@ function gaSave() {
 // ---------- barang datang → stok masuk ----------
 function gaReceive(id) {
   const d = S.state.ga.docs.find((x) => x.id === id); if (!d || !isOwner()) return;
-  modal(`${mh('Barang datang', esc(d.no))}<div class="srcnote">Barang APD yang datang langsung masuk <b>Stok Masuk</b> gudang terpilih (kondisi baru). Baris non-APD (mis. kabel roll) biarkan "Bukan stok APD".</div><form id="grForm"><div class="fgrid"><div class="fld"><label for="gr_d">Tanggal datang</label><input id="gr_d" type="date" required value="${today()}"></div><div class="fld"><label for="gr_w">Masuk ke gudang</label>${whSel('gr_w', WH[0], 'wh')}</div></div>
-    <div class="tw" style="margin-top:12px"><table class="t"><thead><tr><th>Barang</th><th>Diajukan</th><th>Jenis APD</th><th>Ukuran / Warna</th><th>Qty datang</th></tr></thead><tbody>${d.items.map((x, i) => `<tr><td>${esc(x.desc)}</td><td>${x.qty} ${esc(x.unit)}</td><td><select data-gt="${i}" aria-label="Jenis APD"><option value="">Bukan stok APD</option>${TYPES.map((t) => `<option value="${esc(t)}" ${x.type === t ? 'selected' : ''}>${esc(tLabel(t))}</option>`).join('')}</select></td><td data-gvw="${i}">${gaVSel(x.type, x.variant, i)}</td><td><input type="number" min="0" step="1" data-gq="${i}" value="${x.qty}" style="width:80px" aria-label="Qty datang"></td></tr>`).join('')}</tbody></table></div>${actions('Simpan & Tambah Stok')}</form>`);
+  modal(`${mh('Barang datang', esc(d.no))}<div class="srcnote">Barang APD yang datang langsung masuk <b>Stok Masuk</b> gudang terpilih (kondisi baru). Baris non-APD (mis. kabel roll) biarkan "Bukan stok APD".</div><form id="grForm"><div class="fgrid"><div class="fld"><label for="gr_d">Tanggal datang</label><input id="gr_d" type="date" required value="${today()}"></div><div class="fld"><label for="gr_w">Gudang (semua baris)</label>${whSel('gr_w', WH[0], 'wh')}<small class="small">Baris permintaan stok site otomatis ke gudang site-nya.</small></div></div>
+    <div class="tw" style="margin-top:12px"><table class="t"><thead><tr><th>Barang</th><th>Diajukan</th><th>Jenis APD</th><th>Ukuran / Warna</th><th>Qty datang</th><th>Masuk gudang</th></tr></thead><tbody>${d.items.map((x, i) => `<tr><td>${esc(x.desc)}</td><td>${x.qty} ${esc(x.unit)}</td><td><select data-gt="${i}" aria-label="Jenis APD"><option value="">Bukan stok APD</option>${TYPES.map((t) => `<option value="${esc(t)}" ${x.type === t ? 'selected' : ''}>${esc(tLabel(t))}</option>`).join('')}</select></td><td data-gvw="${i}">${gaVSel(x.type, x.variant, i)}</td><td><input type="number" min="0" step="1" data-gq="${i}" value="${x.qty}" style="width:80px" aria-label="Qty datang"></td><td>${whSel('grw' + i, x.wh && WH.includes(x.wh) ? x.wh : WH[0], 'grw' + i, `data-gw="${i}"`)}</td></tr>`).join('')}</tbody></table></div>${actions('Simpan & Tambah Stok')}</form>`);
+  $('gr_w').addEventListener('change', () => d.items.forEach((x, i) => { if (!x.wh) $('grw' + i).value = $('gr_w').value; }));
   $('grForm').addEventListener('change', (e) => { const t = e.target.dataset.gt; if (t != null) $('dialog').querySelector(`[data-gvw="${t}"]`).innerHTML = gaVSel(e.target.value, '', t); });
   $('grForm').onsubmit = (e) => {
-    e.preventDefault(); const n = structuredClone(S.state), doc = n.ga.docs.find((x) => x.id === id), date = $('gr_d').value, wh = $('gr_w').value; let k = 0;
+    e.preventDefault(); const n = structuredClone(S.state), doc = n.ga.docs.find((x) => x.id === id), date = $('gr_d').value; let k = 0; const whs = new Set();
     for (const [i, x] of doc.items.entries()) {
       const t = $('dialog').querySelector(`[data-gt="${i}"]`).value, v = ($('dialog').querySelector(`[data-gv="${i}"]`) || {}).value || '', q = Number($('dialog').querySelector(`[data-gq="${i}"]`).value) || 0;
-      x.got = q; if (!t || q < 1) continue;
+      const wh = $('grw' + i).value; x.got = q; if (!t || q < 1) continue; whs.add(wh);
       if ((VARIANTS[t] || []).length && !v) { toast('Pilih ukuran/warna untuk ' + x.desc + '.', true); return; }
       n.stockIn.push({ id: uid(), date, type: t, grade: 'NEW', variant: v, qty: q, location: wh, note: 'GA ' + doc.no, gaId: doc.id }); k++;
+      // permintaan stok site yang tertaut otomatis selesai saat barang masuk ke gudangnya
+      const rq = x.reqId && n.requests.find((y) => y.id === x.reqId); if (rq && isStockReq(rq) && rq.warehouse === wh && rq.status !== 'fulfilled' && rq.status !== 'rejected' && rq.status !== 'cancelled') { rq.status = 'fulfilled'; rq.fulfilledBy = S.user.email; rq.fulfilledAt = date; rq.decidedBy = rq.decidedBy || S.user.email; rq.decidedAt = rq.decidedAt || date; }
     }
     doc.status = 'CLOSE'; doc.receivedAt = date;
-    persist(n, k ? `${k} jenis barang masuk stok ${wh}. Form GA ditutup.` : 'Form GA ditandai barang datang.');
+    persist(n, k ? `${k} baris barang masuk stok (${[...whs].join(', ')}). Form GA ditutup.` : 'Form GA ditandai barang datang.');
   };
 }
 const gaVSel = (t, v, i) => !t || !(VARIANTS[t] || []).length ? '<span class="small">—</span>' : `<select data-gv="${i}" aria-label="Ukuran/warna"><option value="">Pilih</option>${VARIANTS[t].map((z) => `<option value="${esc(z)}" ${z === v ? 'selected' : ''}>${esc(vText(t, z))}</option>`).join('')}</select>`;
@@ -1206,6 +1211,9 @@ function schedules() {
   }));
   return out.sort((a, b) => a.d.localeCompare(b.d));
 }
+// permintaan bisa untuk karyawan atau untuk stok gudang/site
+const isStockReq = (r) => r.kind === 'stock';
+const reqWho = (r) => isStockReq(r) ? 'Stok ' + (r.warehouse || '') : personName(r.person);
 const distributed = () => S.state.receipts.filter((r) => r.source === 'NEW' || r.source === 'REUSE');
 const reqOpen = () => S.state.requests.filter((r) => r.status === 'pending' || r.status === 'approved');
 
@@ -1424,7 +1432,7 @@ function donut() {
 function activity() {
   const it = [];
   if (isOwner()) { S.state.stockIn.forEach((x) => it.push({ d: x.date, t: 'Stok masuk', s: `${x.qty} ${tLabel(x.type)} → ${whOf(x.location)}`, c: 'pr' })); S.state.transfers.forEach((x) => it.push({ d: x.date, t: 'Mutasi', s: `${x.qty} ${tLabel(x.type)} ${x.from} → ${x.to}`, c: 'pr' })); }
-  S.state.requests.forEach((x) => it.push({ d: (x.decidedAt || x.date || '').slice(0, 10), t: 'Permintaan ' + (REQ_ST[x.status] || ['', ''])[0].toLowerCase(), s: `${x.qty} ${tLabel(x.type)} · ${personName(x.person)}`, c: (REQ_ST[x.status] || ['', 'pr'])[1] }));
+  S.state.requests.forEach((x) => it.push({ d: (x.decidedAt || x.date || '').slice(0, 10), t: 'Permintaan ' + (REQ_ST[x.status] || ['', ''])[0].toLowerCase(), s: `${x.qty} ${tLabel(x.type)} · ${reqWho(x)}`, c: (REQ_ST[x.status] || ['', 'pr'])[1] }));
   S.state.receipts.forEach((x) => it.push({ d: x.date, t: x.source === 'OLD' ? 'Catat APD lama' : 'APD dibagikan', s: `${x.qty} ${tLabel(x.type)} · ${personName(x.person)}`, c: 'ok' }));
   S.state.returns.forEach((x) => { const r = S.state.receipts.find((t) => t.id === x.receiptId); if (r) it.push({ d: x.date, t: x.action === 'REUSE' ? 'Kembali layak' : 'Dimusnahkan', s: `${x.qty} ${tLabel(r.type)} · ${personName(r.person)}`, c: x.action === 'REUSE' ? 'hd' : 'no' }); });
   it.sort((a, b) => b.d.localeCompare(a.d));
@@ -1438,35 +1446,46 @@ function pageRequests() {
   const tabs = [['pending', 'Menunggu'], ['approved', 'Disetujui'], ['fulfilled', 'Selesai'], ['rejected', 'Ditolak / Batal'], ['all', 'Semua']];
   const list = all.filter((r) => ui.rq === 'all' || r.status === ui.rq || (ui.rq === 'rejected' && r.status === 'cancelled'));
   const rows = list.map((r) => {
-    const p = person(r.person) || { name: personName(r.person), site: r.site || '—', position: '—' };
+    const p = isStockReq(r) ? null : person(r.person) || { name: personName(r.person), site: r.site || '—', position: '—' };
     const z = variantStocks(r.type)[variant(r)] || { NEW: 0, REUSE: 0 }, avail = z.NEW + z.REUSE;
     const st = REQ_ST[r.status] || ['?', 'pr'];
     const acts = [];
     if (r.status === 'pending' && isOwner()) acts.push(`<button type="button" class="btn btn-p btn-sm" data-rqact="approve|${esc(r.id)}">Setujui</button>`, `<button type="button" class="btn btn-g btn-sm red" data-rqact="reject|${esc(r.id)}">Tolak</button>`);
     if (r.status === 'pending' && !isOwner() && can() && (r.by || '').toLowerCase() === S.user.email.toLowerCase()) acts.push(`<button type="button" class="btn btn-g btn-sm red" data-rqact="cancel|${esc(r.id)}">Batalkan</button>`);
-    if (r.status === 'approved' && can()) acts.push(`<button type="button" class="btn btn-p btn-sm" data-rqact="fulfill|${esc(r.id)}">Bagikan</button>`);
-    return `<tr><td class="nw">${fmt(r.date)}</td><td class="b"><a href="#" data-person="${esc(r.person)}">${esc(p.name)}</a><div class="small">${esc(p.position)} · ${esc(p.site)}</div></td><td>${esc(tLabel(r.type))}<div class="small">${esc(vText(r.type, variant(r)))}</div></td><td class="b">${r.qty}</td><td><span class="small">${avail >= r.qty ? '✓ ' : '⚠ '}${avail} di gudang</span></td><td>${esc(r.reason || '—')}<div class="small">oleh ${esc(r.by || '—')}</div></td><td><span class="hs ${st[1]}">${st[0]}</span>${r.gaNo ? `<div class="small">${isOwner() ? `<a href="#" data-go="ga">GA ${esc(r.gaNo)}</a>` : 'Sudah diajukan ke GA'}</div>` : ''}${r.decidedBy ? `<div class="small">${esc(r.decidedBy)} · ${fmt(r.decidedAt)}</div>` : ''}${r.decisionNote ? `<div class="small">${esc(r.decisionNote)}</div>` : ''}</td><td class="nw">${acts.join(' ')}</td></tr>`;
+    if (r.status === 'approved' && !isStockReq(r) && can()) acts.push(`<button type="button" class="btn btn-p btn-sm" data-rqact="fulfill|${esc(r.id)}">Bagikan</button>`);
+    if (r.status === 'approved' && isStockReq(r) && isOwner()) acts.push(`<button type="button" class="btn btn-p btn-sm" data-rqact="fulfill|${esc(r.id)}">Kirim Stok</button>`);
+    return `<tr><td class="nw">${fmt(r.date)}</td><td class="b">${p ? `<a href="#" data-person="${esc(r.person)}">${esc(p.name)}</a><div class="small">${esc(p.position)} · ${esc(p.site)}</div>` : `<span class="hs pr">Stok site</span> ${esc(r.warehouse)}`}</td><td>${esc(tLabel(r.type))}<div class="small">${esc(vText(r.type, variant(r)))}</div></td><td class="b">${r.qty}</td><td><span class="small">${avail >= r.qty ? '✓ ' : '⚠ '}${avail} di semua gudang${isStockReq(r) ? `<br>${(() => { const y = variantStocks(r.type, S.state, r.warehouse)[variant(r)] || { NEW: 0, REUSE: 0 }; return y.NEW + y.REUSE; })()} di ${esc(r.warehouse)}` : ''}</span></td><td>${esc(r.reason || '—')}<div class="small">oleh ${esc(r.by || '—')}</div></td><td><span class="hs ${st[1]}">${st[0]}</span>${r.gaNo ? `<div class="small">${isOwner() ? `<a href="#" data-go="ga">GA ${esc(r.gaNo)}</a>` : 'Sudah diajukan ke GA'}</div>` : ''}${r.decidedBy ? `<div class="small">${esc(r.decidedBy)} · ${fmt(r.decidedAt)}</div>` : ''}${r.decisionNote ? `<div class="small">${esc(r.decisionNote)}</div>` : ''}</td><td class="nw">${acts.join(' ')}</td></tr>`;
   }).join('') || `<tr><td colspan="8" class="empty">Belum ada permintaan di kategori ini.</td></tr>`;
-  return header('Alur permintaan', 'Permintaan APD', 'Admin jobsite (Editor) mengajukan kebutuhan APD → Pemilik menyetujui → gudang membagikan ke karyawan.', (isOwner() && S.state.requests.some((r) => (r.status === 'pending' || r.status === 'approved') && !r.gaId) ? `<button type="button" class="btn btn-g" data-gafrom="${esc(S.state.requests.filter((r) => (r.status === 'pending' || r.status === 'approved') && !r.gaId).map((r) => r.id).join(','))}">Buat Form GA</button>` : '') + (can() ? '<button type="button" class="btn btn-p" data-newreq="1">+ Ajukan Permintaan</button>' : '')) +
+  return header('Alur permintaan', 'Permintaan APD', 'Admin jobsite (Editor) mengajukan APD untuk karyawan atau untuk stok gudang site → Pemilik menyetujui → APD dibagikan ke karyawan, atau stok dikirim ke gudang site.', (isOwner() && S.state.requests.some((r) => (r.status === 'pending' || r.status === 'approved') && !r.gaId) ? `<button type="button" class="btn btn-g" data-gafrom="${esc(S.state.requests.filter((r) => (r.status === 'pending' || r.status === 'approved') && !r.gaId).map((r) => r.id).join(','))}">Buat Form GA</button>` : '') + (can() ? '<button type="button" class="btn btn-g" data-newreq="|||stock">+ Minta Stok Site</button><button type="button" class="btn btn-p" data-newreq="1">+ Ajukan Permintaan</button>' : '')) +
     `<div class="mstats" style="grid-template-columns:repeat(4,minmax(0,1fr))"><div><b style="color:var(--warn,#B45309)">${cnt('pending')}</b><span>Menunggu persetujuan</span></div><div><b style="color:var(--primary)">${cnt('approved')}</b><span>Disetujui, belum dibagikan</span></div><div><b style="color:var(--good)">${cnt('fulfilled')}</b><span>Selesai dibagikan</span></div><div><b style="color:var(--crit)">${cnt('rejected') + cnt('cancelled')}</b><span>Ditolak / dibatalkan</span></div></div>
     <div class="card"><div class="toolbar"><div class="seg" role="group" aria-label="Status permintaan">${tabs.map(([k, l]) => `<button type="button" data-rq="${k}" aria-pressed="${ui.rq === k}">${l}${k !== 'all' ? ` (${k === 'rejected' ? cnt('rejected') + cnt('cancelled') : cnt(k)})` : ''}</button>`).join('')}</div><span class="small">${list.length} permintaan</span></div>
-    <div class="tw"><table class="t"><thead><tr><th>Tanggal</th><th>Karyawan</th><th>APD</th><th>Qty</th><th>Stok</th><th>Alasan / Pengaju</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    <div class="tw"><table class="t"><thead><tr><th>Tanggal</th><th>Untuk</th><th>APD</th><th>Qty</th><th>Stok</th><th>Alasan / Pengaju</th><th>Status</th><th>Aksi</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
-function reqForm(pid, type) {
+function reqForm(pid, type, kind) {
   if (!can()) return;
   const ppl = S.people.filter((p) => p.status === 'AKTIF');
-  const t0 = type || TYPES[0];
-  modal(`${mh('Permintaan APD', 'Ajukan Permintaan')}<div class="srcnote">Permintaan dikirim ke Pemilik untuk disetujui. Setelah disetujui, klik <b>Bagikan</b> untuk mencatat serah terima ke karyawan.</div><form id="qForm"><div class="fgrid">
-    <div class="fld full"><label for="qf_p">Karyawan</label><select id="qf_p" name="person" required><option value="">Pilih karyawan</option>${ppl.map((p) => `<option value="${esc(p.id)}" ${p.id === pid ? 'selected' : ''}>${esc(p.name)} — ${esc(p.position)} · ${esc(p.site)}</option>`).join('')}</select></div>
+  const t0 = type || TYPES[0], k0 = kind || (pid ? 'person' : 'person');
+  modal(`${mh('Permintaan APD', 'Ajukan Permintaan')}<div class="srcnote">Permintaan dikirim ke Pemilik untuk disetujui. Untuk karyawan: setelah disetujui klik <b>Bagikan</b>. Untuk stok site: Pemilik mengirim stok ke gudang site (mutasi) atau mengajukannya lewat Form GA.</div><form id="qForm"><div class="fgrid">
+    <div class="fld full"><label>Permintaan untuk</label><div class="seg" role="group" aria-label="Permintaan untuk"><button type="button" data-qk="person" aria-pressed="${k0 === 'person'}">Karyawan</button><button type="button" data-qk="stock" aria-pressed="${k0 === 'stock'}">Stok gudang / site</button></div></div>
+    <div class="fld full" id="qf_pw"><label for="qf_p">Karyawan</label><select id="qf_p" name="person"><option value="">Pilih karyawan</option>${ppl.map((p) => `<option value="${esc(p.id)}" ${p.id === pid ? 'selected' : ''}>${esc(p.name)} — ${esc(p.position)} · ${esc(p.site)}</option>`).join('')}</select></div>
+    <div class="fld full" id="qf_ww"><label for="qf_w">Gudang / site tujuan</label>${whSel('qf_w', WH.find((w) => w !== 'Workshop') || WH[0], 'warehouse')}<small class="small">Gudang site belum ada di daftar? Minta Pemilik menambahkannya di Pengaturan → Gudang.</small></div>
     <div class="fld"><label for="qf_t">Jenis APD</label><select id="qf_t" name="type">${TYPES.map((t) => `<option value="${t}" ${t === t0 ? 'selected' : ''}>${esc(tLabel(t))}</option>`).join('')}</select></div><div id="qf_vw">${vSel(t0, '', 'qf_v')}</div>
     <div class="fld"><label for="qf_q">Jumlah</label><input id="qf_q" type="number" name="qty" min="1" step="1" required value="1"></div><div class="fld"><label for="qf_d">Tanggal dibutuhkan</label><input id="qf_d" type="date" name="need" value="${today()}"></div>
-    <div class="fld full"><label for="qf_r">Alasan</label><select id="qf_r" name="reason"><option>Karyawan baru</option><option>Penggantian rutin (jatuh tempo)</option><option>Rusak / tidak layak</option><option>Hilang</option><option>Ukuran tidak sesuai</option><option>Lainnya</option></select></div>
+    <div class="fld full"><label for="qf_r">Alasan</label><select id="qf_r" name="reason"></select></div>
     <div class="fld full"><label for="qf_n">Catatan</label><input id="qf_n" name="note" placeholder="opsional"></div></div><div class="small" id="qf_h" style="margin-top:8px"></div>${actions('Kirim Permintaan')}</form>`);
-  const hint = () => { const t = $('qf_t').value, v = $('qf_v').value, z = variantStocks(t)[v || 'BELUM DIISI'] || { NEW: 0, REUSE: 0 }; $('qf_h').textContent = v ? `Stok ${tLabel(t)} ${vText(t, v)} saat ini: baru ${z.NEW}, bekas layak ${z.REUSE}.` : ''; };
-  $('qf_t').onchange = () => { $('qf_vw').innerHTML = vSel($('qf_t').value, '', 'qf_v'); $('qf_v').onchange = hint; hint(); }; $('qf_v').onchange = hint;
+  let kind0 = k0;
+  const RS = { person: ['Karyawan baru', 'Penggantian rutin (jatuh tempo)', 'Rusak / tidak layak', 'Hilang', 'Ukuran tidak sesuai', 'Lainnya'], stock: ['Stok cadangan site', 'Stok site menipis / habis', 'Persiapan karyawan baru', 'Lainnya'] };
+  const hint = () => { const t = $('qf_t').value, v = $('qf_v').value, z = variantStocks(t)[v || 'BELUM DIISI'] || { NEW: 0, REUSE: 0 }, w = kind0 === 'stock' ? (variantStocks(t, S.state, $('qf_w').value)[v || 'BELUM DIISI'] || { NEW: 0, REUSE: 0 }) : null; $('qf_h').textContent = v ? `Stok ${tLabel(t)} ${vText(t, v)} di semua gudang: ${z.NEW + z.REUSE}${w ? ` · di ${$('qf_w').value}: ${w.NEW + w.REUSE}` : ''}.` : ''; };
+  const setKind = (k) => { kind0 = k; document.querySelectorAll('[data-qk]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.qk === k)); $('qf_pw').hidden = k !== 'person'; $('qf_ww').hidden = k !== 'stock'; $('qf_p').required = k === 'person'; $('qf_r').innerHTML = RS[k].map((x) => `<option>${x}</option>`).join(''); hint(); };
+  $('qForm').addEventListener('click', (e) => { const b = e.target.closest('[data-qk]'); if (b) setKind(b.dataset.qk); });
+  $('qf_t').onchange = () => { $('qf_vw').innerHTML = vSel($('qf_t').value, '', 'qf_v'); $('qf_v').onchange = hint; hint(); }; $('qf_v').onchange = hint; $('qf_w').onchange = hint; setKind(k0);
   $('qForm').onsubmit = (e) => {
-    e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); const p = person(f.person);
-    const n = structuredClone(S.state); n.requests.push({ id: uid(), date: today(), need: f.need, person: f.person, site: p ? p.site : '', type: f.type, variant: f.variant, qty: Number(f.qty), reason: f.reason, note: f.note, by: S.user.email, status: 'pending' });
+    e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
+    if (kind0 === 'person' && !f.person) { toast('Pilih karyawan.', true); return; }
+    if ((VARIANTS[f.type] || []).length && !f.variant) { toast('Pilih ukuran/warna.', true); return; }
+    const p = kind0 === 'person' ? person(f.person) : null, n = structuredClone(S.state);
+    const base = { id: uid(), date: today(), need: f.need, type: f.type, variant: f.variant, qty: Number(f.qty), reason: f.reason, note: f.note, by: S.user.email, status: 'pending' };
+    n.requests.push(kind0 === 'stock' ? { ...base, kind: 'stock', person: '', warehouse: f.warehouse, site: f.warehouse } : { ...base, kind: 'person', person: f.person, site: p ? p.site : '' });
     persist(n, 'Permintaan APD terkirim ke Pemilik.');
   };
 }
@@ -1474,12 +1493,12 @@ function reqAction(act, id) {
   const r = S.state.requests.find((x) => x.id === id); if (!r) return;
   const set = (status, note) => { const n = structuredClone(S.state); const x = n.requests.find((y) => y.id === id); x.status = status; if (status !== 'fulfilled') { x.decidedBy = S.user.email; x.decidedAt = today(); x.decisionNote = note || ''; } return n; };
   if (act === 'approve') persist(set('approved'), 'Permintaan disetujui. Gudang bisa membagikan APD.');
-  if (act === 'cancel') confirmBox('Batalkan permintaan ini?', `${r.qty} ${esc(tLabel(r.type))} untuk ${esc(personName(r.person))}.`, () => persist(set('cancelled'), 'Permintaan dibatalkan.'), 'Ya, batalkan');
+  if (act === 'cancel') confirmBox('Batalkan permintaan ini?', `${r.qty} ${esc(tLabel(r.type))} untuk ${esc(reqWho(r))}.`, () => persist(set('cancelled'), 'Permintaan dibatalkan.'), 'Ya, batalkan');
   if (act === 'reject') {
-    modal(`${mh('Permintaan APD', 'Tolak Permintaan')}<p class="small">${r.qty} ${esc(tLabel(r.type))} ${esc(vText(r.type, variant(r)))} untuk ${esc(personName(r.person))}.</p><form id="rjForm"><div class="fgrid"><div class="fld full"><label for="rj_n">Alasan penolakan</label><input id="rj_n" required placeholder="mis. jatah belum habis, stok habis"></div></div>${actions('Tolak Permintaan')}</form>`);
+    modal(`${mh('Permintaan APD', 'Tolak Permintaan')}<p class="small">${r.qty} ${esc(tLabel(r.type))} ${esc(vText(r.type, variant(r)))} untuk ${esc(reqWho(r))}.</p><form id="rjForm"><div class="fgrid"><div class="fld full"><label for="rj_n">Alasan penolakan</label><input id="rj_n" required placeholder="mis. jatah belum habis, stok habis"></div></div>${actions('Tolak Permintaan')}</form>`);
     $('rjForm').onsubmit = (e) => { e.preventDefault(); persist(set('rejected', $('rj_n').value.trim()), 'Permintaan ditolak.'); };
   }
-  if (act === 'fulfill') receiptForm(r.person, r.type, '', 'NEW', r);
+  if (act === 'fulfill') { if (isStockReq(r)) transferForm(r.type, r); else receiptForm(r.person, r.type, '', 'NEW', r); }
 }
 
 // ---------- Manpower aktif / keluar ----------
@@ -1568,7 +1587,7 @@ function pageImages() {
 function pageGuide() {
   const g = [
     ['Data karyawan', 'Otomatis dari Monitoring Manpower KMB (MP Aktif & MP Out semua jobsite). Kalau perlu, Pemilik/Editor bisa mengubah nama, jabatan, jobsite, atau status khusus di APD lewat tombol Edit.'],
-    ['Permintaan APD', 'Admin jobsite (Editor) klik Minta APD pada karyawan atau + Ajukan Permintaan. Pemilik menyetujui atau menolak di halaman Permintaan APD. Setelah disetujui, klik Bagikan untuk mencatat serah terima; stok gudang otomatis berkurang.'],
+    ['Permintaan APD', 'Admin jobsite (Editor) klik Minta APD pada karyawan atau + Ajukan Permintaan. Untuk stok cadangan di site pilih "Stok gudang / site" (atau tombol + Minta Stok Site). Pemilik menyetujui atau menolak di halaman Permintaan APD; permintaan stok site dipenuhi dengan Kirim Stok (mutasi) atau lewat Form GA. Setelah disetujui, klik Bagikan untuk mencatat serah terima; stok gudang otomatis berkurang.'],
     ['Form GA Request', 'Khusus Pemilik: menu Form GA Request → + Buat Form GA → Ambil dari Permintaan (atau isi baris manual) → Simpan. Klik Excel untuk unduh sesuai format GA Request, atau Lihat / PDF untuk cetak. Saat barang datang klik Barang Datang: stok gudang bertambah otomatis.'],
     ['Catat APD lama', 'Detail karyawan → Catat APD Lama. Isi tanggal diterima, jumlah yang masih dipegang, dan kondisinya. Tidak mengurangi stok gudang dan tidak membuat jadwal ganti.'],
     ['Stok per gudang', 'Khusus Pemilik: Stok & Gudang → + Stok Masuk (pilih gudang), Mutasi untuk memindahkan stok antar gudang, dan Edit Stok Gudang untuk stok opname. Daftar gudang diatur di Pengaturan → Gudang.'],
@@ -1685,17 +1704,17 @@ function stockForm(id, type) {
   $('sf_t').onchange = () => { $('sf_vw').innerHTML = vSel($('sf_t').value, '', 'sf_v'); };
   $('sForm').onsubmit = (e) => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); const v = { id: id || uid(), date: f.date, type: f.type, grade: f.grade, variant: f.variant, qty: Number(f.qty), location: f.location, note: f.note }; const n = structuredClone(S.state); if (id) n.stockIn[n.stockIn.findIndex((a) => a.id === id)] = v; else n.stockIn.push(v); persist(n, 'Stok masuk tersimpan.'); };
 }
-function transferForm(t) {
+function transferForm(t, req) {
   if (!isOwner()) return; if (WH.length < 2) { toast('Tambahkan minimal 2 gudang dulu di Pengaturan → Gudang.', true); return; }
-  const from0 = ui.wh !== 'ALL' ? ui.wh : WH[0], to0 = WH.find((w) => w !== from0);
-  modal(`${mh('Gudang', 'Mutasi Stok Antar Gudang')}<form id="xForm"><div class="fgrid">
-    <div class="fld"><label for="xf_t">Jenis APD</label><select id="xf_t" name="type">${TYPES.map((c) => `<option value="${esc(c)}" ${c === t ? 'selected' : ''}>${esc(tLabel(c))}</option>`).join('')}</select></div><div id="xf_vw">${vSel(t, '', 'xf_v')}</div>
-    <div class="fld"><label for="xf_f">Dari gudang</label>${whSel('xf_f', from0, 'from')}</div><div class="fld"><label for="xf_o">Ke gudang</label>${whSel('xf_o', to0, 'to')}</div>
-    <div class="fld"><label for="xf_g">Kondisi</label><select id="xf_g" name="grade"><option value="NEW">Baru</option><option value="REUSE">Bekas layak</option></select></div><div class="fld"><label for="xf_q">Jumlah</label><input id="xf_q" type="number" name="qty" min="1" step="1" required value="1"></div>
+  const to0 = req ? req.warehouse : null, from0 = req ? (WH.find((w) => w !== to0 && ((variantStocks(req.type, S.state, w)[variant(req)] || {}).NEW || 0) >= req.qty) || WH.find((w) => w !== to0)) : ui.wh !== 'ALL' ? ui.wh : WH[0], toX = to0 || WH.find((w) => w !== from0);
+  modal(`${mh(req ? 'Kirim stok sesuai permintaan' : 'Gudang', 'Mutasi Stok Antar Gudang')}<form id="xForm"><div class="fgrid">
+    <div class="fld"><label for="xf_t">Jenis APD</label><select id="xf_t" name="type">${TYPES.map((c) => `<option value="${esc(c)}" ${c === t ? 'selected' : ''}>${esc(tLabel(c))}</option>`).join('')}</select></div><div id="xf_vw">${vSel(t, req ? req.variant : '', 'xf_v')}</div>
+    <div class="fld"><label for="xf_f">Dari gudang</label>${whSel('xf_f', from0, 'from')}</div><div class="fld"><label for="xf_o">Ke gudang</label>${whSel('xf_o', toX, 'to')}</div>
+    <div class="fld"><label for="xf_g">Kondisi</label><select id="xf_g" name="grade"><option value="NEW">Baru</option><option value="REUSE">Bekas layak</option></select></div><div class="fld"><label for="xf_q">Jumlah</label><input id="xf_q" type="number" name="qty" min="1" step="1" required value="${req ? req.qty : 1}"></div>
     <div class="fld"><label for="xf_d">Tanggal</label><input id="xf_d" type="date" name="date" required value="${today()}"></div><div class="fld"><label for="xf_n">Keterangan</label><input id="xf_n" name="note" placeholder="mis. kirim ke jobsite C4"></div></div><div class="small" id="xf_h" style="margin-top:8px"></div>${actions('Simpan Mutasi')}</form>`);
   const h = () => { const z = variantStocks($('xf_t').value, S.state, $('xf_f').value)[$('xf_v').value || 'BELUM DIISI'] || { NEW: 0, REUSE: 0 }; $('xf_h').textContent = `Tersedia di ${$('xf_f').value}: baru ${z.NEW}, bekas layak ${z.REUSE}.`; };
   ['xf_f', 'xf_g'].forEach((i) => { $(i).onchange = h; }); $('xf_v').onchange = h; $('xf_t').onchange = () => { $('xf_vw').innerHTML = vSel($('xf_t').value, '', 'xf_v'); $('xf_v').onchange = h; h(); }; h();
-  $('xForm').onsubmit = (e) => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); if (f.from === f.to) { toast('Gudang asal dan tujuan harus berbeda.', true); return; } const n = structuredClone(S.state); n.transfers.push({ id: uid(), date: f.date, type: f.type, variant: f.variant, grade: f.grade, qty: Number(f.qty), from: f.from, to: f.to, note: f.note, by: S.user.email }); persist(n, `Mutasi ${f.qty} ${tLabel(f.type)} ${f.from} → ${f.to} tersimpan.`); };
+  $('xForm').onsubmit = (e) => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); if (f.from === f.to) { toast('Gudang asal dan tujuan harus berbeda.', true); return; } const n = structuredClone(S.state); const xid = uid(); if (req) { const q = n.requests.find((y) => y.id === req.id); if (q) { q.status = 'fulfilled'; q.transferId = xid; q.fulfilledBy = S.user.email; q.fulfilledAt = f.date; } } n.transfers.push({ id: xid, date: f.date, type: f.type, variant: f.variant, grade: f.grade, qty: Number(f.qty), from: f.from, to: f.to, note: f.note, by: S.user.email }); persist(n, req ? `Stok dikirim ke ${f.to}. Permintaan selesai.` : `Mutasi ${f.qty} ${tLabel(f.type)} ${f.from} → ${f.to} tersimpan.`); };
 }
 function opnameForm(t) {
   if (!isOwner()) return;
@@ -1757,6 +1776,7 @@ function delRecord(kind, id) {
   const who = kind === 'transfer' ? `${rec.from} → ${rec.to}` : ['stock', 'adjust'].includes(kind) ? 'Gudang ' + whOf(rec.location) : personName(r && r.person);
   confirmBox(`Hapus ${lbl}?`, `${esc(who)} · ${esc(tLabel((r || rec).type))} · ${fmt(rec.date)} · ${rec.qty} unit. Stok dan kepemilikan dihitung ulang, dan penghapusan tercatat di Riwayat Hapus.`, async () => {
     const n = structuredClone(S.state); n[col] = n[col].filter((x) => x.id !== id);
+    if (kind === 'transfer') n.requests.forEach((q) => { if (q.transferId === id && q.status === 'fulfilled') { q.status = 'approved'; delete q.transferId; } });
     if (kind === 'receipt' && rec.requestId) { const q = n.requests.find((y) => y.id === rec.requestId); if (q && q.status === 'fulfilled') { q.status = 'approved'; delete q.receiptId; } }
     return persist(n, `Data ${lbl} dihapus.`, { kind, id, data: { ...rec, type: (r || rec).type, person: r && r.person } });
   });
@@ -1782,7 +1802,7 @@ function exportExcel() {
   add('RINGKASAN', [['MONITORING APD KMB'], ['Tanggal ekspor', today()], ['Manpower aktif', S.people.filter((p) => p.status === 'AKTIF').length], ['Manpower keluar', S.people.filter((p) => p.status === 'OUT').length], ['Permintaan menunggu', S.state.requests.filter((r) => r.status === 'pending').length], [], ['Jenis APD', 'Stok Baru', 'Stok Bekas Layak', 'Total Stok', 'Dipegang Karyawan', 'Dimusnahkan', 'Minimal Stok', 'Jatuh Tempo'], ...TYPES.map((t) => { const x = stock(t); return [tLabel(t), x.NEW, x.REUSE, x.NEW + x.REUSE, S.people.reduce((n, p) => n + held(p.id, t), 0), x.DESTROYED, Number(S.state.limits[t] || 0), schedules().filter((y) => y.t === t && y.days <= 0).length]; })], [26, 12, 16, 12, 18, 14, 13, 13]);
   if (isOwner()) add('STOK PER GUDANG', [['Jenis', 'Ukuran/Warna', ...WH.flatMap((w) => [w + ' Baru', w + ' Bekas']), 'Total'], ...TYPES.flatMap((t) => [...(VARIANTS[t] || []), 'BELUM DIISI'].map((v) => { const per = WH.flatMap((w) => { const z = variantStocks(t, S.state, w)[v] || { NEW: 0, REUSE: 0 }; return [z.NEW, z.REUSE]; }); return [tLabel(t), vText(t, v), ...per, per.reduce((a, c) => a + c, 0)]; }).filter((r) => r[r.length - 1] || r[1] !== 'Belum diisi'))], [18, 14, ...WH.flatMap(() => [12, 12]), 9]);
   add('KARYAWAN', [['Nama', 'Jabatan', 'Jobsite', 'Status', ...TYPES.flatMap((t) => [t + ' Dipegang', t + ' Terakhir', t + ' Ganti'])], ...S.people.map((p) => [p.name, p.position, p.site, p.status === 'AKTIF' ? 'Aktif' : 'Keluar', ...TYPES.flatMap((t) => [held(p.id, t), (latest(p.id, t) || {}).date || '', due(p.id, t) || ''])])], [26, 22, 20, 10, ...TYPES.flatMap(() => [12, 13, 13])]);
-  add('PERMINTAAN', [['Tanggal', 'Nama', 'Jobsite', 'Jenis', 'Ukuran/Warna', 'Jumlah', 'Alasan', 'Catatan', 'Diajukan oleh', 'Status', 'Diputuskan oleh', 'Tgl Putusan', 'Catatan Putusan'], ...S.state.requests.map((r) => [r.date, personName(r.person), r.site || (person(r.person) || {}).site || '', r.type, vText(r.type, variant(r)), Number(r.qty), r.reason || '', r.note || '', r.by || '', (REQ_ST[r.status] || [r.status])[0], r.decidedBy || '', r.decidedAt || '', r.decisionNote || ''])], [12, 24, 18, 10, 12, 8, 24, 24, 26, 18, 26, 12, 24]);
+  add('PERMINTAAN', [['Tanggal', 'Nama', 'Jobsite', 'Jenis', 'Ukuran/Warna', 'Jumlah', 'Alasan', 'Catatan', 'Diajukan oleh', 'Status', 'Diputuskan oleh', 'Tgl Putusan', 'Catatan Putusan'], ...S.state.requests.map((r) => [r.date, reqWho(r), r.site || (person(r.person) || {}).site || '', r.type, vText(r.type, variant(r)), Number(r.qty), r.reason || '', r.note || '', r.by || '', (REQ_ST[r.status] || [r.status])[0], r.decidedBy || '', r.decidedAt || '', r.decisionNote || ''])], [12, 24, 18, 10, 12, 8, 24, 24, 26, 18, 26, 12, 24]);
   if (isOwner()) add('STOK MASUK', [['Tanggal', 'Gudang', 'Jenis', 'Ukuran/Warna', 'Kondisi', 'Jumlah', 'Keterangan'], ...S.state.stockIn.map((x) => [x.date, whOf(x.location), x.type, vText(x.type, variant(x)), x.grade === 'NEW' ? 'Baru' : 'Bekas layak', Number(x.qty), x.note || ''])], [12, 16, 10, 14, 12, 8, 30]);
   if (isOwner() && S.state.transfers.length) add('MUTASI GUDANG', [['Tanggal', 'Jenis', 'Ukuran/Warna', 'Kondisi', 'Jumlah', 'Dari', 'Ke', 'Keterangan', 'Oleh'], ...S.state.transfers.map((x) => [x.date, x.type, vText(x.type, variant(x)), x.grade === 'REUSE' ? 'Bekas layak' : 'Baru', Number(x.qty), x.from, x.to, x.note || '', x.by || ''])], [12, 10, 14, 12, 8, 16, 16, 28, 26]);
   if (isOwner() && S.state.adjust.length) add('KOREKSI STOK', [['Tanggal', 'Gudang', 'Jenis', 'Warna/Ukuran', 'Kondisi', 'Selisih', 'Alasan', 'Oleh'], ...S.state.adjust.map((x) => [x.date, whOf(x.location), x.type, vText(x.type, variant(x)), x.grade === 'REUSE' ? 'Bekas layak' : 'Baru', Number(x.qty), x.note || '', x.by || ''])], [12, 16, 10, 14, 12, 9, 34, 26]);
@@ -1872,7 +1892,7 @@ document.addEventListener('click', async (e) => {
   const ht = c('[data-ht]'); if (ht) { ui.ht = ht.dataset.ht; render(); return; }
   const wh = c('[data-wh]'); if (wh) { ui.wh = wh.dataset.wh; render(); return; }
   const rq = c('[data-rq]'); if (rq) { ui.rq = rq.dataset.rq; render(); return; }
-  const nr = c('[data-newreq]'); if (nr) { const [pid, ty] = (nr.dataset.newreq === '1' ? '' : nr.dataset.newreq).split('|'); reqForm(pid, ty); return; }
+  const nr = c('[data-newreq]'); if (nr) { const [pid, ty, , kd] = (nr.dataset.newreq === '1' ? '' : nr.dataset.newreq).split('|'); reqForm(pid, ty, kd); return; }
   const ra = c('[data-rqact]'); if (ra) { const [a, id] = ra.dataset.rqact.split('|'); reqAction(a, id); return; }
   const ep = c('[data-editp]'); if (ep) { personForm(ep.dataset.editp); return; }
   const rc = c('[data-rcpt]'); if (rc) { const [pid, ty, rid, src] = rc.dataset.rcpt.split('|'); receiptForm(pid, ty, rid, src); return; }
@@ -1896,7 +1916,7 @@ document.addEventListener('submit', async (e) => {
   if (e.target.id === 'whForm') {
     e.preventDefault(); if (!isOwner()) return; const w = ($('whName').value || '').trim().replace(/\s+/g, ' ');
     if (!w) { toast('Isi nama gudang.', true); return; } if (WH.some((x) => x.toLowerCase() === w.toLowerCase())) { toast('Gudang ' + w + ' sudah ada.', true); return; }
-    const n = structuredClone(S.state); n.warehouses = [...WH, w]; persist(n, 'Gudang ' + w + ' ditambahkan.'); return;
+    const n = structuredClone(S.state); n.warehouses = [...WH, w]; persist(n, (/^gudang/i.test(w) ? '' : 'Gudang ') + w + ' ditambahkan.'); return;
   }
   if (e.target.id !== 'edForm') return; e.preventDefault(); if (!isOwner()) return;
   const em = ($('edEmail').value || '').trim().toLowerCase();
