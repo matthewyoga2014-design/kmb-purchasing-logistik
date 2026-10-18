@@ -741,6 +741,21 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .utahap span{font-size:12px;font-weight:600;border:1px solid var(--line-2,#DCD9EC);border-radius:999px;padding:3px 10px;color:var(--muted)}
 .utahap span.ok{background:#ECFDF5;border-color:#A7F3D0;color:#047857}
 .utahap span.now{box-shadow:0 0 0 2px #DDD0FC;color:var(--pri-2,#5B21B6)}
+
+/* checklist unit tiba */
+.tcl{border:1px solid var(--line-2,#DCD9EC);border-radius:12px;overflow:hidden;background:#fff;max-height:300px;overflow-y:auto}
+.tcl-head{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#F4F1FD;font-size:12px;font-weight:700;color:var(--ink-2,#4B4868);position:sticky;top:0}
+.tcl-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-top:1px solid var(--line,#E6E4F2);cursor:pointer;font-weight:400}
+.tcl-row:hover{background:#FAF8FF}
+.tcl-row input[type=checkbox]{width:18px;height:18px;accent-color:#6D28D9;flex:none}
+.tcl-main{flex:1;min-width:0;display:flex;flex-direction:column}
+.tcl-main b{font-size:13.5px;color:var(--fg,#1E1B3A)}
+.tcl-main small{font-size:11.5px;color:var(--muted)}
+.tcl-main .tmp{color:var(--warn);font-size:12.5px}
+.tcl-kode{width:150px!important;height:32px!important;font-size:12.5px!important}
+.tcl-empty{border:1px dashed var(--line-2,#DCD9EC);border-radius:12px;padding:12px;font-size:13px;color:var(--muted);background:#FCFBFF}
+.tcl-done{margin-top:6px;font-size:12px;color:var(--muted)}
+.tcl-done .plate{font-size:11px;margin:2px 2px 0 0}
 /* tingkat perkecilan mengikuti lebar kertas (lebar desain 1180px) */
 @media print and (max-width:560px){ .wrap{zoom:.44} }
 @media print and (min-width:561px) and (max-width:680px){ .wrap{zoom:.54} }
@@ -1046,14 +1061,24 @@ async function fetchSheet(api){
 async function fetchState(){
   if(SRC==="sheet") return fetchSheet();
   return ensureCols(await fetchSb()); }
+let PENDING=[];
+function applyOpsLocal(st,ops){ ops.forEach(o=>{ if(!st[o.col]) st[o.col]=[];
+  if(o.action==="add") { if(!st[o.col].some(x=>x.id===o.id)) st[o.col].push({...o.data,id:o.id}); }
+  else if(o.action==="update"){ const r=st[o.col].find(x=>x.id===o.id); if(r) Object.assign(r,o.data); }
+  else if(o.action==="remove") st[o.col]=st[o.col].filter(x=>x.id!==o.id); }); return st; }
 async function sheetOp(op){
   if(!canWrite) throw {code:"forbidden"};
+  const ops=Array.isArray(op)?op:[op], local=ops.every(o=>o.action!=="upload");
+  if(local && STATE){ PENDING.push(ops); try{ applyState(applyOpsLocal(JSON.parse(JSON.stringify(STATE)),ops)); }catch(e){} setSync("busy"); }
+  const done=()=>{ const i=PENDING.indexOf(ops); if(i>=0) PENDING.splice(i,1); };
   const job=saving.then(async()=>{
     const {data}=await sb.auth.getSession(); const token=data&&data.session&&data.session.access_token;
     const r=await fetch(SHEET_API,{method:"POST",body:JSON.stringify({token,ops:Array.isArray(op)?op:[op]})});
     const j=await r.json().catch(()=>null);
     if(!j||!j.ok){ const e=j&&j.error; throw {code:(e==="forbidden"||e==="not_signed_in")?"forbidden":e==="busy"?"conflict":"failed"}; }
-    applyState(j.state); });
+    done(); let st=j.state; if(PENDING.length){ st=JSON.parse(JSON.stringify(st)); PENDING.forEach(p=>applyOpsLocal(st,p)); }
+    applyState(st); if(!PENDING.length) setSync("ok"); });
+  job.catch(async()=>{ done(); if(local){ try{ const st=await fetchState(); applyState(st); }catch(e){} } setSync("err"); });
   saving=job.catch(()=>{}); return job; }
 function mutate(fn){ const job=saving.then(()=>doMutate(fn)); saving=job.catch(()=>{}); return job; }
 async function doMutate(fn){
@@ -1088,6 +1113,7 @@ function openForm({title,desc="",fields,values={},ok="Simpan",onSubmit,live,dang
   const body=$("#dlgBody"); body.innerHTML="";
   fields.forEach(f=>{
     if(f.type==="preview"){ const d=document.createElement("div"); d.className="preview"; d.id="f_preview"; body.appendChild(d); return; }
+    if(f.type==="html"){ const d=document.createElement("div"); d.className="field full"; d.id="f_"+f.key; d.innerHTML=f.html||""; body.appendChild(d); return; }
     const w=document.createElement("div"); w.className="field"+(f.full?" full":"");
     const id="f_"+f.key; const v=values[f.key]??f.def??"";
     let input;
@@ -1101,7 +1127,7 @@ function openForm({title,desc="",fields,values={},ok="Simpan",onSubmit,live,dang
   });
   dlgSubmit=()=>{
     const data={};
-    for(const f of fields){ if(f.type==="preview") continue; const el=$("#f_"+f.key); let v=el.value.trim(); if(f.type==="number") v=v===""?"":Number(v);
+    for(const f of fields){ if(f.type==="preview"||f.type==="html") continue; const el=$("#f_"+f.key); let v=el.value.trim(); if(f.type==="number") v=v===""?"":Number(v);
       if(f.req && (v===""||v==null||(f.type==="number"&&isNaN(v)))){ el.focus(); toast(`Isi kolom "${f.label}".`); return false; }
       if(f.type==="number" && v!=="" && f.min!=null && v<f.min){ el.focus(); toast(`"${f.label}" minimal ${f.min}.`); return false; }
       data[f.key]=v; }
@@ -1113,7 +1139,7 @@ function openForm({title,desc="",fields,values={},ok="Simpan",onSubmit,live,dang
   body.onchange=e=>{ if(dlgLive) dlgLive(readForm(fields),e.target); };
   $("#dlg").showModal();
 }
-function readForm(fields){ const o={}; fields.forEach(f=>{ const el=document.getElementById("f_"+f.key); if(el) o[f.key]=el.value; }); return o; }
+function readForm(fields){ const o={}; fields.forEach(f=>{ if(f.type==="html") return; const el=document.getElementById("f_"+f.key); if(el) o[f.key]=el.value; }); return o; }
 function confirmBox(title,desc,ok,fn){ openForm({title,desc,fields:[],ok,danger:true,onSubmit:()=>{fn();}}); }
 $("#dlgForm").addEventListener("submit",e=>{ e.preventDefault(); if(dlgSubmit && dlgSubmit()) $("#dlg").close(); });
 $("#dlgCancel").addEventListener("click",()=>$("#dlg").close());
@@ -1195,7 +1221,66 @@ function formUbahJumlah(k){
 }
 function parseLambung(t){ return String(t||"").split(/[,;\n]+/).map(x=>x.trim().toUpperCase()).filter(Boolean); }
 function itemOpts(pid){ return [...itemsOf(pid).map(k=>({v:k.id,l:`${k.tipe} (${tibaItem(k)}/${k.rencana})`})),{v:"",l:"Di luar rencana kirim"}]; }
+function tibaChecklist(kid){
+  const k=S.kirim.find(x=>x.id===kid);
+  if(!k) return `<label>Unit yang tiba</label><div class="tcl-empty">Pilih item rencana kirim.</div>`;
+  const us=slotUnits(k), pre=us.filter(u=>!arrived(u)), arr=us.filter(arrived);
+  const row=u=>`<label class="tcl-row"><input type="checkbox" data-tu="${u.id}" ${pre.length===1?"checked":""}><span class="tcl-main"><b>${u.kodeSementara?`<span class="tmp">No. lambung belum diisi</span>`:esc(u.kode)}</b><small>${esc(u.status)}${u.rencanaKirim?` · rencana kirim ${fmtDate(u.rencanaKirim)}`:""}${u.tglKirim?` · berangkat ${fmtDate(u.tglKirim)}`:""}${u.via?` · via ${esc(u.via)}`:""}</small></span>${u.kodeSementara?`<input type="text" class="tcl-kode" data-tk="${u.id}" placeholder="Isi no. lambung" oninput="this.closest('label').querySelector('[data-tu]').checked=!!this.value.trim()">`:""}</label>`;
+  return `<label>Unit yang tiba <span class="muted small">(dari daftar unit yang dikirim)</span></label>
+    ${pre.length?`<div class="tcl"><div class="tcl-head"><span>${pre.length} unit sedang dikirim / dijadwalkan</span><button type="button" class="linkish" data-act="tclAll">Pilih semua</button></div>${pre.map(row).join("")}</div>`
+      :`<div class="tcl-empty">Belum ada unit ${esc(k.tipe)} yang dicatat dikirim. Isi no. lambung di kolom "Unit lain" di bawah, atau jadwalkan dulu di tabel unit (Rencana kirim → Lihat unit).</div>`}
+    ${arr.length?`<div class="tcl-done">Sudah tiba: ${arr.map(u=>`<span class="plate">${esc(u.kodeSementara?"(tanpa no.)":u.kode)}</span>`).join(" ")}</div>`:""}`;
+}
+function formTiba(presetItem){
+  if(!S.projects.length){ toast("Tambahkan project dulu."); return; }
+  const pid0=presetItem?presetItem.projectId:defaultProj();
+  const kid0=presetItem?presetItem.id:((itemsOf(pid0).find(k=>unitsOfItem(k).some(u=>!arrived(u)))||itemsOf(pid0)[0]||{}).id||"");
+  let lastPid=pid0, lastKid=kid0;
+  openForm({
+    title:"Catat unit tiba",
+    desc:"Centang unit yang sudah sampai dari daftar unit yang dikirim. Hitungan Tiba dan Sisa kirim ikut bertambah.",
+    values:{projectId:pid0,kirimId:kid0,tglTiba:todayStr(),status:"Tiba",lokasi:(projOf(pid0)||{}).kode||"Laydown Pelabuhan",hm:0},
+    fields:[
+      {key:"projectId",label:"Project",type:"select",options:projOpts()},
+      {key:"kirimId",label:"Item rencana kirim",type:"select",options:itemOpts(pid0).filter(o=>o.v)},
+      {key:"checks",type:"html",html:tibaChecklist(kid0)},
+      {key:"extra",label:"Unit lain (di luar daftar kirim)",type:"textarea",full:true,ph:"Opsional. No. lambung, pisahkan dengan koma: ZT96-01, ZT96-02"},
+      {key:"lokasi",label:"Posisi sekarang",req:true,list:lokasiList()},
+      {key:"tglTiba",label:"Tanggal tiba",type:"date",req:true},
+      {key:"status",label:"Status",type:"select",options:UNIT_STATUS.map(s=>s.k)},
+      {key:"hm",label:"Hour meter (HM)",type:"number",min:0,step:"0.1"},
+      {key:"catatan",label:"Catatan",type:"textarea",full:true,ph:"Kondisi saat tiba, hasil PDI, kebutuhan rakit…"}
+    ],
+    live:(v,target)=>{
+      const sel=$("#f_kirimId"); if(!sel) return;
+      if(v.projectId!==lastPid){ lastPid=v.projectId; sel.innerHTML=optionsHtml(itemOpts(v.projectId).filter(o=>o.v),(itemsOf(v.projectId)[0]||{}).id||""); const P=projOf(v.projectId); if(P) $("#f_lokasi").value=P.kode; }
+      if(sel.value!==lastKid || (target&&target.id==="f_projectId")){ lastKid=sel.value; $("#f_checks").innerHTML=tibaChecklist(sel.value); }
+    },
+    ok:"Simpan unit tiba",
+    onSubmit:d=>{
+      const k=S.kirim.find(x=>x.id===d.kirimId); if(!k){ toast("Pilih item rencana kirim."); return false; }
+      const box=$("#f_checks"), picked=[...box.querySelectorAll("[data-tu]:checked")].map(el=>S.units.find(u=>u.id===el.dataset.tu)).filter(Boolean);
+      const extra=parseLambung(d.extra);
+      if(!picked.length && !extra.length){ toast("Centang unit yang tiba atau isi no. lambung unit lain."); return false; }
+      const kodes=new Set(), ops=[]; let err="";
+      const chk=(kode,selfId)=>{ if(kodes.has(kode)) err=err||`No. lambung ${kode} diketik dua kali.`; kodes.add(kode); if(S.units.some(x=>x.kode===kode&&x.id!==selfId)) err=err||`No. lambung ${kode} sudah terdaftar.`; };
+      const base={status:d.status,tglTiba:d.tglTiba,lokasi:d.lokasi,updatedAt:nowIso()}; if(d.hm!=="") base.hm=d.hm; if(d.catatan) base.catatan=d.catatan;
+      picked.forEach(u=>{ const data={...base}; if(!u.tglKirim) data.tglKirim=d.tglTiba;
+        const inp=box.querySelector(`[data-tk="${u.id}"]`), kode=inp?inp.value.trim().toUpperCase():"";
+        if(kode){ chk(kode,u.id); data.kode=kode; data.kodeSementara=false; if(/^Kode sementara/.test(u.catatan||"")&&!d.catatan) data.catatan=""; }
+        ops.push({col:COL.units,action:"update",id:u.id,data}); });
+      const spare=slotUnits(k).filter(u=>!arrived(u)&&!picked.includes(u));
+      extra.forEach((kode,i)=>{ chk(kode,null); const m=spare.find(x=>x.kodeSementara)||null;
+        if(m){ spare.splice(spare.indexOf(m),1); ops.push({col:COL.units,action:"update",id:m.id,data:{...base,kode,kodeSementara:false,tglKirim:m.tglKirim||d.tglTiba}}); }
+        else ops.push({col:COL.units,action:"add",id:slotId(slotUnits(k).length+i+1),data:{...base,kode,kodeSementara:false,projectId:k.projectId,kirimId:k.id,tipe:k.tipe,hm:base.hm||0,catatan:base.catatan||"",tglKirim:d.tglTiba}}); });
+      if(err){ toast(err); return false; }
+      const n=ops.length;
+      store.batch(ops).then(()=>toast(`${n} unit ${k.tipe} tercatat tiba di ${projKode(k.projectId)}.`)).catch(()=>{});
+    }
+  });
+}
 function formUnit(u,presetItem){
+  if(!u) return formTiba(presetItem);
   if(!S.projects.length){ toast("Tambahkan project dulu."); return; }
   const pid0 = u?u.projectId:(presetItem?presetItem.projectId:defaultProj());
   const v0 = u || {projectId:pid0,kirimId:presetItem?presetItem.id:(itemsOf(pid0)[0]||{}).id||"",tglTiba:todayStr(),status:"Tiba",lokasi:"Laydown Pelabuhan",hm:0};
@@ -1640,16 +1725,16 @@ function formSlotBulk(k){
       if(b<a){ toast("Nomor sampai harus ≥ nomor dari."); return false; }
       if(b>n){ toast(`Item ini hanya ${n} unit. Pakai Ubah jumlah dulu kalau rencananya bertambah.`); return false; }
       const isArr=!PRE_STATUS.some(x=>x.k===d.status), taken=new Set();
-      (async()=>{ let c=0;
+      { const ops=[]; let c=0;
         for(let i=a;i<=b;i++){ const u=us[i-1];
           const base={rencanaKirim:d.rencanaKirim,via:d.via,status:d.status,updatedAt:nowIso()};
           if(d.lokasi) base.lokasi=d.lokasi; if(d.catatan) base.catatan=d.catatan;
           if(d.status!=="Persiapan kirim") base.tglKirim=(u&&u.tglKirim)||todayStr();
           if(isArr) base.tglTiba=(u&&u.tglTiba)||todayStr();
-          if(u) await store.update(COL.units,u.id,base);
-          else { const kode=tmpKode(k,i,taken); taken.add(kode); await store.add(COL.units,{...base,id:slotId(i),kode,kodeSementara:true,projectId:k.projectId,kirimId:k.id,tipe:k.tipe,lokasi:base.lokasi||k.asal||"",tglTiba:base.tglTiba||"",tglKirim:base.tglKirim||"",hm:0,catatan:base.catatan||""}); }
+          if(u) ops.push({col:COL.units,action:"update",id:u.id,data:base});
+          else { const kode=tmpKode(k,i,taken); taken.add(kode); ops.push({col:COL.units,action:"add",id:slotId(i),data:{...base,kode,kodeSementara:true,projectId:k.projectId,kirimId:k.id,tipe:k.tipe,lokasi:base.lokasi||k.asal||"",tglTiba:base.tglTiba||"",tglKirim:base.tglKirim||"",hm:0,catatan:base.catatan||""}}); }
           c++; }
-        toast(`${c} unit dijadwalkan kirim ${fmtDate(d.rencanaKirim)}.`); })().catch(()=>{});
+        store.batch(ops).then(()=>toast(`${c} unit dijadwalkan kirim ${fmtDate(d.rencanaKirim)}.`)).catch(()=>{}); }
     }
   });
 }
@@ -1740,6 +1825,7 @@ document.addEventListener("click",e=>{
   if(act==="openProj"&&P){ openProject(P.id); }
   if(act==="slotTg"&&K){ SLOT_OPEN.has(K.id)?SLOT_OPEN.delete(K.id):SLOT_OPEN.add(K.id); try{ localStorage.setItem("mu_slot_open",JSON.stringify([...SLOT_OPEN])); }catch(e){} renderKirim(); }
   if(act==="slotBulk"&&K&&canWrite){ formSlotBulk(K); }
+  if(act==="tclAll"){ const bx=$("#f_checks"); if(bx){ const cs=[...bx.querySelectorAll("[data-tu]")], all=cs.every(c=>c.checked); cs.forEach(c=>c.checked=!all); } }
   if(act==="slotEditOn"&&K&&canWrite){ SLOT_EDIT.add(K.id); SLOT_OPEN.add(K.id); rk(); }
   if(act==="slotEditCancel"&&K){ SLOT_EDIT.delete(K.id); rk(); }
   if(act==="slotEditSave"&&K&&canWrite){ saveSlotEdit(K); }
@@ -2072,7 +2158,7 @@ async function boot(){
   setSync("busy");
   try{ await fetchSb(); const st=SRC==="sheet"?await fetchSheet():SBDATA; mode="ok"; if(JSON.stringify(ensureCols(st))!==lastJson) applyState(st); else render(); setSync("ok"); }
   catch(e){ setSync("err"); if(!cached){ mode="error"; S.ready=true; render(); } }
-  const refresh=async()=>{ if(document.hidden) return; try{ const st=await fetchState(); if(JSON.stringify(st)!==lastJson) applyState(st); if(mode==="error"){ mode="ok"; render(); } setSync("ok"); }catch(e){ setSync("err"); } };
+  const refresh=async()=>{ if(document.hidden||PENDING.length) return; try{ const st=await fetchState(); if(JSON.stringify(st)!==lastJson) applyState(st); if(mode==="error"){ mode="ok"; render(); } setSync("ok"); }catch(e){ setSync("err"); } };
   setInterval(refresh,20000);
   document.addEventListener("visibilitychange",refresh); window.addEventListener("focus",refresh);
 }

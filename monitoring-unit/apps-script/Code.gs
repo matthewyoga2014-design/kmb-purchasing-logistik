@@ -59,7 +59,8 @@ function doPost(e) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(25000)) return json_({ ok: false, error: 'busy' });
   try {
-    (body.ops || []).forEach(function (op) { applyOp_(op, who.email); });
+    const st = buildState_();   // dibaca sekali per permintaan, lalu diperbarui di memori
+    (body.ops || []).forEach(function (op) { applyOp_(op, who.email, st); });
     bumpRev_();
     return json_({ ok: true, state: buildState_() });
   } catch (err) {
@@ -223,10 +224,11 @@ function replaceInColumn_(col, key, from, to, extraMatch) {
   });
 }
 
-function applyOp_(op, email) {
+function applyOp_(op, email, st) {
   const col = op.col;
   if (!SHEETS[col]) throw new Error('Koleksi tidak dikenal: ' + col);
-  const st = buildState_();
+  st = st || buildState_();
+  if (!st[col]) st[col] = [];
   if (op.action === 'upload') {
     if (col !== 'dokumentasi' || !op.file || !op.file.b64) throw new Error('File tidak ada');
     const d = op.data || {};
@@ -238,12 +240,14 @@ function applyOp_(op, email) {
     if (d.catatan) f.setDescription(String(d.tahap || '') + ' · ' + d.catatan);
     const rec = Object.assign({}, d, { id: op.id || ('d-' + Utilities.getUuid().slice(0, 8)), waktu: new Date().toISOString(), fileName: f.getName(), fileUrl: f.getUrl(), fileId: f.getId(), mime: blob.getContentType(), oleh: email });
     writeRow_(col, 0, toSheetRec_(col, rec, st));
+    st[col].push(rec);
     return;
   }
   if (op.action === 'add') {
     const rec = Object.assign({}, op.data || {}, { id: op.id || (SHEETS[col].prefix + '-' + Utilities.getUuid().slice(0, 8)) });
     if (col === 'revisi' && !rec.oleh) rec.oleh = email;
     writeRow_(col, 0, toSheetRec_(col, rec, st));
+    st[col].push(rec);
     return;
   }
   const raw = readRaw_(col);
@@ -251,7 +255,9 @@ function applyOp_(op, email) {
   if (!row) return;
   if (op.action === 'remove') {
     if (col === 'dokumentasi' && row.fileId) { try { DriveApp.getFileById(row.fileId).setTrashed(true); } catch (err) {} }
-    raw.sh.deleteRow(row._row); return;
+    raw.sh.deleteRow(row._row);
+    st[col] = st[col].filter(function (r) { return r.id !== op.id; });
+    return;
   }
   if (op.action === 'update') {
     const cur = st[col].filter(function (r) { return r.id === op.id; })[0] || {};
@@ -266,7 +272,8 @@ function applyOp_(op, email) {
     if (col === 'units' && merged.kode !== cur.kode) {
       replaceInColumn_('mobilisasi', 'unitKode', cur.kode, merged.kode);
     }
-    writeRow_(col, row._row, toSheetRec_(col, merged, buildState_()));
+    writeRow_(col, row._row, toSheetRec_(col, merged, st));
+    const i = st[col].indexOf(cur); if (i >= 0) st[col][i] = merged; else st[col].push(merged);
   }
 }
 
