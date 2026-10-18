@@ -35,7 +35,7 @@ const fmt = (s) => { if (!s) return '—'; const d = new Date(String(s).slice(0,
 const uid = () => (crypto.randomUUID ? crypto.randomUUID() : 'x' + Date.now() + Math.random().toString(16).slice(2));
 const cleanName = (s) => String(s || '').trim().replace(/\s+/g, ' ').toLocaleUpperCase('id-ID');
 const title = (s) => String(s || '').toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
-const can = () => S.role === 'owner' || S.role === 'editor';
+const can = () => S.role === 'owner' || (S.role === 'editor' && (typeof permOf !== 'function' || permOf(ui.page, 'e')));
 const isOwner = () => S.role === 'owner';
 // izin menu & unduh dari Pemilik (Pusat Monitoring). detail karyawan mengikuti menu Manpower Aktif.
 const PERM_FIXED = ['dashboard', 'setting'];

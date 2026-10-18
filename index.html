@@ -331,8 +331,8 @@ const SUBS = [...MPP.map((s) => ({ ...s, portal: 'Monitoring MPP' })), { ...APD,
   { app: 'notulensi', key: 'notulensi', name: 'Notulensi', url: 'notulensi/', portal: 'Notulensi' }];
 const subOf = (app) => SUBS.find((s) => s.app === app);
 const MENUS = {
-  mpp: [['dashboard', 'Dashboard', 1], ['mpp', 'MPP (Manpower Planning)'], ['pelamar', 'Data Pelamar'], ['org', 'Struktur Organisasi'], ['karyawan', 'MP Aktif & MP Out'], ['unit', 'Populasi Unit'], ['setting', 'Pengaturan · Download Excel & Backup', 1]],
-  apd: [['dashboard', 'Dashboard', 1], ['requests', 'Permintaan APD'], ['people', 'Manpower Aktif & Detail APD'], ['out', 'Manpower Keluar'], ['history', 'Riwayat Transaksi'], ['guide', 'Tata Cara'], ['setting', 'Pengaturan · Download Excel', 1]],
+  mpp: [['dashboard', 'Dashboard', 1], ['mpp', 'MPP (Manpower Planning)'], ['pelamar', 'Data Pelamar'], ['org', 'Struktur Organisasi'], ['karyawan', 'MP Aktif & MP Out'], ['unit', 'Populasi Unit'], ['excel', 'Download Excel (tombol Excel di atas)', 'x'], ['setting', 'Pengaturan (sinkron Excel, backup, akses)', 's']],
+  apd: [['dashboard', 'Dashboard', 1], ['requests', 'Permintaan APD'], ['people', 'Manpower Aktif & Detail APD'], ['out', 'Manpower Keluar'], ['history', 'Riwayat Transaksi'], ['guide', 'Tata Cara', 'r'], ['excel', 'Download Excel (tombol Excel di atas)', 'x'], ['setting', 'Pengaturan (backup, akses)', 's']],
 };
 const menusOf = (app) => app === 'apd' ? MENUS.apd : ['kta-tra', 'bupr-ampah', 'mbj', 'kmb'].includes(app) ? MENUS.mpp : null;
 const ROLE_L = { owner: 'Pemilik', editor: 'Editor', viewer: 'Pelihat' };
@@ -600,16 +600,30 @@ function pageSet() {
   return top + `<div class="sgrid">${reqC}${memC}${invC}${r === 'owner' && menusOf(app) ? permCard(app, A) : ''}<div class="scard wide2">${roleInfo()}</div></div>`;
 }
 function roleInfo() {
-  return `<div class="sch"><div><div class="eb2">Peran</div><h2>Pemilik, Editor & Pelihat</h2></div></div><div class="role"><b>Pemilik</b><span>Semua hak: data, stok, persetujuan, link Editor/Pelihat, dan izin menu.</span></div><div class="role"><b>Editor</b><span>Mengisi & mengubah data di site yang diberikan, dan membagikan link Pelihat.</span></div><div class="role"><b>Pelihat</b><span>Hanya melihat menu yang diizinkan. Print & unduh mengikuti izin Pemilik.</span></div>`;
+  return `<div class="sch"><div><div class="eb2">Peran</div><h2>Pemilik, Editor & Pelihat</h2></div></div><div class="role"><b>Pemilik</b><span>Semua hak: data, stok, persetujuan, link Editor/Pelihat, dan izin menu.</span></div><div class="role"><b>Editor</b><span>Mengisi & mengubah data hanya di site yang dibagikan kepadanya dan hanya di menu yang dicentang <b>Ubah</b>. Tidak bisa membuka Pengaturan kecuali diizinkan. Membagikan link Pelihat lewat tombol <b>Bagikan</b> di halaman utama.</span></div><div class="role"><b>Pelihat</b><span>Hanya melihat menu yang diizinkan. Print & unduh mengikuti izin Pemilik.</span></div>`;
 }
-function permVal(perms, role, id, k) { const p = ((perms || {})[role] || {})[id]; if (p && typeof p[k] === 'boolean') return p[k]; return k === 'v' ? true : role === 'editor'; }
+// sama persis dengan aturan di tiap web (permx.js): Lihat / Ubah / Unduh per menu
+function permVal(perms, role, id, k) {
+  perms = perms || {}; if (k === 'v' && id === 'dashboard') return true;
+  const p = (perms[role] || {})[id]; if (id === 'setting' && perms._v !== 2) return false;
+  if (p && typeof p[k] === 'boolean') return p[k];
+  if (id === 'setting') return false; if (id === 'excel') return k === 'd' && role === 'editor';
+  if (k === 'e') return role === 'editor'; return k === 'v' ? true : role === 'editor';
+}
 function permCard(app, A) {
-  const rows = menusOf(app).map(([id, l, fixed]) => `<tr><td><b>${esc(l)}</b></td>${['editor', 'viewer'].map((role) => ['v', 'd'].map((k) => { const lock = k === 'v' && fixed; return `<td class="c"><input type="checkbox" data-perm="${role}|${id}|${k}" ${permVal(A.perms, role, id, k) ? 'checked' : ''} ${lock ? 'disabled title="Selalu terlihat"' : ''} aria-label="${ROLE_L[role]} ${k === 'v' ? 'lihat' : 'unduh'} ${esc(l)}"></td>`; }).join('')).join('')}</tr>`).join('');
-  return `<div class="scard wide2"><div class="sch"><div><div class="eb2">Khusus Pemilik</div><h2>Izin Menu & Unduh · ${esc(subOf(app).name)}</h2><p class="small"><b>Lihat</b> = menu tampil. <b>Unduh</b> = boleh Print / PDF / Excel di menu itu. Pemilik selalu bisa semuanya.</p></div><button type="button" class="btn btn-p" id="permSave" data-app="${app}">Simpan Izin</button></div>
-    <div class="tw2"><table class="tb2 perm"><thead><tr><th rowspan="2">Menu</th><th colspan="2" class="c">Editor</th><th colspan="2" class="c">Pelihat</th></tr><tr><th class="c">Lihat</th><th class="c">Unduh</th><th class="c">Lihat</th><th class="c">Unduh</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  const KL = { v: 'lihat', e: 'ubah', d: 'unduh' };
+  const box = (role, id, k, l, kind) => {
+    const na = (kind === 'x' && k !== 'd') || (kind === 'r' && k === 'e');
+    if (na) return '<td class="c muted" title="Tidak berlaku">—</td>';
+    const lock = k === 'v' && kind === 1;
+    return `<td class="c"><input type="checkbox" data-perm="${role}|${id}|${k}" ${permVal(A.perms, role, id, k) ? 'checked' : ''} ${lock ? 'disabled title="Selalu terlihat"' : ''} aria-label="${ROLE_L[role]} ${KL[k]} ${esc(l)}"></td>`;
+  };
+  const rows = menusOf(app).map(([id, l, kind]) => `<tr><td><b>${esc(l)}</b></td>${['v', 'e', 'd'].map((k) => box('editor', id, k, l, kind)).join('')}${['v', 'd'].map((k) => box('viewer', id, k, l, kind)).join('')}</tr>`).join('');
+  return `<div class="scard wide2"><div class="sch"><div><div class="eb2">Khusus Pemilik</div><h2>Izin Menu · ${esc(subOf(app).name)}</h2><p class="small"><b>Lihat</b> = menu tampil. <b>Ubah</b> = Editor boleh mengisi / mengubah data di menu itu (tanpa centang: hanya lihat). <b>Unduh</b> = boleh Print / PDF di menu itu. <b>Download Excel</b> dan <b>Pengaturan</b> dipisah: Editor bisa diberi Excel tanpa membuka Pengaturan. Pemilik selalu bisa semuanya.</p></div><button type="button" class="btn btn-p" id="permSave" data-app="${app}">Simpan Izin</button></div>
+    <div class="tw2"><table class="tb2 perm"><thead><tr><th rowspan="2">Menu</th><th colspan="3" class="c">Editor</th><th colspan="2" class="c">Pelihat</th></tr><tr><th class="c">Lihat</th><th class="c">Ubah</th><th class="c">Unduh</th><th class="c">Lihat</th><th class="c">Unduh</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
 async function savePerms(app) {
-  const perms = { editor: {}, viewer: {} };
+  const perms = { _v: 2, editor: {}, viewer: {} };
   document.querySelectorAll('[data-perm]').forEach((c) => { const [role, id, k] = c.dataset.perm.split('|'); (perms[role][id] = perms[role][id] || {})[k] = c.disabled ? true : c.checked; });
   const { error } = await S.sb.from('kta_app_perms').upsert({ app_id: app, perms, updated_at: new Date().toISOString(), updated_by: S.user.email }, { onConflict: 'app_id' });
   if (error) { toast('Gagal menyimpan izin: ' + error.message, true); return; }
@@ -621,7 +635,10 @@ function pageGuide() {
     ['Peran', 'Pemilik: semua hak. Editor: mengisi & mengubah data di site yang diberikan, membagikan link Pelihat. Pelihat: hanya melihat menu yang diizinkan.'],
     ['Bagikan link', 'Klik Bagikan link pada kartu site, isi email penerima, pilih Editor atau Pelihat (Editor hanya bisa Pelihat), lalu salin atau kirim lewat email / WhatsApp. Link hanya berlaku untuk email itu.'],
     ['Link diteruskan / alamat disalin', 'Membuka alamat web langsung atau link milik orang lain tidak membuka data. Orang tersebut harus masuk, lalu permintaannya muncul di Akses & Bagikan untuk disetujui.'],
-    ['Izin menu & unduh', 'Pemilik mengatur per web di Pengaturan → Akses & Bagikan → Izin Menu & Unduh, terpisah untuk Editor dan Pelihat.'],
+    ['Editor untuk sebagian sub portal', 'Klik Bagikan (pojok kanan atas) → isi email → pilih Editor → centang hanya sub portal yang boleh, mis. Project 1, 2 dan 3. Editor itu hanya melihat & mengisi sub portal yang dicentang; sub portal lain tidak tampil di Portal MPP-nya.'],
+    ['Izin menu: Lihat, Ubah, Unduh', 'Pengaturan → pilih web → Izin Menu. Editor: Lihat (menu tampil), Ubah (boleh mengisi data di menu itu), Unduh (Print/PDF). Contoh: centang Ubah hanya di MPP dan Data Pelamar, menu lain hanya bisa dilihat. Pelihat: Lihat & Unduh.'],
+    ['Download Excel terpisah dari Pengaturan', 'Baris Download Excel mengatur tombol Excel di atas halaman. Baris Pengaturan mengatur halaman Pengaturan (sinkron Excel, backup, akses). Editor bisa diberi Excel tanpa bisa membuka Pengaturan.'],
+    ['Editor membagikan link', 'Editor tidak perlu membuka Pengaturan. Di halaman utama klik Bagikan → isi email → otomatis sebagai Pelihat, hanya untuk web yang ia pegang. Bisa juga dari tombol Bagikan link di kartu Portal MPP.'],
     ['Mencabut akses', 'Pemilik: Pengaturan → Anggota → Hapus, atau Cabut pada link yang belum dipakai.'],
   ];
   return `<div class="sethead"><div><div class="eb">Panduan</div><h1 class="h1s">Cara memakai</h1></div><button type="button" class="btn btn-g" data-page="home">← Kembali</button></div><div class="sgrid"><div class="scard wide2"><ol class="gd">${g.map((x) => `<li><b>${x[0]}</b><span>${x[1]}</span></li>`).join('')}</ol></div></div>`;
