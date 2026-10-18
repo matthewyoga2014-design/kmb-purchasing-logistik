@@ -732,7 +732,7 @@ body{background:radial-gradient(1200px 500px at 85% 0%,#E9E6FB 0%,rgba(233,230,2
 .gate{animation:gdelay .25s ease .7s both}@keyframes gdelay{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion:reduce){.gate{animation:none}}
 
-</style>
+.dragh{cursor:grab;display:inline-block;margin-right:4px;padding:2px 3px;border-radius:6px;color:#9A96B8;font-size:15px;line-height:1;user-select:none;vertical-align:-1px}.dragh:hover{background:#EFE9FE;color:#6D28D9}.dragh:active{cursor:grabbing}tr.dragging td{opacity:.45}tr.drop-b td{box-shadow:inset 0 3px 0 #6D28D9}tr.drop-a td{box-shadow:inset 0 -3px 0 #6D28D9}</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 </head>
 <body>
@@ -1436,13 +1436,13 @@ function renderEdit(){
   const cols=E.cols;
   const body=groups.map((g,gi)=>`<tr class="secrow"><td colspan="${9+cols.length}"><div class="rowx"><input type="text" data-sec="${gi}" value="${esc(g.sec)}" placeholder="Bagian / project (opsional), mis. A. FMC Project SKA" aria-label="Nama bagian"><button class="btn sm" type="button" data-addtop="${g.idx[g.idx.length-1]}">+ Topik di bagian ini</button></div></td></tr>`+
     g.idx.map(i=>{const r=E.rows[i];const same=lastTop&&norm(lastTop.topik)===norm(r.topik)&&r.topik&&lastTop.sec===r.sec;if(!same)no++;lastTop=r;const isNew=E.mode!=="new"&&!E.base.some(b=>b.k===r.k);
-      return `<tr class="r-${r.st||"open"} ${isNew?"isnew":""}" data-row="${i}"><td class="c-no">${same?"":no}${isNew?`<div class="pill upd" style="font-size:10px;padding:2px 5px;margin-top:4px">Baru</div>`:""}</td>
+      return `<tr class="r-${r.st||"open"} ${isNew?"isnew":""}" data-row="${i}"><td class="c-no">${same?"":`<span class="dragh" draggable="true" data-dragrow="${i}" title="Seret untuk memindah urutan topik ini" aria-label="Seret untuk memindah">⠿</span>${no}`}${isNew?`<div class="pill upd" style="font-size:10px;padding:2px 5px;margin-top:4px">Baru</div>`:""}</td>
         ${tdF(r,i,"topik",ta(i,"topik",r.topik,"Topik"),"c-tp")}${tdF(r,i,"bahas",ta(i,"bahas",r.bahas,"Hasil pembahasan"),"c-bh")}${tdF(r,i,"tl",ta(i,"tl",r.tl,"Tindak lanjut"),"c-tl")}
         ${tdF(r,i,"pic",ta(i,"pic",r.pic,"PIC"),"c-pc")}
         ${tdF(r,i,"due",`<input type="date" data-i="${i}" data-f="due" value="${esc(r.due)}" aria-label="Due date">${!r.due&&r.dueText?`<div class="duetxt">Teks asli: ${esc(r.dueText)}</div>`:""}`,"c-du")}
         ${tdF(r,i,"st",`<select class="stsel s-${r.st||"open"}" data-i="${i}" data-f="st" aria-label="Status">${STK.map(k=>`<option value="${k}" ${r.st===k?"selected":""}>${ST[k]}</option>`).join("")}</select>`,"c-st")}
         ${cols.map(c=>tdF(r,i,"x:"+c.id,ta(i,"x:"+c.id,(r.x||{})[c.id]||"",c.name),"c-kt")).join("")}
-        <td class="c-ac"><div class="ac"><button type="button" data-addtl="${i}" title="Tambah tindak lanjut untuk topik ini">+ TL</button><button type="button" data-up="${i}" title="Naikkan">▲</button><button type="button" class="dz" data-del="${i}" title="Hapus baris">Hapus</button></div></td></tr>`;}).join("")).join("");
+        <td class="c-ac"><div class="ac"><button type="button" data-addtl="${i}" title="Tambah tindak lanjut untuk topik ini">+ TL</button><button type="button" data-up="${i}" title="Naikkan">▲</button><button type="button" data-down="${i}" title="Turunkan">▼</button><button type="button" class="dz" data-del="${i}" title="Hapus baris">Hapus</button></div></td></tr>`;}).join("")).join("");
   const removed=E.mode==="new"?[]:E.base.filter(b=>!E.rows.some(r=>r.k===b.k)&&!(E.mode==="next"&&b.st==="close"));
   const arch=E.mode==="next"?E.base.filter(b=>b.st==="close"&&!E.rows.some(r=>r.k===b.k)):[];
   box.innerHTML=`<div class="rowx"><button class="back" type="button" id="edBack">‹ Batal</button><span class="crumb">${esc(E.title||"")}</span></div>
@@ -1493,6 +1493,20 @@ function wireEdit(){
     E.rows.splice(j+1,0,{...blankRow(r.sec),topik:r.topik});}));
   box.querySelectorAll("[data-addtop]").forEach(b=>b.onclick=()=>struct(()=>{const i=+b.dataset.addtop;E.rows.splice(i+1,0,blankRow(E.rows[i].sec));}));
   box.querySelectorAll("[data-up]").forEach(b=>b.onclick=()=>struct(()=>{const i=+b.dataset.up;if(i>0){const t=E.rows[i-1];E.rows[i-1]=E.rows[i];E.rows[i]=t;if(E.rows[i].sec!==E.rows[i-1].sec)E.rows[i-1].sec=E.rows[i].sec;}}));
+  /* seret-lepas urutan: satu topik (beserta semua tindak lanjutnya) dipindah sekaligus */
+  const blk=i=>{const r=E.rows[i];let a=i,b=i;if(r&&r.topik){while(a>0&&E.rows[a-1].sec===r.sec&&norm(E.rows[a-1].topik)===norm(r.topik))a--;while(b+1<E.rows.length&&E.rows[b+1].sec===r.sec&&norm(E.rows[b+1].topik)===norm(r.topik))b++;}return[a,b];};
+  const moveBlock=(from,to,after)=>{const[a,b]=blk(from);let[ta,tb]=blk(to);if(to>=a&&to<=b)return;const part=E.rows.splice(a,b-a+1);if(ta>b){ta-=part.length;tb-=part.length;}const sec=E.rows[ta]?E.rows[ta].sec:"";part.forEach(r=>r.sec=sec);E.rows.splice(after?tb+1:ta,0,...part);};
+  box.querySelectorAll("[data-down]").forEach(b=>b.onclick=()=>struct(()=>{const[,e]=blk(+b.dataset.down);if(e+1<E.rows.length)moveBlock(+b.dataset.down,e+1,true);}));
+  let dragFrom=null;const clr=()=>box.querySelectorAll(".dragging,.drop-b,.drop-a").forEach(x=>x.classList.remove("dragging","drop-b","drop-a"));
+  box.querySelectorAll("[data-dragrow]").forEach(h=>{
+    h.addEventListener("dragstart",e=>{dragFrom=+h.dataset.dragrow;e.dataTransfer.effectAllowed="move";try{e.dataTransfer.setData("text/x-notu-row",String(dragFrom));}catch(_){}
+      const[a,b]=blk(dragFrom);for(let k=a;k<=b;k++)box.querySelector(`tr[data-row="${k}"]`)?.classList.add("dragging");try{e.dataTransfer.setDragImage(h.closest("tr"),24,24);}catch(_){}});
+    h.addEventListener("dragend",()=>{dragFrom=null;clr();});});
+  box.querySelectorAll("tr[data-row]").forEach(tr=>{
+    tr.addEventListener("dragover",e=>{if(dragFrom===null)return;e.preventDefault();e.dataTransfer.dropEffect="move";const[ta,tb]=blk(+tr.dataset.row);
+      const A=box.querySelector(`tr[data-row="${ta}"]`).getBoundingClientRect(),Bb=box.querySelector(`tr[data-row="${tb}"]`).getBoundingClientRect();const after=e.clientY>(A.top+Bb.bottom)/2;
+      box.querySelectorAll(".drop-b,.drop-a").forEach(x=>x.classList.remove("drop-b","drop-a"));box.querySelector(`tr[data-row="${after?tb:ta}"]`).classList.add(after?"drop-a":"drop-b");tr._after=after;});
+    tr.addEventListener("drop",e=>{if(dragFrom===null)return;e.preventDefault();const f=dragFrom,t=+tr.dataset.row,after=!!tr._after;dragFrom=null;clr();struct(()=>moveBlock(f,t,after));});});
   box.querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>struct(()=>{E.rows.splice(+b.dataset.del,1);if(!E.rows.length)E.rows.push(blankRow(""));}));
   $("addCol").onclick=()=>struct(()=>E.cols.push({id:"c"+uid().slice(0,6),name:"Kolom "+(E.cols.length+1)}));
   box.querySelectorAll("[data-colname]").forEach(el=>el.oninput=()=>{E.cols[+el.dataset.colname].name=el.value;mark();});
