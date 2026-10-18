@@ -659,6 +659,18 @@ body{background:radial-gradient(1200px 500px at 85% 0%,#E9E6FB 0%,rgba(233,230,2
 .v3 #donut{flex:1;display:flex;align-items:center}
 .v3 #donut .donut{width:100%}
 @media (max-width:520px){.v3 .sites button{grid-template-columns:minmax(0,1fr) auto 14px}}
+
+/* pratinjau file & foto */
+.docview{max-height:70vh;overflow:auto;border:1px solid var(--line);border-radius:10px;background:#fff;padding:24px 28px;font-size:13.5px;line-height:1.55;color:#1E1B3A}
+.docview table{border-collapse:collapse;margin:10px 0;width:100%}.docview td,.docview th{border:1px solid #CFCBE3;padding:5px 8px;vertical-align:top}
+.docview img{max-width:100%;height:auto}.docview p{margin:0 0 8px}.docview h1,.docview h2,.docview h3{margin:12px 0 6px}
+.ph img[data-phv]{cursor:zoom-in}
+.phview{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;align-items:center;gap:8px}
+.phstage{display:grid;gap:8px;justify-items:center;min-height:50vh;align-content:center}
+.phstage img{max-width:100%;max-height:70vh;border-radius:10px;object-fit:contain;background:#F3F2FA}
+.phnav{width:44px!important;height:44px!important;font-size:28px;border-radius:50%!important;border:1px solid var(--line)!important;background:#fff!important}
+.phnav:disabled{opacity:.3;cursor:default}
+@media (max-width:600px){.phview{grid-template-columns:32px minmax(0,1fr) 32px}.phnav{width:32px!important;height:32px!important}}
 @media print{
   @page{margin:10mm}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -1364,7 +1376,7 @@ function renderSeries(){
    </div>
    ${(()=>{const ph=files.filter(f=>f.versionId===v.id&&f.kind==="photo").sort((a,b)=>(a.at||0)-(b.at||0));const wd=files.find(f=>f.versionId===v.id&&f.kind==="word");
      return `<div class="card cpad"><div class="ch"><h2>Dokumentasi Meeting ke-${v.no}</h2><span class="stamp">${ph.length} foto</span><button class="btn sm pri" type="button" id="phBtn">+ Foto dokumentasi</button></div>
-     ${ph.length?`<div class="phgrid">${ph.map((f,i)=>{const src=photoSrc(f);return `<figure class="ph">${src?`<img src="${esc(src)}" alt="Foto dokumentasi ${i+1}" loading="lazy">`:`<div class="phload">Memuat…</div>`}<figcaption>Foto ${i+1}<button class="ib" type="button" data-delph="${f.id}" aria-label="Hapus foto" style="color:var(--red-fg)">${IC.trash}</button></figcaption></figure>`;}).join("")}</div>`:`<div class="stamp">Belum ada foto. Upload foto dokumentasi meeting ini; file Word notulensi otomatis dibuat ulang lengkap dengan fotonya.</div>`}
+     ${ph.length?`<div class="phgrid">${ph.map((f,i)=>{const src=photoSrc(f);return `<figure class="ph">${src?`<img src="${esc(src)}" alt="Foto dokumentasi ${i+1}" loading="lazy" data-phv="${i}" tabindex="0" role="button" title="Klik untuk memperbesar">`:`<div class="phload">Memuat…</div>`}<figcaption>Foto ${i+1}<button class="ib" type="button" data-delph="${f.id}" aria-label="Hapus foto" style="color:var(--red-fg)">${IC.trash}</button></figcaption></figure>`;}).join("")}</div>`:`<div class="stamp">Belum ada foto. Upload foto dokumentasi meeting ini; file Word notulensi otomatis dibuat ulang lengkap dengan fotonya.</div>`}
      <div class="wordbar">${IC.word}<div class="grow"><b>${wd?esc(wd.name):"File Word notulensi belum dibuat"}</b><div class="stamp">${wd?`Dibuat ${fmtTs(wd.at)} · ${fmtSize(wd.size)} · berisi header, tabel tindak lanjut berwarna, perubahan, dan ${ph.length} foto`:"Klik Buat Word untuk membuat file notulensi meeting ini."}</div></div>
        <button class="btn sm" type="button" id="wdRegen">${wd?"Buat ulang":"Buat Word"}</button><button class="btn sm pri" type="button" data-act="word" data-id="${v.id}">${IC.dl}Unduh</button></div></div>`;})()}
    <div class="card cpad vfiles"><div class="ch"><h2>Lampiran Meeting ke-${v.no}</h2><span class="stamp">${files.filter(f=>f.versionId===v.id&&f.kind!=="photo").length} file · maks. 20 MB per file</span><button class="btn sm pri" type="button" id="attBtn">+ Lampiran meeting ini</button></div>
@@ -1377,6 +1389,7 @@ function renderSeries(){
   box.querySelectorAll("[data-delph]").forEach(b=>b.onclick=()=>{const f=S.files.find(x=>x.id===b.dataset.delph);if(!f)return;
     openModal(mHead("Hapus foto?")+`<div class="mb">Foto dihapus dan file Word Meeting ke-${v.no} dibuat ulang tanpa foto ini.</div><div class="mf"><button class="btn" type="button" data-x>Batal</button><button class="btn pri" style="background:#C93B36;border-color:#C93B36" type="button" id="dpy">Hapus foto</button></div>`,
       bx=>bx.querySelector("#dpy").onclick=async()=>{closeModal();try{await delFile(f);S.files=S.files.filter(x=>x.id!==f.id);await generateWord(v);}catch(err){toast("Gagal: "+errMsg(err));}});});
+  box.querySelectorAll("[data-phv]").forEach(im=>{const go2=()=>openPhotos(files.filter(f=>f.versionId===v.id&&f.kind==="photo").sort((a,b)=>(a.at||0)-(b.at||0)),+im.dataset.phv);im.onclick=go2;im.onkeydown=e=>{if(e.key==="Enter")go2();};});
   $("phBtn").onclick=async()=>{const fs=await pickPhotos();if(!fs.length)return;const prep=await preparePhotos(fs);if(!prep.length)return;
     const up=await uploadPhotos(prep,{folderId:s.folderId,seriesId:s.id,versionId:v.id});if(up.length)await generateWord(v,up);};
   $("wdRegen").onclick=()=>generateWord(v);
@@ -1973,20 +1986,41 @@ function loadXlsx(){if(window.XLSX)return Promise.resolve(window.XLSX);return xl
 function loadMammoth(){if(window.mammoth)return Promise.resolve(window.mammoth);return mammothP||(mammothP=loadScript(["https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js","https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"],"mammoth").catch(e=>{mammothP=null;throw e;}));}
 async function fileBytes(f){if(f.storage==="sb")return S.assets.bytes(f.assetId);const snap=await S.db.collection("blobs").where("fileId","==",f.id).get();const parts=snap.docs.map(d=>d.data()).sort((a,b)=>a.i-b.i);
   if(parts.length<(f.chunks||1))throw new Error("data file belum lengkap");const bin=atob(parts.map(p=>p.data).join(""));const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;}
+const kindOfName=n=>/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(n)?"img":/\.pdf$/i.test(n)?"pdf":/\.docx$/i.test(n)?"docx":isExcel(n)?"xls":/\.(txt|csv|md|json|log)$/i.test(n)?"txt":"other";
+const MIME={img:"image/jpeg",pdf:"application/pdf",txt:"text/plain"};
 function openFile(id){
   const f=S.files.find(x=>x.id===id);if(!f)return;
-  if(f.storage!=="db"&&f.storage!=="sb"){const a=document.createElement("a");a.href=f.url||"/_blob/"+f.assetId;a.target="_blank";a.rel="noopener";document.body.appendChild(a);a.click();a.remove();return;}
-  openModal(mHead(f.name)+`<div class="mb"><div class="stamp">${fmtSize(f.size)} · diupload ${fmtTs(f.at)}</div><div id="pv"><div class="empty">${isExcel(f.name)?"Memuat isi Excel…":"Pratinjau tidak tersedia untuk jenis file ini. Unduh untuk membukanya."}</div></div></div>
-   <div class="mf"><button class="btn" type="button" data-x>Tutup</button><button class="btn pri" type="button" id="dlB" ${S.downloads?"":"hidden"}>Unduh file</button></div>`,
-  async box=>{box.style.maxWidth="1100px";let bytes=null;const get=async()=>bytes||(bytes=await fileBytes(f));
+  const k=kindOfName(f.name);if(k==="img"){const ph=S.files.filter(x=>x.folderId===f.folderId&&x.versionId===f.versionId&&kindOfName(x.name)==="img").sort((a,b)=>(a.at||0)-(b.at||0));return openPhotos(ph,Math.max(0,ph.findIndex(x=>x.id===f.id)));}
+  let url=null;
+  openModal(mHead(f.name)+`<div class="mb"><div class="stamp">${fmtSize(f.size)} · diupload ${fmtTs(f.at)}</div><div id="pv" style="margin-top:10px"><div class="empty"><b>Membuka file…</b>${k==="other"?"":"Tunggu sebentar."}</div></div></div>
+   <div class="mf">${f.drive?`<a class="btn" href="${esc(f.drive)}" target="_blank" rel="noopener">Buka di Google Drive</a>`:""}<button class="btn" type="button" id="nwB" hidden>Buka di tab baru</button><span style="flex:1"></span><button class="btn" type="button" data-x>Tutup</button><button class="btn pri" type="button" id="dlB" ${S.downloads?"":"hidden"}>Unduh</button></div>`,
+  async box=>{box.style.maxWidth="1200px";box.style.width="min(1200px,100%)";const pv=box.querySelector("#pv");let bytes=null;const get=async()=>bytes||(bytes=await getBytes(f));
+    const prevClose=S.onModalClose;S.onModalClose=()=>{if(url)setTimeout(()=>URL.revokeObjectURL(url),60000);prevClose&&prevClose();};
     box.querySelector("#dlB").onclick=async()=>{try{await S.downloads.save({filename:f.name,data:new Blob([await get()],{type:f.type||"application/octet-stream"})});}catch(err){if(err&&err.code!=="cancelled")toast("Gagal mengunduh: "+errMsg(err));}};
-    if(!isExcel(f.name))return;
-    try{const X=await loadXlsx();const wb=X.read(await get(),{type:"array",cellDates:true});const pv=box.querySelector("#pv");let cur=wb.SheetNames[0];
-      const draw=()=>{const rows=X.utils.sheet_to_json(wb.Sheets[cur],{header:1,raw:false,defval:""});const maxC=Math.min(30,Math.max(0,...rows.slice(0,300).map(r=>r.length)));
-        pv.innerHTML=`${wb.SheetNames.length>1?`<div class="chips" style="margin-bottom:10px">${wb.SheetNames.map(n=>`<button type="button" data-sh="${esc(n)}" aria-pressed="${n===cur}">${esc(n)}</button>`).join("")}</div>`:""}<div class="tbl-wrap" style="max-height:60vh;overflow:auto;border:1px solid var(--line)"><table style="font-size:12.5px">${rows.slice(0,300).map((r,i)=>`<tr>${Array.from({length:maxC},(_,c)=>`<${i?"td":"th"} style="white-space:nowrap">${esc(r[c])}</${i?"td":"th"}>`).join("")}</tr>`).join("")}</table></div>`;
-        pv.querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>{cur=b.dataset.sh;draw();});};draw();}
-    catch(err){box.querySelector("#pv").innerHTML=`<div class="note">Isi Excel tidak bisa ditampilkan (${esc(errMsg(err))}).</div>`;}});
+    try{
+      if(k==="pdf"){url=URL.createObjectURL(new Blob([await get()],{type:"application/pdf"}));pv.innerHTML=`<iframe src="${url}" title="${esc(f.name)}" style="width:100%;height:72vh;border:1px solid var(--line);border-radius:10px;background:#fff"></iframe>`;}
+      else if(k==="docx"){const m=await loadMammoth();const r=await m.convertToHtml({arrayBuffer:(await get()).buffer.slice(0)},{convertImage:m.images.imgElement(img=>img.read("base64").then(d=>({src:"data:"+img.contentType+";base64,"+d})))});
+        pv.innerHTML=`<div class="docview">${r.value||"<p class='muted'>Dokumen kosong.</p>"}</div>`;}
+      else if(k==="xls"){const X=await loadXlsx();const wb=X.read(await get(),{type:"array",cellDates:true});let cur=wb.SheetNames[0];
+        const draw=()=>{const rows=X.utils.sheet_to_json(wb.Sheets[cur],{header:1,raw:false,defval:""});const maxC=Math.min(30,Math.max(0,...rows.slice(0,300).map(r=>r.length)));
+          pv.innerHTML=`${wb.SheetNames.length>1?`<div class="chips" style="margin-bottom:10px">${wb.SheetNames.map(n=>`<button type="button" data-sh="${esc(n)}" aria-pressed="${n===cur}">${esc(n)}</button>`).join("")}</div>`:""}<div class="tbl-wrap" style="max-height:65vh;overflow:auto;border:1px solid var(--line)"><table style="font-size:12.5px">${rows.slice(0,300).map((r,i)=>`<tr>${Array.from({length:maxC},(_,c)=>`<${i?"td":"th"} style="white-space:nowrap">${esc(r[c])}</${i?"td":"th"}>`).join("")}</tr>`).join("")}</table></div>`;
+          pv.querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>{cur=b.dataset.sh;draw();});};draw();}
+      else if(k==="txt"){pv.innerHTML=`<pre class="docview" style="white-space:pre-wrap">${esc(new TextDecoder().decode(await get()).slice(0,200000))}</pre>`;}
+      else{pv.innerHTML=`<div class="empty"><b>Pratinjau belum tersedia untuk file ${esc((f.name.split(".").pop()||"").toUpperCase())}</b>${f.drive?"Klik <b>Buka di Google Drive</b> untuk melihatnya tanpa mengunduh.":"Unduh untuk membukanya."}</div>`;}
+      if(url){const nb=box.querySelector("#nwB");nb.hidden=false;nb.onclick=()=>{const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener";document.body.appendChild(a);a.click();a.remove();};}
+    }catch(err){pv.innerHTML=`<div class="note">File tidak bisa ditampilkan (${esc(errMsg(err))}).${f.drive?" Coba <b>Buka di Google Drive</b>.":" Silakan unduh."}</div>`;}});
 }
+function openPhotos(list,i){
+  if(!list.length)return;let cur=i||0;const urls={};
+  const load=async f=>urls[f.id]||(urls[f.id]=f.storage==="db"||f.storage==="sb"?URL.createObjectURL(new Blob([await getBytes(f)],{type:f.type||"image/jpeg"})):(f.url||"/_blob/"+f.assetId));
+  openModal(mHead("Foto")+`<div class="mb phview"><button class="ib phnav" type="button" id="phP" aria-label="Sebelumnya">‹</button><div class="phstage"><img id="phI" alt=""><div class="stamp" id="phC"></div></div><button class="ib phnav" type="button" id="phN" aria-label="Berikutnya">›</button></div>
+    <div class="mf"><button class="btn" type="button" data-x>Tutup</button><button class="btn pri" type="button" id="phD" ${S.downloads?"":"hidden"}>Unduh foto</button></div>`,box=>{box.style.maxWidth="1100px";box.style.width="min(1100px,100%)";
+    const show=async()=>{const f=list[cur];box.querySelector("h2").textContent=`Foto ${cur+1} dari ${list.length}`;box.querySelector("#phC").textContent=f.name;const im=box.querySelector("#phI");im.removeAttribute("src");try{im.src=await load(f);}catch(e){box.querySelector("#phC").textContent="Foto tidak bisa dibuka: "+errMsg(e);}
+      box.querySelector("#phP").disabled=cur===0;box.querySelector("#phN").disabled=cur===list.length-1;};
+    box.querySelector("#phP").onclick=()=>{if(cur>0){cur--;show();}};box.querySelector("#phN").onclick=()=>{if(cur<list.length-1){cur++;show();}};
+    box.onkeydown=e=>{if(e.key==="ArrowLeft")box.querySelector("#phP").click();if(e.key==="ArrowRight")box.querySelector("#phN").click();};
+    box.querySelector("#phD").onclick=async()=>{const f=list[cur];try{await S.downloads.save({filename:f.name,data:new Blob([await getBytes(f)],{type:f.type||"image/jpeg"})});}catch(err){if(err&&err.code!=="cancelled")toast("Gagal mengunduh: "+errMsg(err));}};
+    show();});}
 
 /* ================= READ NOTULENSI FILE ================= */
 const BULAN={januari:1,jan:1,februari:2,feb:2,pebruari:2,maret:3,mar:3,april:4,apr:4,mei:5,juni:6,jun:6,juli:7,jul:7,agustus:8,agu:8,agt:8,ags:8,september:9,sep:9,sept:9,oktober:10,okt:10,november:11,nov:11,nop:11,desember:12,des:12,january:1,february:2,march:3,may:5,june:6,july:7,august:8,aug:8,october:10,oct:10,december:12,dec:12};
