@@ -676,6 +676,15 @@ main .wrap>[hidden]{display:none!important}
   .kpt{transform:none!important}
   .masonry,.mcol{gap:16px!important}
 }
+
+/* tab isian (selain Dashboard): judul ringkas, tanpa gambar & KPI, langsung ke tabel/form */
+body.tabview .scene,body.tabview .side-l,body.tabview .side-r,body.tabview #kpis,body.tabview .hero .sub,body.tabview .hero .tag,body.tabview .hero .eyebrow,body.tabview .hero .hero-actions{display:none!important}
+body.tabview .hero{min-height:0;padding:0}
+body.tabview .hero h1{font-size:clamp(22px,2.6vw,28px);margin:0}
+body.tabview .hero .crumbs{margin-bottom:6px}
+body.tabview main .wrap{padding-top:18px;gap:16px}
+body.tabview .fbar{padding:12px 16px}
+@media (max-width:760px){body.tabview .fbar .ff:not(:first-child),body.tabview .fbar #fReset{display:none}body.tabview .fbar .fsum{display:none}}
 /* tingkat perkecilan mengikuti lebar kertas (lebar desain 1180px) */
 @media print and (max-width:560px){ .wrap{zoom:.44} }
 @media print and (min-width:561px) and (max-width:680px){ .wrap{zoom:.54} }
@@ -1425,7 +1434,9 @@ function renderMob(){
 /* ---------- event ---------- */
 function setTab(t){ S.tab=t; document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===t)));
   ["ringkasan","unit","mobilisasi","pengiriman","dokumentasi"].forEach(x=>$("#p-"+x).hidden=x!==t); renderPFilter();
-  try{ localStorage.setItem("mu_tab",t); }catch(e){} const ts=$("#fTabSel"); if(ts) ts.value=t; }
+  try{ localStorage.setItem("mu_tab",t); }catch(e){} const ts=$("#fTabSel"); if(ts) ts.value=t;
+  const was=document.body.classList.contains("tabview"); document.body.classList.toggle("tabview",t!=="ringkasan");
+  if(window.__muReady && (was||t!=="ringkasan")) try{ window.scrollTo({top:0,behavior:"smooth"}); }catch(e){ window.scrollTo(0,0); } }
 $("#tabs").addEventListener("click",e=>{ const b=e.target.closest("button[data-tab]"); if(b) setTab(b.dataset.tab); });
 document.addEventListener("click",e=>{
   const g=e.target.closest("[data-goto]"); if(g){ setTab(g.dataset.goto); return; }
@@ -1464,6 +1475,7 @@ function fromHash(){ let h=""; try{ h=decodeURIComponent(location.hash.slice(1))
 fromHash();
 window.addEventListener("hashchange",()=>{ const before=S.view; fromHash(); if(!location.hash&&before!=="all"){ S.view="all"; S.fProj="all"; } render(); });
 $("#qUnit").addEventListener("input",e=>{ S.q=e.target.value; const g=$("#gSearch"); if(g) g.value=S.q; renderUnit(); });
+setTimeout(()=>{ window.__muReady=true; },0);
 $("#gSearch").addEventListener("input",e=>{ S.q=e.target.value; $("#qUnit").value=S.q; if(S.q&&S.tab!=="unit"){ S.fUnit="Semua"; setTab("unit"); } renderUnit(); });
 $("#gSearch").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); setTab("unit"); renderUnit(); const t=$("#p-unit"); if(t) t.scrollIntoView({behavior:"smooth",block:"start"}); } });
 document.addEventListener("change",e=>{
