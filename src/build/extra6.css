@@ -106,3 +106,16 @@ td .cc-files { margin-top: 0; min-width: 150px; }
 .steps2 { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 13px; color: var(--ink-2); }
 
 .upw { transition: background .15s, border-color .15s; cursor: pointer; } .upw.drag { background: var(--p-soft, #EFE9FE) !important; border-color: var(--p, #6D28D9) !important; border-style: solid !important; } .upw small { pointer-events: none; }
+
+#upPick{position:fixed;inset:0;z-index:2000;background:rgba(18,16,40,.45);display:grid;place-items:center;padding:16px}
+#upPick .upk{background:#EEF2FB;border-radius:18px;width:min(560px,100%);box-shadow:0 24px 60px rgba(18,16,40,.3);overflow:hidden;font-family:inherit}
+#upPick .upk-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px 12px;background:#fff;border-bottom:1px solid #E3E6F0}
+#upPick .upk-h small{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6D28D9}#upPick .upk-h h3{margin:2px 0 0;font-size:20px;color:#1E1B3A}
+#upPick .upk-x{border:0;background:#F3F2FA;width:38px;height:38px;border-radius:50%;font-size:22px;cursor:pointer;color:#4B4868}
+#upPick .upk-i{display:flex;gap:10px;align-items:flex-start;margin:14px 16px 0;background:#fff;border-radius:14px;padding:12px 14px;font-size:13.5px;color:#3F3D56}
+#upPick .upk-z{margin:14px 16px 18px;border:2.5px dashed #9AA3B8;border-radius:18px;padding:26px 16px 22px;display:grid;justify-items:center;gap:12px;text-align:center;cursor:pointer;transition:background .15s,border-color .15s}
+#upPick .upk-z.on{background:#E6F7EC;border-color:#16A34A}
+#upPick .upk-z p{margin:0;font-size:14px;color:#1E1B3A}
+#upPick .upk-b{border:0;background:#1A56DB;color:#fff;border-radius:999px;padding:12px 34px;font:700 15px/1 inherit;font-family:inherit;cursor:pointer;box-shadow:0 6px 16px rgba(26,86,219,.3)}
+#upPick .upk-b:focus-visible,#upPick .upk-x:focus-visible{outline:3px solid #6D28D9;outline-offset:2px}
+@media (max-width:560px){#upPick{place-items:end center;padding:0}#upPick .upk{border-radius:20px 20px 0 0}}

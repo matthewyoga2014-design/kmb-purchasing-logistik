@@ -1,4 +1,15 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Monitoring Manpower KTA - TRA</title><meta name="description" content="Monitoring MPP, actual, vacant, pelamar dan progress rekrutmen KTA - TRA."><meta name="theme-color" content="#6D28D9"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2716%27 fill=%27%236D28D9%27/%3E%3Ctext x=%2732%27 y=%2740%27 font-family=%27Arial%27 font-weight=%27700%27 font-size=%2734%27 fill=%27white%27 text-anchor=%27middle%27%3EM%3C/text%3E%3C/svg%3E"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"><style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}.upw { transition: background .15s, border-color .15s; cursor: pointer; } .upw.drag { background: var(--p-soft, #EFE9FE) !important; border-color: var(--p, #6D28D9) !important; border-style: solid !important; } .upw small { pointer-events: none; }</style><style id="css">
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Monitoring Manpower KTA - TRA</title><meta name="description" content="Monitoring MPP, actual, vacant, pelamar dan progress rekrutmen KTA - TRA."><meta name="theme-color" content="#6D28D9"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2716%27 fill=%27%236D28D9%27/%3E%3Ctext x=%2732%27 y=%2740%27 font-family=%27Arial%27 font-weight=%27700%27 font-size=%2734%27 fill=%27white%27 text-anchor=%27middle%27%3EM%3C/text%3E%3C/svg%3E"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"><style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}.upw { transition: background .15s, border-color .15s; cursor: pointer; } .upw.drag { background: var(--p-soft, #EFE9FE) !important; border-color: var(--p, #6D28D9) !important; border-style: solid !important; } .upw small { pointer-events: none; }#upPick{position:fixed;inset:0;z-index:2000;background:rgba(18,16,40,.45);display:grid;place-items:center;padding:16px}
+#upPick .upk{background:#EEF2FB;border-radius:18px;width:min(560px,100%);box-shadow:0 24px 60px rgba(18,16,40,.3);overflow:hidden;font-family:inherit}
+#upPick .upk-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px 12px;background:#fff;border-bottom:1px solid #E3E6F0}
+#upPick .upk-h small{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6D28D9}#upPick .upk-h h3{margin:2px 0 0;font-size:20px;color:#1E1B3A}
+#upPick .upk-x{border:0;background:#F3F2FA;width:38px;height:38px;border-radius:50%;font-size:22px;cursor:pointer;color:#4B4868}
+#upPick .upk-i{display:flex;gap:10px;align-items:flex-start;margin:14px 16px 0;background:#fff;border-radius:14px;padding:12px 14px;font-size:13.5px;color:#3F3D56}
+#upPick .upk-z{margin:14px 16px 18px;border:2.5px dashed #9AA3B8;border-radius:18px;padding:26px 16px 22px;display:grid;justify-items:center;gap:12px;text-align:center;cursor:pointer;transition:background .15s,border-color .15s}
+#upPick .upk-z.on{background:#E6F7EC;border-color:#16A34A}
+#upPick .upk-z p{margin:0;font-size:14px;color:#1E1B3A}
+#upPick .upk-b{border:0;background:#1A56DB;color:#fff;border-radius:999px;padding:12px 34px;font:700 15px/1 inherit;font-family:inherit;cursor:pointer;box-shadow:0 6px 16px rgba(26,86,219,.3)}
+#upPick .upk-b:focus-visible,#upPick .upk-x:focus-visible{outline:3px solid #6D28D9;outline-offset:2px}
+@media (max-width:560px){#upPick{place-items:end center;padding:0}#upPick .upk{border-radius:20px 20px 0 0}}</style><style id="css">
 /* Layout: white sidebar + lavender content; gradient KPI row, then 12-col card grid (charts, resumes, recruitment tables). Mirrors the KTA-TRA / KMB monitoring pages. */
 :root {
   --bg: #F2F1FA; --card: #FFFFFF; --card-2: #F7F6FD; --side: #FFFFFF;
@@ -2011,7 +2022,7 @@ function upInner(k) {
   if (FORM && FORM.uploading === k) return '<span class="upst"><span class="spin sm"></span>Mengunggah…</span>';
   if (cur) return `<a class="fchip2" href="${fileUrl(cur)}" title="${esc(cur.name || 'Berkas')}">${esc(cur.name || 'Berkas')}</a><button type="button" class="upx" data-uprm="${k}" aria-label="Hapus berkas">×</button>`;
   if (!ASSETS) return '<span class="small">Masuk sebagai Editor untuk upload</span>';
-  return `<label class="btn btn-g btn-sm upbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Upload<input type="file" accept="application/pdf,image/png,image/jpeg,image/webp" data-upfile="${k}" hidden></label><small>atau seret berkas ke sini · PDF / JPG / PNG, maks 20 MB</small>`;
+  return `<button type="button" class="btn btn-g btn-sm upbtn" data-uppick="${k}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Upload</button><input type="file" accept="application/pdf,image/png,image/jpeg,image/webp" data-upfile="${k}" hidden><small>atau seret berkas ke sini · PDF / JPG / PNG, maks 20 MB</small>`;
 }
 document.addEventListener('change', async (e) => {
   const inp = e.target.closest && e.target.closest('[data-upfile]'); if (!inp || !FORM) return;
@@ -2048,9 +2059,33 @@ document.addEventListener('change', async (e) => {
     inp.dispatchEvent(new Event('change', { bubbles: true }));
   });
   document.addEventListener('click', (e) => {
-    const z = zone(e); if (!z || e.target.closest('a,button,label,input')) return;
-    const inp = inpOf(z); if (inp) inp.click();
+    const b = e.target.closest && e.target.closest('[data-uppick]');
+    const z = zone(e); if (!b && (!z || e.target.closest('a,button,label,input'))) return;
+    const inp = inpOf(b ? b.closest('.upw') : z); if (inp) { e.preventDefault(); pickerOpen(inp); }
   });
+  // panel "Sisipkan file" seperti Google Form
+  function pickerOpen(inp) {
+    const fld = inp.closest('.fld'), name = fld && fld.querySelector('label') ? fld.querySelector('label').textContent.trim() : 'Berkas';
+    let pk = document.getElementById('upPick');
+    if (!pk) {
+      document.body.insertAdjacentHTML('beforeend', `<div id="upPick" role="dialog" aria-modal="true" aria-labelledby="upPkT" hidden><div class="upk">
+        <div class="upk-h"><div><small>Sisipkan file</small><h3 id="upPkT"></h3></div><button type="button" class="upk-x" data-pkclose aria-label="Tutup">×</button></div>
+        <div class="upk-i"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Upload 1 file: PDF, JPG, atau PNG. Maks 20 MB. File Word simpan dulu sebagai PDF.</span></div>
+        <div class="upk-z" id="upPkZ"><svg class="cloud" width="150" height="104" viewBox="0 0 150 104" aria-hidden="true"><defs><linearGradient id="upkg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#4ADE80"/><stop offset="1" stop-color="#BAE6FD"/></linearGradient></defs><path d="M38 98h80a28 28 0 0 0 3-56 34 34 0 0 0-66-8 28 28 0 0 0-17 64z" fill="url(#upkg)" stroke="#1E1B3A" stroke-width="1.6"/><path d="M75 82V44M61 57l14-14 14 14" fill="none" stroke="#1E1B3A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <button type="button" class="upk-b" id="upPkB">Jelajah</button><p>atau tarik file ke sini</p></div></div></div>`);
+      pk = document.getElementById('upPick');
+      pk.addEventListener('click', (e) => { if (e.target === pk || e.target.closest('[data-pkclose]')) pickerClose(); else if (e.target.closest('#upPkB') || e.target.closest('#upPkZ')) { if (pk._inp) pk._inp.click(); } });
+      const z = document.getElementById('upPkZ');
+      ['dragenter', 'dragover'].forEach((ev) => z.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); z.classList.add('on'); }));
+      z.addEventListener('dragleave', (e) => { if (!z.contains(e.relatedTarget)) z.classList.remove('on'); });
+      z.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); z.classList.remove('on'); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (!f || !pk._inp) return; const dt = new DataTransfer(); dt.items.add(f); pk._inp.files = dt.files; const i = pk._inp; pickerClose(); i.dispatchEvent(new Event('change', { bubbles: true })); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pk.hidden) { e.stopPropagation(); pickerClose(); } }, true);
+    }
+    if (pk._inp && pk._inp._pkh) pk._inp.removeEventListener('change', pk._inp._pkh);
+    pk._inp = inp; inp._pkh = () => pickerClose(); inp.addEventListener('change', inp._pkh, { once: true });
+    document.getElementById('upPkT').textContent = name; pk.hidden = false; setTimeout(() => document.getElementById('upPkB').focus(), 30);
+  }
+  function pickerClose() { const pk = document.getElementById('upPick'); if (pk) pk.hidden = true; }
 })();
 document.addEventListener('click', (e) => {
   const rm = e.target.closest('[data-uprm]'); if (!rm || !FORM) return;

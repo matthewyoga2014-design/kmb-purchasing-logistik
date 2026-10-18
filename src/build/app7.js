@@ -33,7 +33,7 @@ function upInner(k) {
   if (FORM && FORM.uploading === k) return '<span class="upst"><span class="spin sm"></span>Mengunggah…</span>';
   if (cur) return `<a class="fchip2" href="${fileUrl(cur)}" title="${esc(cur.name || 'Berkas')}">${esc(cur.name || 'Berkas')}</a><button type="button" class="upx" data-uprm="${k}" aria-label="Hapus berkas">×</button>`;
   if (!ASSETS) return '<span class="small">Upload tersedia untuk pemilik di claude.ai</span>';
-  return `<label class="btn btn-g btn-sm upbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Upload<input type="file" accept="application/pdf,image/png,image/jpeg,image/webp" data-upfile="${k}" hidden></label><small>atau seret berkas ke sini · PDF / JPG / PNG, maks 20 MB</small>`;
+  return `<button type="button" class="btn btn-g btn-sm upbtn" data-uppick="${k}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Upload</button><input type="file" accept="application/pdf,image/png,image/jpeg,image/webp" data-upfile="${k}" hidden><small>atau seret berkas ke sini · PDF / JPG / PNG, maks 20 MB</small>`;
 }
 document.addEventListener('change', async (e) => {
   const inp = e.target.closest && e.target.closest('[data-upfile]'); if (!inp || !FORM) return;
@@ -70,9 +70,33 @@ document.addEventListener('change', async (e) => {
     inp.dispatchEvent(new Event('change', { bubbles: true }));
   });
   document.addEventListener('click', (e) => {
-    const z = zone(e); if (!z || e.target.closest('a,button,label,input')) return;
-    const inp = inpOf(z); if (inp) inp.click();
+    const b = e.target.closest && e.target.closest('[data-uppick]');
+    const z = zone(e); if (!b && (!z || e.target.closest('a,button,label,input'))) return;
+    const inp = inpOf(b ? b.closest('.upw') : z); if (inp) { e.preventDefault(); pickerOpen(inp); }
   });
+  // panel "Sisipkan file" seperti Google Form
+  function pickerOpen(inp) {
+    const fld = inp.closest('.fld'), name = fld && fld.querySelector('label') ? fld.querySelector('label').textContent.trim() : 'Berkas';
+    let pk = document.getElementById('upPick');
+    if (!pk) {
+      document.body.insertAdjacentHTML('beforeend', `<div id="upPick" role="dialog" aria-modal="true" aria-labelledby="upPkT" hidden><div class="upk">
+        <div class="upk-h"><div><small>Sisipkan file</small><h3 id="upPkT"></h3></div><button type="button" class="upk-x" data-pkclose aria-label="Tutup">×</button></div>
+        <div class="upk-i"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Upload 1 file: PDF, JPG, atau PNG. Maks 20 MB. File Word simpan dulu sebagai PDF.</span></div>
+        <div class="upk-z" id="upPkZ"><svg class="cloud" width="150" height="104" viewBox="0 0 150 104" aria-hidden="true"><defs><linearGradient id="upkg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#4ADE80"/><stop offset="1" stop-color="#BAE6FD"/></linearGradient></defs><path d="M38 98h80a28 28 0 0 0 3-56 34 34 0 0 0-66-8 28 28 0 0 0-17 64z" fill="url(#upkg)" stroke="#1E1B3A" stroke-width="1.6"/><path d="M75 82V44M61 57l14-14 14 14" fill="none" stroke="#1E1B3A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <button type="button" class="upk-b" id="upPkB">Jelajah</button><p>atau tarik file ke sini</p></div></div></div>`);
+      pk = document.getElementById('upPick');
+      pk.addEventListener('click', (e) => { if (e.target === pk || e.target.closest('[data-pkclose]')) pickerClose(); else if (e.target.closest('#upPkB') || e.target.closest('#upPkZ')) { if (pk._inp) pk._inp.click(); } });
+      const z = document.getElementById('upPkZ');
+      ['dragenter', 'dragover'].forEach((ev) => z.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); z.classList.add('on'); }));
+      z.addEventListener('dragleave', (e) => { if (!z.contains(e.relatedTarget)) z.classList.remove('on'); });
+      z.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); z.classList.remove('on'); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (!f || !pk._inp) return; const dt = new DataTransfer(); dt.items.add(f); pk._inp.files = dt.files; const i = pk._inp; pickerClose(); i.dispatchEvent(new Event('change', { bubbles: true })); });
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pk.hidden) { e.stopPropagation(); pickerClose(); } }, true);
+    }
+    if (pk._inp && pk._inp._pkh) pk._inp.removeEventListener('change', pk._inp._pkh);
+    pk._inp = inp; inp._pkh = () => pickerClose(); inp.addEventListener('change', inp._pkh, { once: true });
+    document.getElementById('upPkT').textContent = name; pk.hidden = false; setTimeout(() => document.getElementById('upPkB').focus(), 30);
+  }
+  function pickerClose() { const pk = document.getElementById('upPick'); if (pk) pk.hidden = true; }
 })();
 document.addEventListener('click', (e) => {
   const rm = e.target.closest('[data-uprm]'); if (!rm || !FORM) return;
