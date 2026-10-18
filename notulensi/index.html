@@ -2086,10 +2086,11 @@ async function mergeRows(prev,neu){
   return out;
 }
 async function importMany(files,folderId,forceNew){for(const f of files)await importNotulensi(f,folderId,files.length>1,forceNew);}
-function chooseTarget(file,parsed,folderId){
+const unitOf=id=>{const f=fById(id);return f&&f.parentId&&parseIndoDate(f.name)?f.parentId:(id||null);};
+function chooseTarget(file,parsed,folderId){const unitId=unitOf(folderId);
   return new Promise(res=>{
     const cands=S.series.map(s=>({s,v:latestV(s.id)})).filter(x=>x.v).sort((a,b)=>((b.s.folderId===folderId)-(a.s.folderId===folderId))||(b.v.date||"").localeCompare(a.v.date||""));
-    const tn=norm(parsed.title);const here=cands.filter(x=>(x.s.folderId||null)===(folderId||null));
+    const tn=norm(parsed.title);const here=cands.filter(x=>unitOf(x.s.folderId)===unitId);
     const guess=parsed.forceSid?cands.find(x=>x.s.id===parsed.forceSid):(here.length===1&&folderId?here[0]:here.find(x=>norm(x.s.title)===tn||jac(x.s.title,parsed.title)>=0.5))||cands.find(x=>norm(x.s.title)===tn);
     const dup=S.versions.find(v=>v.source&&norm(v.source)===norm(file.name));
     let done=false;S.onModalClose=()=>{if(!done)res(null);};
@@ -2097,7 +2098,7 @@ function chooseTarget(file,parsed,folderId){
       <div class="note ok"><b>${esc(file.name)}</b> terbaca: ${parsed.rows.length} tindak lanjut${parsed.rows.some(r=>r.key)?` (${parsed.rows.filter(r=>r.key).length} cocok lewat Kode)`:""}${parsed.date?`, tanggal meeting ${fmtD(parsed.date)}`:""}.${parsed.ai?" (dirangkum otomatis)":""}</div>
       ${dup?`<div class="note">File dengan nama ini sudah pernah diupload sebagai Meeting ke-${dup.no} di “${esc(sById(dup.seriesId)?.title||"")}”.</div>`:""}
       <div class="choice">
-        <label><input type="radio" name="tg" value="new" ${guess&&!parsed.forceNew?"":"checked"}><span><b>Notulensi baru</b><small>Dibuat sebagai Meeting ke-1 di folder ${esc(fPathName(folderId))}.</small></span></label>
+        <label><input type="radio" name="tg" value="new" ${guess&&!parsed.forceNew?"":"checked"}><span><b>Notulensi baru</b><small>Dibuat sebagai Meeting ke-1 di ${esc(fPathName(unitId))}.</small></span></label>
         <label><input type="radio" name="tg" value="next" ${guess&&!parsed.forceNew?"checked":""} ${cands.length?"":"disabled"}><span><b>Update dari notulensi yang sudah ada</b><small>Jadi meeting berikutnya. Baris yang sama dicocokkan otomatis, perubahan ditandai, baris lama yang tidak disebut tetap dibawa.</small>
           <select id="ctS" style="margin-top:8px;width:100%" ${cands.length?"":"disabled"}>${cands.map(x=>`<option value="${x.s.id}" ${guess&&guess.s.id===x.s.id?"selected":""}>${esc(x.s.title)} — Meeting ke-${x.v.no}, ${fmtD(x.v.date)} (${esc(fPathName(x.s.folderId))})</option>`).join("")||"<option>Belum ada notulensi</option>"}</select></span></label>
       </div>
@@ -2110,7 +2111,7 @@ function chooseTarget(file,parsed,folderId){
       box.querySelector("#ct").onsubmit=e=>{e.preventDefault();
         if(box.querySelector("[name=tg]:checked").value==="next"){const sid=box.querySelector("#ctS").value,x=cands.find(c=>c.s.id===sid),d=box.querySelector("#ctD").value;
           if(x&&d&&(x.v.date||"")>d){W.hidden=false;W.innerHTML=`Tanggal meeting <b>${fmtD(d)}</b> lebih awal dari Meeting ke-${x.v.no} (${fmtD(x.v.date)}) di “${esc(x.s.title)}”. Kemungkinan file ini milik notulensi lain. Pilih notulensi yang benar, atau pilih <b>Notulensi baru</b>.`;return;}
-          if(x&&(x.s.folderId||null)!==(folderId||null)&&warned!==sid){warned=sid;W.hidden=false;W.innerHTML=`Notulensi “${esc(x.s.title)}” ada di <b>${esc(fPathName(x.s.folderId))}</b>, bukan di folder yang sedang dibuka (<b>${esc(fPathName(folderId))}</b>). Klik <b>Simpan</b> sekali lagi kalau memang benar.`;return;}}
+          if(x&&unitOf(x.s.folderId)!==unitId&&warned!==sid){warned=sid;W.hidden=false;W.innerHTML=`Notulensi “${esc(x.s.title)}” ada di <b>${esc(fPathName(x.s.folderId))}</b>, bukan di folder yang sedang dibuka (<b>${esc(fPathName(folderId))}</b>). Klik <b>Simpan</b> sekali lagi kalau memang benar.`;return;}}
         done=true;const mode=box.querySelector("[name=tg]:checked").value;const r={mode,sid:box.querySelector("#ctS").value,title:clean(box.querySelector("#ctT").value)||parsed.title,date:box.querySelector("#ctD").value};S.onModalClose=null;closeModal();res(r);};});
   });
 }
@@ -2153,7 +2154,7 @@ async function importNotulensi(file,folderId,batch,forceNew,forceSid){
     const withX=(rs,cols)=>rs.map(r=>{const o={...r};if(r.xn){o.x={};cols.forEach(c=>{const k=Object.keys(r.xn).find(n=>norm(n)===norm(c.name));if(k!==undefined)o.x[c.id]=r.xn[k];});}delete o.xn;delete o.key;return o;});
     if(ch.mode==="next"){sid=ch.sid;const lv=latestV(sid);no=(lv?.no||0)+1;const cols=mkCols(lv?.cols);const merged=await mergeRows(lv?.rows||[],withX(rows,cols));
       vid=(await S.db.collection("versions").add({seriesId:sid,no,...meta,rows:merged,cols,kind:"upload",basedOn:lv?.id||null,createdAt:Date.now(),...stamp()})).id;await S.db.collection("series").doc(sid).update(stamp());}
-    else{const sr=await S.db.collection("series").add({title:ch.title,folderId:folderId||null,createdAt:Date.now(),...stamp()});sid=sr.id;no=1;
+    else{const sr=await S.db.collection("series").add({title:ch.title,folderId:unitOf(folderId),createdAt:Date.now(),...stamp()});sid=sr.id;no=1;
       const cols=mkCols([]);vid=(await S.db.collection("versions").add({seriesId:sid,no,...meta,rows:withX(rows,cols).map(r=>({...r,st:r.st||"open"})),cols,kind:"upload",createdAt:Date.now(),...stamp()})).id;}
     try{await storeFile(file,{folderId:sById(sid)?.folderId??folderId,seriesId:sid,versionId:vid});}catch(e){}
     toast(`${file.name} tersimpan sebagai Meeting ke-${no}`);
@@ -2191,6 +2192,26 @@ function renderCal(){
   $("cal").innerHTML=`<div class="cal">${["Sen","Sel","Rab","Kam","Jum","Sab","Min"].map(d=>`<div class="dh">${d}</div>`).join("")}${cells}</div><div class="legend2" style="margin-top:12px">${STK.map(k=>`<span><i class="d-${k}" style="border:0"></i>${ST[k]}</span>`).join("")}<span><i style="background:#fff;border:1.5px dashed #2F6FB5"></i>Rencana next meeting</span><span>M2 = Meeting ke-2</span></div>`;
 }
 $("calFolder").onchange=renderCal;
+
+/* ================= perbaikan data (sekali jalan, aman diulang) ================= */
+async function repairData(){
+  if(!S.canEdit||!S.db||repairData.done)return;repairData.done=true;let n=0;
+  const unlink=async vid=>{for(const f of S.files.filter(f=>f.versionId===vid)){await S.db.collection("files").doc(f.id).update({seriesId:null,versionId:null});}};
+  const dropFiles=async vid=>{for(const f of S.files.filter(f=>f.versionId===vid)){try{await delFile(f);}catch(e){}}};
+  /* 1. KKA: Meeting ke-2 berisi notulensi BUPR -> hapus */
+  const kb=vById("n2e7f9ce7ec5abe439d6");
+  if(kb&&kb.seriesId==="n579da648dd1555c819f"){await dropFiles(kb.id);await S.db.collection("versions").doc(kb.id).delete();n++;}
+  /* 2. BUPR: Meeting ke-1 dari MPP.xlsx (kosong) -> hapus; notulensi 12 Okt jadi Meeting ke-1 */
+  const b1=vById("n37d835a429bc1718916"),b2=vById("n4709ac562b5319b6047");
+  if(b1&&b2&&b1.seriesId==="nc9718eca3fc092f9219"&&!(b1.rows||[]).length){await unlink(b1.id);await S.db.collection("versions").doc(b1.id).delete();
+    await S.db.collection("versions").doc(b2.id).update({no:1,basedOn:null});
+    await S.db.collection("series").doc("nc9718eca3fc092f9219").update({title:"FMC Project SKA – Jobsite BUPR Ampah - Kalimantan Tengah"});n++;}
+  /* 3. BUPR: notulensi "Notulensi" tanpa tindak lanjut -> hapus notulensinya, filenya tetap di folder */
+  const ns=sById("n3a4630ea1aa092721d5"),nv=vById("nf9dd7fd08f6279f95b0");
+  if(ns&&nv&&!(nv.rows||[]).length&&versionsOf(ns.id).length===1){await unlink(nv.id);await S.db.collection("versions").doc(nv.id).delete();await S.db.collection("series").doc(ns.id).delete();n++;}
+  /* 4. notulensi yang tersimpan di folder tanggal dipindah ke Unit-nya (berkas tetap di folder tanggal) */
+  for(const x of S.series){const u=unitOf(x.folderId);if(u&&u!==(x.folderId||null)){await S.db.collection("series").doc(x.id).update({folderId:u});n++;}}
+  if(n)toast("Data notulensi dirapikan: setiap notulensi kini berada di Unit masing-masing");}
 
 /* ================= print ================= */
 function printTitle(){const v=S.view;if(v==="series"){const x=sById(S.sid);const ve=vById(S.vid)||latestV(S.sid);return (x?x.title:"Notulensi")+(ve?" - Meeting ke-"+ve.no+" - "+fmtD(ve.date):"");}
@@ -2252,6 +2273,7 @@ document.addEventListener("focusout",()=>setTimeout(()=>{if(S.pending&&$("modal"
   if(user){try{S.me=await user.id();const me=await user.me();if(me&&me.name){$("meName").textContent=me.name;$("meAv").textContent=me.name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();}}catch(e){}}
   const sub=(col,key)=>db.collection(col).onSnapshot(snap=>{S[key]=snap.docs.map(d=>({id:d.id,...d.data()}));$("live").classList.add("on");$("liveTxt").textContent="Live";scheduleRender();},()=>{$("live").classList.remove("on");$("liveTxt").textContent="Terputus";});
   sub("folders","folders");sub("series","series");sub("versions","versions");sub("files","files");
+  setTimeout(()=>repairData().catch(e=>console.warn("repair",e)),2500);
 })();
 
 </script>
