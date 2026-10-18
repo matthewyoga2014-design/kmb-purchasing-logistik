@@ -30,12 +30,12 @@ const OWNER_EMAIL = 'matthewyoga2014@gmail.com';
 const SHEETS = {
   projects:   { name: 'Project', prefix: 'p', cols: { id: 'ID', kode: 'Nama singkat', nama: 'Nama lengkap', lokasi: 'Lokasi', catatan: 'Catatan', urut: 'Urutan' } },
   pengiriman: { name: 'Rencana Kirim', prefix: 'k', cols: { id: 'ID', project: 'Project', tipe: 'Item unit', rencanaAwal: 'Rencana awal', rencana: 'Rencana kini', eta: 'ETA', moda: 'Moda', asal: 'Asal', catatan: 'Keterangan', urut: 'Urutan', updatedAt: 'Diperbarui' } },
-  units:      { name: 'Unit', prefix: 'u', cols: { id: 'ID', kode: 'No. lambung', sementara: 'Kode sementara', project: 'Project', item: 'Item rencana kirim', lokasi: 'Posisi', tglTiba: 'Tanggal tiba', hm: 'HM', status: 'Status', catatan: 'Catatan', updatedAt: 'Diperbarui' } },
+  units:      { name: 'Unit', prefix: 'u', cols: { id: 'ID', kode: 'No. lambung', sementara: 'Kode sementara', project: 'Project', item: 'Item rencana kirim', lokasi: 'Posisi', tglTiba: 'Tanggal tiba', hm: 'HM', status: 'Status', catatan: 'Catatan', updatedAt: 'Diperbarui', rencanaKirim: 'Rencana kirim', via: 'Via', tglKirim: 'Tanggal kirim' } },
   mobilisasi: { name: 'Mobilisasi', prefix: 'm', cols: { id: 'ID', unitKode: 'No. lambung', project: 'Project', tanggal: 'Tanggal', jam: 'Jam', dari: 'Dari', ke: 'Ke', jarak: 'Jarak (km)', moda: 'Moda', escort: 'Pengawalan', pic: 'PIC', status: 'Status', catatan: 'Catatan' } },
   dokumentasi:{ name: 'Dokumentasi', prefix: 'd', cols: { id: 'ID', waktu: 'Waktu upload', tahap: 'Tahap', project: 'Project', item: 'Item unit', unitKode: 'No. lambung', tanggal: 'Tanggal', lokasi: 'Lokasi', catatan: 'Keterangan', fileName: 'Nama file', fileUrl: 'Link file', fileId: 'File ID', mime: 'Jenis file', oleh: 'Oleh' } },
   revisi:     { name: 'Riwayat Perubahan', prefix: 'r', cols: { id: 'ID', waktu: 'Waktu', project: 'Project', tipe: 'Item unit', lama: 'Jumlah lama', baru: 'Jumlah baru', etaLama: 'ETA lama', etaBaru: 'ETA baru', alasan: 'Alasan', oleh: 'Oleh' } }
 };
-const DATE_KEYS = { eta: 1, tglTiba: 1, tanggal: 1, etaLama: 1, etaBaru: 1 };
+const DATE_KEYS = { eta: 1, tglTiba: 1, tanggal: 1, etaLama: 1, etaBaru: 1, rencanaKirim: 1, tglKirim: 1 };
 const TIME_KEYS = { jam: 1 };
 const TS_KEYS = { updatedAt: 1, waktu: 1 };
 const NUM_KEYS = { urut: 1, rencanaAwal: 1, rencana: 1, hm: 1, jarak: 1, lama: 1, baru: 1 };
@@ -43,10 +43,10 @@ const NUM_KEYS = { urut: 1, rencanaAwal: 1, rencana: 1, hm: 1, jarak: 1, lama: 1
 /* ---------------- web API ---------------- */
 function doGet() {
   const cache = CacheService.getScriptCache();
-  const hit = cache.get('state');
+  const hit = cache.get('state2');
   if (hit) return ContentService.createTextOutput('{"ok":true,"state":' + hit + '}').setMimeType(ContentService.MimeType.JSON);
   const txt = JSON.stringify(buildState_());
-  try { if (txt.length < 95000) cache.put('state', txt, 21600); } catch (err) {}
+  try { if (txt.length < 95000) cache.put('state2', txt, 21600); } catch (err) {}
   return ContentService.createTextOutput('{"ok":true,"state":' + txt + '}').setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -101,7 +101,22 @@ function sheet_(col) {
     sh.setFrozenRows(1);
   }
   if (!sh) throw new Error('Tab "' + def.name + '" tidak ditemukan');
+  ensureHeaders_(sh, def);
   return sh;
+}
+
+// kolom baru (mis. Rencana kirim, Via, Tanggal kirim di tab Unit) ditambahkan otomatis di kanan
+const HEAD_OK_ = {};
+function ensureHeaders_(sh, def) {
+  if (HEAD_OK_[def.name]) return;
+  const width = Math.max(1, sh.getLastColumn());
+  const head = sh.getRange(1, 1, 1, width).getValues()[0].map(function (h) { return String(h).trim(); });
+  const missing = Object.keys(def.cols).map(function (k) { return def.cols[k]; }).filter(function (n) { return head.indexOf(n) < 0; });
+  if (missing.length) {
+    const start = head.filter(function (h) { return h !== ''; }).length ? width + 1 : 1;
+    sh.getRange(1, start, 1, missing.length).setValues([missing]).setFontWeight('bold').setFontColor('#FFFFFF').setBackground('#6D28D9');
+  }
+  HEAD_OK_[def.name] = true;
 }
 
 function headerIndex_(sh) {
@@ -155,7 +170,7 @@ function buildState_() {
   const kirimOf = function (projectId, tipe) { const k = K.filter(function (x) { return pid(x.project) === projectId && x.tipe === tipe; })[0]; return k ? k.id : ''; };
   const projects = P.map(function (p) { return { id: p.id, kode: p.kode, nama: p.nama, lokasi: p.lokasi, catatan: p.catatan, urut: p.urut }; });
   const pengiriman = K.map(function (k) { return { id: k.id, projectId: pid(k.project), tipe: k.tipe, rencanaAwal: k.rencanaAwal === '' ? k.rencana : k.rencanaAwal, rencana: k.rencana === '' ? 0 : k.rencana, eta: k.eta, moda: k.moda, asal: k.asal, catatan: k.catatan, urut: k.urut, updatedAt: k.updatedAt }; });
-  const units = U.map(function (u) { const p = pid(u.project); return { id: u.id, kode: u.kode, kodeSementara: /^ya$/i.test(u.sementara), projectId: p, kirimId: kirimOf(p, u.item), tipe: u.item, lokasi: u.lokasi, tglTiba: u.tglTiba, hm: u.hm === '' ? 0 : u.hm, status: u.status || 'Tiba', catatan: u.catatan, updatedAt: u.updatedAt }; });
+  const units = U.map(function (u) { const p = pid(u.project); return { id: u.id, kode: u.kode, kodeSementara: /^ya$/i.test(u.sementara), projectId: p, kirimId: kirimOf(p, u.item), tipe: u.item, lokasi: u.lokasi, tglTiba: u.tglTiba, hm: u.hm === '' ? 0 : u.hm, status: u.status || 'Tiba', catatan: u.catatan, updatedAt: u.updatedAt, rencanaKirim: u.rencanaKirim, via: u.via, tglKirim: u.tglKirim }; });
   const unitByKode = {};
   units.forEach(function (u) { unitByKode[u.kode] = u; });
   const mobilisasi = M.map(function (m) { const u = unitByKode[m.unitKode]; return { id: m.id, unitKode: m.unitKode, unitId: u ? u.id : '', projectId: pid(m.project) || (u ? u.projectId : ''), tanggal: m.tanggal, jam: m.jam, dari: m.dari, ke: m.ke, jarak: m.jarak === '' ? 0 : m.jarak, moda: m.moda, escort: m.escort, pic: m.pic, status: m.status || 'Direncanakan', catatan: m.catatan }; });
@@ -172,7 +187,7 @@ function toSheetRec_(col, rec, st) {
     case 'pengiriman': return { id: rec.id, project: projKode(rec.projectId), tipe: rec.tipe, rencanaAwal: rec.rencanaAwal, rencana: rec.rencana, eta: rec.eta, moda: rec.moda, asal: rec.asal, catatan: rec.catatan, urut: rec.urut, updatedAt: rec.updatedAt };
     case 'units': {
       const k = st.pengiriman.filter(function (x) { return x.id === rec.kirimId; })[0];
-      return { id: rec.id, kode: rec.kode, sementara: rec.kodeSementara ? 'Ya' : '', project: projKode(rec.projectId), item: k ? k.tipe : rec.tipe, lokasi: rec.lokasi, tglTiba: rec.tglTiba, hm: rec.hm, status: rec.status, catatan: rec.catatan, updatedAt: rec.updatedAt };
+      return { id: rec.id, kode: rec.kode, sementara: rec.kodeSementara ? 'Ya' : '', project: projKode(rec.projectId), item: k ? k.tipe : rec.tipe, lokasi: rec.lokasi, tglTiba: rec.tglTiba, hm: rec.hm, status: rec.status, catatan: rec.catatan, updatedAt: rec.updatedAt, rencanaKirim: rec.rencanaKirim, via: rec.via, tglKirim: rec.tglKirim };
     }
     case 'mobilisasi': {
       const u = st.units.filter(function (x) { return x.id === rec.unitId || x.kode === rec.unitKode; })[0];
@@ -276,7 +291,7 @@ function docFolder_(projectKode) {
 function getRev_() { return Number(PropertiesService.getScriptProperties().getProperty('rev') || 0); }
 function bumpRev_() {
   PropertiesService.getScriptProperties().setProperty('rev', String(getRev_() + 1));
-  try { CacheService.getScriptCache().remove('state'); } catch (err) {}
+  try { CacheService.getScriptCache().remove('state2'); } catch (err) {}
 }
 
 /**
