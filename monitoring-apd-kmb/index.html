@@ -750,6 +750,12 @@ function gaNextNo(date) {
   const seq = Math.max(Number(st.lastSeq[y]) || 0, ...used, 0) + 1;
   return { seq, year: y, no: `${st.prefix}/${ROMAN[m - 1]}/${y}-${String(seq).padStart(3, '0')}` };
 }
+// daftar site: jobsite dari Monitoring Manpower + gudang + yang pernah dipakai di Form GA
+function gaSites() {
+  const g = S.state.ga, raw = [g.settings.lokasi, ...S.people.map((p) => p.site), ...WH, ...g.docs.flatMap((d) => [d.lokasi, ...d.items.map((x) => x.site)])];
+  const seen = new Map(); raw.map((x) => String(x || '').trim()).filter((x) => x && x !== '—').forEach((x) => { const k = x.toLowerCase(); if (!seen.has(k)) seen.set(k, x); });
+  return [...seen.values()].sort((a, b) => a.localeCompare(b, 'id'));
+}
 function gaDesc(t, v) { const l = tLabel(t); if (!v || v === 'BELUM DIISI') return l; return /^\d+$/.test(v) ? `${l} (${v})` : `${l} ${v}`; }
 function loadLib(k) {
   const [url, g] = LIBS[k]; if (window[g]) return Promise.resolve(window[g]);
@@ -784,10 +790,10 @@ function gaEdit(id, reqIds, draft) {
   if (reqIds) gaAddReqs(reqIds);
   modal(`${mh('Form GA Request', old ? 'Edit ' + esc(d.no) : 'Buat Form GA Request')}<form id="gaForm" novalidate><div class="fgrid c3">
     <div class="fld"><label for="ga_no">No. Urut</label><input id="ga_no" required value="${esc(d.no)}"></div><div class="fld"><label for="ga_d">Tanggal</label><input id="ga_d" type="date" required value="${esc(d.date)}"></div><div class="fld"><label for="ga_due">Target barang datang</label><input id="ga_due" type="date" value="${esc(d.due || '')}"></div>
-    <div class="fld"><label for="ga_l">Lokasi / Site</label><input id="ga_l" value="${esc(d.lokasi)}"></div><div class="fld"><label for="ga_dp">Dept</label><input id="ga_dp" value="${esc(d.dept)}"></div><div class="fld"><label for="ga_n">Notes</label><input id="ga_n" value="${esc(d.notes)}"></div></div>
+    <div class="fld"><label for="ga_l">Lokasi / Site</label><input id="ga_l" list="gaSite" value="${esc(d.lokasi)}" placeholder="Pilih atau ketik site"></div><div class="fld"><label for="ga_dp">Dept</label><input id="ga_dp" value="${esc(d.dept)}"></div><div class="fld"><label for="ga_n">Notes</label><input id="ga_n" value="${esc(d.notes)}"></div></div>
     <div class="ch" style="margin:16px 0 8px"><div><h2 style="font-size:15px">Barang / Jasa</h2></div><div class="mtools"><button type="button" class="btn btn-g btn-sm" id="gaPick">Ambil dari Permintaan</button><button type="button" class="btn btn-g btn-sm" id="gaAdd">+ Tambah Baris</button></div></div>
     <div class="tw"><table class="t gat"><thead><tr><th>No</th><th>Deskripsi Barang / Jasa</th><th>Jumlah</th><th>Satuan</th><th>Estimasi Harga (Rp)</th><th>Total (Rp)</th><th>Site</th><th>Keterangan</th><th></th></tr></thead><tbody id="gaRows"></tbody><tfoot><tr><td></td><td class="b" style="text-align:right">TOTAL</td><td colspan="3"></td><td class="b" id="gaTot"></td><td colspan="3"></td></tr></tfoot></table></div>
-    <datalist id="gaCat">${st.catalog.map((c) => `<option value="${esc(c.desc)}">`).join('')}</datalist>
+    <datalist id="gaSite">${gaSites().map((x) => `<option value="${esc(x)}">`).join('')}</datalist><datalist id="gaCat">${st.catalog.map((c) => `<option value="${esc(c.desc)}">`).join('')}</datalist>
     <div class="fgrid c3" style="margin-top:14px">${st.sign.map((x, i) => `<div class="fld"><label for="ga_s${i}">${esc(x.title.replace(/,$/, ''))}: ${esc(x.name || '—')} · Tgl</label><input id="ga_s${i}" type="date" value="${esc(d.signDates[i] || '')}"></div>`).join('')}</div>
     ${actions(old ? 'Simpan Perubahan' : 'Simpan Form GA')}</form>`);
   gaRows();
@@ -799,7 +805,7 @@ function gaEdit(id, reqIds, draft) {
 }
 function gaRows() {
   const it = GA_ED.d.items;
-  $('gaRows').innerHTML = it.map((x, i) => `<tr data-i="${i}"><td>${i + 1}</td><td><input data-f="desc" list="gaCat" value="${esc(x.desc)}" aria-label="Deskripsi baris ${i + 1}">${x.reqId ? '<div class="small">dari Permintaan APD</div>' : ''}</td><td><input data-f="qty" type="number" min="1" step="1" value="${esc(x.qty)}" style="width:70px" aria-label="Jumlah"></td><td><input data-f="unit" value="${esc(x.unit)}" style="width:80px" aria-label="Satuan"></td><td><input data-f="price" type="number" min="0" step="500" value="${esc(x.price || 0)}" style="width:120px" aria-label="Estimasi harga"></td><td class="nw" data-tot>${rp((Number(x.qty) || 0) * (Number(x.price) || 0))}</td><td><input data-f="site" value="${esc(x.site)}" style="width:120px" aria-label="Site"></td><td><input data-f="note" value="${esc(x.note)}" aria-label="Keterangan"></td><td><button type="button" class="btn btn-g btn-sm red" data-garm="${i}" aria-label="Hapus baris">×</button></td></tr>`).join('') || '<tr><td colspan="9" class="empty">Belum ada barang. Klik <b>Ambil dari Permintaan</b> atau <b>+ Tambah Baris</b>.</td></tr>';
+  $('gaRows').innerHTML = it.map((x, i) => `<tr data-i="${i}"><td>${i + 1}</td><td><input data-f="desc" list="gaCat" value="${esc(x.desc)}" aria-label="Deskripsi baris ${i + 1}">${x.reqId ? '<div class="small">dari Permintaan APD</div>' : ''}</td><td><input data-f="qty" type="number" min="1" step="1" value="${esc(x.qty)}" style="width:70px" aria-label="Jumlah"></td><td><input data-f="unit" value="${esc(x.unit)}" style="width:80px" aria-label="Satuan"></td><td><input data-f="price" type="number" min="0" step="500" value="${esc(x.price || 0)}" style="width:120px" aria-label="Estimasi harga"></td><td class="nw" data-tot>${rp((Number(x.qty) || 0) * (Number(x.price) || 0))}</td><td><input data-f="site" list="gaSite" value="${esc(x.site)}" style="width:150px" aria-label="Site" placeholder="Pilih site"></td><td><input data-f="note" value="${esc(x.note)}" aria-label="Keterangan"></td><td><button type="button" class="btn btn-g btn-sm red" data-garm="${i}" aria-label="Hapus baris">×</button></td></tr>`).join('') || '<tr><td colspan="9" class="empty">Belum ada barang. Klik <b>Ambil dari Permintaan</b> atau <b>+ Tambah Baris</b>.</td></tr>';
   $('gaTot').textContent = rp(gaTotal(GA_ED.d));
   $('gaRows').oninput = (e) => {
     const tr = e.target.closest('tr[data-i]'); if (!tr) return; const x = GA_ED.d.items[Number(tr.dataset.i)], f = e.target.dataset.f;
