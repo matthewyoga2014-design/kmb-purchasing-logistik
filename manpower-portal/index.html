@@ -174,6 +174,9 @@ body.setmode .hero, body.setmode .tot, body.setmode .grid { display: none; }
 .opt { display: grid; gap: 6px; font-size: 13px; margin-bottom: 14px; } .opt label { display: flex; gap: 8px; align-items: center; } .opt input { accent-color: var(--p); }
 .prog { font-size: 12.5px; color: var(--ink-2); min-height: 18px; margin-bottom: 10px; }
 #nopr { display: none; }
+.lock { grid-column: 1 / -1; max-width: 560px; margin: 30px auto; text-align: center; background: rgba(255,255,255,.92); border: 1px solid var(--line, #E4E2F0); border-radius: 18px; padding: 34px 28px; }
+.lock .lg { margin: 0 auto 12px; } .lock h2 { margin: 0 0 8px; font-size: 22px; } .lock p { margin: 0 0 18px; color: #5B5878; font-size: 14px; line-height: 1.6; }
+body.locked #prBtn, body.locked #dlBtn { display: none !important; }
 @media print {
   * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   html, body { background: linear-gradient(180deg, #F4F3FB 0%, #ECEEF7 60%, #E6E9F3 100%) !important; }
@@ -279,9 +282,11 @@ const add = (a, b) => ({ mpp: a.mpp + b.mpp, act: a.act + b.act, vac: a.vac + b.
 const fmtDate = (s) => s ? new Date(s).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '–';
 function toast(m) { const t = document.getElementById('toast'); t.textContent = m; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(() => { t.hidden = true; }, 4200); }
 
+let VIS = null; // proyek yang boleh dilihat akun ini (null = belum dimuat)
+const visP = () => VIS ? PROJECTS.filter((p) => VIS.includes(p.key)) : PROJECTS;
 function totHtml(list) {
   const cls = { kta: 't1', bupr: 't2', mbj: 't3', kmb: 't4' };
-  return PROJECTS.map((p) => {
+  return visP().map((p) => {
     const s = list && list[p.key];
     return `<a class="t ${cls[p.key]}" href="${p.href}" title="Buka ${esc(p.name)}"><span class="ti">${I[p.icon]}</span><div class="tx"><small>Persentase MPP Actual</small><b>${s ? s.pct + '%' : '<span class="sk">00</span>'}</b><em>${esc(p.name)}</em><span class="tb"><i style="width:${s ? s.pct : 0}%"></i></span></div><span class="tg">${I.pie('#fff', 40)}</span></a>`;
   }).join('');
@@ -304,7 +309,9 @@ function render(rows) {
   ROWS = rows;
   const by = Object.fromEntries(rows.map((r) => [r.id, r]));
   let all = { mpp: 0, act: 0, vac: 0, open: 0 }; const per1 = {};
-  const cards = PROJECTS.map((p) => {
+  VIS = PROJECTS.filter((p) => (p.sites ? p.sites.map((x) => x[0]) : p.ids).some((id) => by[id])).map((p) => p.key);
+  document.body.classList.toggle('locked', false);
+  const cards = visP().map((p) => {
     const ids = p.sites ? p.sites.map((s) => s[0]) : p.ids;
     const per = ids.map((id) => ({ id, s: stats(by[id] && by[id].data), at: by[id] && by[id].updated_at }));
     const s = per.reduce((a, x) => add(a, x.s), { mpp: 0, act: 0, vac: 0, open: 0 });
@@ -487,18 +494,29 @@ document.getElementById('dlGo').addEventListener('click', async () => {
 });
 window.addEventListener('beforeprint', () => { if (!CAN) document.body.classList.add('nop'); });
 
+// Portal hanya untuk Pemilik & Editor. Pelihat hanya bisa membuka web proyek lewat link khusus dari Pemilik.
+function lockPortal(signedIn) {
+  document.body.classList.add('locked');
+  document.getElementById('tot').innerHTML = ''; 
+  document.getElementById('grid').innerHTML = `<div class="lock"><span class="lg">M</span><h2>Portal khusus Pemilik & Editor</h2><p>${signedIn ? `Akun <b>${esc(USER.email)}</b> belum terdaftar sebagai Editor proyek mana pun. Minta Pemilik mendaftarkan email Anda.` : 'Masuk dengan email yang didaftarkan Pemilik untuk melihat ringkasan semua proyek. Jika Anda menerima link web proyek, buka link tersebut langsung.'}</p>${signedIn ? '' : '<button type="button" class="btn btn-p" id="lockIn">Masuk</button>'}</div>`;
+}
+document.addEventListener('click', (e) => { if (e.target.closest('#lockIn')) { document.getElementById('lgModal').hidden = false; document.getElementById('lgEm').focus(); } });
 skeleton(); whoUI(); guard();
 (async () => {
   if (!window.supabase) { const e = document.getElementById('err'); e.textContent = 'Tidak bisa terhubung ke server data. Periksa koneksi lalu muat ulang.'; e.hidden = false; return; }
   SB = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'kta-web-auth' } });
   try { const { data } = await SB.auth.getSession(); USER = (data && data.session && data.session.user) || null; } catch (e) {}
   whoUI(); loadPerm();
-  SB.auth.onAuthStateChange((ev, s) => { const nu = (s && s.user) || null; if ((nu && nu.email) === (USER && USER.email)) return; USER = nu; whoUI(); loadPerm(); });
+  SB.auth.onAuthStateChange((ev, s) => { const nu = (s && s.user) || null; if ((nu && nu.email) === (USER && USER.email)) return; USER = nu; whoUI(); loadPerm(); if (window.__portalLoad) window.__portalLoad(); });
   const load = async () => {
+    if (!USER) { lockPortal(false); return; }
     const { data, error } = await SB.from('kta_web_state').select('id,data,updated_at');
     if (error) { const e = document.getElementById('err'); e.textContent = 'Data belum bisa dimuat: ' + error.message; e.hidden = false; return; }
-    document.getElementById('err').hidden = true; render(data || []);
+    document.getElementById('err').hidden = true;
+    if (!(data || []).length) { lockPortal(true); return; }
+    render(data);
   };
+  window.__portalLoad = load;
   await load();
   SB.channel('portal-state').on('postgres_changes', { event: '*', schema: 'public', table: 'kta_web_state' }, () => load()).subscribe();
   document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });

@@ -139,6 +139,14 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     if (body.op === "notify") return await notify(req, appOf(body.app));
     if (body.op === "decide") return await decide(body);
+    if (body.op === "drivestate") {
+      // data semua proyek untuk Google Apps Script milik Pemilik (pengganti baca tabel langsung)
+      const { data: tk } = await admin.from("kta_private_settings").select("value").eq("name", "drive_sync_token").maybeSingle();
+      if (!tk || !body.token || body.token !== tk.value) return json({ ok: false, error: "token" }, 403);
+      const { data: rows, error } = await admin.from("kta_web_state").select("id,data,updated_at");
+      if (error) return json({ ok: false, error: error.message }, 500);
+      return json({ ok: true, rows });
+    }
     if (body.op === "drivefiles") {
       // dipakai Google Apps Script milik Pemilik untuk menyalin berkas pelamar ke Google Drive
       const { data: tk } = await admin.from("kta_private_settings").select("value").eq("name", "drive_sync_token").maybeSingle();
