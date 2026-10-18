@@ -11,3 +11,8 @@ Folder ini berisi kode sumber halaman yang sudah jadi di repo. Data karyawan dan
 | `hub/migration_access.sql` | aturan akses di Supabase (undangan, permintaan akses, izin menu) | sudah terpasang |
 
 Catatan: skrip build ditulis untuk folder kerja sementara, jadi alamat folder di dalamnya perlu disesuaikan bila dijalankan di tempat lain.
+
+## shared/ — panel upload seragam
+`uppick.js` adalah panel upload "Sisipkan file" (Jelajah + tarik file ke sini) yang sama seperti di sub portal KTA - TRA.
+Panel ini dipasang ke APD, Monitoring Unit dan Notulensi oleh `inject_uppick.py` (aman dijalankan berulang).
+Setelah build ulang APD atau mengganti file Unit/Notulensi, jalankan: `python3 src/shared/inject_uppick.py`.
