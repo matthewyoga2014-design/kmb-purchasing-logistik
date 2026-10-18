@@ -1161,6 +1161,7 @@ document.addEventListener("click",e=>{
   else if(a==="uploadFile"){$("upIn").value="";$("upIn").click();}
   else if(a==="uploadDir"){const i=document.createElement("input");i.type="file";i.multiple=true;i.webkitdirectory=true;i.setAttribute("webkitdirectory","");i.onchange=()=>{const list=[...i.files].map(f=>({dirs:(f.webkitRelativePath||f.name).split("/").slice(0,-1),file:f}));uploadTree(list,S.cwd||null);};i.click();}
   else if(a==="newManual")openEditor("new");
+  else if(a==="fixMeeting")openEditor("fix",el.dataset.sid,el.dataset.vid);
   else if(a==="rowMenu"){e.stopPropagation();itemMenu(el,el.dataset.k,el.dataset.id);}
   else if(a==="updMeeting")updateChooser(el.dataset.id||S.sid);
   else if(a==="print")printPage();
@@ -1370,7 +1371,7 @@ function renderSeries(){
        <div class="seg" role="group" aria-label="Filter baris">${[["all","Semua"],["open","Open"],["continue","Continue"],["close","Close"],...(d?[["changed","Berubah"]]:[])].map(([k,l])=>`<button type="button" data-act="rf" data-f="${k}" aria-pressed="${S.rf===k}">${l}</button>`).join("")}</div></div>
      ${d?`<div class="chg-sum" style="margin-bottom:12px"><span class="stamp" style="font-weight:600">Dibanding Meeting ke-${d.prev.no} (${fmtD(d.prev.date)}):</span>${diffChips(d)}</div>`:""}
      <div class="tbl-wrap" style="max-height:72vh;overflow:auto"><table class="ntbl ${S.hl?"hl":""}"><thead><tr><th>No</th><th>Topik</th><th>Hasil Pembahasan</th><th>Tindak Lanjut</th><th>PIC</th><th>Due Date</th><th>Status</th>${cols.map(c=>`<th>${esc(c.name)}</th>`).join("")}</tr></thead>
-       <tbody>${body||`<tr><td colspan="${7+cols.length}"><div class="empty"><b>Tidak ada baris</b>${S.rf==="all"?"Notulensi ini belum punya tindak lanjut.":"Tidak ada baris dengan filter ini."}</div></td></tr>`}</tbody></table></div>
+       <tbody>${body||`<tr><td colspan="${7+cols.length}"><div class="empty"><b>Tidak ada baris</b>${S.rf==="all"?`Notulensi ini belum punya tindak lanjut.<br><button class="btn pri sm ed-only" type="button" data-act="fixMeeting" data-sid="${s.id}" data-vid="${v.id}" style="margin-top:10px">Isi / koreksi tindak lanjut</button>`:"Tidak ada baris dengan filter ini."}</div></td></tr>`}</tbody></table></div>
      <div class="legend2" style="margin-top:10px"><span><i style="background:var(--r-close)"></i>Close (baris hijau)</span><span><i style="background:var(--r-cont)"></i>Continue</span><span><i style="background:#fff"></i>Open</span>${d?`<span><i style="background:#fff;box-shadow:inset 3px 0 0 var(--upd)"></i>Diubah (nilai lama dicoret)</span><span><span class="pill upd">Baru</span>Tindak lanjut baru</span>`:""}</div>
      ${d&&d.archived.length?`<details class="removed" style="margin-top:12px"><summary style="cursor:pointer"><b>${d.archived.length} tindak lanjut sudah Close di Meeting ke-${d.prev.no}</b> <span class="stamp">— tidak dibawa ke meeting ini, tetap tersimpan di arsip Meeting ke-${d.prev.no}</span></summary><ul style="margin:6px 0 0;padding-left:18px">${d.archived.map(r=>`<li style="text-decoration:none;color:var(--fg)">${esc(r.tl||r.topik)}${r.pic?` <span class="muted">· ${esc(r.pic)}</span>`:""} <button class="lnk" type="button" data-act="pickV" data-id="${d.prev.id}">lihat</button></li>`).join("")}</ul></details>`:""}
      ${d&&S.hl&&d.removed.length?`<div class="removed" style="margin-top:12px"><b>Dihapus di meeting ini</b><ul style="margin:6px 0 0;padding-left:18px">${d.removed.map(r=>`<li>${esc(r.tl||r.topik)}${r.pic?" · "+esc(r.pic):""}</li>`).join("")}</ul></div>`:""}
@@ -1698,9 +1699,17 @@ function itemMenu(btn,k,id){
   const items=[];
   if(k==="folder")items.push({label:"Buka",run:()=>{S.cwd=id;renderFiles();}},...(canHaveChild(id)?[{label:"Buat "+childKind(id)+" di dalamnya",run:()=>newFolder(id)}]:[]));
   if(k==="series")items.push({label:"Buka notulensi",run:()=>go("series",{sid:id,vid:null})},{label:"Update Meeting berikutnya",run:()=>updateChooser(id)});
-  if(k==="file")items.push({label:"Buka file",run:()=>openFile(id)});
+  if(k==="file"){items.push({label:"Buka file",run:()=>openFile(id)});const ff=S.files.find(x=>x.id===id);
+    if(ff&&!ff.seriesId&&/\.(docx|xlsx|xlsm|xls)$/i.test(ff.name))items.push({label:"Jadikan Notulensi (bisa dikoreksi)",run:()=>fileToNotulensi(id)});}
   items.push({label:k==="series"?"Ubah judul":"Ubah nama",run:()=>renameItem(k,id)},{label:"Pindahkan ke…",run:()=>moveItem(k,id)},{label:"Salin ke…",run:()=>copyItem(k,id)},{label:k==="series"?"Hapus notulensi":k==="folder"?"Hapus folder":"Hapus file",danger:true,run:()=>deleteItem(k,id)});
   openMenu(btn,items);
+}
+async function fileToNotulensi(id){
+  const f=S.files.find(x=>x.id===id);if(!f)return;
+  try{toast("Membuka "+f.name+"…",true);const bytes=await getBytes(f);
+    const file=new File([bytes],f.name,{type:f.type||"application/octet-stream"});
+    await importNotulensi(file,f.folderId||null,false,false,undefined,f.id);
+  }catch(err){toast(f.name+" tidak bisa dibuka: "+errMsg(err));}
 }
 function newFolder(parentId){
   if(!S.db)return toast("Penyimpanan belum tersedia");
@@ -1948,7 +1957,8 @@ async function uploadTree(list,base){
   const meets=[...groups.values()].map(g=>({...g,date:parseIndoDate(g.dirs[g.dirs.length-1])})).filter(g=>g.files.some(x=>x.dirs.length===g.dirs.length&&isNotuFile(x.file.name))).sort((a,b)=>a.date.localeCompare(b.date));
   const tag=new Map(),rep=[],notes=[];
   for(const g of meets){const nm=g.dirs.join(" › ");toast(`Membaca notulensi ${nm}…`,true);
-    const parsed=[];for(const x of g.files.filter(x=>x.dirs.length===g.dirs.length&&isNotuFile(x.file.name))){try{const p=await readNotulensi(x.file);if(p.rows.length)parsed.push({x,p});}catch(e){}}
+    const parsed=[],kosong=[];for(const x of g.files.filter(x=>x.dirs.length===g.dirs.length&&isNotuFile(x.file.name))){try{const p=await readNotulensi(x.file);if(p.rows.length)parsed.push({x,p});else if(/notul|\bmom\b|minutes/i.test(x.file.name))kosong.push({x,p});}catch(e){}}
+    if(!parsed.length&&kosong.length){parsed.push(kosong[0]);notes.push(`${kosong[0].x.file.name}: tabel tindak lanjut tidak ditemukan, Meeting tetap dibuat. Lengkapi isinya lewat Koreksi.`);}
     if(!parsed.length){notes.push(`${nm}: tidak ada tabel tindak lanjut, file disimpan sebagai berkas`);continue;}
     const named=parsed.filter(o=>/notul|\bmom\b|minutes/i.test(o.x.file.name)),pool=(named.length?named:parsed).sort((a,b)=>b.p.rows.length-a.p.rows.length),best=pool[0];
     try{const unitDirs=g.dirs.slice(0,-1),uid0=await ensurePath(base,unitDirs);
@@ -2171,7 +2181,7 @@ async function importMeetingFolder(file,p,folderId,fdate,fname){
   const vid=(await S.db.collection("versions").add({seriesId:sr.id,no:1,...metaOf(m,date,file.name),rows,cols,kind:"upload",createdAt:Date.now(),...stamp()})).id;
   S.series.push({id:sr.id,title,folderId:folderId||null,createdAt:Date.now()});S.versions.push({id:vid,seriesId:sr.id,no:1,date,rows,cols});
   return{sid:sr.id,vid,no:1,title,created:true};}
-async function importNotulensi(file,folderId,batch,forceNew,forceSid){
+async function importNotulensi(file,folderId,batch,forceNew,forceSid,existingFileId){
   if(!S.db)return toast("Penyimpanan belum tersedia");
   if(file.size>MAXB)return toast(`${file.name} (${fmtSize(file.size)}) melebihi batas 20 MB`);
   toast("Membaca "+file.name+"…",true);
@@ -2191,7 +2201,8 @@ async function importNotulensi(file,folderId,batch,forceNew,forceSid){
       vid=(await S.db.collection("versions").add({seriesId:sid,no,...meta,rows:merged,cols,kind:"upload",basedOn:lv?.id||null,createdAt:Date.now(),...stamp()})).id;await S.db.collection("series").doc(sid).update(stamp());}
     else{const sr=await S.db.collection("series").add({title:ch.title,folderId:unitOf(folderId),createdAt:Date.now(),...stamp()});sid=sr.id;no=1;
       const cols=mkCols([]);vid=(await S.db.collection("versions").add({seriesId:sid,no,...meta,rows:withX(rows,cols).map(r=>({...r,st:r.st||"open"})),cols,kind:"upload",createdAt:Date.now(),...stamp()})).id;}
-    try{await storeFile(file,{folderId:sById(sid)?.folderId??folderId,seriesId:sid,versionId:vid});}catch(e){}
+    try{if(existingFileId){const ef=S.files.find(x=>x.id===existingFileId);if(ef){const{id:_i,...rest}=ef;await S.db.collection("files").doc(existingFileId).update({...rest,seriesId:sid,versionId:vid});ef.seriesId=sid;ef.versionId=vid;}}
+      else await storeFile(file,{folderId:sById(sid)?.folderId??folderId,seriesId:sid,versionId:vid});}catch(e){}
     toast(`${file.name} tersimpan sebagai Meeting ke-${no}`);
     if(!batch)go("series",{sid,vid});
   }catch(err){toast("Gagal menyimpan "+file.name+": "+errMsg(err));}
