@@ -1620,7 +1620,10 @@ async function downloadTemplate(){
 }
 
 /* ================= FILES / FOLDERS ================= */
-function folderCount(id){const set=descendants(id);return S.series.filter(s=>set.has(s.folderId)).length+S.files.filter(f=>set.has(f.folderId)&&!f.seriesId).length;}
+function meetingsIn(fid){if(!fid)return[];const fo=fById(fid);if(!fo)return[];const d=parseIndoDate(fo.name),anc=new Set(fPath(fid).map(x=>x.id));
+  const viaFile=new Set(S.files.filter(f=>f.folderId===fid&&f.versionId).map(f=>f.versionId));
+  return S.versions.filter(v=>{const sr=sById(v.seriesId);if(!sr||(sr.folderId||null)===fid)return false;return viaFile.has(v.id)||(d&&v.date===d&&anc.has(sr.folderId));});}
+function folderCount(id){const set=descendants(id);let m=0;set.forEach(x=>{m+=meetingsIn(x).length;});return S.series.filter(s=>set.has(s.folderId)).length+S.files.filter(f=>set.has(f.folderId)).length+m;}
 S.open=new Set(load("rn2-open",[]));
 function treeHTML(pid,d){return children(pid).map(f=>{const kids=children(f.id).length,op=S.open.has(f.id)||(S.cwd&&fPath(S.cwd).some(x=>x.id===f.id)&&f.id!==S.cwd);
   return `<li><div class="tn ${f.id===S.cwd?"on":""}" style="padding-left:${8+d*16}px" data-dropf="${f.id}" draggable="true" data-drag="folder:${f.id}">
@@ -1639,7 +1642,8 @@ function renderFiles(){
   const items=[
     ...children(here).filter(f=>!q||f.name.toLowerCase().includes(q)).map(f=>({k:"folder",t:"folder",id:f.id,name:f.name,date:f.createdAt||0,size:-1,f})),
     ...S.series.filter(s=>(s.folderId||null)===here&&(!q||s.title.toLowerCase().includes(q))).map(s=>{const v=latestV(s.id);return{k:"series",t:"notulensi",id:s.id,name:s.title,date:parseD(v?.date)?.getTime()||s.createdAt||0,size:-1,s,v};}),
-    ...S.files.filter(f=>(f.folderId||null)===here&&!f.seriesId&&(!q||f.name.toLowerCase().includes(q))).map(f=>({k:"file",t:ftypeOf(f.name),id:f.id,name:f.name,date:f.at||0,size:f.size||0,f}))];
+    ...meetingsIn(here).map(v=>{const sr=sById(v.seriesId);return{k:"meeting",t:"notulensi",id:v.id,name:`${sr.title} · Meeting ke-${v.no}`,date:parseD(v.date)?.getTime()||v.createdAt||0,size:-1,s:sr,v};}).filter(it=>!q||it.name.toLowerCase().includes(q)),
+    ...S.files.filter(f=>(f.folderId||null)===here&&(!f.seriesId||here)&&(!q||f.name.toLowerCase().includes(q))).map(f=>({k:"file",t:ftypeOf(f.name),id:f.id,name:f.name,date:f.at||0,size:f.size||0,f}))];
   const tord=Object.fromEntries(FTYPES.map((x,i)=>[x[0],i]));
   const cmp=(a,b)=>{let r=0;if(FS.k==="name")r=a.name.localeCompare(b.name,"id",{numeric:true,sensitivity:"base"});else if(FS.k==="date")r=a.date-b.date;else if(FS.k==="size")r=a.size-b.size;else r=tord[a.t]-tord[b.t]||a.name.localeCompare(b.name,"id",{numeric:true});return r*FS.d;};
   items.sort((a,b)=>FS.group?(tord[a.t]-tord[b.t])||cmp(a,b):(a.k==="folder")!==(b.k==="folder")?(a.k==="folder"?-1:1):cmp(a,b));
@@ -1648,7 +1652,10 @@ function renderFiles(){
     if(it.k==="series"){const s=it.s,v=it.v,c=cnt(seriesRows(s.id));return `<tr draggable="true" data-drag="series:${s.id}"><td style="min-width:240px"><button class="fn" type="button" data-act="openS" data-id="${s.id}">${IC.series}<span>${esc(s.title)}</span></button></td>
       <td style="white-space:nowrap">Notulensi</td><td style="white-space:nowrap">${versionsOf(s.id).length} meeting${c.total?`<div style="width:110px;margin-top:4px">${stackBar(c)}</div>`:""}</td><td style="white-space:nowrap">${fmtD(v?.date)}</td><td>${pill(sStatus(s.id))}</td>
       <td class="c"><button class="ib" type="button" data-act="rowMenu" data-menu data-k="series" data-id="${s.id}" aria-label="Menu">${IC.kebab}</button></td></tr>`;}
-    const f=it.f;return `<tr draggable="true" data-drag="file:${f.id}"><td style="min-width:220px"><button class="fn" type="button" data-act="openFile" data-id="${f.id}">${fileIcon(f.name)}<span>${esc(f.name)}</span></button></td><td style="white-space:nowrap">${FTYPES.find(x=>x[0]===it.t)[1]}</td><td class="muted">${fmtSize(f.size)}</td><td style="white-space:nowrap">${fmtTs(f.at).slice(0,11)}</td><td></td><td class="c"><button class="ib" type="button" data-act="rowMenu" data-menu data-k="file" data-id="${f.id}" aria-label="Menu">${IC.kebab}</button></td></tr>`;};
+    if(it.k==="meeting"){const s=it.s,v=it.v,c=cnt(v.rows||[]);return `<tr><td style="min-width:240px"><button class="fn" type="button" data-act="openS" data-id="${s.id}" data-v="${v.id}">${IC.series}<span>${esc(it.name)}</span></button></td>
+      <td style="white-space:nowrap">Notulensi</td><td style="white-space:nowrap">${c.total} tindak lanjut${c.total?`<div style="width:110px;margin-top:4px">${stackBar(c)}</div>`:""}</td><td style="white-space:nowrap">${fmtD(v.date)}</td><td>${pill(sStatus(s.id))}</td>
+      <td class="c"><button class="ib" type="button" data-act="rowMenu" data-menu data-k="series" data-id="${s.id}" aria-label="Menu">${IC.kebab}</button></td></tr>`;}
+    const f=it.f;const fv=f.versionId&&S.versions.find(x=>x.id===f.versionId);return `<tr draggable="true" data-drag="file:${f.id}"><td style="min-width:220px"><button class="fn" type="button" data-act="openFile" data-id="${f.id}">${fileIcon(f.name)}<span>${esc(f.name)}</span></button></td><td style="white-space:nowrap">${FTYPES.find(x=>x[0]===it.t)[1]}</td><td class="muted">${fmtSize(f.size)}</td><td style="white-space:nowrap">${fmtTs(f.at).slice(0,11)}</td><td>${fv?`<button class="pill st-grey" type="button" data-act="openS" data-id="${f.seriesId}" data-v="${fv.id}" style="border:0;cursor:pointer">Sumber Meeting ke-${fv.no}</button>`:""}</td><td class="c"><button class="ib" type="button" data-act="rowMenu" data-menu data-k="file" data-id="${f.id}" aria-label="Menu">${IC.kebab}</button></td></tr>`;};
   let body="";
   if(FS.group){let cur=null;items.forEach(it=>{if(it.t!==cur){cur=it.t;const n=items.filter(x=>x.t===cur).length;body+=`<tr class="grprow"><td colspan="6">${FTYPES.find(x=>x[0]===cur)[1]} <span class="muted">(${n})</span></td></tr>`;}body+=row(it);});}
   else body=items.map(row).join("");
