@@ -653,6 +653,16 @@ body.locked > *:not(#lockScr):not(#toast):not(.modal):not(#modal) { visibility: 
 .empty .spin { margin: 0 auto 10px; }
 .t a, .actl a { color: var(--primary-ink); text-decoration: none; font-weight: 700; } .t a:hover { text-decoration: underline; }
 .tw.panning, .tw.panning * { cursor: grabbing !important; user-select: none !important; }
+.vchips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.vchips span { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; color: var(--ink-2); background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 3px 9px; }
+.vchips span.zero { opacity: .55; } .vchips b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.vchips i, .opn .dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(30,27,58,.25); display: inline-block; margin-right: 4px; vertical-align: -1px; }
+.opn input { width: 80px; font: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
+.vchips img.hm { width: 18px; height: 18px; object-fit: contain; }
+.hm-Putih { filter: grayscale(1) brightness(1.75) contrast(.9) drop-shadow(0 0 1px rgba(30,27,58,.5)); }
+.hm-Biru { filter: hue-rotate(178deg) saturate(1.6) brightness(.95); }
+
+.srcnote { display: block; line-height: 1.55; }
 </style></head><body>
 <aside class="side" id="side" aria-label="Menu">
   <div class="brand"><span class="lg">M</span><div><b>Monitoring</b><span>APD KMB</span></div></div>
@@ -702,7 +712,7 @@ let SHARE_KEY = '';
 })();
 
 // ---------- util ----------
-function empty() { return { stockIn: [], receipts: [], returns: [], limits: { HELM: 0, KAOS: 0, SEPATU: 0 }, images: {}, personOverrides: {} }; }
+function empty() { return { stockIn: [], receipts: [], returns: [], adjust: [], limits: { HELM: 0, KAOS: 0, SEPATU: 0 }, images: {}, personOverrides: {} }; }
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const arr = (x) => Array.isArray(x) ? x : [];
@@ -723,7 +733,7 @@ function addMonths(date, months) {
 const daysUntil = (d) => d ? Math.round((new Date(d + 'T00:00:00') - new Date(today() + 'T00:00:00')) / 864e5) : Infinity;
 let toastT; function toast(msg, err) { const t = $('toast'); t.textContent = msg; t.className = err ? 'err' : ''; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, err ? 6000 : 3500); }
 function normalize(v) {
-  return { stockIn: arr(v && v.stockIn), receipts: arr(v && v.receipts), returns: arr(v && v.returns),
+  return { stockIn: arr(v && v.stockIn), receipts: arr(v && v.receipts), returns: arr(v && v.returns), adjust: arr(v && v.adjust),
     limits: Object.fromEntries(TYPES.map((t) => [t, Math.max(0, Number(v && v.limits && v.limits[t]) || 0)])),
     images: Object.fromEntries(TYPES.filter((t) => typeof (v && v.images && v.images[t]) === 'string' && v.images[t].startsWith('data:image/')).map((t) => [t, v.images[t]])),
     personOverrides: v && v.personOverrides && typeof v.personOverrides === 'object' && !Array.isArray(v.personOverrides) ? v.personOverrides : {},
@@ -739,6 +749,7 @@ const due = (id, type) => { const r = latest(id, type); return r ? addMonths(r.d
 function stock(type, d = S.state) {
   const v = { NEW: 0, REUSE: 0, DESTROYED: 0 };
   arr(d.stockIn).filter((x) => x.type === type).forEach((x) => { v[x.grade === 'REUSE' ? 'REUSE' : 'NEW'] += qty(x.qty); });
+  arr(d.adjust).filter((x) => x.type === type).forEach((x) => { v[x.grade === 'REUSE' ? 'REUSE' : 'NEW'] += qty(x.qty); });
   arr(d.receipts).filter((x) => x.type === type).forEach((x) => { if (x.source === 'NEW' || x.source === 'REUSE') v[x.source] -= qty(x.qty); });
   arr(d.returns).forEach((x) => { const r = d.receipts.find((y) => y.id === x.receiptId); if (r && r.type === type) { if (x.action === 'REUSE') v.REUSE += qty(x.qty); else if (x.action === 'DESTROY') v.DESTROYED += qty(x.qty); } });
   return v;
@@ -746,6 +757,7 @@ function stock(type, d = S.state) {
 function variantStocks(t, d = S.state) {
   const z = {}; [...VARIANTS[t], 'BELUM DIISI'].forEach((v) => { z[v] = { NEW: 0, REUSE: 0 }; });
   d.stockIn.filter((x) => x.type === t).forEach((x) => { z[variant(x)][x.grade === 'REUSE' ? 'REUSE' : 'NEW'] += qty(x.qty); });
+  arr(d.adjust).filter((x) => x.type === t).forEach((x) => { z[variant(x)][x.grade === 'REUSE' ? 'REUSE' : 'NEW'] += qty(x.qty); });
   d.receipts.filter((x) => x.type === t && (x.source === 'NEW' || x.source === 'REUSE')).forEach((x) => { z[variant(x)][x.source] -= qty(x.qty); });
   d.returns.filter((x) => x.action === 'REUSE').forEach((x) => { const r = d.receipts.find((y) => y.id === x.receiptId); if (r && r.type === t) z[variant(r)].REUSE += qty(x.qty); });
   return z;
@@ -764,7 +776,9 @@ function validate(d) {
     if (!['REUSE', 'DESTROY'].includes(x.action) || !Number.isInteger(Number(x.qty)) || Number(x.qty) < 1) return 'Jumlah/kondisi pengembalian tidak valid.';
     back[r.id] = (back[r.id] || 0) + Number(x.qty); if (back[r.id] > Number(r.qty)) return 'Jumlah pengembalian melebihi APD yang diterima karyawan.';
   }
+  for (const x of arr(d.adjust)) if (!TYPES.includes(x.type) || !x.date || !Number.isInteger(Number(x.qty)) || Number(x.qty) === 0) return 'Data koreksi stok tidak valid.';
   const ev = [];
+  arr(d.adjust).forEach((x) => ev.push({ date: x.date, p: Number(x.qty) > 0 ? 0 : 3, type: x.type, v: variant(x), g: x.grade === 'REUSE' ? 'REUSE' : 'NEW', n: +x.qty }));
   d.stockIn.forEach((x) => ev.push({ date: x.date, p: 0, type: x.type, v: variant(x), g: x.grade === 'REUSE' ? 'REUSE' : 'NEW', n: +x.qty }));
   d.returns.filter((x) => x.action === 'REUSE').forEach((x) => { const r = d.receipts.find((y) => y.id === x.receiptId); ev.push({ date: x.date, p: 1, type: r.type, v: variant(r), g: 'REUSE', n: +x.qty }); });
   d.receipts.filter((x) => x.source === 'NEW' || x.source === 'REUSE').forEach((x) => ev.push({ date: x.date, p: 2, type: x.type, v: variant(x), g: x.source, n: -x.qty }));
@@ -836,7 +850,7 @@ async function findRole() {
 async function persist(next, msg, audit) {
   if (!can()) { toast('Hanya Pemilik/Editor yang dapat menyimpan data.', true); return false; }
   if (S.saving) return false;
-  if (!isOwner() && (JSON.stringify(next.stockIn) !== JSON.stringify(S.state.stockIn) || JSON.stringify(next.limits) !== JSON.stringify(S.state.limits) || JSON.stringify(next.images) !== JSON.stringify(S.state.images))) { toast('Koreksi stok gudang, stok minimum, dan gambar APD hanya oleh Pemilik.', true); return false; }
+  if (!isOwner() && (JSON.stringify(next.stockIn) !== JSON.stringify(S.state.stockIn) || JSON.stringify(next.adjust) !== JSON.stringify(S.state.adjust) || JSON.stringify(next.limits) !== JSON.stringify(S.state.limits) || JSON.stringify(next.images) !== JSON.stringify(S.state.images))) { toast('Koreksi stok gudang, stok minimum, dan gambar APD hanya oleh Pemilik.', true); return false; }
   const issue = validate(next); if (issue) { toast('Tidak dapat menyimpan: ' + issue, true); return false; }
   S.saving = true; saving(true);
   try {
@@ -933,7 +947,7 @@ function pageDash() {
   const comp = `<div class="card s4"><div class="ch"><div><div class="eyebrow">Komposisi</div><h2>Komposisi Distribusi</h2><p>Total pembagian per jenis APD.</p></div><span class="pill live">Live data</span></div>${donut()}</div>`;
   const prod = `<div class="card s8"><div class="ch"><div><div class="eyebrow">Gudang</div><h2>Stok APD Utama</h2><p>Stok baru + bekas layak dibandingkan stok minimum.</p></div>${isOwner() ? '<button type="button" class="btn btn-g btn-sm" data-go="stock">Kelola Stok →</button>' : ''}</div><div class="apdprods">${TYPES.map((t) => {
     const z = stock(t), n = z.NEW + z.REUSE, min = Number(S.state.limits[t] || 0), pct = min ? Math.min(100, Math.round(n / min * 100)) : n > 0 ? 100 : 0, low = n === 0 || (min > 0 && n < min);
-    return `<div class="apdprod"><div class="pim">${img(t)}<span class="hs ${n === 0 ? 'no' : low ? 'hd' : 'ok'}">${n === 0 ? 'Stok kosong' : low ? 'Stok menipis' : 'Stok aman'}</span></div><b>${ART[t].label}</b><small>${ART[t].desc}</small><div class="pnum"><span><small>Stok</small><strong>${n}</strong></span><span><small>Min.</small><strong>${min}</strong></span><span><small>Baru / Bekas</small><strong>${z.NEW} / ${z.REUSE}</strong></span></div><div class="tr"><i style="width:${pct}%;background:${ART[t].color}"></i></div></div>`;
+    return `<div class="apdprod"><div class="pim">${img(t)}<span class="hs ${n === 0 ? 'no' : low ? 'hd' : 'ok'}">${n === 0 ? 'Stok kosong' : low ? 'Stok menipis' : 'Stok aman'}</span></div><b>${ART[t].label}</b><small>${ART[t].desc}</small><div class="pnum"><span><small>Stok</small><strong>${n}</strong></span><span><small>Min.</small><strong>${min}</strong></span><span><small>Baru / Bekas</small><strong>${z.NEW} / ${z.REUSE}</strong></span></div><div class="tr"><i style="width:${pct}%;background:${ART[t].color}"></i></div>${varChips(t)}</div>`;
   }).join('')}</div></div>`;
   const actv = `<div class="card s4"><div class="ch"><div><div class="eyebrow">Aktivitas</div><h2>Aktivitas Terbaru</h2></div><button type="button" class="btn btn-g btn-sm" data-go="history">Semua →</button></div>${activity()}</div>`;
   const rows = sch.slice(0, 8).map((x) => `<tr><td class="b"><a href="#" data-person="${esc(x.p.id)}">${esc(x.p.name)}</a><div class="small">${esc(x.p.position)} · ${esc(x.p.site)}</div></td><td>${ART[x.t].label}</td><td class="nw">${fmt(x.x.date)}</td><td class="nw">${fmt(x.d)}</td><td>${tag(x.days <= 0 ? 'JATUH TEMPO' : x.days <= 30 ? 'SEGERA' : 'TERJADWAL')}</td></tr>`).join('') || '<tr><td colspan="5" class="empty">Belum ada jadwal penggantian. Mulai dari pembagian APD kepada karyawan.</td></tr>';
@@ -974,6 +988,11 @@ function activity() {
   return `<div class="actl">${it.slice(0, 6).map((x) => `<div><span class="hs ${x.c}">${esc(x.t)}</span><b>${esc(x.s)}</b><time>${fmt(x.d)}</time></div>`).join('') || '<div class="empty">Belum ada aktivitas APD.</div>'}</div>`;
 }
 
+const HELM_DOT = { Putih: '#FFFFFF', Kuning: '#F5C518', Biru: '#2563EB' };
+function varChips(t) {
+  const z = variantStocks(t);
+  return `<div class="vchips">${VARIANTS[t].map((v) => { const n = z[v].NEW + z[v].REUSE; return `<span class="${n ? '' : 'zero'}" title="${esc(ART[t].vlabel)} ${v}: baru ${z[v].NEW}, bekas ${z[v].REUSE}">${t === 'HELM' ? `<img class="hm hm-${v}" src="${esc(S.state.images.HELM || ART.HELM.img)}" alt="">` : ''}${t === 'HELM' ? v : (t === 'KAOS' ? '' : 'No. ') + v}<b>${n}</b></span>`; }).join('')}${z['BELUM DIISI'].NEW + z['BELUM DIISI'].REUSE ? `<span title="Stok lama tanpa warna/ukuran">Belum diisi<b>${z['BELUM DIISI'].NEW + z['BELUM DIISI'].REUSE}</b></span>` : ''}</div>`;
+}
 // ---------- Manpower aktif / keluar ----------
 function pagePeople(out) {
   const src = S.people.filter((p) => p.status === (out ? 'OUT' : 'AKTIF'));
@@ -1012,18 +1031,20 @@ function pageDetail() {
 
 // ---------- stok gudang (Pemilik) ----------
 function pageStock() {
-  const cards = TYPES.map((t) => { const x = stock(t); return `<div class="card s4 apdcard">${img(t)}<div><div class="eyebrow">${t}</div><h2>${ART[t].label}</h2><div class="big">${x.NEW + x.REUSE}<small> unit</small></div><p class="small">Baru ${x.NEW} · Bekas layak ${x.REUSE} · Musnah ${x.DESTROYED}<br>Minimal stok ${Number(S.state.limits[t] || 0)}</p><div class="mtools"><button type="button" class="btn btn-g btn-sm" data-min="${t}">Atur Min. Stok</button><button type="button" class="btn btn-p btn-sm" data-stock="|${t}">+ Stok Masuk</button></div></div></div>`; }).join('');
+  const cards = TYPES.map((t) => { const x = stock(t); return `<div class="card s4 apdcard">${img(t)}<div><div class="eyebrow">${t}</div><h2>${ART[t].label}</h2><div class="big">${x.NEW + x.REUSE}<small> unit</small></div><p class="small">Baru ${x.NEW} · Bekas layak ${x.REUSE} · Musnah ${x.DESTROYED}<br>Minimal stok ${Number(S.state.limits[t] || 0)}</p>${varChips(t)}<div class="mtools" style="margin-top:10px"><button type="button" class="btn btn-p btn-sm" data-opname="${t}">Edit Stok Gudang</button><button type="button" class="btn btn-g btn-sm" data-stock="|${t}">+ Stok Masuk</button><button type="button" class="btn btn-g btn-sm" data-min="${t}">Min. Stok</button></div></div></div>`; }).join('');
+  const adj = [...S.state.adjust].sort((a, b) => b.date.localeCompare(a.date)).map((x) => `<tr><td class="nw">${fmt(x.date)}</td><td>${ART[x.type].label}</td><td>${esc(variant(x))}</td><td>${x.grade === 'REUSE' ? 'Bekas layak' : 'Baru'}</td><td class="b" style="color:${x.qty > 0 ? 'var(--good)' : 'var(--crit)'}">${x.qty > 0 ? '+' : ''}${x.qty}</td><td>${esc(x.note || '—')}</td><td>${esc(x.by || '—')}</td><td><button type="button" class="btn btn-g btn-sm red" data-del="adjust:${esc(x.id)}">Hapus</button></td></tr>`).join('');
   const brk = TYPES.flatMap((t) => Object.entries(variantStocks(t)).filter(([v, z]) => v !== 'BELUM DIISI' || z.NEW || z.REUSE).map(([v, z]) => `<tr><td>${ART[t].label}</td><td>${esc(t === 'HELM' && v !== 'BELUM DIISI' ? v + ' (All Size)' : v)}</td><td>${z.NEW}</td><td>${z.REUSE}</td><td class="b">${z.NEW + z.REUSE}</td></tr>`)).join('');
   const rows = [...S.state.stockIn].sort((a, b) => b.date.localeCompare(a.date)).map((x) => `<tr><td class="nw">${fmt(x.date)}</td><td>${ART[x.type].label}</td><td>${esc(variant(x))}</td><td>${tag(x.grade === 'NEW' ? 'BARU' : 'LAYAK')}</td><td class="b">${x.qty}</td><td>${esc(x.location || 'Gudang')}</td><td>${esc(x.note || '—')}</td><td class="nw"><button type="button" class="btn btn-g btn-sm" data-stock="${esc(x.id)}|">Edit</button> <button type="button" class="btn btn-g btn-sm red" data-del="stock:${esc(x.id)}">Hapus</button></td></tr>`).join('') || '<tr><td colspan="8" class="empty">Belum ada stok masuk. Klik + Stok Masuk saat barang diterima gudang.</td></tr>';
   return header('Inventory', 'Stok APD Gudang', 'Stok gudang terpisah dari APD lama milik karyawan. Hanya Pemilik yang bisa mengubah stok.', '<button type="button" class="btn btn-p" data-stock="|HELM">+ Stok Masuk</button>') +
     `<div class="grid">${cards}</div><div class="grid"><div class="card s5"><div class="ch"><div><div class="eyebrow">Rincian</div><h2>Stok per Ukuran / Warna</h2></div></div><div class="tw"><table class="t"><thead><tr><th>Jenis</th><th>Ukuran / Warna</th><th>Baru</th><th>Bekas</th><th>Total</th></tr></thead><tbody>${brk}</tbody></table></div></div>
-    <div class="card s7"><div class="ch"><div><div class="eyebrow">Riwayat</div><h2>Stok Masuk Gudang</h2><p>APD yang sudah dipakai karyawan dicatat lewat Detail Karyawan → Catat APD Lama, bukan di sini.</p></div></div><div class="tw"><table class="t"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Ukuran</th><th>Kondisi</th><th>Qty</th><th>Gudang</th><th>Keterangan</th><th>Aksi</th></tr></thead><tbody>${rows}</tbody></table></div></div></div>`;
+    <div class="card s7"><div class="ch"><div><div class="eyebrow">Riwayat</div><h2>Stok Masuk Gudang</h2><p>APD yang sudah dipakai karyawan dicatat lewat Detail Karyawan → Catat APD Lama, bukan di sini.</p></div></div><div class="tw"><table class="t"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Ukuran</th><th>Kondisi</th><th>Qty</th><th>Gudang</th><th>Keterangan</th><th>Aksi</th></tr></thead><tbody>${rows}</tbody></table></div></div></div>${adj ? `<div class="grid"><div class="card s12"><div class="ch"><div><div class="eyebrow">Stok opname</div><h2>Riwayat Edit / Koreksi Stok</h2><p>Selisih antara stok di sistem dan hitungan fisik gudang.</p></div></div><div class="tw"><table class="t"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Warna / Ukuran</th><th>Kondisi</th><th>Selisih</th><th>Alasan</th><th>Oleh</th><th>Aksi</th></tr></thead><tbody>${adj}</tbody></table></div></div></div>` : ''}`;
 }
 
 // ---------- riwayat transaksi ----------
 function pageHistory() {
   const rows = [];
   if (isOwner()) S.state.stockIn.forEach((x) => rows.push({ d: x.date, t: x.type, l: x.grade === 'NEW' ? 'STOK BARU MASUK' : 'STOK BEKAS MASUK', n: x.qty, who: x.location || 'Gudang', from: x.location || 'Gudang', kind: 'stock', id: x.id, edit: `data-stock="${esc(x.id)}|"` }));
+  if (isOwner()) S.state.adjust.forEach((x) => rows.push({ d: x.date, t: x.type, l: x.qty > 0 ? 'KOREKSI STOK +' : 'KOREKSI STOK −', n: x.qty, who: 'Gudang', from: x.note || 'Stok opname', kind: 'adjust', id: x.id, edit: `data-opname="${x.type}"` }));
   S.state.receipts.forEach((x) => rows.push({ d: x.date, t: x.type, l: x.source === 'OLD' ? 'APD LAMA' : x.source === 'EXTERNAL' ? 'TERIMA EKSTERNAL' : x.source === 'NEW' ? 'TERIMA BARU' : 'TERIMA BEKAS', n: x.qty, who: personName(x.person), pid: x.person, from: x.source === 'OLD' ? 'Milik pribadi' : x.warehouse || '—', kind: 'receipt', id: x.id, edit: `data-rcpt="${esc(x.person)}|${x.type}|${esc(x.id)}|"` }));
   S.state.returns.forEach((x) => { const r = S.state.receipts.find((a) => a.id === x.receiptId); if (r) rows.push({ d: x.date, t: r.type, l: x.action === 'REUSE' ? 'KEMBALI LAYAK' : 'DIMUSNAHKAN', n: x.qty, who: personName(r.person), pid: r.person, from: r.warehouse || '—', kind: 'return', id: x.id, edit: `data-editret="${esc(x.id)}"` }); });
   rows.sort((a, b) => b.d.localeCompare(a.d));
@@ -1031,7 +1052,7 @@ function pageHistory() {
   const list = rows.filter((x) => (ui.ht === 'ALL' || x.t === ui.ht) && (!q || `${x.who} ${x.l} ${x.from}`.toLowerCase().includes(q)));
   return header('Audit trail', 'Riwayat Transaksi APD', isOwner() ? 'Stok masuk, APD lama, pembagian, dan pengembalian.' : 'Riwayat APD karyawan. Riwayat stok gudang khusus Pemilik.', isOwner() ? '<button type="button" class="btn btn-g" id="xlsBtn">Download Excel</button>' : '') +
     `<div class="card"><div class="toolbar"><input type="search" id="hq" placeholder="Cari karyawan / aktivitas" value="${esc(ui.hq)}" aria-label="Cari transaksi"><div class="seg" role="group" aria-label="Jenis APD">${['ALL', ...TYPES].map((t) => `<button type="button" data-ht="${t}" aria-pressed="${ui.ht === t}">${t === 'ALL' ? 'Semua' : ART[t].label}</button>`).join('')}</div><span class="small">${list.length} transaksi</span></div>
-    <div class="tw"><table class="t"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Aktivitas</th><th>Qty</th><th>Karyawan / Gudang</th><th>Asal</th>${can() ? '<th>Aksi</th>' : ''}</tr></thead><tbody>${list.map((x) => `<tr><td class="nw">${fmt(x.d)}</td><td>${ART[x.t].label}</td><td>${tag(x.l)}</td><td class="b">${x.n}</td><td>${x.pid ? `<a href="#" data-person="${esc(x.pid)}">${esc(x.who)}</a>` : esc(x.who)}</td><td>${esc(x.from)}</td>${can() ? `<td class="nw">${x.kind !== 'stock' || isOwner() ? `<button type="button" class="btn btn-g btn-sm" ${x.edit}>Edit</button> <button type="button" class="btn btn-g btn-sm red" data-del="${x.kind}:${esc(x.id)}">Hapus</button>` : ''}</td>` : ''}</tr>`).join('') || `<tr><td colspan="7" class="empty">Belum ada transaksi.</td></tr>`}</tbody></table></div></div>`;
+    <div class="tw"><table class="t"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Aktivitas</th><th>Qty</th><th>Karyawan / Gudang</th><th>Asal</th>${can() ? '<th>Aksi</th>' : ''}</tr></thead><tbody>${list.map((x) => `<tr><td class="nw">${fmt(x.d)}</td><td>${ART[x.t].label}</td><td>${tag(x.l)}</td><td class="b">${x.n}</td><td>${x.pid ? `<a href="#" data-person="${esc(x.pid)}">${esc(x.who)}</a>` : esc(x.who)}</td><td>${esc(x.from)}</td>${can() ? `<td class="nw">${(x.kind !== 'stock' && x.kind !== 'adjust') || isOwner() ? `<button type="button" class="btn btn-g btn-sm" ${x.edit}>Edit</button> <button type="button" class="btn btn-g btn-sm red" data-del="${x.kind}:${esc(x.id)}">Hapus</button>` : ''}</td>` : ''}</tr>`).join('') || `<tr><td colspan="7" class="empty">Belum ada transaksi.</td></tr>`}</tbody></table></div></div>`;
 }
 
 // ---------- gambar, tata cara, riwayat hapus ----------
@@ -1138,6 +1159,18 @@ function stockForm(id, type) {
   $('sf_t').onchange = () => { $('sf_vw').innerHTML = vSel($('sf_t').value, '', 'sf_v'); };
   $('sForm').onsubmit = (e) => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); const v = { id: id || uid(), date: f.date, type: f.type, grade: f.grade, variant: f.variant, qty: Number(f.qty), location: f.location, note: f.note }; const n = structuredClone(S.state); if (id) n.stockIn[n.stockIn.findIndex((a) => a.id === id)] = v; else n.stockIn.push(v); persist(n, 'Stok masuk tersimpan.'); };
 }
+function opnameForm(t) {
+  if (!isOwner()) return;
+  const z = variantStocks(t), vs = [...VARIANTS[t], ...(z['BELUM DIISI'].NEW || z['BELUM DIISI'].REUSE ? ['BELUM DIISI'] : [])];
+  modal(`${mh('Stok opname', 'Edit Stok Gudang · ' + ART[t].label)}<div class="srcnote">Isi jumlah <b>fisik</b> di gudang hasil hitung. Sistem mencatat selisihnya sebagai koreksi stok (bisa dilihat & dihapus di Stok & Gudang). Riwayat pembagian karyawan tidak berubah.</div><form id="oForm"><div class="tw"><table class="t opn"><thead><tr><th>${ART[t].vlabel}</th><th>Baru (sistem)</th><th>Baru (fisik)</th><th>Bekas layak (sistem)</th><th>Bekas layak (fisik)</th></tr></thead><tbody>${vs.map((v, i) => `<tr><td class="b">${t === 'HELM' && HELM_DOT[v] ? `<i class="dot" style="background:${HELM_DOT[v]}"></i>` : ''}${esc(v === 'BELUM DIISI' ? 'Belum diisi' : v)}</td><td>${z[v].NEW}</td><td><input type="number" min="0" step="1" name="n${i}" value="${z[v].NEW}" aria-label="Stok baru fisik ${esc(v)}"></td><td>${z[v].REUSE}</td><td><input type="number" min="0" step="1" name="r${i}" value="${z[v].REUSE}" aria-label="Stok bekas fisik ${esc(v)}"></td></tr>`).join('')}</tbody></table></div>
+    <div class="fgrid" style="margin-top:12px"><div class="fld"><label for="of_d">Tanggal hitung</label><input id="of_d" type="date" name="date" required value="${today()}"></div><div class="fld"><label for="of_n">Alasan / keterangan</label><input id="of_n" name="note" required placeholder="mis. Stok opname Oktober, barang rusak, salah input"></div></div>${actions('Simpan Stok Gudang')}</form>`);
+  $('oForm').onsubmit = (e) => {
+    e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); const n = structuredClone(S.state); let k = 0;
+    vs.forEach((v, i) => [['NEW', 'n'], ['REUSE', 'r']].forEach(([g, p]) => { const want = Number(f[p + i]); if (!Number.isInteger(want) || want < 0) return; const diff = want - z[v][g]; if (diff) { n.adjust.push({ id: uid(), date: f.date, type: t, variant: v, grade: g, qty: diff, note: f.note, by: S.user.email }); k++; } }));
+    if (!k) { toast('Tidak ada perubahan jumlah.'); closeModal(); return; }
+    persist(n, `Stok ${ART[t].label} diperbarui (${k} koreksi tercatat).`);
+  };
+}
 function minForm(t) {
   if (!isOwner()) return;
   modal(`${mh('Gudang', 'Stok Minimum ' + ART[t].label)}<form id="mForm"><div class="fgrid"><div class="fld full"><label for="mf">Minimal stok (unit)</label><input id="mf" type="number" name="min" min="0" step="1" required value="${Number(S.state.limits[t] || 0)}"><small class="small">Jika stok di bawah angka ini, Dashboard menampilkan "Stok menipis".</small></div></div>${actions('Simpan')}</form>`);
@@ -1145,12 +1178,12 @@ function minForm(t) {
 }
 function delRecord(kind, id) {
   if (!can()) return;
-  const col = { stock: 'stockIn', receipt: 'receipts', return: 'returns' }[kind]; const rec = S.state[col].find((x) => x.id === id); if (!rec) return;
-  if (kind === 'stock' && !isOwner()) return;
+  const col = { stock: 'stockIn', receipt: 'receipts', return: 'returns', adjust: 'adjust' }[kind]; const rec = S.state[col].find((x) => x.id === id); if (!rec) return;
+  if ((kind === 'stock' || kind === 'adjust') && !isOwner()) return;
   if (kind === 'receipt' && S.state.returns.some((x) => x.receiptId === id)) { toast('APD ini punya catatan pengembalian. Hapus pengembaliannya dulu.', true); return; }
-  const lbl = kind === 'stock' ? 'stok masuk' : kind === 'receipt' ? 'penerimaan APD' : 'pengembalian APD';
+  const lbl = kind === 'adjust' ? 'koreksi stok' : kind === 'stock' ? 'stok masuk' : kind === 'receipt' ? 'penerimaan APD' : 'pengembalian APD';
   const r = kind === 'return' ? S.state.receipts.find((x) => x.id === rec.receiptId) : rec;
-  confirmBox(`Hapus ${lbl}?`, `${kind === 'stock' ? esc(rec.location || 'Gudang') : esc(personName(r && r.person))} · ${ART[(r || rec).type] ? ART[(r || rec).type].label : ''} · ${fmt(rec.date)} · ${rec.qty} unit. Stok dan kepemilikan dihitung ulang, dan penghapusan tercatat di Riwayat Hapus.`, async () => {
+  confirmBox(`Hapus ${lbl}?`, `${kind === 'stock' || kind === 'adjust' ? esc(rec.location || rec.note || 'Gudang') : esc(personName(r && r.person))} · ${ART[(r || rec).type] ? ART[(r || rec).type].label : ''} · ${fmt(rec.date)} · ${rec.qty} unit. Stok dan kepemilikan dihitung ulang, dan penghapusan tercatat di Riwayat Hapus.`, async () => {
     const n = structuredClone(S.state); n[col] = n[col].filter((x) => x.id !== id);
     return persist(n, `Data ${lbl} dihapus.`, { kind, id, data: { ...rec, type: (r || rec).type, person: r && r.person } });
   });
@@ -1176,6 +1209,7 @@ function exportExcel() {
   add('RINGKASAN', [['MONITORING APD KMB'], ['Tanggal ekspor', today()], ['Manpower aktif', S.people.filter((p) => p.status === 'AKTIF').length], ['Manpower keluar', S.people.filter((p) => p.status === 'OUT').length], [], ['Jenis APD', 'Stok Baru', 'Stok Bekas Layak', 'Total Stok', 'Dipegang Karyawan', 'Dimusnahkan', 'Minimal Stok', 'Jatuh Tempo'], ...TYPES.map((t) => { const x = stock(t); return [ART[t].label, x.NEW, x.REUSE, x.NEW + x.REUSE, S.people.reduce((n, p) => n + held(p.id, t), 0), x.DESTROYED, Number(S.state.limits[t] || 0), schedules().filter((y) => y.t === t && y.days <= 0).length]; })], [26, 12, 16, 12, 18, 14, 13, 13]);
   add('KARYAWAN', [['Nama', 'Jabatan', 'Jobsite', 'Status', ...TYPES.flatMap((t) => [t + ' Dipegang', t + ' Terakhir', t + ' Ganti'])], ...S.people.map((p) => [p.name, p.position, p.site, p.status === 'AKTIF' ? 'Aktif' : 'Keluar', ...TYPES.flatMap((t) => [held(p.id, t), (latest(p.id, t) || {}).date || '', due(p.id, t) || ''])])], [26, 22, 20, 10, 12, 13, 13, 12, 13, 13, 12, 13, 13]);
   if (isOwner()) add('STOK MASUK', [['Tanggal', 'Jenis', 'Ukuran/Warna', 'Kondisi', 'Jumlah', 'Gudang', 'Keterangan'], ...S.state.stockIn.map((x) => [x.date, x.type, variant(x), x.grade === 'NEW' ? 'Baru' : 'Bekas layak', Number(x.qty), x.location || '', x.note || ''])], [12, 10, 14, 12, 8, 16, 30]);
+  if (isOwner() && S.state.adjust.length) add('KOREKSI STOK', [['Tanggal', 'Jenis', 'Warna/Ukuran', 'Kondisi', 'Selisih', 'Alasan', 'Oleh'], ...S.state.adjust.map((x) => [x.date, x.type, variant(x), x.grade === 'REUSE' ? 'Bekas layak' : 'Baru', Number(x.qty), x.note || '', x.by || ''])], [12, 10, 14, 12, 9, 34, 26]);
   add('PENERIMAAN APD', [['Nama', 'Jobsite', 'Jenis', 'Ukuran/Warna', 'Asal', 'Asal Gudang', 'Tanggal', 'Jumlah', 'Masih Dipegang', 'Kondisi', 'Jatah Bulan', 'Jadwal Ganti', 'Keterangan'], ...S.state.receipts.map((r) => [personName(r.person), (person(r.person) || {}).site || '', r.type, variant(r), SRC_LABEL[r.source], r.warehouse || '', r.date, Number(r.qty), heldLot(r), r.condition || '', r.source === 'OLD' ? '' : Number(r.months || 6), r.source === 'OLD' ? '' : addMonths(r.date, r.months), r.note || ''])], [24, 18, 9, 12, 18, 14, 12, 8, 13, 15, 11, 13, 28]);
   add('PENGEMBALIAN', [['Tanggal', 'Nama', 'Jenis', 'Jumlah', 'Hasil', 'Keterangan'], ...S.state.returns.map((x) => { const r = S.state.receipts.find((a) => a.id === x.receiptId) || {}; return [x.date, personName(r.person), r.type || '', Number(x.qty), x.action === 'REUSE' ? 'Layak - stok bekas' : 'Tidak layak - dimusnahkan', x.note || '']; })], [12, 24, 9, 8, 24, 30]);
   add('JADWAL GANTI', [['Nama', 'Jabatan', 'Jobsite', 'Jenis', 'Terakhir Terima', 'Jatah Bulan', 'Jadwal Ganti', 'Sisa Hari', 'Status'], ...schedules().map((x) => [x.p.name, x.p.position, x.p.site, x.t, x.x.date, Number(x.x.months), x.d, x.days, x.days <= 0 ? 'JATUH TEMPO' : x.days <= 30 ? 'SEGERA' : 'TERJADWAL'])], [24, 20, 18, 9, 14, 11, 13, 9, 13]);
@@ -1264,6 +1298,7 @@ document.addEventListener('click', async (e) => {
   const er = c('[data-editret]'); if (er) { e.preventDefault(); returnForm(null, er.dataset.editret); return; }
   const sk = c('[data-stock]'); if (sk) { const [id, ty] = sk.dataset.stock.split('|'); stockForm(id, ty); return; }
   const mn = c('[data-min]'); if (mn) { minForm(mn.dataset.min); return; }
+  const op = c('[data-opname]'); if (op) { opnameForm(op.dataset.opname); return; }
   const dl = c('[data-del]'); if (dl) { e.preventDefault(); const [k, id] = dl.dataset.del.split(':'); delRecord(k, id); return; }
   const ri = c('[data-resetimg]'); if (ri && isOwner()) { const n = structuredClone(S.state); delete n.images[ri.dataset.resetimg]; persist(n, 'Gambar bawaan dipulihkan.'); return; }
   if (c('#shareCopy')) { try { await navigator.clipboard.writeText($('shareUrl').value); toast('Link Pelihat disalin.'); } catch (er) { $('shareUrl').select(); toast('Tekan Ctrl+C untuk menyalin.'); } return; }
