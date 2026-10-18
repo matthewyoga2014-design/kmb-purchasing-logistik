@@ -1161,6 +1161,7 @@ document.addEventListener("click",e=>{
   else if(a==="uploadFile"){$("upIn").value="";$("upIn").click();}
   else if(a==="uploadDir"){const i=document.createElement("input");i.type="file";i.multiple=true;i.webkitdirectory=true;i.setAttribute("webkitdirectory","");i.onchange=()=>{const list=[...i.files].map(f=>({dirs:(f.webkitRelativePath||f.name).split("/").slice(0,-1),file:f}));uploadTree(list,S.cwd||null);};i.click();}
   else if(a==="newManual")openEditor("new");
+  else if(a==="notuBulk")notuBulk(S.cwd||null);
   else if(a==="fixMeeting")openEditor("fix",el.dataset.sid,el.dataset.vid);
   else if(a==="rowMenu"){e.stopPropagation();itemMenu(el,el.dataset.k,el.dataset.id);}
   else if(a==="updMeeting")updateChooser(el.dataset.id||S.sid);
@@ -1666,7 +1667,7 @@ function renderFiles(){
        ${here||rootN?`<button class="btn sm pri ed-only" type="button" data-act="newMeeting">+ Meeting Baru</button>
        <button class="btn sm ed-only" type="button" data-act="uploadNotu" title="Word / Excel notulensi — dibaca menjadi tabel tindak lanjut">${IC.word.replace('width="24" height="24"','width="18" height="18"')}Upload Notulensi</button>
        <button class="btn sm ed-only" type="button" data-act="uploadFile" title="Dokumen pendukung: PDF, Excel, gambar, dll — disimpan apa adanya, maks. 20 MB">${IC.dl.replace('d="M12 4v11M7 10l5 5 5-5M5 20h14"','d="M12 16V5M7 10l5-5 5 5M5 20h14"')}Upload Berkas</button>
-       <button class="btn sm ed-only" type="button" data-act="uploadDir" title="Unggah satu folder dari laptop beserta subfolder dan isinya">${IC.folder.replace('width="24" height="22"','width="18" height="16"')}Upload Folder</button>`:""}
+       <button class="btn sm ed-only" type="button" data-act="uploadDir" title="Unggah satu folder dari laptop beserta subfolder dan isinya">${IC.folder.replace('width="24" height="22"','width="18" height="16"')}Upload Folder</button>`:""}${notuBulkBtn()}
      </div>
      <div class="toolbar2" style="margin-top:-4px"><span class="stamp">Urutkan</span>
        <div class="seg" role="group" aria-label="Urutkan">${[["name","Nama"],["date","Tanggal"],["type","Jenis"],["size","Ukuran"]].map(([k,l])=>`<button type="button" data-sortk="${k}" aria-pressed="${FS.k===k}">${l}${FS.k===k?(FS.d>0?" ▲":" ▼"):""}</button>`).join("")}</div>
@@ -1703,6 +1704,32 @@ function itemMenu(btn,k,id){
     if(ff&&!ff.seriesId&&/\.(docx|xlsx|xlsm|xls)$/i.test(ff.name))items.push({label:"Jadikan Notulensi (bisa dikoreksi)",run:()=>fileToNotulensi(id)});}
   items.push({label:k==="series"?"Ubah judul":"Ubah nama",run:()=>renameItem(k,id)},{label:"Pindahkan ke…",run:()=>moveItem(k,id)},{label:"Salin ke…",run:()=>copyItem(k,id)},{label:k==="series"?"Hapus notulensi":k==="folder"?"Hapus folder":"Hapus file",danger:true,run:()=>deleteItem(k,id)});
   openMenu(btn,items);
+}
+/* semua file notulensi yang masih tersimpan sebagai berkas biasa -> jadi Meeting (bisa dikoreksi) */
+const NOTU_NAME=/notul|\bmom\b|minutes/i;
+function notuCands(root){const inT=root?descendants(root):null;return S.files.filter(f=>!f.seriesId&&isNotuFile(f.name)&&NOTU_NAME.test(f.name)&&(!inT||inT.has(f.folderId)));}
+function notuBulkBtn(){const n=notuCands(S.cwd||null).length;return n?`<button class="btn sm pri ed-only" type="button" data-act="notuBulk" title="File notulensi Word/Excel yang belum menjadi Meeting akan dibaca dan dijadikan Meeting (bisa dikoreksi)">Jadikan Notulensi (${n} file)</button>`:"";}
+async function notuBulk(root){
+  if(!S.db)return toast("Penyimpanan belum tersedia");
+  const list=notuCands(root).sort((a,b)=>(a.at||0)-(b.at||0));if(!list.length)return toast("Tidak ada file notulensi yang perlu diproses");
+  const rep=[],notes=[];let i=0;
+  for(const f of list){i++;toast(`Memproses ${i}/${list.length}: ${f.name}`,true);
+    try{const bytes=await getBytes(f);const file=new File([bytes],f.name,{type:f.type||"application/octet-stream"});
+      let p;try{p=await readNotulensi(file);}catch(e){p={rows:[],meta:{}};}
+      const fo=fById(f.folderId),dated=fo&&parseIndoDate(fo.name);const unitId=dated?(fo.parentId||null):(f.folderId||null);
+      const date=parseIndoDate(p.meta&&p.meta.date)||dated||parseIndoDate(f.name)||new Date(f.at||Date.now()).toISOString().slice(0,10);
+      const r=await importMeetingFolder(file,p,unitId,date,(unitId&&fById(unitId)?.name)||"");
+      if(r.skip){notes.push(r.skip);continue;}
+      const{id:_i,...rest}=f;await S.db.collection("files").doc(f.id).update({...rest,seriesId:r.sid,versionId:r.vid});f.seriesId=r.sid;f.versionId=r.vid;
+      rep.push({...r,file:f.name,folder:folderChain(f.folderId).join(" › "),rows:(p.rows||[]).length});
+      if(!(p.rows||[]).length)notes.push(`${f.name} (${folderChain(f.folderId).join(" › ")}): tabel tindak lanjut tidak ditemukan, isi lewat “Isi / koreksi tindak lanjut”.`);
+    }catch(err){notes.push(`${f.name}: gagal diproses (${errMsg(err)})`);}}
+  if(S.view==="files")renderFiles();
+  toast(`${rep.length} file notulensi diproses`);
+  openModal(mHead("Jadikan Notulensi selesai")+`<div class="mb"><div class="note ok"><b>${rep.length} dari ${list.length} file</b> sekarang tampil sebagai Meeting dan bisa dikoreksi.</div>
+    ${rep.length?`<div class="tbl-wrap" style="margin-top:10px"><table><thead><tr><th>Notulensi</th><th>Meeting</th><th>Isi</th></tr></thead><tbody>${rep.map(r=>`<tr><td><button class="lnk" type="button" data-go="${r.sid}" style="text-align:left">${esc(r.title)}</button><div class="stamp">${esc(r.folder)} · ${esc(r.file)}</div></td><td style="white-space:nowrap">Meeting ke-${r.no}${r.existed?` <span class="pill st-grey">sudah ada</span>`:""}</td><td style="white-space:nowrap">${r.rows} tindak lanjut</td></tr>`).join("")}</tbody></table></div>`:""}
+    ${notes.length?`<details style="margin-top:12px" open><summary class="stamp" style="cursor:pointer;font-weight:600">Catatan (${notes.length})</summary><ul style="margin:6px 0 0;padding-left:18px">${notes.map(n=>`<li class="stamp">${esc(n)}</li>`).join("")}</ul></details>`:""}</div>
+    <div class="mf"><button class="btn pri" type="button" data-x>Selesai</button></div>`,bx=>{bx.style.maxWidth="820px";bx.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{closeModal();go("series",{sid:b.dataset.go,vid:null});});});
 }
 async function fileToNotulensi(id){
   const f=S.files.find(x=>x.id===id);if(!f)return;
