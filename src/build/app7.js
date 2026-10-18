@@ -33,7 +33,7 @@ function upInner(k) {
   if (FORM && FORM.uploading === k) return '<span class="upst"><span class="spin sm"></span>Mengunggah…</span>';
   if (cur) return `<a class="fchip2" href="${fileUrl(cur)}" title="${esc(cur.name || 'Berkas')}">${esc(cur.name || 'Berkas')}</a><button type="button" class="upx" data-uprm="${k}" aria-label="Hapus berkas">×</button>`;
   if (!ASSETS) return '<span class="small">Upload tersedia untuk pemilik di claude.ai</span>';
-  return `<label class="btn btn-g btn-sm upbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Upload<input type="file" accept="application/pdf,image/png,image/jpeg,image/webp" data-upfile="${k}" hidden></label><small>PDF / JPG / PNG, maks 20 MB</small>`;
+  return `<label class="btn btn-g btn-sm upbtn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Upload<input type="file" accept="application/pdf,image/png,image/jpeg,image/webp" data-upfile="${k}" hidden></label><small>atau seret berkas ke sini · PDF / JPG / PNG, maks 20 MB</small>`;
 }
 document.addEventListener('change', async (e) => {
   const inp = e.target.closest && e.target.closest('[data-upfile]'); if (!inp || !FORM) return;
@@ -50,6 +50,30 @@ document.addEventListener('change', async (e) => {
     toast(c === 'too_large' ? 'Ukuran file terlalu besar (maks 20 MB).' : c === 'unsupported_type' ? 'Format file tidak didukung. Gunakan PDF, JPG, atau PNG.' : c === 'quota_or_state' ? 'Penyimpanan berkas sudah penuh.' : c === 'not_granted' ? 'Akun ini tidak bisa mengunggah berkas.' : 'Upload gagal' + (er && er.message ? ': ' + er.message : '.'), true);
   } finally { form.uploading = null; const box = document.getElementById('up_' + k); if (box && FORM === form) box.innerHTML = upInner(k); }
 }, true);
+// seret & lepas berkas ke kotak upload (seperti Google Form), atau klik kotaknya untuk mencari berkas
+(function () {
+  const zone = (e) => e.target.closest && e.target.closest('.upw');
+  const inpOf = (z) => z && z.querySelector('[data-upfile]');
+  ['dragenter', 'dragover'].forEach((ev) => document.addEventListener(ev, (e) => {
+    if (!FORM || !e.dataTransfer || ![...e.dataTransfer.types].includes('Files')) return;
+    e.preventDefault(); const z = zone(e);
+    document.querySelectorAll('.upw.drag').forEach((x) => { if (x !== z) x.classList.remove('drag'); });
+    if (z && inpOf(z)) { z.classList.add('drag'); e.dataTransfer.dropEffect = 'copy'; } else e.dataTransfer.dropEffect = 'none';
+  }));
+  document.addEventListener('dragleave', (e) => { const z = zone(e); if (z && !z.contains(e.relatedTarget)) z.classList.remove('drag'); });
+  document.addEventListener('drop', (e) => {
+    if (!FORM || !e.dataTransfer || !e.dataTransfer.files || !e.dataTransfer.files.length) return;
+    e.preventDefault(); document.querySelectorAll('.upw.drag').forEach((x) => x.classList.remove('drag'));
+    const inp = inpOf(zone(e)); if (!inp) { toast('Lepaskan berkas tepat di kotak Upload.', true); return; }
+    if (e.dataTransfer.files.length > 1) toast('Satu kotak satu berkas. Yang dipakai berkas pertama.');
+    const dt = new DataTransfer(); dt.items.add(e.dataTransfer.files[0]); inp.files = dt.files;
+    inp.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  document.addEventListener('click', (e) => {
+    const z = zone(e); if (!z || e.target.closest('a,button,label,input')) return;
+    const inp = inpOf(z); if (inp) inp.click();
+  });
+})();
 document.addEventListener('click', (e) => {
   const rm = e.target.closest('[data-uprm]'); if (!rm || !FORM) return;
   e.stopPropagation(); const k = rm.dataset.uprm; const f = { ...(FORM.files || {}) }; delete f[k]; FORM.files = f;

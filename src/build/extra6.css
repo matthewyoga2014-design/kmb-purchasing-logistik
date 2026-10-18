@@ -104,3 +104,5 @@ td .cc-files { margin-top: 0; min-width: 150px; }
 .vimg { max-width: 100%; border-radius: 10px; border: 1px solid var(--line); }
 .vpage { width: 100%; max-width: 860px; height: auto; border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 2px 8px rgba(30,27,58,.08); }
 .steps2 { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 13px; color: var(--ink-2); }
+
+.upw { transition: background .15s, border-color .15s; cursor: pointer; } .upw.drag { background: var(--p-soft, #EFE9FE) !important; border-color: var(--p, #6D28D9) !important; border-style: solid !important; } .upw small { pointer-events: none; }
