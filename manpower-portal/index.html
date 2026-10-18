@@ -199,7 +199,7 @@ body.locked #prBtn, body.locked #dlBtn { display: none !important; }
 <body>
 <div class="side-l" aria-hidden="true"></div><div class="side-r" aria-hidden="true"></div><div class="scene" aria-hidden="true"></div><div class="bscene" aria-hidden="true"></div><div class="helmet" aria-hidden="true"></div>
 <header class="top">
-  <span class="lg">M</span><div class="bn"><b>Monitoring</b></div>
+  <a href="../" class="lg" title="Kembali ke halaman utama Monitoring" style="text-decoration:none">M</a><a href="../" class="bn" style="text-decoration:none;color:inherit"><b>Monitoring</b></a>
   <div class="hbtns"><button type="button" class="hb" id="prBtn" title="Print halaman portal"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Print</span></button><button type="button" class="hb" id="dlBtn" title="Pengaturan: akses unduhan & unduh data"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Pengaturan</span></button></div>
   <div class="who" id="who"><button type="button" id="whoBtn" aria-haspopup="menu" aria-expanded="false"><span class="av"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c1.2-3.6 4.2-5.5 8-5.5s6.8 1.9 8 5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></span><span class="wt"><small id="whoL">Belum masuk</small><b id="whoE">Masuk</b></span><svg class="wt" width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 9 6 6 6-6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <div class="menu" id="menu" role="menu" hidden></div></div>
@@ -498,7 +498,7 @@ window.addEventListener('beforeprint', () => { if (!CAN) document.body.classList
 function lockPortal(signedIn) {
   document.body.classList.add('locked');
   document.getElementById('tot').innerHTML = ''; 
-  document.getElementById('grid').innerHTML = `<div class="lock"><span class="lg">M</span><h2>Portal khusus Pemilik & Editor</h2><p>${signedIn ? `Akun <b>${esc(USER.email)}</b> belum terdaftar sebagai Editor proyek mana pun. Minta Pemilik mendaftarkan email Anda.` : 'Masuk dengan email yang didaftarkan Pemilik untuk melihat ringkasan semua proyek. Jika Anda menerima link web proyek, buka link tersebut langsung.'}</p>${signedIn ? '' : '<button type="button" class="btn btn-p" id="lockIn">Masuk</button>'}</div>`;
+  document.getElementById('grid').innerHTML = `<div class="lock"><span class="lg">M</span><h2>Belum punya akses</h2><p>${signedIn ? `Akun <b>${esc(USER.email)}</b> belum punya akses ke site mana pun. Minta Pemilik atau Editor mengirim link undangan ke email Anda.` : 'Masuk dengan email yang diundang untuk melihat ringkasan site Anda.'}</p>${signedIn ? '' : '<button type="button" class="btn btn-p" id="lockIn">Masuk</button>'}</div>`;
 }
 document.addEventListener('click', (e) => { if (e.target.closest('#lockIn')) { document.getElementById('lgModal').hidden = false; document.getElementById('lgEm').focus(); } });
 skeleton(); whoUI(); guard();
@@ -510,7 +510,7 @@ skeleton(); whoUI(); guard();
   SB.auth.onAuthStateChange((ev, s) => { const nu = (s && s.user) || null; if ((nu && nu.email) === (USER && USER.email)) return; USER = nu; whoUI(); loadPerm(); if (window.__portalLoad) window.__portalLoad(); });
   const load = async () => {
     if (!USER) { lockPortal(false); return; }
-    const { data, error } = await SB.from('kta_web_state').select('id,data,updated_at');
+    const { data, error } = await SB.rpc('kta_web_read', { p_ids: ['main', 'bupr', 'mbj', 'kmb-c4', 'kmb-slr-maintenance', 'kmb-slr-rekondisi', 'kmb-workshop'], p_key: null });
     if (error) { const e = document.getElementById('err'); e.textContent = 'Data belum bisa dimuat: ' + error.message; e.hidden = false; return; }
     document.getElementById('err').hidden = true;
     if (!(data || []).length) { lockPortal(true); return; }
