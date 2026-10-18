@@ -1,0 +1,700 @@
+<title>Monitoring Manpower KTA-TRA</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<style>
+/* Layout: white sidebar + lavender content; gradient KPI row, then 12-col card grid (charts, resumes, recruitment tables). Mirrors the KTA-TRA / KMB monitoring pages. */
+:root {
+  --bg: #F2F1FA; --card: #FFFFFF; --card-2: #F7F6FD; --side: #FFFFFF;
+  --ink: #1E1B3A; --ink-2: #4B4868; --muted: #8A87A6; --line: #E8E6F3;
+  --primary: #6D28D9; --primary-2: #8B5CF6; --primary-soft: #EFE9FE; --primary-ink: #5B21B6;
+  --g1a: #7C3AED; --g1b: #A78BFA; --g2a: #2563EB; --g2b: #60A5FA; --g3a: #EF4F5F; --g3b: #FB9A9A; --g4a: #F7871F; --g4b: #FDBE74;
+  --c1: #7C3AED; --c2: #3B82F6; --c3: #F06A6A; --c4: #F59E42; --c5: #A78BFA;
+  --good: #15803D; --good-soft: #DCFCE7; --warn: #B45309; --warn-soft: #FEF3C7; --crit: #DC2626; --crit-soft: #FEE2E2; --info: #2563EB; --info-soft: #DBEAFE;
+  --track: #ECEAF6; --grid: #EFEDF7;
+  --f: "Plus Jakarta Sans", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --side-w: 248px; --r: 14px;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12111F; --card: #1C1A2E; --card-2: #232138; --side: #17162A;
+  --ink: #ECEAF8; --ink-2: #C0BDD8; --muted: #8F8BAD; --line: #2E2B47;
+  --primary: #9F7AEA; --primary-2: #B794F6; --primary-soft: #2C2450; --primary-ink: #C4B5FD;
+  --g1a: #6D28D9; --g1b: #8B5CF6; --g2a: #1D4ED8; --g2b: #3B82F6; --g3a: #C9333F; --g3b: #E05A64; --g4a: #C2620E; --g4b: #E58A2C;
+  --c1: #9F7AEA; --c2: #60A5FA; --c3: #F48A8A; --c4: #F6AD55; --c5: #C4B5FD;
+  --good: #4ADE80; --good-soft: #14321F; --warn: #FBBF24; --warn-soft: #3A2C0E; --crit: #F87171; --crit-soft: #3F1A1E; --info: #93C5FD; --info-soft: #1B2A47;
+  --track: #2A2742; --grid: #26233D;
+  color-scheme: dark;
+} }
+:root[data-theme="dark"] {
+  --bg: #12111F; --card: #1C1A2E; --card-2: #232138; --side: #17162A;
+  --ink: #ECEAF8; --ink-2: #C0BDD8; --muted: #8F8BAD; --line: #2E2B47;
+  --primary: #9F7AEA; --primary-2: #B794F6; --primary-soft: #2C2450; --primary-ink: #C4B5FD;
+  --g1a: #6D28D9; --g1b: #8B5CF6; --g2a: #1D4ED8; --g2b: #3B82F6; --g3a: #C9333F; --g3b: #E05A64; --g4a: #C2620E; --g4b: #E58A2C;
+  --c1: #9F7AEA; --c2: #60A5FA; --c3: #F48A8A; --c4: #F6AD55; --c5: #C4B5FD;
+  --good: #4ADE80; --good-soft: #14321F; --warn: #FBBF24; --warn-soft: #3A2C0E; --crit: #F87171; --crit-soft: #3F1A1E; --info: #93C5FD; --info-soft: #1B2A47;
+  --track: #2A2742; --grid: #26233D;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f); font-size: 14px; line-height: 1.5; }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Sidebar */
+.side { position: fixed; inset: 0 auto 0 0; width: var(--side-w); background: var(--side); border-right: 1px solid var(--line); z-index: 30; display: flex; flex-direction: column; overflow-y: auto; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); transition: transform .25s ease; }
+.brand { display: flex; gap: 12px; align-items: center; padding: 20px 20px 18px; }
+.brand .lg { font-size: 11px !important; width: 38px; height: 38px; border-radius: 11px; background: linear-gradient(135deg, var(--g1a), var(--g1b)); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 14px; }
+.brand b { display: block; font-size: 15.5px; font-weight: 800; line-height: 1.2; }
+.brand span { font-size: 12px; color: var(--muted); }
+.nav { padding: 6px 12px; display: grid; gap: 2px; }
+.nav .lbl { font-size: 10.5px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: 14px 10px 6px; }
+.nav button { display: flex; align-items: center; gap: 11px; width: 100%; border: 0; background: none; text-align: left; padding: 10px 12px; border-radius: 10px; font-size: 14px; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.nav button:hover { background: var(--card-2); color: var(--ink); }
+.nav button[aria-current="page"] { background: var(--primary-soft); color: var(--primary-ink); }
+.nav button .ct { margin-left: auto; font-size: 11px; font-weight: 700; padding: 0 7px; border-radius: 10px; background: var(--card-2); color: var(--muted); border: 1px solid var(--line); }
+.nav button .ct.al { background: var(--crit-soft); color: var(--crit); border-color: transparent; }
+.side-foot { margin-top: auto; padding: 16px 20px 22px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--line); }
+.side-foot b { color: var(--ink-2); display: block; }
+.scrim { position: fixed; inset: 0; background: rgba(18,16,40,.45); z-index: 25; }
+
+.main { margin-left: var(--side-w); }
+.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; display: flex; align-items: center; gap: 12px; height: 60px; background: rgba(242,241,250,.92); backdrop-filter: blur(8px); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); border-bottom: 1px solid var(--line); }
+.top .ttl { font-weight: 700; font-size: 15px; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ibtn { border: 1px solid var(--line); background: var(--card); width: 38px; height: 38px; border-radius: 10px; display: none; place-items: center; cursor: pointer; color: var(--ink-2); }
+.btn { border: 0; border-radius: 10px; padding: 9px 15px; font-size: 13.5px; font-weight: 700; cursor: pointer; display: inline-flex; gap: 7px; align-items: center; white-space: nowrap; }
+.btn-p { background: var(--primary); color: #fff; }
+.btn-p:hover { filter: brightness(1.08); }
+.btn-g { background: var(--card); color: var(--ink-2); border: 1px solid var(--line); }
+.content { padding-block: 22px 48px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1440px; }
+@media (min-width: 1100px) { .content { padding-left: 26px; padding-right: 26px; } }
+@media (max-width: 1023px) {
+  .side { transform: translateX(-100%); } body.nav-open .side { transform: none; }
+  .main { margin-left: 0; } .ibtn { display: grid; }
+}
+@media (min-width: 1024px) { .scrim { display: none; } }
+@media (prefers-reduced-motion: reduce) { .side { transition: none; } }
+
+/* Header */
+.head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 18px; }
+.eyebrow { font-size: 10.5px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--primary); }
+h1 { font-size: clamp(22px, 2.6vw, 28px); font-weight: 800; margin: 4px 0 2px; letter-spacing: -.01em; text-wrap: balance; }
+.head p { margin: 0; color: var(--muted); font-size: 13px; }
+.upd { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 8px 14px; display: flex; gap: 10px; align-items: center; }
+.upd i { width: 8px; height: 8px; border-radius: 50%; background: #22C55E; box-shadow: 0 0 0 4px rgba(34,197,94,.2); }
+.upd small { display: block; font-size: 10.5px; color: var(--muted); }
+.upd b { font-size: 12.5px; }
+.srcnote { background: var(--primary-soft); color: var(--ink); border-radius: 10px; padding: 9px 14px; font-size: 13px; margin-bottom: 16px; display: flex; gap: 10px; flex-wrap: wrap; }
+.srcnote.err { background: var(--crit-soft); color: var(--crit); }
+.srcnote button { background: none; border: 0; color: var(--primary-ink); text-decoration: underline; cursor: pointer; padding: 0; font-size: 13px; font-weight: 600; }
+
+/* KPI */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 18px; }
+@media (max-width: 1100px) { .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) { .kpis { grid-template-columns: minmax(0, 1fr); } }
+.kpi { position: relative; overflow: hidden; border-radius: var(--r); padding: 18px 20px 20px; color: #fff; display: flex; gap: 16px; align-items: center; min-height: 108px; }
+.kpi::after { content: ""; position: absolute; width: 130px; height: 130px; border-radius: 50%; right: -28px; top: -44px; background: rgba(255,255,255,.14); }
+.kpi::before { content: ""; position: absolute; width: 80px; height: 80px; border-radius: 50%; right: 40px; bottom: -50px; background: rgba(255,255,255,.08); }
+.kpi.k1 { background: linear-gradient(120deg, var(--g1a), var(--g1b)); }
+.kpi.k2 { background: linear-gradient(120deg, var(--g2a), var(--g2b)); }
+.kpi.k3 { background: linear-gradient(120deg, var(--g3a), var(--g3b)); }
+.kpi.k4 { background: linear-gradient(120deg, var(--g4a), var(--g4b)); }
+.kpi .ic { width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,.22); display: grid; place-items: center; flex-shrink: 0; font-weight: 800; font-size: 18px; }
+.kpi .lb { font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; opacity: .92; }
+.kpi .v { font-size: 30px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.kpi .ds { font-size: 12px; opacity: .9; }
+
+/* Cards */
+.grid { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 18px; margin-bottom: 18px; }
+.s12 { grid-column: span 12; } .s8 { grid-column: span 8; } .s7 { grid-column: span 7; } .s6 { grid-column: span 6; } .s5 { grid-column: span 5; } .s4 { grid-column: span 4; }
+@media (max-width: 1100px) { .s8, .s4, .s7, .s5 { grid-column: span 12; } }
+@media (max-width: 860px) { .s6 { grid-column: span 12; } }
+.card { background: var(--card); border-radius: var(--r); padding: 20px; min-width: 0; border: 1px solid var(--line); }
+.ch { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px; flex-wrap: wrap; }
+.ch .eyebrow { font-size: 10px; }
+h2 { font-size: 15.5px; font-weight: 800; margin: 2px 0 0; }
+.ch p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+.pill { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; white-space: nowrap; border: 1px solid var(--line); color: var(--ink-2); background: var(--card); display: inline-flex; gap: 6px; align-items: center; }
+.pill.live { background: var(--primary-soft); color: var(--primary-ink); border-color: transparent; }
+.pill.live::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pill.red { background: var(--crit-soft); color: var(--crit); border-color: transparent; }
+
+/* Charts */
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart svg text { fill: var(--muted); font-size: 11px; font-family: var(--f); }
+.chart svg text.val { fill: var(--primary-ink); font-weight: 800; font-size: 12px; }
+.legend { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; font-size: 12.5px; color: var(--ink-2); margin-top: 6px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend i { width: 10px; height: 10px; border-radius: 50%; }
+.donut { position: relative; max-width: 250px; margin: 6px auto 0; }
+.donut svg { width: 100%; height: auto; display: block; }
+.donut .c { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+.donut .c b { font-size: 30px; font-weight: 800; line-height: 1; }
+.donut .c span { font-size: 12px; color: var(--muted); }
+
+/* Applicant summary */
+.apps { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 900px) { .apps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.app { background: var(--card-2); border-radius: 12px; padding: 14px; border: 1px solid var(--line); }
+.app b { display: block; font-size: 26px; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.app span { font-size: 12px; color: var(--muted); }
+.app.pr b { color: var(--primary); } .app.ok b { color: var(--good); } .app.hd b { color: var(--warn); } .app.no b { color: var(--crit); }
+.reasons { margin-top: 14px; display: grid; gap: 8px; }
+
+/* Bars */
+.hbars { display: grid; gap: 12px; }
+.hb { display: grid; grid-template-columns: minmax(90px, 130px) minmax(0, 1fr) 28px; gap: 12px; align-items: center; font-size: 12.5px; }
+.hb .t { color: var(--ink-2); text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hb .tr { height: 18px; }
+.hb .f { display: block; height: 100%; border-radius: 4px; min-width: 4px; }
+.hb .v { font-weight: 800; font-variant-numeric: tabular-nums; }
+
+/* Resume vacant */
+.rgrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (max-width: 560px) { .rgrid { grid-template-columns: minmax(0, 1fr); } }
+.rcard { border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--card); display: flex; flex-direction: column; gap: 6px; box-shadow: 0 1px 2px rgba(30,27,58,.04); }
+.rcard .hd { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 14px; }
+.rcard .nb { width: 26px; height: 26px; border-radius: 8px; background: var(--primary); color: #fff; display: grid; place-items: center; font-size: 12.5px; flex-shrink: 0; }
+.rcard .l1 { font-size: 12.5px; font-weight: 700; }
+.rcard .l2 { font-size: 12.5px; color: var(--ink-2); }
+.rcard .l3 { font-size: 11.5px; color: var(--muted); }
+.rcard .more { margin-top: auto; padding-top: 4px; align-self: flex-start; border: 0; background: none; font-weight: 800; font-size: 12.5px; color: var(--primary-ink); cursor: pointer; padding-left: 0; }
+
+/* Tables */
+.tw { overflow-x: auto; }
+table.t { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+table.t th { text-align: left; font-size: 11px; font-weight: 700; color: var(--ink-2); padding: 10px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; background: var(--card); }
+table.t td { padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: top; color: var(--ink-2); }
+table.t td.b { font-weight: 800; color: var(--ink); }
+table.t td.nw { white-space: nowrap; }
+table.t td.n, table.t th.n { text-align: right; font-variant-numeric: tabular-nums; }
+table.t tr:last-child td { border-bottom: 0; }
+table.mpp th { background: var(--card-2); text-transform: uppercase; letter-spacing: .06em; font-size: 10.5px; }
+table.mpp td { padding: 8px 10px; }
+table.full td { font-size: 11.5px; } table.full td.b, table.full td.vac { white-space: nowrap; }
+tr.grpr td { background: var(--primary-soft); color: var(--primary-ink); font-weight: 800; font-size: 12px; padding: 8px 10px; }
+tr.subr td { color: var(--ink-2); font-weight: 700; font-size: 11.5px; padding: 6px 10px; background: var(--card-2); }
+table.mpp td.vac { background: var(--crit-soft); color: var(--crit); font-weight: 800; }
+.dd { display: inline-block; font-weight: 800; font-size: 11.5px; padding: 3px 8px; border-radius: 6px; font-variant-numeric: tabular-nums; }
+.dd.crit { background: var(--crit-soft); color: var(--crit); } .dd.warn { background: var(--warn-soft); color: var(--warn); } .dd.good { background: var(--good-soft); color: var(--good); } .dd.info { background: var(--info-soft); color: var(--info); } .dd.mute { background: var(--card-2); color: var(--muted); }
+.stt { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 20px; white-space: nowrap; }
+.stt.open { background: var(--crit-soft); color: var(--crit); } .stt.cont { background: var(--warn-soft); color: var(--warn); } .stt.close { background: var(--good-soft); color: var(--good); }
+.pg { display: flex; align-items: center; gap: 8px; min-width: 120px; }
+.pg .tr { flex: 1; height: 6px; background: var(--track); border-radius: 3px; overflow: hidden; }
+.pg .tr i { display: block; height: 100%; background: linear-gradient(90deg, var(--g1a), var(--g1b)); border-radius: 3px; }
+.pg b { font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.kl { display: grid; gap: 6px; min-width: 230px; }
+.kl div { display: grid; grid-template-columns: minmax(90px, 1fr) auto; gap: 10px; font-size: 11.5px; }
+.kl .nm { font-weight: 700; color: var(--ink); }
+.kl .nm.off { font-weight: 500; color: var(--muted); }
+.kl .st { text-align: right; color: var(--muted); white-space: nowrap; }
+.kl .st.pr { color: var(--primary-ink); } .kl .st.hd { color: var(--warn); } .kl .st.ok { color: var(--good); font-weight: 700; }
+.ket { font-size: 11.5px; color: var(--ink-2); min-width: 220px; white-space: pre-line; }
+
+/* Status boxes */
+.sbx { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.sbx div { background: var(--card-2); border-radius: 10px; padding: 12px 14px; }
+.sbx b { display: block; font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.sbx span { font-size: 11.5px; color: var(--muted); }
+.sbx .r b { color: var(--crit); } .sbx .a b { color: var(--warn); } .sbx .g b { color: var(--good); }
+
+/* Units */
+.units { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 900px) { .units { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.units div { background: var(--card-2); border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; color: var(--ink-2); }
+.units b { font-size: 18px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* Toolbar & chips */
+.toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 14px; }
+.toolbar input[type="search"], .toolbar select { font: inherit; font-size: 13px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
+.toolbar input[type="search"] { flex: 1 1 220px; min-width: 0; }
+.seg { display: inline-flex; flex-wrap: wrap; gap: 4px; background: var(--card-2); padding: 4px; border-radius: 10px; border: 1px solid var(--line); }
+.seg button { border: 0; background: none; padding: 6px 12px; border-radius: 7px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--primary-ink); box-shadow: 0 1px 3px rgba(30,27,58,.12); }
+.hs { display: inline-block; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; white-space: nowrap; }
+.hs.pr { background: var(--primary-soft); color: var(--primary-ink); } .hs.hd { background: var(--warn-soft); color: var(--warn); } .hs.no { background: var(--crit-soft); color: var(--crit); } .hs.ok { background: var(--good-soft); color: var(--good); } .hs.hist { background: var(--card-2); color: var(--muted); border: 1px solid var(--line); }
+.empty { padding: 26px; text-align: center; color: var(--muted); }
+.small { font-size: 12px; color: var(--muted); }
+.note { font-size: 12px; color: var(--muted); margin: 12px 0 0; max-width: 90ch; }
+
+/* Modal */
+.modal { position: fixed; inset: 0; z-index: 50; background: rgba(18,16,40,.5); display: grid; place-items: center; padding: 16px; }
+.dialog { background: var(--card); border-radius: 16px; width: min(720px, 100%); max-height: 86vh; overflow: auto; padding: 22px; border: 1px solid var(--line); }
+.dialog .x { float: right; border: 1px solid var(--line); background: var(--card-2); border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 18px; line-height: 1; }
+.pos { border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-top: 12px; }
+.pos h4 { margin: 0 0 4px; font-size: 14px; }
+</style>
+
+<aside class="side" id="side" aria-label="Menu">
+  <div class="brand"><span class="lg">KMB</span><div><b>KMB</b><span>Monitoring Manpower KTA - TRA</span></div></div>
+  <nav class="nav" id="nav"></nav>
+  <div class="side-foot"><b>Sumber data</b>Monitoring_Manpower_KTA_-_TRA.xlsx</div>
+</aside>
+<div class="scrim" id="scrim" hidden></div>
+
+<div class="main">
+  <header class="top">
+    <button class="ibtn" id="menuBtn" type="button" aria-label="Buka menu"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
+    <a class="btn btn-g backbtn" href="../" title="Kembali ke halaman utama Monitoring"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 6l-6 6 6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Kembali</span></a>
+    <div class="ttl" id="ttl">Monitoring Manpower KTA - TRA</div><span class="pill" title="Akses lihat">Pelihat</span>
+    <button class="btn btn-p" id="upBtn" type="button"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Sinkronkan Excel</button>
+  </header>
+  <input type="file" id="fileIn" accept=".xlsx,.xlsm,.xls" hidden>
+  <main class="content" id="view"></main>
+</div>
+<div class="modal" id="modal" hidden><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="mTitle" id="dialog"></div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
+<script>
+/*__PARSER__*/
+const BUNDLED = /*__DATA__*/;
+const BUNDLED_SRC = { name: 'Monitoring_Manpower_KTA_-_TRA.xlsx', asOf: '2026-10-15', bundled: true };
+
+const STAGES = ['Sourcing Pelamar', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU', 'FU MCU', 'On Site', 'Induksi'];
+const STAGE_UP = ['SOURCING PELAMAR', 'PSIKOLOGI TEST', 'INTERVIEW USER', 'OFFERING LETTER', 'MCU', 'FU MCU', 'ON SITE', 'INDUKSI'];
+const STAGE_SHORT = ['Sourcing', 'Psikotes', 'Interview User', 'Offering', 'MCU', 'FU MCU', 'On Site', 'Induksi', 'Hired'];
+const STAGE_TIP = ['Sourcing Pelamar', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU', 'FU MCU', 'On Site', 'Induksi', 'Hired (PTK close bulan ini)'];
+const STAGE_PCT = [0, 25, 40, 55, 70, 80, 95, 100];
+const MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+const MONTHS_L = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const DAYS_L = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
+const PAGES = [
+  { id: 'dashboard', label: 'Dashboard', grp: 'Ringkasan', ic: '<path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>' },
+  { id: 'mpp', label: 'MPP KTA - TRA', grp: 'Monitoring', ic: '<path d="M4 5h16v14H4zM4 10h16M10 10v9" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>' },
+  { id: 'karyawan', label: 'MP Aktif & MP Out', grp: 'Monitoring', ic: '<path d="M9 11a4 4 0 100-8 4 4 0 000 8zM2 21c0-4 3-7 7-7s7 3 7 7M16 4a4 4 0 010 7M18 14c2.5 1 4 3.5 4 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' },
+  { id: 'unit', label: 'Populasi Unit', grp: 'Monitoring', ic: '<path d="M3 16V9h9l3 4h5v3H3zM6 19a2 2 0 100-4 2 2 0 000 4zM17 19a2 2 0 100-4 2 2 0 000 4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>' },
+  { id: 'setting', label: 'Pengaturan', grp: 'Sistem', ic: '<circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>' },
+];
+
+const store = {
+  get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} },
+  del(k) { try { localStorage.removeItem(k); } catch (e) {} },
+};
+let DATA = BUNDLED, SRC = BUNDLED_SRC, SRC_MSG = null;
+try { const s = JSON.parse(store.get('mp4-data') || 'null'); if (s && s.data && s.data.positions) { DATA = s.data; SRC = s.src; } } catch (e) {}
+const now = new Date();
+const ui = { page: 'dashboard', pf: 'semua', pq: '', mq: '', mf: 'semua', kt: 'aktif', kq: '', allCols: false };
+try { const t = store.get('mp4-page'); if (t && PAGES.some((x) => x.id === t)) ui.page = t; } catch (e) {}
+const h0 = (location.hash || '').slice(1); if (PAGES.some((x) => x.id === h0)) ui.page = h0;
+
+// ---------- helpers ----------
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const isoOf = (y, m, d) => new Date(Date.UTC(y, m, d)).toISOString().slice(0, 10);
+const TODAY = isoOf(now.getFullYear(), now.getMonth(), now.getDate());
+const dnum = (iso) => iso ? Date.parse(iso + 'T00:00:00Z') / 864e5 : null;
+const diff = (a, b) => (a && b) ? Math.round(dnum(a) - dnum(b)) : null;
+const fmt = (iso) => { if (!iso) return '–'; const [y, m, d] = iso.split('-'); return `${String(+d).padStart(2, '0')} ${MONTHS[+m - 1]} ${y}`; };
+const isDate = (v) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v);
+const isVacant = (p) => /^vacant$/i.test(p.nama || '');
+const hasPTK = (p) => !!(p.ptk && p.aju);
+const isOpen = (p) => hasPTK(p) && /^(open|continue)$/i.test(p.status || '');
+const isClose = (p) => hasPTK(p) && /^close$/i.test(p.status || '');
+const normName = (s) => (s || '').toLowerCase().replace(/[^a-z]/g, '');
+function stageIdx(p) { let k = 0; p.stages.forEach((s, i) => { if (s) k = i + 1; }); return k; }
+function ketPTK(p) {
+  if (!hasPTK(p)) return 'TIDAK ADA PENGAJUAN';
+  if (/close/i.test(p.status || '')) return 'SELESAI';
+  if (!p.due) return '';
+  const r = diff(p.due, TODAY);
+  return r <= 0 ? 'JATUH TEMPO' : r <= 7 ? 'HAMPIR JATUH TEMPO' : 'ON TRACK';
+}
+
+// ---------- candidates ----------
+function reasonOf(note) {
+  const n = (note || '').toLowerCase();
+  if (/menolak|tolak/.test(n)) return 'Menolak offering';
+  if (/respon|respond|tidak aktif|no response/.test(n)) return 'Tidak ada respon';
+  if (/kabur|mundur|resign|keluar/.test(n)) return 'Mundur / kabur';
+  if (/interview/.test(n)) return 'Tidak lolos interview user';
+  if (/psiko/.test(n)) return 'Tidak lolos psikotes';
+  if (/mcu|medical/.test(n)) return 'Tidak lolos MCU';
+  return 'Tidak lolos';
+}
+function classify(note) {
+  const n = (note || '').toLowerCase();
+  if (!n) return 'pr';
+  if (/hold/.test(n)) return 'hd';
+  if (/tidak|menolak|tolak|kabur|mundur|gagal|no response|batal/.test(n)) return 'no';
+  return 'pr';
+}
+function splitLine(line) {
+  const i = line.search(/\s-|-\s/);
+  if (i < 0) return { name: line.trim(), note: '' };
+  return { name: line.slice(0, i).trim(), note: line.slice(i).replace(/^\s*-\s*/, '').trim() };
+}
+function candidates(p) {
+  const out = [];
+  const lines = (p.ket || '').split(/\n+/).map((s) => s.trim()).filter(Boolean);
+  const hired = !isVacant(p) ? normName(p.nama) : null;
+  lines.forEach((l) => {
+    const { name, note } = splitLine(l);
+    let st = classify(note);
+    if (hired && normName(name) === hired) st = 'ok';
+    else if (isClose(p) && st === 'pr') st = 'no';
+    out.push({ name, note, st, reason: st === 'no' ? (note ? reasonOf(note) : 'Tidak terpilih') : '' });
+  });
+  if (isClose(p) && hired && !out.some((c) => c.st === 'ok')) out.push({ name: p.nama, note: '', st: 'ok', reason: '' });
+  (p.hist || []).forEach((h) => { if (!out.some((c) => normName(c.name) === normName(h.name))) out.push({ ...h, fromHist: true }); });
+  return out;
+}
+const ST_LBL = { pr: 'Proses', hd: 'Hold', no: 'Tidak lolos', ok: 'Diterima' };
+function candStatusText(c, p) {
+  const si = stageIdx(p);
+  if (c.st === 'ok') return 'Diterima';
+  if (c.st === 'no') { const n = (c.note || '').toLowerCase(); const lb = /respon/.test(n) ? 'No Response' : /menolak|tolak/.test(n) ? 'Menolak OL' : /kabur|mundur/.test(n) ? 'Mundur' : 'Tidak Lolos'; return `${lb} • Tidak Aktif`; }
+  if (c.st === 'hd') return `Hold • ${STAGE_UP[si]} ${STAGE_PCT[si]}%`;
+  return `Aktif • ${STAGE_UP[si]} ${STAGE_PCT[si]}%`;
+}
+// Keep candidates that disappear between Excel versions (same position no. + PTK) so failed applicants stay on record.
+function mergeHistory(oldD, newD) {
+  if (!oldD || !oldD.positions) return newD;
+  newD.positions.forEach((p) => {
+    const o = oldD.positions.find((x) => x.no === p.no && x.ptk && x.ptk === p.ptk);
+    if (!o) return;
+    const now = candidates(p).map((c) => normName(c.name));
+    const hist = (o.hist || []).slice();
+    candidates({ ...o, hist: [] }).forEach((c) => {
+      if (now.includes(normName(c.name)) || hist.some((h) => normName(h.name) === normName(c.name))) return;
+      if (c.st === 'ok') return;
+      const st = c.st === 'no' ? 'no' : 'no';
+      hist.push({ name: c.name, note: c.note || 'Tidak terpilih', st, reason: c.st === 'no' ? c.reason : 'Tidak terpilih' });
+    });
+    if (hist.length) p.hist = hist;
+  });
+  return newD;
+}
+
+// ---------- derived ----------
+function derive() {
+  const P = DATA.positions;
+  const planning = P.length, vacant = P.filter(isVacant).length, actual = planning - vacant;
+  const open = P.filter(isOpen).sort((a, b) => (diff(a.due, TODAY) ?? 9999) - (diff(b.due, TODAY) ?? 9999));
+  const cont = P.filter((p) => hasPTK(p) && /^continue$/i.test(p.status || ''));
+  const closed = P.filter(isClose);
+  const ket = {}; P.forEach((p) => { const k = ketPTK(p); ket[k] = (ket[k] || 0) + 1; });
+  const openCands = []; open.forEach((p) => candidates(p).forEach((c) => openCands.push({ ...c, p })));
+  const allCands = []; P.filter(hasPTK).forEach((p) => candidates(p).forEach((c) => allCands.push({ ...c, p })));
+  // pipeline: active/hold candidates at their position's current stage; positions with no active candidate count once
+  const pipe = STAGES.map(() => 0).concat([0]);
+  closed.forEach((p) => { if (p.close && p.close.slice(0, 7) === TODAY.slice(0, 7)) pipe[8]++; });
+  open.forEach((p) => { const act = candidates(p).filter((c) => c.st === 'pr' || c.st === 'hd').length; pipe[stageIdx(p)] += Math.max(act, act ? 0 : 1); });
+  const vacJab = {}; P.filter(isVacant).forEach((p) => { const j = (p.jabatan || '–').trim(); (vacJab[j] = vacJab[j] || []).push(p); });
+  const unitTot = DATA.units.reduce((a, b) => a + b.jumlah, 0);
+  return { P, planning, vacant, actual, open, cont, closed, ket, openCands, allCands, pipe, vacJab, unitTot };
+}
+
+// ---------- charts ----------
+function areaChart(vals) {
+  const W = 640, H = 250, L = 30, R = 16, T = 22, B = 30;
+  const max = Math.max(1, ...vals); const top = Math.max(5, Math.ceil(max));
+  const x = (i) => L + (W - L - R) * i / (vals.length - 1);
+  const y = (v) => T + (H - T - B) * (1 - v / top);
+  const pts = vals.map((v, i) => [x(i), y(v)]);
+  let d = `M${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 0; i < pts.length - 1; i++) { const [x0, y0] = pts[i], [x1, y1] = pts[i + 1]; const cx = (x0 + x1) / 2; d += ` C${cx} ${y0} ${cx} ${y1} ${x1} ${y1}`; }
+  const area = `${d} L${x(vals.length - 1)} ${y(0)} L${x(0)} ${y(0)} Z`;
+  let g = '';
+  for (let v = 0; v <= top; v++) g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${L - 10}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  g += `<defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--primary-2)" stop-opacity=".32"/><stop offset="1" stop-color="var(--primary-2)" stop-opacity=".04"/></linearGradient></defs>`;
+  g += `<path d="${area}" fill="url(#ag)"/><path d="${d}" fill="none" stroke="var(--primary)" stroke-width="2.5"/>`;
+  pts.forEach(([px, py], i) => { g += `<circle cx="${px}" cy="${py}" r="4.5" fill="var(--card)" stroke="var(--primary)" stroke-width="2.5"><title>${STAGE_TIP[i]}: ${vals[i]}</title></circle><text class="val" x="${px}" y="${py - 11}" text-anchor="middle">${vals[i]}</text><text x="${px}" y="${H - 8}" text-anchor="middle">${STAGE_SHORT[i]}</text>`; });
+  return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Jumlah kandidat per tahap rekrutmen">${g}</svg></div>`;
+}
+function donutChart(actual, vacant) {
+  const tot = Math.max(1, actual + vacant), r = 80, cx = 110, cy = 110, sw = 30, C = 2 * Math.PI * r, gap = 6;
+  const la = C * actual / tot, lv = C * vacant / tot;
+  const seg = (len, off, col, t) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${col}" stroke-width="${sw}" stroke-dasharray="${Math.max(0, len - gap)} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})"><title>${t}</title></circle>`;
+  return `<div class="donut"><svg viewBox="0 0 220 220" role="img" aria-label="Actual ${actual}, vacant ${vacant}">${seg(la, 0, 'var(--c1)', `Actual ${actual}`)}${vacant ? seg(lv, la, 'var(--c3)', `Vacant ${vacant}`) : ''}</svg>
+  <div class="c"><b class="num">${Math.round(actual / tot * 100)}%</b><span>${actual} dari ${tot} terisi</span></div></div>
+  <div class="legend"><span><i style="background:var(--c1)"></i>Actual ${actual}</span><span><i style="background:var(--c3)"></i>Vacant ${vacant}</span></div>`;
+}
+function hbars(entries, colorFn) {
+  const mx = Math.max(1, ...entries.map((e) => e[1]));
+  return `<div class="hbars">${entries.map(([k, v], i) => `<div class="hb"><span class="t" title="${esc(k)}">${esc(k)}</span><span class="tr"><span class="f" style="width:${v / mx * 100}%;background:${colorFn(i)}"></span></span><span class="v">${v}</span></div>`).join('')}</div>`;
+}
+
+// ---------- shared blocks ----------
+function header(eyebrow, title, desc) {
+  const d = new Date();
+  const src = SRC_MSG ? `<div class="srcnote ${SRC_MSG.err ? 'err' : ''}">${SRC_MSG.html}</div>`
+    : (!SRC.bundled ? `<div class="srcnote">Menampilkan data dari <b>${esc(SRC.name)}</b> (dimuat ${fmt(SRC.asOf)}), hanya di browser ini. <button type="button" id="resetSrc">Kembali ke data bawaan</button></div>` : '');
+  return `<div class="head"><div><div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p>${desc}</p></div>
+    <div class="upd"><i></i><div><small>Update hari ini</small><b>${DAYS_L[d.getDay()]}, ${d.getDate()} ${MONTHS_L[d.getMonth()]} ${d.getFullYear()}</b></div></div></div>${src}`;
+}
+function kpis(D) {
+  const pct = D.planning ? Math.round(D.actual / D.planning * 100) : 0;
+  return `<div class="kpis">
+    <div class="kpi k1"><span class="ic">◎</span><div><div class="lb">Manpower Planning</div><div class="v">${D.planning}</div><div class="ds">Seluruh posisi MPP</div></div></div>
+    <div class="kpi k2"><span class="ic">✓</span><div><div class="lb">Manpower Actual</div><div class="v">${D.actual}</div><div class="ds">Posisi yang sudah terisi</div></div></div>
+    <div class="kpi k3"><span class="ic">!</span><div><div class="lb">Vacant / Kekosongan</div><div class="v">${D.vacant}</div><div class="ds">Posisi yang belum terisi</div></div></div>
+    <div class="kpi k4"><span class="ic">%</span><div><div class="lb">% Actual terhadap Planning</div><div class="v">${pct}%</div><div class="ds">Aktualisasi terhadap planning</div></div></div>
+  </div>`;
+}
+function applicantBlock(D) {
+  const c = D.openCands, cnt = (s) => c.filter((x) => x.st === s).length;
+  const okClosed = D.allCands.filter((x) => x.st === 'ok').length;
+  const reasons = {}; c.filter((x) => x.st === 'no').forEach((x) => { reasons[x.reason] = (reasons[x.reason] || 0) + 1; });
+  const re = Object.entries(reasons).sort((a, b) => b[1] - a[1]);
+  return `<div class="card s12"><div class="ch"><div><div class="eyebrow">Pelamar</div><h2>Rekap Pelamar PTK Open</h2><p>Dihitung dari kolom Keterangan di sheet MPP untuk posisi yang masih open.</p></div><span class="pill red">${D.open.length} open • ${c.length} pelamar</span></div>
+    <div class="grid" style="margin:0;gap:18px">
+      <div class="s7"><div class="apps">
+        <div class="app"><b>${c.length}</b><span>Total pelamar</span></div>
+        <div class="app pr"><b>${cnt('pr')}</b><span>Masih proses</span></div>
+        <div class="app hd"><b>${cnt('hd')}</b><span>Hold</span></div>
+        <div class="app no"><b>${cnt('no')}</b><span>Tidak lolos</span></div>
+        <div class="app ok"><b>${okClosed}</b><span>Diterima (PTK close)</span></div>
+      </div></div>
+      <div class="s5"><div class="small" style="font-weight:700;margin-bottom:8px">Alasan tidak lolos</div>${re.length ? hbars(re, () => 'var(--c3)') : '<div class="small">Belum ada pelamar yang gagal.</div>'}</div>
+    </div></div>`;
+}
+function resumeVacant(D) {
+  const entries = Object.entries(D.vacJab).sort((a, b) => b[1].length - a[1].length);
+  return `<div class="rgrid">${entries.map(([j, ps]) => {
+    const cs = ps.flatMap((p) => candidates(p)); const act = cs.filter((c) => c.st === 'pr' || c.st === 'hd');
+    const hi = Math.max(0, ...ps.filter(isOpen).map(stageIdx));
+    const byStage = {}; ps.forEach((p) => { const k = STAGE_UP[stageIdx(p)]; byStage[k] = (byStage[k] || 0) + 1; });
+    return `<div class="rcard"><div class="hd"><span class="nb">${ps.length}</span>${esc(j)}</div>
+      <div class="l1">${act.length} pelamar untuk ${ps.length} vacant</div>
+      <div class="l2">Progress kandidat tertinggi: <b>${STAGE_UP[hi]} (${STAGE_PCT[hi]}%)</b></div>
+      <div class="l3">${cs.length} kandidat tercatat • ${cs.filter((c) => c.st === 'no').length} tidak lolos</div>
+      <div class="l3">${Object.entries(byStage).map(([k, n]) => `${n}× ${k}`).join(' • ')}</div>
+      <button type="button" class="more" data-detail="${esc(j)}">Lihat detail →</button></div>`;
+  }).join('') || '<div class="empty">Tidak ada posisi vacant.</div>'}</div>`;
+}
+function summaryTable(D, rows) {
+  return `<div class="tw"><table class="t"><thead><tr><th>Jabatan</th><th>Tanggal Pengajuan</th><th>Due Date</th><th>Hari Tersisa</th><th>Status</th><th>Progress Terakhir</th><th>Progress</th><th>Kandidat</th><th>Keterangan</th></tr></thead><tbody>
+  ${rows.map((p) => {
+    const r = diff(p.due, TODAY), si = stageIdx(p), cs = candidates(p);
+    const dcls = r === null ? 'mute' : r <= 0 ? 'crit' : r <= 7 ? 'warn' : 'good';
+    return `<tr><td class="b">${esc(p.jabatan)}<div class="small" style="font-weight:500">No. ${p.no} · ${esc(p.group || p.section || '')}</div></td>
+      <td class="nw">${fmt(p.aju)}</td><td class="nw">${fmt(p.due)}</td><td><span class="dd ${dcls}">${r === null ? '–' : r}</span></td>
+      <td><span class="stt ${/continue/i.test(p.status) ? 'cont' : 'open'}">${esc(p.status)}</span></td>
+      <td class="b nw">${STAGE_UP[si]}</td>
+      <td><div class="pg"><span class="tr"><i style="width:${STAGE_PCT[si]}%"></i></span><b>${STAGE_PCT[si]}%</b></div></td>
+      <td>${cs.length ? `<div class="kl">${cs.map((c) => `<div><span class="nm ${c.st === 'no' ? 'off' : ''}">${esc(c.name)}</span><span class="st ${c.st}">${candStatusText(c, p)}</span></div>`).join('')}</div>` : '<span class="small">Belum ada pelamar</span>'}</td>
+      <td class="ket">${esc(p.ket || '-')}</td></tr>`;
+  }).join('') || '<tr><td colspan="9" class="empty">Tidak ada PTK open.</td></tr>'}
+  </tbody></table></div>`;
+}
+function statusBoxes(D) {
+  return `<div class="grid"><div class="card s6"><div class="ch"><div><div class="eyebrow">Status</div><h2>Status PTK</h2></div></div>
+    <div class="sbx"><div class="r"><b>${D.open.length - D.cont.length}</b><span>Open</span></div><div class="a"><b>${D.cont.length}</b><span>Continue</span></div><div class="g"><b>${D.closed.length}</b><span>Close</span></div></div></div>
+    <div class="card s6"><div class="ch"><div><div class="eyebrow">Due Date</div><h2>Due Date PTK</h2></div></div>
+    <div class="sbx"><div class="a"><b>${D.ket['HAMPIR JATUH TEMPO'] || 0}</b><span>Hampir jatuh tempo</span></div><div class="r"><b>${D.ket['JATUH TEMPO'] || 0}</b><span>Jatuh tempo</span></div><div class="g"><b>${D.ket['SELESAI'] || 0}</b><span>Selesai</span></div></div></div></div>`;
+}
+function unitBlock(D) {
+  return `<div class="card" style="margin-bottom:18px"><div class="ch"><div><div class="eyebrow">Populasi Unit</div><h2>Populasi Unit KTA - TRA</h2><p>Jumlah unit operasional sesuai tabel Jenis Unit di sheet Dashboard.</p></div><span class="pill">${D.unitTot} unit</span></div>
+    <div class="units">${DATA.units.map((u) => `<div><span>${esc(u.unit)}</span><b>${u.jumlah}</b></div>`).join('') || '<div class="empty">Tabel unit tidak ditemukan.</div>'}</div></div>`;
+}
+function mppTable(rows) {
+  return `<div class="tw"><table class="t mpp"><thead><tr><th>No.</th><th>Nama</th><th>Jabatan</th><th>Section</th><th>Status PTK</th><th>Keterangan</th></tr></thead><tbody>
+  ${rows.map((p) => `<tr><td class="n">${p.no}</td><td class="${isVacant(p) ? 'vac' : ''}" style="${isVacant(p) ? '' : 'color:var(--ink);font-weight:600'}">${esc(p.nama)}</td><td>${esc(p.jabatan)}</td><td class="small">${esc(p.group || p.section || '')}</td><td>${hasPTK(p) ? `<span class="stt ${/close/i.test(p.status) ? 'close' : /continue/i.test(p.status) ? 'cont' : 'open'}">${esc(p.status)}</span>` : '<span class="small">–</span>'}</td><td class="ket">${esc(p.ket || '')}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">Tidak ada posisi yang cocok.</td></tr>'}
+  </tbody></table></div>`;
+}
+
+// ---------- pages ----------
+function pageDashboard(D) {
+  const vac = Object.entries(D.vacJab).map(([k, v]) => [k, v.length]).sort((a, b) => b[1] - a[1]);
+  const vacCands = Object.values(D.vacJab).flat().reduce((a, p) => a + candidates(p).length, 0);
+  const actOpen = D.openCands.filter((c) => c.st === 'pr' || c.st === 'hd').length;
+  return `${header('Overview', 'Dashboard Manpower KTA - TRA', 'Monitoring MPP, actual, vacant, kandidat dan progress rekrutmen dalam satu lokasi.')}
+  ${kpis(D)}
+  <div class="grid">
+    <div class="card s8"><div class="ch"><div><div class="eyebrow">Recruitment Pipeline</div><h2>Progress Kandidat & Rekrutmen</h2><p>Jumlah kandidat/posisi berdasarkan tahap terakhir.</p></div><span class="pill live">Live data</span></div>${areaChart(D.pipe)}</div>
+    <div class="card s4"><div class="ch"><div><div class="eyebrow">Composition</div><h2>Pemenuhan MPP</h2><p>Actual dibandingkan vacant.</p></div></div>${donutChart(D.actual, D.vacant)}</div>
+    <div class="card s5"><div class="ch"><div><div class="eyebrow">Vacancy</div><h2>Vacant per Jabatan</h2><p>Kebutuhan kosong berdasarkan posisi.</p></div><span class="pill">${D.vacant} vacant • ${vacCands} kandidat</span></div>${vac.length ? hbars(vac, (i) => `var(--c${(i % 5) + 1})`) : '<div class="empty">Tidak ada vacant.</div>'}</div>
+    <div class="card s7"><div class="ch"><div><div class="eyebrow">Vacant Detail</div><h2>Resume Vacant per Jabatan</h2><p>Klik jabatan untuk melihat kandidat terkait.</p></div></div>${resumeVacant(D)}</div>
+  </div>
+  <div class="card" style="margin-bottom:18px"><div class="ch"><div><div class="eyebrow">Recruitment</div><h2>Summary Progress Rekrutmen</h2><p>Data PTK Open dari MPP KTA - TRA.</p></div><span class="pill red">${D.open.length} OPEN • ${actOpen} PELAMAR</span></div>${summaryTable(D, D.open)}</div>
+  ${statusBoxes(D)}
+  ${unitBlock(D)}
+  <div class="card"><div class="ch"><div><h2>Rincian Manpower Planning (MPP)</h2><p>Data otomatis mengikuti sheet MPP. Nama Vacant ditandai merah.</p></div></div>${mppTable(D.P)}</div>`;
+}
+
+function pageMPP(D) {
+  const q = ui.mq.toLowerCase();
+  const rows = D.P.filter((p) => {
+    if (ui.mf !== 'semua') { if (!hasPTK(p) || (p.status || '').toLowerCase() !== ui.mf) return false; }
+    return !q || `${p.nama} ${p.jabatan} ${p.section} ${p.group} ${p.ket} ${p.ptk}`.toLowerCase().includes(q);
+  });
+  let body = '', lastS, lastG;
+  rows.forEach((p) => {
+    if (ui.mf === 'semua' && !q) {
+      if (p.section !== lastS) { body += `<tr class="grpr"><td colspan="19">${esc(p.section || '')}</td></tr>`; lastS = p.section; lastG = p.section; }
+      if (p.group !== lastG) { body += `<tr class="subr"><td colspan="19">${esc(p.group)}</td></tr>`; lastG = p.group; }
+    }
+    const k = ketPTK(p); const kc = { 'JATUH TEMPO': 'crit', 'HAMPIR JATUH TEMPO': 'warn', 'ON TRACK': 'good', 'SELESAI': 'info' }[k] || 'mute';
+    const st = (v) => isDate(v) ? fmt(v) : esc(v || '');
+    body += `<tr><td class="n">${p.no}</td><td class="${isVacant(p) ? 'vac' : 'b'}">${esc(p.nama)}</td><td class="nw">${esc(p.jabatan)}</td><td class="ket">${esc(p.ket || '')}</td><td class="nw">${esc(p.pic || '')}</td><td class="small nw">${esc(p.ptk || '')}</td><td class="nw">${fmt(p.aju) === '–' ? '' : fmt(p.aju)}</td>${p.stages.map((v) => `<td class="nw">${st(v)}</td>`).join('')}<td class="nw">${p.due ? fmt(p.due) : ''}</td><td>${hasPTK(p) ? `<span class="stt ${/close/i.test(p.status) ? 'close' : /continue/i.test(p.status) ? 'cont' : 'open'}">${esc(p.status)}</span>` : ''}</td><td class="nw">${p.close ? fmt(p.close) : ''}</td><td><span class="dd ${kc}">${esc(k)}</span></td><td class="n">${isClose(p) ? (diff(p.close, p.aju) ?? '') : ''}</td></tr>`;
+  });
+  const cnt = (s) => D.P.filter((p) => hasPTK(p) && (p.status || '').toLowerCase() === s).length;
+  const all = D.allCands, c = (s) => all.filter((x) => x.st === s).length;
+  const pq = ui.pq.toLowerCase();
+  const prow = all.filter((x) => (ui.pf === 'semua' || x.st === ui.pf) && (!pq || `${x.name} ${x.p.jabatan} ${x.note}`.toLowerCase().includes(pq))).sort((a, b) => (isOpen(b.p) - isOpen(a.p)) || (a.p.no - b.p.no));
+  return `${header('Monitoring', 'MPP KTA - TRA', 'Planning manpower dan monitoring PTK/rekrutmen.')}
+  <div class="card" style="margin-bottom:18px">
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="Filter status">${[['semua', 'Semua Status'], ['open', `Open (${cnt('open')})`], ['continue', `Continue (${cnt('continue')})`], ['close', `Close (${cnt('close')})`]].map(([k, l]) => `<button type="button" data-mf="${k}" aria-pressed="${ui.mf === k}">${l}</button>`).join('')}</div>
+      <input type="search" id="mq" placeholder="Cari nama, jabatan, PTK, atau kandidat" value="${esc(ui.mq)}" aria-label="Cari di MPP">
+      <span class="small">${rows.length} dari ${D.P.length} posisi</span>
+    </div>
+    <div class="tw"><table class="t mpp full"><thead><tr><th>No</th><th>Nama</th><th>Jabatan</th><th>Keterangan</th><th>PIC</th><th>PTK</th><th>Tanggal Pengajuan PTK</th><th>Psikologi Test</th><th>Interview User</th><th>Offering Latter</th><th>MCU</th><th>FU MCU</th><th>On Site</th><th>Induksi</th><th>Due Date</th><th>Status</th><th>Tanggal Close</th><th>Keterangan PTK</th><th class="n">Lama Closing (Hari)</th></tr></thead>
+    <tbody>${body || '<tr><td colspan="19" class="empty">Tidak ada data yang cocok.</td></tr>'}</tbody></table></div>
+  </div>
+  <div class="card">
+    <div class="ch"><div><div class="eyebrow">Pelamar</div><h2>Rekap & Arsip Pelamar</h2><p>Dibaca dari kolom Keterangan. Pelamar yang tidak lolos tetap tercatat, termasuk setelah PTK close.</p></div></div>
+    <div class="apps" style="margin-bottom:16px"><div class="app"><b>${all.length}</b><span>Total pelamar</span></div><div class="app pr"><b>${c('pr')}</b><span>Masih proses</span></div><div class="app hd"><b>${c('hd')}</b><span>Hold</span></div><div class="app no"><b>${c('no')}</b><span>Tidak lolos</span></div><div class="app ok"><b>${c('ok')}</b><span>Diterima</span></div></div>
+    <div class="toolbar">
+      <div class="seg" role="group" aria-label="Filter hasil">${[['semua', 'Semua'], ['pr', 'Proses'], ['hd', 'Hold'], ['no', 'Tidak lolos'], ['ok', 'Diterima']].map(([k, l]) => `<button type="button" data-pf="${k}" aria-pressed="${ui.pf === k}">${l}</button>`).join('')}</div>
+      <input type="search" id="pq" placeholder="Cari nama pelamar atau jabatan" value="${esc(ui.pq)}" aria-label="Cari pelamar">
+      <span class="small">${prow.length} pelamar</span>
+    </div>
+    <div class="tw"><table class="t"><thead><tr><th>Nama Pelamar</th><th>Jabatan</th><th>PTK</th><th>Status PTK</th><th>Tahap</th><th>Hasil</th><th>Keterangan</th></tr></thead><tbody>
+    ${prow.map((x) => `<tr><td class="b">${esc(x.name)}</td><td class="nw">${esc(x.p.jabatan)} <span class="small">No. ${x.p.no}</span></td><td class="small nw">${esc(x.p.ptk)}</td><td><span class="stt ${isOpen(x.p) ? 'open' : 'close'}">${esc(x.p.status)}</span></td><td class="small nw">${isOpen(x.p) ? STAGE_UP[stageIdx(x.p)] : 'Close ' + fmt(x.p.close)}</td><td><span class="hs ${x.st}">${ST_LBL[x.st]}</span>${x.fromHist ? ' <span class="hs hist">riwayat</span>' : ''}</td><td class="small">${esc(x.note || x.reason || '-')}</td></tr>`).join('') || '<tr><td colspan="7" class="empty">Tidak ada pelamar yang cocok.</td></tr>'}
+    </tbody></table></div>
+    <p class="note">Format kolom Keterangan: satu baris per pelamar, <b>Nama - keterangan</b>. Saat PTK close, biarkan nama pelamar yang gagal tetap di kolom ini dan tambahkan nama yang diterima.</p>
+  </div>`;
+}
+
+const MP_COLS = [
+  ['nip', 'No.', (p, i) => i + 1, true],
+  ['nama', 'Nama', (p) => `<b style="color:var(--ink)">${esc(p.nama)}</b>`, true],
+  ['jabatan', 'Jabatan', (p) => esc(p.jabatan || ''), true],
+  ['dept', 'Departemen', (p) => esc(p.dept || ''), false],
+  ['level', 'Level', (p) => esc(p.level || ''), true],
+  ['kontrak', 'Status Kontrak', (p) => esc(p.kontrak || ''), true],
+  ['akhir', 'Akhir Kontrak', (p) => p.akhir ? fmt(p.akhir) : '', true],
+  ['poh', 'POH', (p) => esc(p.poh || ''), true],
+  ['sisa', 'Sisa Hari', (p) => { if (!p.akhir) return ''; const r = diff(p.akhir, TODAY); return r > 0 ? `<span class="dd ${r <= 30 ? 'warn' : 'good'}">${r}</span>` : '<span class="dd crit">Jatuh Tempo</span>'; }, true],
+  ['masuk', 'Tanggal Masuk', (p) => p.masuk ? fmt(p.masuk) : '', true],
+  ['masa', 'Masa Kerja', (p) => masaKerja(p.masuk, p.keluar), true],
+  ['jk', 'Jenis Kelamin', (p) => esc(p.jk || ''), false],
+  ['kategori', 'Keterangan', (p) => esc(p.kategori || ''), false],
+  ['site', 'Site', (p) => esc(p.site || ''), false],
+];
+function masaKerja(a, b) {
+  if (!a) return '';
+  const s = new Date(a + 'T00:00:00Z'), e = new Date((b || TODAY) + 'T00:00:00Z');
+  let y = e.getUTCFullYear() - s.getUTCFullYear(), m = e.getUTCMonth() - s.getUTCMonth(), d = e.getUTCDate() - s.getUTCDate();
+  if (d < 0) { m--; d += new Date(Date.UTC(e.getUTCFullYear(), e.getUTCMonth(), 0)).getUTCDate(); }
+  if (m < 0) { y--; m += 12; }
+  return `${y} Tahun ${m} Bulan ${d} hari`;
+}
+function pageKaryawan(D) {
+  const out = ui.kt === 'out';
+  const src = out ? DATA.keluar : DATA.aktif, q = ui.kq.toLowerCase();
+  const rows = src.filter((p) => !q || `${p.nama} ${p.jabatan} ${p.poh}`.toLowerCase().includes(q));
+  const cols = MP_COLS.filter((c) => ui.allCols || c[3]).filter((c) => !(out && c[0] === 'sisa'));
+  if (out) cols.push(['keluar', 'Tanggal Keluar', (p) => p.keluar ? fmt(p.keluar) : '']);
+  return `${header('Database', out ? 'MP Out' : 'MP Aktif', 'Database manpower KTA - TRA. Data lengkap dapat disinkronkan dari Excel.')}
+  <div class="card"><div class="toolbar">
+    <div class="seg" role="group" aria-label="Pilih data">${[['aktif', 'MP Aktif'], ['out', 'MP Out']].map(([k, l]) => `<button type="button" data-kt="${k}" aria-pressed="${ui.kt === k}">${l}</button>`).join('')}</div>
+    <span class="pill">${src.length} data</span>
+    <input type="search" id="kq" placeholder="Cari nama, jabatan, atau POH" value="${esc(ui.kq)}" aria-label="Cari karyawan">
+    <button type="button" class="btn btn-g" id="colBtn" aria-pressed="${!!ui.allCols}">${ui.allCols ? 'Kolom Ringkas' : 'Semua Kolom'}</button>
+    <button type="button" class="btn btn-p" data-sync="1">Sinkronkan Excel</button>
+  </div>
+  <div class="tw"><table class="t mpp"><thead><tr>${cols.map((c) => `<th>${c[1]}</th>`).join('')}</tr></thead><tbody>
+  ${rows.map((p, i) => `<tr>${cols.map((c) => `<td class="nw">${c[2](p, i)}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${cols.length}" class="empty">Tidak ada data.</td></tr>`}
+  </tbody></table></div>
+  <p class="note">MP Aktif → MP Out terhubung dengan sheet MP Aktif dan MP Out di Excel. Data pribadi (NIK, KK, NPWP, nomor HP, rekening, BPJS, alamat, data keluarga) tidak ditampilkan karena halaman ini bisa dibuka lewat link.</p></div>`;
+}
+function pageUnit(D) {
+  return `${header('Database', 'Populasi Unit KTA - TRA', 'Daftar populasi unit operasional KTA - TRA sesuai data monitoring.')}
+  <div class="card"><div class="ch"><div><div class="eyebrow">Populasi Unit</div><h2>Daftar Unit KTA - TRA</h2><p>Terhubung dengan data unit pada Dashboard.</p></div><span class="pill">${D.unitTot} unit</span></div>
+  <div class="tw"><table class="t mpp"><thead><tr><th>No</th><th>Jenis Unit</th><th class="n">Jumlah</th><th>Porsi</th></tr></thead><tbody>
+  ${DATA.units.map((u, i) => `<tr><td class="n">${i + 1}</td><td class="b">${esc(u.unit)}</td><td class="n">${u.jumlah}</td><td><div class="pg"><span class="tr"><i style="width:${D.unitTot ? u.jumlah / D.unitTot * 100 : 0}%"></i></span><b>${D.unitTot ? Math.round(u.jumlah / D.unitTot * 100) : 0}%</b></div></td></tr>`).join('')}
+  <tr><td></td><td class="b">Total</td><td class="n b">${D.unitTot}</td><td></td></tr>
+  </tbody></table></div></div>`;
+}
+function pageSetting(D) {
+  return `${header('Sistem', 'Pengaturan', 'Pemilik, editor, sinkronisasi, backup, dan download Excel.')}
+  <div class="grid">
+    <div class="card s6"><div class="ch"><div><div class="eyebrow">Sinkronisasi</div><h2>Sinkronkan Excel</h2><p>Muat file Excel Monitoring Manpower KTA - TRA versi terbaru. Sheet yang dibaca: DASHBOARD, MPP KTA-TRA, MP Aktif, MP Out.</p></div></div>
+      <p class="small" style="margin:0 0 12px">Sumber data saat ini: <b style="color:var(--ink)">${esc(SRC.name)}</b>${SRC.bundled ? ' (data bawaan)' : ` (dimuat ${fmt(SRC.asOf)}, hanya di browser ini)`}</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap"><button type="button" class="btn btn-p" data-sync="1">Sinkronkan Excel</button>${SRC.bundled ? '' : '<button type="button" class="btn btn-g" id="resetSrc">Kembali ke data bawaan</button>'}</div></div>
+    <div class="card s6"><div class="ch"><div><div class="eyebrow">Akses</div><h2>Pelihat & Editor</h2></div></div>
+      <p class="small" style="margin:0">Semua orang yang membuka link melihat data sebagai <b>Pelihat</b>. Data diubah di file Excel, lalu disinkronkan. Agar semua pelihat melihat data terbaru, kirim file Excel terbaru ke Claude untuk memperbarui halaman ini.</p></div>
+  </div>`;
+}
+
+// ---------- render ----------
+let D;
+function render() {
+  D = derive();
+  let lastG = '';
+  const ct = { mpp: [D.open.length, D.ket['JATUH TEMPO'] > 0], karyawan: [DATA.aktif.length, false], unit: [D.unitTot, false] };
+  document.getElementById('nav').innerHTML = PAGES.map((pg) => {
+    const lbl = pg.grp !== lastG ? `<div class="lbl">${pg.grp}</div>` : ''; lastG = pg.grp;
+    const c = ct[pg.id];
+    return `${lbl}<button type="button" data-go="${pg.id}" ${ui.page === pg.id ? 'aria-current="page"' : ''}><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">${pg.ic}</svg>${pg.label}${c ? `<span class="ct ${c[1] ? 'al' : ''}">${c[0]}</span>` : ''}</button>`;
+  }).join('');
+  
+  const map = { dashboard: pageDashboard, mpp: pageMPP, unit: pageUnit, karyawan: pageKaryawan, setting: pageSetting };
+  document.getElementById('view').innerHTML = map[ui.page](D);
+}
+function go(id) {
+  ui.page = id; store.set('mp4-page', id); try { history.replaceState(null, '', '#' + id); } catch (e) {}
+  document.body.classList.remove('nav-open'); document.getElementById('scrim').hidden = true;
+  render(); window.scrollTo({ top: 0 });
+}
+function keepFocus(id) { const el = document.getElementById(id); const pos = el && el.selectionStart; render(); const n = document.getElementById(id); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch (e) {} } }
+function openDetail(jab) {
+  const ps = D.vacJab[jab] || [];
+  document.getElementById('dialog').innerHTML = `<button type="button" class="x" id="mClose" aria-label="Tutup">×</button><div class="eyebrow">Vacant detail</div><h2 id="mTitle" style="font-size:19px">${esc(jab)}</h2><p class="small" style="margin:2px 0 0">${ps.length} vacant</p>
+  ${ps.map((p) => { const si = stageIdx(p), r = diff(p.due, TODAY), cs = candidates(p);
+    return `<div class="pos"><h4>No. ${p.no} · ${esc(p.group || p.section || '')}</h4><div class="small">${esc(p.ptk || 'Belum ada PTK')} · Pengajuan ${fmt(p.aju)} · Due ${fmt(p.due)} ${r !== null ? `<span class="dd ${r <= 0 ? 'crit' : r <= 7 ? 'warn' : 'good'}">${r <= 0 ? 'Lewat ' + -r + ' hari' : r + ' hari lagi'}</span>` : ''}</div>
+    <div class="pg" style="margin:10px 0"><span class="tr"><i style="width:${STAGE_PCT[si]}%"></i></span><b>${STAGE_UP[si]} ${STAGE_PCT[si]}%</b></div>
+    ${cs.length ? `<div class="kl">${cs.map((c) => `<div><span class="nm ${c.st === 'no' ? 'off' : ''}">${esc(c.name)}</span><span class="st ${c.st}">${candStatusText(c, p)}</span></div>`).join('')}</div>` : '<div class="small">Belum ada pelamar.</div>'}</div>`; }).join('')}`;
+  document.getElementById('modal').hidden = false; document.getElementById('mClose').focus();
+}
+const closeModal = () => { document.getElementById('modal').hidden = true; };
+
+document.addEventListener('click', (e) => {
+  const g = e.target.closest('[data-go]'); if (g) { go(g.dataset.go); return; }
+  if (e.target.closest('#menuBtn')) { const o = document.body.classList.toggle('nav-open'); document.getElementById('scrim').hidden = !o; return; }
+  if (e.target.id === 'scrim') { document.body.classList.remove('nav-open'); e.target.hidden = true; return; }
+  if (e.target.closest('#upBtn') || e.target.closest('[data-sync]')) { document.getElementById('fileIn').click(); return; }
+  if (e.target.closest('#colBtn')) { ui.allCols = !ui.allCols; render(); return; }
+  if (e.target.id === 'resetSrc') { DATA = BUNDLED; SRC = BUNDLED_SRC; SRC_MSG = null; store.del('mp4-data'); render(); return; }
+  const dt = e.target.closest('[data-detail]'); if (dt) { openDetail(dt.dataset.detail); return; }
+  if (e.target.id === 'mClose' || e.target.id === 'modal') { closeModal(); return; }
+  const pf = e.target.closest('[data-pf]'); if (pf) { ui.pf = pf.dataset.pf; render(); return; }
+  const mf = e.target.closest('[data-mf]'); if (mf) { ui.mf = mf.dataset.mf; render(); return; }
+  const kt = e.target.closest('[data-kt]'); if (kt) { ui.kt = kt.dataset.kt; render(); return; }
+});
+document.addEventListener('input', (e) => {
+  const id = e.target.id;
+  if (id === 'pq') { ui.pq = e.target.value; keepFocus(id); }
+  if (id === 'mq') { ui.mq = e.target.value; keepFocus(id); }
+  if (id === 'kq') { ui.kq = e.target.value; keepFocus(id); }
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { closeModal(); document.body.classList.remove('nav-open'); document.getElementById('scrim').hidden = true; } });
+
+document.getElementById('fileIn').addEventListener('change', async (e) => {
+  const file = e.target.files && e.target.files[0]; e.target.value = '';
+  if (!file) return;
+  if (typeof XLSX === 'undefined') { SRC_MSG = { err: true, html: 'Pembaca Excel belum termuat. Periksa koneksi internet lalu coba lagi.' }; render(); return; }
+  try {
+    SRC_MSG = { html: `Membaca <b>${esc(file.name)}</b>…` }; render();
+    const wb = XLSX.read(await file.arrayBuffer(), { type: 'array' });
+    const sheets = {};
+    wb.SheetNames.forEach((n) => {
+      const ws = wb.Sheets[n]; if (!ws['!ref']) { sheets[n] = []; return; }
+      const rg = XLSX.utils.decode_range(ws['!ref']); const rows = [];
+      for (let r = 0; r <= Math.min(rg.e.r, 1500); r++) { const row = []; for (let c = 0; c <= Math.min(rg.e.c, 60); c++) { const cell = ws[XLSX.utils.encode_cell({ r, c })]; row.push(cell && cell.t !== 'e' ? cell.v : null); } rows.push(row); }
+      sheets[n] = rows;
+    });
+    const parsed = parseSheets(sheets);
+    if (!parsed.positions.length) throw new Error('Tidak ada posisi yang terbaca di sheet MPP. Pastikan kolom No, Nama, Jabatan masih di kolom A–C.');
+    DATA = mergeHistory(DATA, parsed); SRC = { name: file.name, asOf: TODAY, bundled: false }; SRC_MSG = null;
+    store.set('mp4-data', JSON.stringify({ data: DATA, src: SRC }));
+    render();
+  } catch (err) { SRC_MSG = { err: true, html: esc(err.message || 'File tidak bisa dibaca.') }; render(); }
+});
+
+render();
+</script>

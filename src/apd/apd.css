@@ -1,0 +1,70 @@
+/* ===== Monitoring APD: tambahan di atas desain Monitoring Manpower ===== */
+.s5 { grid-column: span 5; } .s7 { grid-column: span 7; }
+@media (max-width: 1100px) { .s5, .s7 { grid-column: span 12; } }
+.gbanner.gb-apd { background: linear-gradient(115deg, #FFFFFF 0%, #FFFFFF 42%, #F3EEFF 70%, #FFF4E0 100%); justify-content: space-between; }
+.gb-apd .gb-art { display: flex; gap: 12px; align-items: flex-end; padding-right: 10px; }
+.gb-apd .gb-art img { width: 86px; height: 86px; object-fit: contain; filter: drop-shadow(0 8px 14px rgba(30,27,58,.15)); }
+.gb-apd .gb-art img:nth-child(2) { width: 100px; height: 100px; }
+@media (max-width: 640px) { .gb-apd .gb-art { display: none; } }
+.apdimg { width: 100%; height: 100%; object-fit: contain; display: block; }
+.apdprods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 700px) { .apdprods { grid-template-columns: minmax(0, 1fr); } }
+.apdprod { border: 1px solid var(--line); border-radius: 14px; padding: 14px; display: grid; gap: 6px; background: var(--card-2); }
+.apdprod .pim { position: relative; height: 120px; background: var(--card); border-radius: 10px; padding: 10px; }
+.apdprod .pim .hs { position: absolute; top: 8px; right: 8px; }
+.apdprod > small { color: var(--muted); font-size: 12px; }
+.apdprod .pnum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 4px; }
+.apdprod .pnum span { display: grid; } .apdprod .pnum small { font-size: 10.5px; color: var(--muted); } .apdprod .pnum strong { font-size: 16px; font-variant-numeric: tabular-nums; }
+.apdprod .tr { height: 7px; background: var(--line); border-radius: 6px; overflow: hidden; } .apdprod .tr i { display: block; height: 100%; border-radius: 6px; }
+.actl { display: grid; gap: 4px; }
+.actl > div { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 12.5px; }
+.actl > div:last-child { border-bottom: 0; } .actl b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .actl time { color: var(--muted); font-size: 11.5px; white-space: nowrap; }
+.apdh { display: flex; gap: 12px; align-items: center; } .apdh img { width: 52px; height: 52px; background: var(--card-2); border-radius: 12px; padding: 6px; }
+.lots { display: grid; gap: 8px; }
+.lot { display: flex; gap: 12px; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; border: 1px solid var(--line); border-radius: 12px; padding: 11px 13px; }
+.lot .lmain { display: grid; gap: 3px; min-width: 0; flex: 1 1 320px; font-size: 13px; }
+.lot small { color: var(--muted); font-size: 12px; } .lot small.ret { color: var(--ink-2); } .lot small b { color: var(--ink); }
+.lot .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+.apdcard { display: flex; gap: 14px; align-items: flex-start; } .apdcard > img { width: 92px; height: 92px; background: var(--card-2); border-radius: 14px; padding: 8px; flex-shrink: 0; }
+.apdcard .big { font-size: 30px; font-weight: 800; margin: 2px 0; font-variant-numeric: tabular-nums; } .apdcard .big small { font-size: 13px; color: var(--muted); font-weight: 600; }
+.apdpic .pv { height: 200px; background: var(--card-2); border-radius: 14px; padding: 16px; margin: 10px 0 14px; }
+.guide { margin: 0; padding-left: 22px; display: grid; gap: 14px; } .guide b { font-size: 14.5px; } .guide p { margin: 4px 0 0; color: var(--ink-2); font-size: 13.5px; max-width: 75ch; }
+.small.red, a.red, .red { color: var(--crit); }
+.toolbar select, .mtools select { font: inherit; font-size: 13px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
+.toolbar input[type="search"] { font: inherit; font-size: 13.5px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); }
+.fld input, .fld select { font: inherit; font-size: 14px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); color: var(--ink); }
+.fld label { font-size: 12px; font-weight: 700; color: var(--ink-2); } .fld.full { grid-column: 1 / -1; }
+.empty .spin { margin: 0 auto 10px; }
+.t a, .actl a { color: var(--primary-ink); text-decoration: none; font-weight: 700; } .t a:hover { text-decoration: underline; }
+.tw.panning, .tw.panning * { cursor: grabbing !important; user-select: none !important; }
+.vchips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; }
+.vchips span { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; font-weight: 600; color: var(--ink-2); background: var(--card); border: 1px solid var(--line); border-radius: 20px; padding: 3px 9px; }
+.vchips span.zero { opacity: .55; } .vchips b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.vchips i, .opn .dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(30,27,58,.25); display: inline-block; margin-right: 4px; vertical-align: -1px; }
+.opn input { width: 80px; font: inherit; font-size: 14px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
+.vchips img.hm { width: 18px; height: 18px; object-fit: contain; }
+.hm-Putih { filter: grayscale(1) brightness(1.75) contrast(.9) drop-shadow(0 0 1px rgba(30,27,58,.5)); }
+.hm-Biru { filter: hue-rotate(178deg) saturate(1.6) brightness(.95); }
+
+.srcnote { display: block; line-height: 1.55; }
+.dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid rgba(30,27,58,.25); display: inline-block; margin-right: 6px; vertical-align: -1px; }
+.tico { display: inline-flex; width: 38px; height: 38px; border-radius: 10px; background: var(--soft, #F4F3FA); align-items: center; justify-content: center; overflow: hidden; }
+.tico .apdimg { width: 32px; height: 32px; object-fit: contain; }
+#nav .ct { margin-left: auto; min-width: 20px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; background: var(--line); color: var(--ink); text-align: center; }
+#nav .ct.al { background: var(--crit, #DC2626); color: #fff; }
+.dialog.wide { width: min(1080px, 100%); }
+.dialog:has(#gaForm) { width: min(1180px, 100%); }
+.gat input { width: 100%; min-width: 0; padding: 7px 8px; border: 1px solid var(--line); border-radius: 8px; font: inherit; background: var(--card); color: var(--ink); }
+.gat td { vertical-align: top; }
+.gat td:nth-child(2) { min-width: 200px; } .gat td:nth-child(8) { min-width: 220px; }
+.gaset { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px; }
+.gaset > div { border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.gaset small { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .04em; } .gaset b { font-size: 13.5px; word-break: break-all; }
+.pick { display: flex; flex-direction: column; gap: 8px; max-height: 50vh; overflow: auto; margin: 10px 0; }
+.pick label { display: flex; gap: 10px; align-items: flex-start; border: 1px solid var(--line); border-radius: 10px; padding: 10px; cursor: pointer; font-size: 13px; }
+.pick input { margin-top: 3px; }
+.gapic { border: 1px dashed var(--line); border-radius: 10px; min-height: 70px; display: flex; align-items: center; justify-content: center; padding: 6px; background: #fff; }
+.gapic img { max-height: 80px; max-width: 100%; }
+.gaview { overflow: auto; border: 1px solid var(--line); border-radius: 12px; margin-top: 10px; background: #fff; }
+.gaview .gadoc { min-width: 860px; }
+.tohub { display: block; margin: 0 0 10px; padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--primary); text-decoration: none; background: var(--soft, #F4F3FA); }

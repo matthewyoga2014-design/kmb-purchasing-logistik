@@ -1,0 +1,11 @@
+/* ===== cetak: tampilan sama seperti di web, ukuran kertas / orientasi / skala / margin diatur bebas dari jendela Print ===== */
+body.pp .noprint { display: none !important; }
+@media print {
+  .noprint, .seg, .mtools, #pq2, .upx, #view input[type="search"] { display: none !important; }
+  #view .card:has(table), #view .card:has(.tw) { break-inside: auto !important; }
+  .tw { overflow: visible !important; }
+  table.t { width: 100% !important; }
+  table.t thead { display: table-header-group; }
+  table.t tfoot { display: table-footer-group; }
+  table.t tr { break-inside: avoid; }
+}
