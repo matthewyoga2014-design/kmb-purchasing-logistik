@@ -892,7 +892,7 @@ const API={
   db:{collection:coll},
   user:{canEdit:async()=>WHO&&(WHO.role==="owner"||WHO.role==="editor"),id:async()=>WHO?.id||null,me:async()=>({name:WHO?.email||""})},
   assets:{
-    upload:async(file,dirs)=>{const j=await call("upload",{name:file.name,mime:file.type||"application/octet-stream",b64:await b64of(file),dirs:dirs||window.__notuDirs||[]});return{id:j.id,url:null,sizeBytes:j.size,contentType:j.mime,drive:j.url};},
+    upload:async(file,dirs)=>{const j=await call("upload",{name:file.name,mime:file.type||"application/octet-stream",b64:await b64of(file),dirs:dirs||window.__notuDirs||[]});if(!j||!j.id)throw new Error("Google Drive tidak mengembalikan ID berkas, upload dibatalkan");return{id:j.id,url:null,sizeBytes:j.size,contentType:j.mime,drive:j.url};},
     delete:async id=>{try{await call("trash",{id});}catch(e){}},
     bytes:async id=>{const j=await call("download",{id});const bin=atob(j.b64);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;},
     signedUrl:async(id,type)=>urlCache[id]||(urlCache[id]=URL.createObjectURL(new Blob([await API.assets.bytes(id)],{type:type||"image/jpeg"})))},
@@ -1984,7 +1984,7 @@ let xlsxP=null,mammothP=null;
 function loadScript(srcs,glob){return new Promise((res,rej)=>{let i=0;const next=()=>{if(i>=srcs.length)return rej(new Error("pustaka gagal dimuat"));const sc=document.createElement("script");sc.src=srcs[i++];sc.onload=()=>window[glob]?res(window[glob]):next();sc.onerror=next;document.head.appendChild(sc);};next();});}
 function loadXlsx(){if(window.XLSX)return Promise.resolve(window.XLSX);return xlsxP||(xlsxP=loadScript(["https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js","https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"],"XLSX").catch(e=>{xlsxP=null;throw e;}));}
 function loadMammoth(){if(window.mammoth)return Promise.resolve(window.mammoth);return mammothP||(mammothP=loadScript(["https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js","https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"],"mammoth").catch(e=>{mammothP=null;throw e;}));}
-async function fileBytes(f){if(f.storage==="sb")return S.assets.bytes(f.assetId);const snap=await S.db.collection("blobs").where("fileId","==",f.id).get();const parts=snap.docs.map(d=>d.data()).sort((a,b)=>a.i-b.i);
+async function fileBytes(f){if(f.storage==="sb"&&!f.assetId)throw new Error("berkas ini tidak tersimpan di Google Drive (upload sebelumnya gagal). Hapus lalu upload ulang");if(f.storage==="sb")return S.assets.bytes(f.assetId);const snap=await S.db.collection("blobs").where("fileId","==",f.id).get();const parts=snap.docs.map(d=>d.data()).sort((a,b)=>a.i-b.i);
   if(parts.length<(f.chunks||1))throw new Error("data file belum lengkap");const bin=atob(parts.map(p=>p.data).join(""));const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;}
 const kindOfName=n=>/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(n)?"img":/\.pdf$/i.test(n)?"pdf":/\.docx$/i.test(n)?"docx":isExcel(n)?"xls":/\.(txt|csv|md|json|log)$/i.test(n)?"txt":"other";
 const MIME={img:"image/jpeg",pdf:"application/pdf",txt:"text/plain"};
@@ -2008,7 +2008,7 @@ function openFile(id){
       else if(k==="txt"){pv.innerHTML=`<pre class="docview" style="white-space:pre-wrap">${esc(new TextDecoder().decode(await get()).slice(0,200000))}</pre>`;}
       else{pv.innerHTML=`<div class="empty"><b>Pratinjau belum tersedia untuk file ${esc((f.name.split(".").pop()||"").toUpperCase())}</b>${f.drive?"Klik <b>Buka di Google Drive</b> untuk melihatnya tanpa mengunduh.":"Unduh untuk membukanya."}</div>`;}
       if(url){const nb=box.querySelector("#nwB");nb.hidden=false;nb.onclick=()=>{const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener";document.body.appendChild(a);a.click();a.remove();};}
-    }catch(err){pv.innerHTML=`<div class="note">File tidak bisa ditampilkan (${esc(errMsg(err))}).${f.drive?" Coba <b>Buka di Google Drive</b>.":" Silakan unduh."}</div>`;}});
+    }catch(err){pv.innerHTML=`<div class="note">File tidak bisa ditampilkan (${esc(errMsg(err))}).${f.drive?" Coba <b>Buka di Google Drive</b>.":f.storage==="sb"&&!f.assetId?"":" Silakan unduh."}</div>`;}});
 }
 function openPhotos(list,i){
   if(!list.length)return;let cur=i||0;const urls={};
@@ -2245,6 +2245,8 @@ async function repairData(){
   if(ns&&nv&&!(nv.rows||[]).length&&versionsOf(ns.id).length===1){await unlink(nv.id);await S.db.collection("versions").doc(nv.id).delete();await S.db.collection("series").doc(ns.id).delete();n++;}
   /* 4. notulensi yang tersimpan di folder tanggal dipindah ke Unit-nya (berkas tetap di folder tanggal) */
   for(const x of S.series){const u=unitOf(x.folderId);if(u&&u!==(x.folderId||null)){await S.db.collection("series").doc(x.id).update({folderId:u});n++;}}
+  /* 5. catatan berkas tanpa file di Drive (upload dulu gagal) -> hapus catatannya */
+  for(const f of S.files.filter(f=>f.storage==="sb"&&!f.assetId)){await S.db.collection("files").doc(f.id).delete();n++;}
   if(n)toast("Data notulensi dirapikan: setiap notulensi kini berada di Unit masing-masing");}
 
 /* ================= print ================= */
