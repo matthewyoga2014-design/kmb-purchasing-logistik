@@ -710,6 +710,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 @media print{.slotTg,.slotHead .btn{display:none!important}.slotTbl table{min-width:0}.slotTbl tr{break-inside:avoid}}
 
 /* kirim lagi */
+.sitetag{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;background:#FEF3C7;color:#B45309;border-radius:5px;padding:0 5px;margin-left:4px;vertical-align:1px}
 .slotTbl table{min-width:1040px}
 .slotTbl td.nx{min-width:150px}
 .slotTbl td.nx .go{display:block;color:var(--pri-2,#5B21B6);font-weight:600}
@@ -953,6 +954,27 @@ const mobProj = m => { const u=unitOfMob(m); return (u&&u.projectId) || m.projec
 const isAktif = m => m.status==="Direncanakan"||m.status==="Berjalan";
 const mobsOfUnit = u => S.mobs.filter(m=>m.unitId===u.id||m.unitKode===u.kode).sort((a,b)=>(a.tanggal+(a.jam||"")).localeCompare(b.tanggal+(b.jam||"")));
 const nextMobOf = u => mobsOfUnit(u).find(isAktif);
+const projByName = n => S.projects.find(p=>String(p.kode).trim().toLowerCase()===String(n||"").trim().toLowerCase());
+async function siapkanTujuan(u,nama,tanggal){
+  // project tujuan: buat bila belum ada; item dengan tipe yang sama: buat atau tambah rencana 1 unit
+  let P=projByName(nama);
+  if(!P){ const id="p-"+uid(); await store.add(COL.proj,{id,kode:nama.trim(),nama:"",lokasi:"",catatan:`Dibuat otomatis dari pengiriman ${u.kode}`,urut:S.projects.length+1}); P=projOf(id)||{id,kode:nama.trim()}; toast(`Project baru ${nama.trim()} dibuat.`); }
+  const tipe=u.tipe||(S.kirim.find(k=>k.id===u.kirimId)||{}).tipe||"Unit";
+  let K=S.kirim.find(k=>k.projectId===P.id&&k.tipe===tipe);
+  if(!K){ const id="k-"+uid(); await store.add(COL.kirim,{id,projectId:P.id,tipe,rencanaAwal:1,rencana:1,eta:tanggal||"",moda:"",asal:projKode(u.projectId),catatan:"Unit pindahan antar-site",urut:itemsOf(P.id).length+1,updatedAt:nowIso()}); }
+  else { const lama=Number(K.rencana)||0; await store.update(COL.kirim,K.id,{rencana:lama+1,updatedAt:nowIso()});
+    await store.add(COL.revisi,{kirimId:K.id,projectId:P.id,tipe,lama,baru:lama+1,alasan:`Tambahan ${u.kode} pindahan dari ${projKode(u.projectId)}`,etaLama:K.eta||"",etaBaru:K.eta||"",waktu:nowIso(),...(meEmail?{oleh:meEmail}:{})}); }
+  return P;
+}
+async function pindahkanUnit(u,m){
+  const P=projByName(m.ke); if(!P||P.id===u.projectId) return false;
+  const tipe=u.tipe, K=S.kirim.find(k=>k.projectId===P.id&&k.tipe===tipe), asal=S.kirim.find(k=>k.id===u.kirimId), dari=projKode(u.projectId);
+  await store.update(COL.units,u.id,{projectId:P.id,kirimId:K?K.id:"",status:"Tiba",lokasi:P.kode,tglTiba:todayStr(),updatedAt:nowIso()});
+  if(asal){ const lama=Number(asal.rencana)||0; if(lama>0){ await store.update(COL.kirim,asal.id,{rencana:lama-1,updatedAt:nowIso()});
+    await store.add(COL.revisi,{kirimId:asal.id,projectId:asal.projectId,tipe:asal.tipe,lama,baru:lama-1,alasan:`${u.kode} dipindah ke ${P.kode}`,etaLama:asal.eta||"",etaBaru:asal.eta||"",waktu:nowIso(),...(meEmail?{oleh:meEmail}:{})}); } }
+  toast(`${u.kode} sudah tiba di ${P.kode} dan pindah ke project itu (dari ${dari}).`);
+  return true;
+}
 const tujuanList = () => [...new Set([...projects().map(p=>p.kode),...lokasiList()])];
 const inFilter = pid => S.fProj==="all" || pid===S.fProj;
 function projStats(pid){
@@ -1026,7 +1048,7 @@ async function doMutate(fn){
   throw {code:"conflict"};
 }
 const store = {
-  add:(col,data)=>(SRC==="sheet"?sheetOp({col,action:"add",id:uid(),data}):mutate(st=>{ st[col].push({id:uid(),...data}); })).catch(handleErr),
+  add:(col,data)=>{ const id=data.id||uid(); const d={...data}; delete d.id; return (SRC==="sheet"?sheetOp({col,action:"add",id,data:d}):mutate(st=>{ st[col].push({id,...d}); })).catch(handleErr); },
   update:(col,id,data)=>(SRC==="sheet"?sheetOp({col,action:"update",id,data}):mutate(st=>{ const r=st[col].find(x=>x.id===id); if(r) Object.assign(r,data); })).catch(handleErr),
   remove:(col,id)=>(SRC==="sheet"?sheetOp({col,action:"remove",id}):mutate(st=>{ st[col]=st[col].filter(x=>x.id!==id); })).catch(handleErr)
 };
@@ -1209,11 +1231,12 @@ function formMob(m,presetUnit){
   openForm({
     title:m?"Ubah rencana kirim / mobilisasi":presetUnit?`Kirim lagi ${presetUnit.kodeSementara?presetUnit.tipe:presetUnit.kode}`:"Rencana kirim / mobilisasi baru",
     desc:presetUnit&&!m?`Unit ini sekarang di ${presetUnit.lokasi||projKode(presetUnit.projectId)}. Catat ke mana unit ini dikirim berikutnya — ke area kerja, workshop, atau site/project lain.`:"Estimasi waktu tempuh dihitung dari jarak dan kecepatan rata-rata moda.",
-    values:m||{unitKode:pu?pu.kode:list[0].kode,status:"Direncanakan",dari:pu?(pu.lokasi||projKode(pu.projectId)):"Laydown Pelabuhan",tanggal:addDays(1),jam:"06:00",moda:Object.keys(MODA)[0]},
+    values:m?{...m,jenis:projByName(m.ke)&&projByName(m.ke).id!==((unitOfMob(m)||{}).projectId)?"site":"lokal"}:{jenis:"lokal",unitKode:pu?pu.kode:list[0].kode,status:"Direncanakan",dari:pu?(pu.lokasi||projKode(pu.projectId)):"Laydown Pelabuhan",tanggal:addDays(1),jam:"06:00",moda:Object.keys(MODA)[0]},
     fields:[
       {key:"unitKode",label:"Unit",type:"select",options:opts,full:true},
       {key:"dari",label:"Dari (posisi sekarang)",req:true,list:lokasiList()},
-      {key:"ke",label:"Ke (tujuan berikutnya)",req:true,list:tujuanList(),ph:"Pit 1 / workshop / site lain",hint:"Bisa area kerja, workshop, atau nama site/project lain."},
+      {key:"jenis",label:"Jenis tujuan",type:"select",full:true,options:[{v:"lokal",l:"Area kerja / workshop di project ini"},{v:"site",l:"Site / project lain (unit pindah project)"}]},
+      {key:"ke",label:"Ke (tujuan berikutnya)",req:true,list:tujuanList(),ph:"Pit 1 / workshop / nama site"},
       {key:"tanggal",label:"Tanggal berangkat",type:"date",req:true},
       {key:"jam",label:"Jam berangkat",type:"time"},
       {key:"jarak",label:"Jarak tempuh (km)",type:"number",min:0,step:"0.1"},
@@ -1224,18 +1247,31 @@ function formMob(m,presetUnit){
       {key:"status",label:"Status",type:"select",options:MOB_STATUS.map(s=>s.k)},
       {key:"catatan",label:"Catatan rute & izin",type:"textarea",full:true,ph:"Batas tinggi jembatan, tutup jalan, izin area…"}
     ],
-    live:v=>{ const p=$("#f_preview"); if(!p) return; const e=estimasi(v);
+    live:(v,target)=>{ const p=$("#f_preview"); if(!p) return; const e=estimasi(v);
+      const kl=$("#f_ke_l"), uu=S.units.find(x=>x.kode===v.unitKode);
+      if(kl && (!target||target.id==="f_jenis")) kl.innerHTML=(v.jenis==="site"?projects().filter(x=>!uu||x.id!==uu.projectId).map(x=>x.kode):lokasiList()).map(o=>`<option value="${esc(o)}"></option>`).join("");
+      const h=$("#f_ke").closest(".field"); let hint=h.querySelector(".hint"); if(!hint){ hint=document.createElement("span"); hint.className="hint"; h.appendChild(hint); }
+      if(v.jenis==="site"){ const P=projByName(v.ke); hint.innerHTML=!v.ke.trim()?"Pilih site/project tujuan, atau ketik nama site baru.":P?`Saat status <b>Selesai</b>, unit pindah ke project <b>${esc(P.kode)}</b>.`:`<b style="color:var(--pri-2)">Project baru "${esc(v.ke.trim())}" akan dibuat otomatis</b> dan unit masuk ke sana saat status Selesai.`; }
+      else hint.textContent="Unit tetap di project ini, hanya posisinya yang berubah.";
       p.innerHTML=e?`Estimasi waktu tempuh <b>${esc(e.durasi)}</b>${e.tiba?` · tiba sekitar <b>${esc(e.tiba)}</b>`:""} <span class="muted small">(${MODA[v.moda]} km/jam rata-rata)</span>`:`<span class="muted">Isi jarak untuk melihat estimasi waktu tempuh.</span>`; },
     onSubmit:d=>{
       const u=S.units.find(x=>x.kode===d.unitKode); d.unitId=u?u.id:""; d.projectId=u?u.projectId:"";
       if(d.jarak==="") d.jarak=0;
+      const jenis=d.jenis; delete d.jenis;
+      if(jenis==="site"){ const P=projByName(d.ke); if(P&&u&&P.id===u.projectId){ toast("Tujuan sama dengan project unit sekarang. Pilih jenis tujuan Area kerja."); return false; }
+        const baru=!m || (m.ke!==d.ke);
+        (async()=>{ if(baru&&u){ const T=await siapkanTujuan(u,d.ke,d.tanggal); d.ke=T.kode; }
+          if(m) await store.update(COL.mobs,m.id,d); else await store.add(COL.mobs,d);
+          toast(`${d.unitKode} dijadwalkan kirim ke site ${d.ke}, ${fmtDate(d.tanggal)}.`); await efekStatus(d); })().catch(()=>{});
+        return; }
       if(m) store.update(COL.mobs,m.id,d).then(()=>{toast("Rencana diperbarui."); efekStatus(d);}).catch(()=>{});
       else store.add(COL.mobs,d).then(()=>{toast(`${d.unitKode} dijadwalkan kirim ke ${d.ke}, ${fmtDate(d.tanggal)}.`); efekStatus(d);}).catch(()=>{});
     }
   });
 }
-function efekStatus(m){
+async function efekStatus(m){
   const u=unitOfMob(m); if(!u) return;
+  if(m.status==="Selesai"){ const P=projByName(m.ke); if(P&&P.id!==u.projectId){ await pindahkanUnit(u,m); return; } }
   if(m.status==="Berjalan" && u.status!=="Mobilisasi") store.update(COL.units,u.id,{status:"Mobilisasi",lokasi:"Dalam perjalanan ke "+m.ke,updatedAt:nowIso()}).catch(()=>{});
   if(m.status==="Selesai") store.update(COL.units,u.id,{status:"Standby",lokasi:m.ke,updatedAt:nowIso()}).catch(()=>{});
 }
@@ -1419,7 +1455,7 @@ function slotUnits(k){ return unitsOfItem(k).slice().sort((a,b)=>String(a.rencan
 function nextCell(u){
   const nx=nextMobOf(u), done=mobsOfUnit(u).filter(m=>m.status==="Selesai");
   const hist=done.length?`<small class="jalur" title="Riwayat perpindahan">${esc([done[0].dari,...done.map(m=>m.ke)].join(" → "))}</small>`:"";
-  if(nx) return `<span class="go">→ <b>${esc(nx.ke)}</b></span><small>${fmtDate(nx.tanggal)}${nx.jam?" "+esc(nx.jam):""} · ${chip(MOB_STATUS,nx.status)}</small>${hist}`;
+  if(nx) return `<span class="go">→ <b>${esc(nx.ke)}</b>${projByName(nx.ke)&&projByName(nx.ke).id!==u.projectId?' <span class="sitetag">site lain</span>':""}</span><small>${fmtDate(nx.tanggal)}${nx.jam?" "+esc(nx.jam):""} · ${chip(MOB_STATUS,nx.status)}</small>${hist}`;
   if(!arrived(u)) return hist||'<span class="muted">—</span>';
   return hist||'<span class="muted">Belum ada</span>';
 }
