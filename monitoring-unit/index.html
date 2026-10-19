@@ -1977,10 +1977,10 @@ function showAccount(){
     <div class="rules">
     ${r("owner","lock","purple","Pemilik","Mengubah semua data, menambah project, mengatur siapa yang menjadi Editor, mengunduh Excel, dan print.")}
     ${r("editor","check","blue","Editor","Didaftarkan oleh Pemilik. Bisa mengubah data, mengunduh Excel, dan print.")}
-    ${r("viewer","eye","orange","Hanya lihat","Siapa pun yang membuka web ini, termasuk yang belum masuk. Bisa melihat dashboard, tidak bisa mengubah, mengunduh, atau print.")}
-    </div>${role==="owner"||role==="editor"?srcBox():""}${role==="owner"?`<button class="btn" type="button" id="btnRoles" style="grid-column:1/-1">${ic("users")}Kelola Editor</button>`:""}`;
+    ${r("viewer","eye","orange","Hanya lihat","Pelihat yang membuka link khusus dapat melihat dashboard dan mencetak, tetapi tidak bisa mengubah data.")}
+    </div>${role==="owner"?srcBox():""}${role==="owner"?`<button class="btn" type="button" id="btnRoles" style="grid-column:1/-1">${ic("users")}Kelola Editor</button>`:""}`;
   wireSrcBox();
-  $("#btnLogout").onclick=async()=>{ await sb.auth.signOut(); $("#dlg").close(); toast("Anda sudah keluar."); };
+  $("#btnLogout").onclick=async()=>{ if(GUEST_SHARE){$("#dlg").close();toast("Akses link masih aktif selama link berlaku. Hubungi Pemilik untuk mencabut link.");return;} await sb.auth.signOut(); $("#dlg").close(); toast("Anda sudah keluar."); };
   const br=$("#btnRoles"); if(br) br.onclick=()=>{ $("#dlg").close(); showRoles(); };
 }
 function srcBox(){
