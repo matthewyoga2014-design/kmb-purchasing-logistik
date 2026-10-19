@@ -339,6 +339,9 @@ const ROLE_L = { owner: 'Pemilik', editor: 'Editor', viewer: 'Pelihat' };
 const S = { sb: null, user: null, apps: {}, loaded: false, pend: {}, invite: null, inviteRes: null, acc: {}, rows: null, apd: null };
 const ui = { page: 'home', app: '' };
 const BASE = location.origin + location.pathname.replace(/index\.html$/, '');
+const PORTAL_SHARE = new URLSearchParams(location.search).get('share') || '';
+const GUEST_LINKS = {}; // appId => {token,role}; visible only to holders of the special sharing link
+
 
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -354,6 +357,34 @@ const mh = (e, t) => `<div class="mh"><div><div class="eb2">${e}</div><h3 id="mT
 const acts = (label) => `<div class="row"><button type="button" class="btn btn-g" data-close>Batal</button><button type="submit" class="btn btn-p">${label}</button></div>`;
 const chip = (r) => `<span class="chip ${r === 'owner' ? 'own' : r === 'viewer' ? 'vw' : ''}">${ROLE_L[r] || r}</span>`;
 
+// Spreadsheet-style shared portal: verified per-application tokens, no email/password.
+// No tokens are ever elevated to Owner and no management or settings links are rendered.
+async function loadGuestPortal() {
+  Object.keys(GUEST_LINKS).forEach(k => delete GUEST_LINKS[k]);
+  const ts = PORTAL_SHARE.split('.').filter(t => /^[a-f0-9]{48}$/.test(t)).slice(0, 12);
+  if (!ts.length) return;
+  const results = await Promise.all(ts.map(t => S.sb.rpc('monitoring_guest_check',{p_token:t}).then(x => ({t,rows:x.data||[]})).catch(() => ({t,rows:[]}))));
+  results.forEach(({t,rows}) => (rows||[]).forEach(r => {
+    if (SUBS.some(s => s.app === r.app_id) && (r.access_role === 'viewer' || r.access_role === 'editor')) {
+      GUEST_LINKS[r.app_id] = { token:t, role:r.access_role };
+    }
+  }));
+}
+function renderGuestPortal() {
+  $('tot').innerHTML = '';
+  $('page').hidden = true;
+  $('page').innerHTML = '';
+  $('note').innerHTML = '<div class="nb"><b>Akses melalui link tanpa login.</b> Editor dapat mengubah data pada web yang dibagikan; Pelihat hanya melihat dan mencetak. Pengaturan hanya untuk Pemilik. Link dapat dicabut atau kedaluwarsa.</div>';
+  const allowed = SUBS.filter(s => GUEST_LINKS[s.app]);
+  $('grid').innerHTML = allowed.length
+    ? '<div style="grid-column:1/-1;padding:16px 4px"><h2 style="margin:0 0 6px">Web Monitoring yang dibagikan</h2><p class="small">Pilih web untuk membukanya langsung tanpa email atau password.</p></div>'
+      + allowed.map(s => {
+         const link=new URL(s.url,BASE).href+'?share='+encodeURIComponent(GUEST_LINKS[s.app].token);
+         const role=GUEST_LINKS[s.app].role;
+         return '<article class="card" style="padding:22px;min-height:160px"><h3 style="margin:0 0 10px">'+esc(s.name)+'</h3><p class="small">'+esc(s.portal)+'</p><p class="small"><b>'+ROLE_L[role]+'</b> · '+(role==='editor'?'Bisa mengedit':'Lihat & print')+' · Tanpa login</p><a class="btn btn-p" style="display:inline-flex;text-decoration:none" href="'+esc(link)+'">Buka web →</a></article>';
+      }).join('')
+    : '<div class="lock"><h2>Link tidak aktif</h2><p>Link berbagi tidak berlaku, telah dicabut, atau kedaluwarsa. Minta Pemilik membuat link baru melalui Bagikan → Link tanpa login.</p></div>';
+}
 // ---------- undangan (?i=token) ----------
 (function () {
   try { const u = new URL(location.href); const i = u.searchParams.get('i'); if (i) { localStorage.setItem('kta-invite', i); u.searchParams.delete('i'); history.replaceState(null, '', u.pathname + u.search + u.hash); } } catch (e) {}
@@ -451,6 +482,7 @@ function render() {
   $('prBtn').hidden = !S.user; $('setBtn').hidden = !S.user; $('saBtn').hidden = !S.user || !staffApps().length;
   const pc = Object.values(S.pend).reduce((a, b) => a + b, 0); $('setBtn').querySelector('.dot').hidden = !pc;
   if (!S.loaded) { $('tot').innerHTML = ''; $('grid').innerHTML = '<div class="lock"><span class="lg">M</span><p>Menyiapkan…</p></div>'; $('page').hidden = true; return; }
+  if (PORTAL_SHARE) { renderGuestPortal(); return; }
   if (!S.user) { $('tot').innerHTML = ''; $('note').innerHTML = ''; $('page').hidden = true; $('grid').innerHTML = loginHtml(); return; }
   if (ui.page !== 'home') { $('page').hidden = false; $('page').innerHTML = ui.page === 'guide' ? pageGuide() : pageSet(); return; }
   $('page').hidden = true; $('page').innerHTML = '';
@@ -779,6 +811,7 @@ async function boot() {
   await peekInvite();
   await redeemInvite();
   await loadApps();
+  if (PORTAL_SHARE) await loadGuestPortal();
   S.loaded = true; render();
   const IR = S.inviteRes; if (IR && IR.length === 1 && IR[0].status === 'ok' && IR[0].sub) setTimeout(() => { if (S.inviteRes) location.href = IR[0].sub.url; }, 2500);
 }
