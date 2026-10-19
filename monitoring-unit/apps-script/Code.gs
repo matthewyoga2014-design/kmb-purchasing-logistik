@@ -42,7 +42,7 @@ const NUM_KEYS = { urut: 1, rencanaAwal: 1, rencana: 1, hm: 1, jarak: 1, lama: 1
 
 /* ---------------- web API ---------------- */
 function doGet(e) {
-  const who = verify_(e && e.parameter && e.parameter.token);
+  const who = verify_(e && e.parameter && e.parameter.token, e && e.parameter && e.parameter.share);
   if (!who) return json_({ ok: false, error: 'not_signed_in' });
   if (!who.role) return json_({ ok: false, error: 'forbidden', email: who.email });
   const cache = CacheService.getScriptCache();
@@ -56,7 +56,7 @@ function doGet(e) {
 function doPost(e) {
   let body;
   try { body = JSON.parse(e.postData.contents || '{}'); } catch (err) { return json_({ ok: false, error: 'bad_request' }); }
-  const who = verify_(body.token);
+  const who = verify_(body.token, body.share);
   if (!who) return json_({ ok: false, error: 'not_signed_in' });
   if (who.role !== 'owner' && who.role !== 'editor') return json_({ ok: false, error: 'forbidden', email: who.email });
   const lock = LockService.getScriptLock();
@@ -78,7 +78,8 @@ function json_(o) {
 }
 
 /* ---------------- cek login & peran (sama dengan portal) ---------------- */
-function verify_(token) {
+function verify_(token, share) {
+  if (share) return sharedWho_(share);
   if (!token) return null;
   const cache = CacheService.getScriptCache();
   const key = 'vf_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token));
@@ -97,6 +98,20 @@ function verify_(token) {
   const who = { email: email, role: role };
   try { cache.put(key, JSON.stringify(who), 300); } catch (err) {}
   return who;
+}
+
+/* Pemeriksaan link langsung ke Supabase pada setiap request: revoked/expired langsung ditolak. */
+function sharedWho_(token) {
+  if (!/^[a-f0-9]{48}$/.test(String(token || ''))) return null;
+  const h={apikey:SB_KEY,Authorization:'Bearer '+SB_KEY};
+  const r=UrlFetchApp.fetch(SB_URL+'/rest/v1/rpc/monitoring_guest_check',{
+    method:'post',contentType:'application/json',headers:h,
+    payload:JSON.stringify({p_token:token}),muteHttpExceptions:true
+  });
+  if(r.getResponseCode()!==200)return null;
+  let rows=[];try{rows=JSON.parse(r.getContentText()||'[]');}catch(e){return null;}
+  const found=rows.find(x=>x.app_id===APP);
+  return found ? {email:found.access_role+'-link@monitoring.local',role:found.access_role} : null;
 }
 
 /* ---------------- baca sheet ---------------- */
