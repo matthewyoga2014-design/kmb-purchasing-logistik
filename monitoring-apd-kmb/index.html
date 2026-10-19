@@ -1098,7 +1098,8 @@ const HELM_DOT = { Putih: '#FFFFFF', Kuning: '#F5C518', Biru: '#2563EB' };
 const S = { perms: {}, asked: false, sb: null, user: null, role: '', state: null, revision: 0, ver: null, people: [], access: null, audit: null, share: null, grant: null, grants: null, saving: false, noAccess: false, loaded: false };
 const ui = { page: 'dashboard', person: '', q: '', site: 'ALL', period: 'bulanan', year: new Date().getFullYear(), hq: '', ht: 'ALL', wh: 'ALL', rq: 'pending' };
 // link anonim ?k= tidak dipakai lagi: semua wajib masuk dengan email yang diundang (Pusat Monitoring)
-const SHARE_KEY = '', HUB = '../';
+const SHARE_KEY = new URLSearchParams(location.search).get('share') || '', HUB = '../';
+let GUEST_ROLE = '';
 (function () {
   try { localStorage.removeItem('kta-share:' + APP); const u = new URL(location.href); if (u.searchParams.has('k')) { u.searchParams.delete('k'); history.replaceState(null, '', u.pathname + u.search + u.hash); } } catch (e) {}
   try { const h = (location.hash || '').slice(1); if (h) ui.page = h; } catch (e) {}
@@ -1120,6 +1121,7 @@ const isOwner = () => S.role === 'owner';
 const PERM_FIXED = ['dashboard', 'setting'];
 function permOf(id, k) {
   if (S.role === 'owner') return true; if (S.role !== 'editor' && S.role !== 'viewer') return false;
+  if (id === 'setting' || id === 'stock' || id === 'images' || id === 'ga' || id === 'deleted') return false;
   id = id === 'detail' ? 'people' : id;
   if (k === 'v' && PERM_FIXED.includes(id)) return true;
   const p = ((S.perms || {})[S.role] || {})[id]; if (p && typeof p[k] === 'boolean') return p[k];
@@ -1230,7 +1232,7 @@ const reqOpen = () => S.state.requests.filter((r) => r.status === 'pending' || r
 
 // ---------- data dari server ----------
 async function loadPeople() {
-  const r = await S.sb.rpc('apd_people', { p_key: SHARE_KEY || null });
+  const r = SHARE_KEY ? await S.sb.rpc('monitoring_guest_apd_people', {p_token:SHARE_KEY}) : await S.sb.rpc('apd_people', { p_key: null });
   if (r.error) throw r.error;
   const seen = new Map();
   (r.data || []).forEach((x) => {
@@ -1246,7 +1248,7 @@ async function loadPeople() {
   S.people = [...seen.values()].sort((a, b) => a.name.localeCompare(b.name, 'id'));
 }
 async function loadApd() {
-  const r = await S.sb.rpc('apd_read', { p_key: SHARE_KEY || null });
+  const r = SHARE_KEY ? await S.sb.rpc('monitoring_guest_apd_read', {p_token:SHARE_KEY}) : await S.sb.rpc('apd_read', {p_key:null});
   if (r.error) throw r.error;
   const row = (r.data || [])[0];
   S.noAccess = !row;
@@ -1265,6 +1267,7 @@ async function loadAll(silent) {
 }
 async function findRole() {
   S.role = ''; S.grant = null;
+  if(SHARE_KEY){S.role=GUEST_ROLE;return;}
   const em = ((S.user && S.user.email) || '').toLowerCase();
   if (!em) return;
   if (em === OWNER) { S.role = 'owner'; return; }
@@ -1296,11 +1299,11 @@ function editorGuard(next) {
 async function persist(next, msg, audit) {
   if (!can()) { toast('Hanya Pemilik/Editor yang dapat menyimpan data.', true); return false; }
   if (S.saving) return false;
-  if (!isOwner()) { const g = editorGuard(next); if (g) { toast(g, true); return false; } }
+  if (!isOwner() && !SHARE_KEY) { const g = editorGuard(next); if (g) { toast(g, true); return false; } }
   const issue = validate(next); if (issue) { toast('Tidak dapat menyimpan: ' + issue, true); return false; }
   S.saving = true; saving(true);
   try {
-    const { data, error } = await S.sb.from('apd_state').update({ data: next, revision: S.revision + 1, updated_at: new Date().toISOString(), updated_by: S.user.email }).eq('id', 'main').eq('revision', S.revision).select('revision,updated_at');
+    const {data,error} = SHARE_KEY ? await S.sb.rpc('monitoring_guest_apd_save',{p_token:SHARE_KEY,p_data:next,p_revision:S.revision}) : await S.sb.from('apd_state').update({ data: next, revision: S.revision + 1, updated_at: new Date().toISOString(), updated_by: S.user.email }).eq('id', 'main').eq('revision', S.revision).select('revision,updated_at');
     if (error) throw error;
     if (!data || !data.length) { await loadAll(true); toast('Data baru saja diubah orang lain. Data terbaru sudah dimuat, silakan ulangi.', true); return false; }
     S.state = normalize(next); applyTypes(); S.revision = Number(data[0].revision); S.ver = data[0].updated_at;
@@ -1988,6 +1991,7 @@ async function init() {
   S.state = empty(); applyTypes(); render();
   if (!window.supabase || !window.supabase.createClient) { toast('Tidak bisa terhubung ke server. Periksa koneksi lalu muat ulang.', true); return; }
   S.sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'kta-web-auth' } });
+  if(SHARE_KEY){const r=await S.sb.rpc('monitoring_guest_check',{p_token:SHARE_KEY});const g=(r.data||[]).find(x=>x.app_id==='apd');GUEST_ROLE=g?g.access_role:'';if(!GUEST_ROLE){S.loaded=true;S.noAccess=true;render();return;}}
   try { const { data } = await S.sb.auth.getSession(); S.user = (data && data.session && data.session.user) || null; } catch (e) {}
   await findRole(); await loadAll(); live();
   S.sb.auth.onAuthStateChange((ev, s) => { const nu = (s && s.user) || null; if ((nu && nu.email) === (S.user && S.user.email)) return; S.user = nu; setTimeout(async () => { await findRole(); await loadAll(true); live(); if (ev === 'SIGNED_IN') toast('Masuk sebagai ' + nu.email + '.'); if (ev === 'SIGNED_OUT') toast('Anda sudah keluar.'); }, 0); });
