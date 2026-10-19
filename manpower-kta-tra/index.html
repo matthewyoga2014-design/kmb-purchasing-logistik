@@ -3873,7 +3873,8 @@ setTimeout(webInit, 0);
 
 // ---------- izin cetak (Pelihat) ----------
 async function loadGrant() {
-  WEB.grant = null; PRINT_OK = false;
+  WEB.grant = null; PRINT_OK = !!(SHARE_KEY && GUEST_ROLE);
+  if (SHARE_KEY && GUEST_ROLE) return;
   if (!WEB.sb || !WEB.user || CAN_EDIT) return;
   const { data } = await WEB.sb.from(WEB_PRINT).select('status,requested_at,decided_at').eq('app_id', WEB_ROLE_APP).eq('email', WEB.user.email.toLowerCase()).maybeSingle();
   WEB.grant = data || null; PRINT_OK = !!(data && data.status === 'approved');
