@@ -656,10 +656,19 @@ document.body.insertAdjacentHTML('afterbegin', `
     <button class="btn btn-p" id="upBtn" type="button" hidden><svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Sinkronkan Excel</button>
   </header>
   <input type="file" id="fileIn" accept=".xlsx,.xlsm,.xls" hidden>
-  <main class="content" id="view"></main>
+  <main class="content" id="view"><div id="mpInitialLoader" style="max-width:540px;margin:24px auto;padding:26px;border-radius:16px;background:#fff;border:1px solid #e6e2f2;color:#403755;text-align:center"><div style="font-size:17px;font-weight:700;margin-bottom:10px">Memuat dashboard Monitoring…</div><div style="font-size:13px;line-height:1.65">Memeriksa izin link dan mengambil data. Pada koneksi HP yang lambat proses dapat memerlukan beberapa saat.</div></div></main>
 </div>
 <div class="modal" id="modal" hidden><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="mTitle" id="dialog"></div></div>
 <div id="toast" role="status" aria-live="polite" hidden></div>`);
+  // Dipasang sesaat setelah elemen halaman dibuat agar blank screen tidak terjadi
+  // walaupun kode utama berikutnya gagal atau jaringan HP sangat lambat.
+  window.__mpInitialWatch=setTimeout(function(){
+    var v=document.getElementById('view');
+    var loaded=false;try{loaded=(typeof WEB!=='undefined'&&WEB.ready);}catch(e){}
+    if(v&&!loaded){
+      v.innerHTML='<section style="margin:24px auto;max-width:560px;padding:24px;border-radius:16px;background:#fff;border:1px solid #e6e2f2;color:#352c48"><h2 style="margin:0 0 10px;font-size:18px">Dashboard belum terbuka</h2><p style="font-size:14px;line-height:1.65">Koneksi data memerlukan waktu terlalu lama atau browser HP gagal memuat halaman. Pastikan sinyal stabil, lalu coba lagi.</p><button type="button" onclick="location.reload()" style="padding:12px 18px;background:#6d28d9;color:white;border:0;border-radius:10px;font-weight:700">Coba Muat Ulang</button></section>';
+    }
+  },24000);
 /* Parser: sheets = { sheetName: [[cell,...],...] } (row 0 = Excel row 1, col 0 = column A).
    Dates arrive as Excel serial numbers. Only non-sensitive fields are kept. */
 function parseSheets(sheets, cfg) {
@@ -3856,11 +3865,29 @@ document.addEventListener('click', (e) => {
 // ---------- start ----------
 async function webInit() {
   authBtn();
-  if (!window.supabase || !window.supabase.createClient) { WEB.offline = true; toast('Tidak bisa terhubung ke server data. Menampilkan data terakhir yang tersimpan.', true); return; }
+  if (!window.supabase || !window.supabase.createClient) { WEB.offline = true; monitoringStatus('Layanan data tidak terhubung','Gagal memuat koneksi database. Coba buka di Safari/Chrome, lalu tekan Coba Muat Ulang.'); return; }
   WEB.sb = window.supabase.createClient(WEB_CFG.url, WEB_CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'kta-web-auth' } });
-  if(SHARE_KEY){const x=await WEB.sb.rpc('monitoring_guest_check',{p_token:SHARE_KEY});const g=(x.data||[]).find(v=>v.app_id===WEB_ROLE_APP);GUEST_ROLE=g?g.access_role:'';if(!GUEST_ROLE){lockWeb();toast('Link tidak berlaku.',true);return;}}
+  if(SHARE_KEY){
+    const check=await Promise.race([
+      WEB.sb.rpc('monitoring_guest_check',{p_token:SHARE_KEY}),
+      new Promise(resolve=>setTimeout(()=>resolve({error:{message:'Koneksi terlalu lama. Periksa sinyal lalu muat ulang.'}}),16000))
+    ]);
+    if(check.error) { monitoringStatus('Tidak dapat memeriksa link',check.error.message||'Server tidak merespons.'); return; }
+    const g=(check.data||[]).find(v=>v.app_id===WEB_ROLE_APP);
+    GUEST_ROLE=g?g.access_role:'';
+    if(!GUEST_ROLE){ monitoringStatus('Link tidak berlaku','Minta Pemilik membuat link baru melalui Bagikan → Link tanpa login.'); return; }
+  }
   try { const { data } = await WEB.sb.auth.getSession(); WEB.user = (data && data.session && data.session.user) || null; } catch (e) {}
-  try { await webLoad(); } catch (e) { toast('Data terbaru belum bisa dimuat: ' + ((e && e.message) || 'periksa koneksi.'), true); }
+  try {
+    const received=await Promise.race([
+      webLoad().then(()=>({ok:true})),
+      new Promise(resolve=>setTimeout(()=>resolve({error:'Koneksi data terlalu lama'}),20000))
+    ]);
+    if(received.error){monitoringStatus('Data belum dapat dimuat','Server lambat merespons. Periksa sinyal lalu ketuk Coba Muat Ulang.');return;}
+  } catch (e) {
+    monitoringStatus('Data belum dapat dimuat',(e&&e.message)||'Periksa koneksi dan muat ulang.');
+    return;
+  }
   await applyRole();
   WEB.ready = true; render();
   if (WEB.noAccess && !CAN_EDIT) lockWeb();
