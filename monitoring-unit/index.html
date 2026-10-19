@@ -2068,7 +2068,7 @@ async function downloadExcel(){
 }
 $("#btnDownload").addEventListener("click",downloadExcel);
 $("#btnPrint").addEventListener("click",()=>{
-  if(!(role==="owner"||role==="editor")){ toast("Print hanya untuk Pemilik dan Editor."); return; }
+  if(!(role==="owner"||role==="editor"||(GUEST_SHARE&&role==="viewer"))){ toast("Print hanya untuk Pemilik, Editor, dan Pelihat yang memiliki link khusus."); return; }
   const P=curProj(), TAB={ringkasan:"Dashboard",pengiriman:"Rencana Kirim",unit:"Unit di Lokasi",mobilisasi:"Rencana Mobilisasi",dokumentasi:"Dokumentasi"};
   const judul=P?`Monitoring Unit ${P.kode} · ${TAB[S.tab]||"Dashboard"}`:"Monitoring Unit & Mobilisasi · Semua Project";
   const ph=$("#printHead"); ph.innerHTML=`<b>${esc(judul)}</b><span>${P&&P.nama?esc(P.nama)+"<br>":""}Dicetak ${esc(new Date().toLocaleString("id-ID",{dateStyle:"long",timeStyle:"short"}))} · ${esc(meEmail)}</span>`;
