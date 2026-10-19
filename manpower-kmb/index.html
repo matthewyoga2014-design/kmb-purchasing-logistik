@@ -3876,7 +3876,26 @@ async function webInit() {
   if (PROJ.sites) { loadAllSites(); WEB.sb.channel('kta-web-sites').on('postgres_changes', { event: '*', schema: 'public', table: WEB_TABLE }, (pl) => { const n = pl.new; if (n && n.id && PROJ.sites.some((x) => x.id === n.id) && n.data) { SITE_DATA[n.id] = n.data; if (ui.page === 'karyawan' && document.getElementById('modal').hidden) render(); else siteNavCount(); } }).subscribe(); }
   document.addEventListener('visibilitychange', () => { if (!document.hidden && document.getElementById('modal').hidden && !SAVING) webLoad().catch(() => {}); });
 }
-setTimeout(webInit, 0);
+// Mobile-friendly status: never leave a bare header when a data request or initialization fails.
+function monitoringStatus(title, detail) {
+  let target=document.getElementById('view');
+  if(!target) return;
+  target.innerHTML='<section style="margin:18px auto;max-width:600px;padding:24px;border-radius:18px;background:#fff;border:1px solid #ddd;color:#252438;box-shadow:0 5px 25px #0000000b"><h2 style="margin:0 0 10px">'+title+'</h2><p style="line-height:1.6">'+detail+'</p><button type="button" id="monitoringTryAgain" style="padding:11px 20px;border:0;border-radius:10px;background:#6d28d9;color:#fff;font-weight:700">Coba Muat Ulang</button></section>';
+  const b=document.getElementById('monitoringTryAgain');if(b)b.onclick=()=>location.reload();
+}
+window.addEventListener('unhandledrejection', e => { 
+  if(!WEB.ready) { monitoringStatus('Gagal memuat Monitoring','Ada masalah saat memuat data. Periksa koneksi dan coba ulang. Jika masih terjadi, kirim screenshot ini ke Pemilik.'); }
+});
+window.addEventListener('error', e => {
+  if(!WEB.ready) { monitoringStatus('Halaman belum dapat ditampilkan','Ada bagian halaman yang gagal berjalan. Coba buka di Safari/Chrome biasa, kemudian muat ulang.'); }
+});
+if(document.getElementById('view') && !document.getElementById('view').textContent.trim()) {
+  document.getElementById('view').innerHTML='<div style="padding:35px 18px;text-align:center;opacity:.75">Memuat dashboard monitoring…</div>';
+}
+setTimeout(()=>Promise.resolve().then(webInit).catch(e=>{ 
+  console.error('Monitoring init failed',e);
+  monitoringStatus('Gagal memuat dashboard','Koneksi atau data belum berhasil diproses. Ketuk Coba Muat Ulang setelah sinyal stabil.');
+}),0);
 
 // ---------- izin cetak (Pelihat) ----------
 async function loadGrant() {
