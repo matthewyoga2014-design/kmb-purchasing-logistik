@@ -479,7 +479,7 @@ function apdOf() {
 function render() {
   whoUI();
   document.body.classList.toggle('setmode', ui.page !== 'home' && !!S.user && S.loaded);
-  $('prBtn').hidden = !S.user; $('setBtn').hidden = !S.user; $('saBtn').hidden = !S.user || !staffApps().length;
+  $('prBtn').hidden = !S.user || !!PORTAL_SHARE; $('setBtn').hidden = !S.user || !!PORTAL_SHARE; $('saBtn').hidden = !S.user || !staffApps().length || !!PORTAL_SHARE;
   const pc = Object.values(S.pend).reduce((a, b) => a + b, 0); $('setBtn').querySelector('.dot').hidden = !pc;
   if (!S.loaded) { $('tot').innerHTML = ''; $('grid').innerHTML = '<div class="lock"><span class="lg">M</span><p>Menyiapkan…</p></div>'; $('page').hidden = true; return; }
   if (PORTAL_SHARE) { renderGuestPortal(); return; }
@@ -523,6 +523,7 @@ function p2Card(p) {
     <div class="cb"><div class="nb">Tahap 2: masih memakai akses lamanya sendiri. Akan digabung ke sistem link & izin yang sama.</div></div></article>`;
 }
 function whoUI() {
+  if (PORTAL_SHARE) { $('whoL').textContent='Akses'; $('whoE').textContent='Link tanpa login'; $('menu').innerHTML='<button type="button" data-page="home" role="menuitem">Web dibagikan</button>'; return; }
   $('whoL').textContent = S.user ? 'Masuk sebagai' : 'Belum masuk';
   $('whoE').textContent = S.user ? S.user.email : 'Masuk';
   const pc = Object.values(S.pend).reduce((a, b) => a + b, 0);
@@ -540,7 +541,7 @@ function inviteBox() {
   return `<div class="invite"><span class="chip ${v.role === 'viewer' ? 'vw' : ''}">Undangan ${ROLE_L[v.role]}</span><h3>${ok.length > 1 ? `${ok.length} web monitoring` : esc((subOf(v.app_id) || {}).portal + ' · ' + (subOf(v.app_id) || {}).name)}</h3>${ok.length > 1 ? `<p>${ok.map((x) => { const sb = subOf(x.app_id); return esc(sb ? sb.name : x.app_id) + ` (${ROLE_L[x.role]})`; }).join(' · ')}</p>` : ''}<p>Undangan ini untuk email <b>${esc(v.email_hint)}</b>. Masuk dengan email tersebut untuk menerima akses.${bad ? ` ${bad} link lain sudah tidak berlaku.` : ''}</p></div>`;
 }
 function loginHtml() {
-  return `<div class="lock lgc"><span class="lg">M</span><h2>Masuk</h2><p>Gunakan email yang diundang atau didaftarkan Pemilik.</p>${inviteBox()}
+  return `<div class="lock lgc"><span class="lg">M</span><h2>Masuk</h2><p>Gunakan email yang diundang atau didaftarkan Pemilik.</p>${inviteToken() ? '<div class="nb warn"><b>Ini link undangan email lama.</b> Link ini masih meminta login. Agar penerima langsung masuk tanpa password seperti Google Sheets, minta Pemilik membuat ulang melalui <b>Bagikan → Link tanpa login</b> dan kirim link baru.</div>' : ''}${inviteBox()}
     <form id="lgForm" class="lf" novalidate><label for="lg_e">Email</label><input id="lg_e" type="email" autocomplete="email" required placeholder="nama@email.com"><label for="lg_p">Password (opsional)</label><input id="lg_p" type="password" autocomplete="current-password" placeholder="Kosongkan untuk menerima link masuk lewat email"><button type="submit" class="btn btn-p">Masuk</button></form>
     <div class="invite"><h3>Link email membuka halaman yang salah?</h3><p>Di Gmail, klik kanan tombol/link masuk dan pilih <b>Salin alamat link</b> (jangan klik link). Tempel di bawah agar verifikasi selesai langsung di portal ini.</p>
       <form id="mailLinkForm" class="lf" novalidate><label for="mailLinkInput">Alamat link dari email Supabase</label><input id="mailLinkInput" type="text" autocomplete="off" placeholder="Tempel link verifikasi dari Gmail" required><button type="submit" class="btn btn-g">Verifikasi & masuk</button></form>
