@@ -837,6 +837,7 @@ body{background:radial-gradient(1200px 500px at 85% 0%,#E9E6FB 0%,rgba(233,230,2
 window.NOTU_SA=true;
 (function(){
 const SUPA={url:"https://yoviojbfyvgpllxisjvy.supabase.co",key:"sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9"};
+const GUEST_SHARE = new URLSearchParams(location.search).get("share") || "";
 const GAS_DEFAULT="https://script.google.com/macros/s/AKfycbxEVSGJYpi-q9BiO8iiRSirX9OuVnvP0rVNUYQR4SlcSgkvkfAsYsw8vc1iIzXKFR4X/exec";
 const gasUrl=()=>{try{return localStorage.getItem("notu-gas")||(GAS_DEFAULT.startsWith("@@")?"":GAS_DEFAULT);}catch(e){return GAS_DEFAULT.startsWith("@@")?"":GAS_DEFAULT;}};
 const COLS=["folders","series","versions","files"];
@@ -850,7 +851,7 @@ async function call(op,body){
   const url=gasUrl();if(!url)throw new Error("Alamat Apps Script belum diisi");
   const tok=(await SB.auth.getSession()).data.session?.access_token;
   const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),op==="upload"||op==="download"?180000:45000);
-  let r;try{r=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({op,token:tok,...body}),redirect:"follow",signal:ctl.signal});}
+  let r;try{r=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({op,token:tok,share:GUEST_SHARE,...body}),redirect:"follow",signal:ctl.signal});}
   catch(e){throw new Error(e.name==="AbortError"?"Server Drive terlalu lama menjawab":"Server Drive tidak bisa dihubungi. Pastikan deployment Apps Script diatur 'Yang memiliki akses: Siapa saja'");}
   finally{clearTimeout(tm);}
   if(!r.ok)throw new Error("Server Drive tidak menjawab ("+r.status+")");
@@ -925,6 +926,19 @@ async function start(){
   SB=window.supabase.createClient(SUPA.url,SUPA.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
   SESSION=(await SB.auth.getSession()).data.session;
   let first=true;SB.auth.onAuthStateChange((ev,s)=>{if(first){first=false;return;}if(ev==="SIGNED_IN"&&!SESSION||ev==="SIGNED_OUT")location.reload();SESSION=s;});
+  if(GUEST_SHARE){
+    if(!gasUrl()){gate("setup");return;}
+    try{
+      WHO=await call("whoami",{});
+      if(!["editor","viewer"].includes(WHO.role))throw new Error("Link berbagi tidak berlaku");
+      await pull(true);
+      $("gate").hidden=true;readyRes();
+      pollT=pollT||setInterval(()=>{if(!document.hidden)pull(false);},20000);
+      document.addEventListener("visibilitychange",()=>{if(!document.hidden)pull(false);});
+      setTimeout(wireTop,600);
+    }catch(e){gate("error","Link belum aktif di Google Apps Script: "+(e.message||e));}
+    return;
+  }
   if(!SESSION){gate("login");return;}
   if(!gasUrl()){gate("setup");return;}
   const cached=loadCache(SESSION.user?.email);
