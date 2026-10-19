@@ -2,12 +2,15 @@
  * Monitoring Unit & Mobilisasi — penghubung Google Sheets <-> web
  *
  * Cara pasang (sekali saja):
- * 1. Buka spreadsheet "Monitoring Unit & Mobilisasi" > Ekstensi > Apps Script.
- * 2. Hapus isi Code.gs bawaan, tempel seluruh file ini, lalu Simpan.
- * 3. Deploy > Deployment baru > pilih jenis "Aplikasi web".
- *      Jalankan sebagai : Saya (pemilik spreadsheet)
- *      Yang memiliki akses: Siapa saja
- *    Klik Deploy, izinkan akses, lalu salin URL aplikasi web (berakhiran /exec).
+ * 1. Buka editor Apps Script yang sudah terhubung, ATAU gunakan proyek mandiri
+ *    (mis. "Project tak berjudul"): kode ini membuka spreadsheet berdasarkan SPREADSHEET_ID.
+ * 2. Tempel seluruh kode Code.gs, lalu Simpan. Pilih fungsi testConnection,
+ *    klik Jalankan, dan beri izin Google. Log harus menampilkan nama spreadsheet.
+ * 3. Jika deployment aktif sudah ada: Deploy > Kelola deployment > ikon pensil
+ *    > Versi baru > Deploy (URL lama tetap dipakai).
+ *    Jika proyek mandiri baru: Deploy > Deployment baru > Aplikasi web,
+ *    Jalankan sebagai: Saya; Yang memiliki akses: Siapa saja; Deploy.
+ *    Salin URL /exec baru dan tempel ke Monitoring Unit > Sumber data > Ganti URL Apps Script.
  * 4. Buka https://matthewyoga2014-design.github.io/kmb-purchasing-logistik/monitoring-unit/ , masuk sebagai Pemilik, klik nama Anda di kanan atas,
  *    lalu tempel URL tadi di "Sambungkan Google Sheets".
  *
@@ -26,6 +29,18 @@ const SB_URL = 'https://yoviojbfyvgpllxisjvy.supabase.co';
 const SB_KEY = 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9';
 const APP = 'unit-monitoring';
 const OWNER_EMAIL = 'matthewyoga2014@gmail.com';
+// Spreadsheet sumber yang sudah tercatat di Monitoring Unit KMB.
+// Mendukung proyek Apps Script mandiri (Project tak berjudul) maupun yang terikat ke Sheets.
+const SPREADSHEET_ID = '1XH5dtCDQFDJZK7npxxh-b6MZEt3ZTJFaAfmCvWdsRI4';
+function book_() { return SpreadsheetApp.openById(SPREADSHEET_ID); }
+// Pilih testConnection di menu fungsi dan klik Jalankan sebelum Deploy.
+function testConnection() {
+  const ss = book_();
+  const tabs = ss.getSheets().map(s => s.getName());
+  Logger.log('Google Sheets tersambung: ' + ss.getName());
+  Logger.log('Tab tersedia: ' + tabs.join(', '));
+  return { name: ss.getName(), tabs: tabs };
+}
 
 const SHEETS = {
   projects:   { name: 'Project', prefix: 'p', cols: { id: 'ID', kode: 'Nama singkat', nama: 'Nama lengkap', lokasi: 'Lokasi', catatan: 'Catatan', urut: 'Urutan' } },
@@ -115,10 +130,10 @@ function sharedWho_(token) {
 }
 
 /* ---------------- baca sheet ---------------- */
-function tz_() { return SpreadsheetApp.getActive().getSpreadsheetTimeZone(); }
+function tz_() { return book_().getSpreadsheetTimeZone(); }
 
 function sheet_(col) {
-  const def = SHEETS[col], ss = SpreadsheetApp.getActive();
+  const def = SHEETS[col], ss = book_();
   let sh = ss.getSheetByName(def.name);
   if (!sh && col === 'dokumentasi') {
     sh = ss.insertSheet(def.name);
@@ -189,7 +204,7 @@ function readRaw_(col) {
 function buildState_() {
   const P = readRaw_('projects').rows, K = readRaw_('pengiriman').rows, U = readRaw_('units').rows,
         M = readRaw_('mobilisasi').rows, R = readRaw_('revisi').rows;
-  const D = SpreadsheetApp.getActive().getSheetByName(SHEETS.dokumentasi.name) ? readRaw_('dokumentasi').rows : [];
+  const D = book_().getSheetByName(SHEETS.dokumentasi.name) ? readRaw_('dokumentasi').rows : [];
   const byKode = {};
   P.forEach(function (p) { byKode[p.kode] = p.id; });
   const pid = function (kode) { return byKode[kode] || ''; };
@@ -309,7 +324,7 @@ function docFolder_(projectKode) {
   const rid = props.getProperty('docRoot');
   if (rid) { try { root = DriveApp.getFolderById(rid); if (root.isTrashed()) root = null; } catch (err) { root = null; } }
   if (!root) {
-    const parents = DriveApp.getFileById(SpreadsheetApp.getActive().getId()).getParents();
+    const parents = DriveApp.getFileById(book_().getId()).getParents();
     const base = parents.hasNext() ? parents.next() : DriveApp.getRootFolder();
     root = base.createFolder('Dokumentasi Monitoring Unit');
     props.setProperty('docRoot', root.getId());
