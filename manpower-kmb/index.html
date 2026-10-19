@@ -3722,8 +3722,9 @@ async function applyRole() {
 function authBtn() {
   let b = document.getElementById('authBtn');
   if (!b) { document.getElementById('roleTag').insertAdjacentHTML('afterend', '<button type="button" class="btn btn-g" id="authBtn"></button>'); b = document.getElementById('authBtn'); }
-  b.textContent = WEB.user ? 'Keluar' : 'Masuk';
-  b.title = WEB.user ? `Masuk sebagai ${WEB.user.email}` : 'Masuk untuk mengedit';
+  b.textContent = SHARE_KEY && GUEST_ROLE ? 'Akses Link' : WEB.user ? 'Keluar' : 'Masuk';
+  b.hidden = !!(SHARE_KEY && GUEST_ROLE);
+  b.title = SHARE_KEY && GUEST_ROLE ? 'Akses '+GUEST_ROLE+' tanpa login' : WEB.user ? `Masuk sebagai ${WEB.user.email}` : 'Masuk untuk mengedit';
 }
 
 async function commit(mutate, okMsg) {
