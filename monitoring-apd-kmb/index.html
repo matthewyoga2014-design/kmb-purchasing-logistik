@@ -1378,7 +1378,8 @@ function render() {
   $('nav').innerHTML = navHtml();
   $('roleTag').textContent = S.role === 'owner' ? 'Pemilik · Editor' : S.role === 'editor' ? 'Editor' : S.role === 'viewer' ? 'Pelihat' : 'Belum ada akses';
   $('roleTag').className = 'pill' + (can() ? ' live' : '');
-  $('authBtn').textContent = S.user ? 'Keluar' : 'Masuk';
+  $('authBtn').textContent = SHARE_KEY ? 'Akses Link' : S.user ? 'Keluar' : 'Masuk';
+  $('authBtn').hidden = !!(SHARE_KEY && GUEST_ROLE);
   $('authBtn').title = S.user ? 'Masuk sebagai ' + S.user.email : 'Masuk untuk mengedit';
   if (locked) { lockScreen(); return; }
   unlock();
@@ -1993,6 +1994,7 @@ async function init() {
   S.sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'kta-web-auth' } });
   if(SHARE_KEY){const r=await S.sb.rpc('monitoring_guest_check',{p_token:SHARE_KEY});const g=(r.data||[]).find(x=>x.app_id==='apd');GUEST_ROLE=g?g.access_role:'';if(!GUEST_ROLE){S.loaded=true;S.noAccess=true;render();return;}}
   try { const { data } = await S.sb.auth.getSession(); S.user = (data && data.session && data.session.user) || null; } catch (e) {}
+  if (SHARE_KEY && GUEST_ROLE && !S.user) S.user = { email: 'pengguna-link@monitoring.local' };
   await findRole(); await loadAll(); live();
   S.sb.auth.onAuthStateChange((ev, s) => { const nu = (s && s.user) || null; if ((nu && nu.email) === (S.user && S.user.email)) return; S.user = nu; setTimeout(async () => { await findRole(); await loadAll(true); live(); if (ev === 'SIGNED_IN') toast('Masuk sebagai ' + nu.email + '.'); if (ev === 'SIGNED_OUT') toast('Anda sudah keluar.'); }, 0); });
 }
