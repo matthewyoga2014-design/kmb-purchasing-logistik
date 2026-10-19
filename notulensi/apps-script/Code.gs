@@ -30,8 +30,9 @@ function doGet() {
 function doPost(e) {
   try {
     var req = JSON.parse((e && e.postData && e.postData.contents) || '{}');
-    var who = auth_(req.token);
-    var role = roleOf_(who.email, req.token);
+    var guest = req.share ? guestRole_(req.share) : null;
+    var who = guest ? {email: guest.role + '-link@monitoring.local',id:'shared-link'} : auth_(req.token);
+    var role = guest ? guest.role : roleOf_(who.email, req.token);
     if (role === 'none') return out_({ ok: false, code: 'forbidden', email: who.email, error: 'Akun ini belum didaftarkan Pemilik.' });
     var canWrite = role === 'owner' || role === 'editor';
     var op = req.op;
@@ -106,6 +107,21 @@ function doPost(e) {
   } catch (err) {
     return out_({ ok: false, error: String(err && err.message || err) });
   }
+}
+
+/* Tautan Editor/Pelihat tanpa login. Server memeriksa Supabase SETIAP permintaan
+   sehingga pencabutan dan kedaluwarsa langsung berlaku. */
+function guestRole_(share) {
+  if (!/^[a-f0-9]{48}$/.test(String(share||''))) throw new Error('Link berbagi tidak berlaku');
+  var res=UrlFetchApp.fetch(SUPABASE_URL+'/rest/v1/rpc/monitoring_guest_check',{
+    method:'post',contentType:'application/json',
+    headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY},
+    payload:JSON.stringify({p_token:share}),muteHttpExceptions:true
+  });
+  if (res.getResponseCode()!==200) throw new Error('Gagal memeriksa hak akses link');
+  var rows=JSON.parse(res.getContentText()||'[]');
+  for(var i=0;i<rows.length;i++)if(rows[i].app_id==='notulensi')return {role:rows[i].access_role};
+  throw new Error('Link Notulensi dicabut, kedaluwarsa, atau tidak dikenal');
 }
 
 /* ---------- login: token Supabase (akun Portal Manpower) ---------- */
