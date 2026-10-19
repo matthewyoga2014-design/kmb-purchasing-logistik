@@ -386,6 +386,19 @@ function actsHtml(p) {
   const staff = r === 'owner' || r === 'editor';
   return `<div class="acts"><span class="chip ${r === 'owner' ? 'own' : r === 'viewer' ? 'vw' : ''}">${ROLE_L[r]}</span>${staff ? `<button type="button" class="ab" data-shr="${p.key}"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 11 21 3l-8 18-2-8z"/></svg>Bagikan link</button><a class="ab" href="../#akses:${APP_OF[p.key]}">Akses</a>` : ''}</div>`;
 }
+// Owner-selected editors are registered immediately; authentication still requires the recipient email.
+async function registerPortalInvitedEditor(app, email) {
+  if (!IS_OWNER) return { ok: false, reason: 'Hanya Pemilik yang dapat mengaktifkan Editor.' };
+  const { data: member, error: lookupError } = await SB.from('app_access_roles')
+    .select('role').eq('app_id', app).eq('email', email).maybeSingle();
+  if (lookupError) return { ok: false, reason: lookupError.message };
+  if (member && ['owner','editor'].includes(member.role)) return { ok: true };
+  const payload = { role: 'editor', updated_at: new Date().toISOString() };
+  const result = member
+    ? await SB.from('app_access_roles').update(payload).eq('app_id', app).eq('email', email)
+    : await SB.from('app_access_roles').insert({ app_id: app, email, ...payload });
+  return result.error ? { ok: false, reason: result.error.message } : { ok: true };
+}
 function shareOpen(key) {
   const P = PROJECTS.find((x) => x.key === key), r = roleFor(key), app = APP_OF[key]; if (!P || (r !== 'owner' && r !== 'editor')) return;
   let m = document.getElementById('shModal'); if (!m) { document.body.insertAdjacentHTML('beforeend', '<div class="modal" id="shModal" hidden><div class="dlg wide" role="dialog" aria-modal="true" aria-labelledby="shT" id="shDlg"></div></div>'); m = document.getElementById('shModal'); }
@@ -401,9 +414,10 @@ function shareOpen(key) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { toast('Format email belum benar.'); return; }
     const { data, error } = await SB.rpc('kta_invite_create', { p_app: app, p_email: em, p_role: role });
     if (error) { toast('Gagal: ' + error.message); return; }
+    const editorGrant = role === 'editor' ? await registerPortalInvitedEditor(app, em) : null;
     const base = new URL('../', location.href).href, link = base + '?i=' + data;
     const body = `Halo,\n\nAnda diundang sebagai ${ROLE_L[role]} di Monitoring MPP · ${P.name}.\nBuka link berikut lalu masuk dengan email ${em}:\n${link}\n\nLink hanya berlaku untuk email ini dan aktif 30 hari.`;
-    document.getElementById('shOut').innerHTML = `<div class="shl"><input type="text" id="shU" readonly value="${esc(link)}" aria-label="Link undangan"><button type="button" class="btn btn-p" id="shCp">Salin Link</button></div><div class="row l"><a class="btn btn-g" href="mailto:${esc(em)}?subject=${encodeURIComponent('Undangan ' + ROLE_L[role] + ' Monitoring MPP ' + P.name)}&body=${encodeURIComponent(body)}">Kirim lewat email</a><a class="btn btn-g" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(body)}">Kirim lewat WhatsApp</a></div><p class="small">Link untuk <b>${esc(em)}</b> sebagai <b>${ROLE_L[role]}</b>, aktif 30 hari.</p>`;
+    document.getElementById('shOut').innerHTML = `<div class="shl"><input type="text" id="shU" readonly value="${esc(link)}" aria-label="Link undangan"><button type="button" class="btn btn-p" id="shCp">Salin Link</button></div><div class="row l"><a class="btn btn-g" href="mailto:${esc(em)}?subject=${encodeURIComponent('Undangan ' + ROLE_L[role] + ' Monitoring MPP ' + P.name)}&body=${encodeURIComponent(body)}">Kirim lewat email</a><a class="btn btn-g" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(body)}">Kirim lewat WhatsApp</a></div><p class="small">Link untuk <b>${esc(em)}</b> sebagai <b>${ROLE_L[role]}</b>, aktif 30 hari.${editorGrant?.ok ? ' Email langsung terdaftar sebagai Editor; penerima tinggal verifikasi login.' : editorGrant && !editorGrant.ok ? ' Pendaftaran Editor belum aktif: ' + esc(editorGrant.reason) + '. Penerima dapat menerima akses dari link setelah login.' : ''}</p>`;
     document.getElementById('shE').value = ''; document.querySelector('#shF [type=submit]').textContent = 'Buat Link Lain';
   };
 }
