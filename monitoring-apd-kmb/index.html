@@ -1290,7 +1290,7 @@ function editorGuard(next) {
     if (!b) { if (r.status !== 'pending') return 'Permintaan baru harus berstatus Menunggu.'; continue; }
     if ((b.gaId || '') !== (r.gaId || '')) return 'Form GA Request hanya diatur Pemilik.';
     if (b.status === r.status) continue;
-    if (b.status === 'pending' && r.status === 'cancelled' && (b.by || '').toLowerCase() === S.user.email.toLowerCase()) continue;
+    if (b.status === 'pending' && r.status === 'cancelled' && S.user && (b.by || '').toLowerCase() === S.user.email.toLowerCase()) continue;
     if (b.status === 'approved' && r.status === 'fulfilled') continue;
     return 'Persetujuan permintaan APD hanya oleh Pemilik.';
   }
@@ -1299,7 +1299,7 @@ function editorGuard(next) {
 async function persist(next, msg, audit) {
   if (!can()) { toast('Hanya Pemilik/Editor yang dapat menyimpan data.', true); return false; }
   if (S.saving) return false;
-  if (!isOwner() && !SHARE_KEY) { const g = editorGuard(next); if (g) { toast(g, true); return false; } }
+  if (!isOwner()) { const g = editorGuard(next); if (g) { toast(g, true); return false; } }
   const issue = validate(next); if (issue) { toast('Tidak dapat menyimpan: ' + issue, true); return false; }
   S.saving = true; saving(true);
   try {
@@ -1832,7 +1832,7 @@ function exportExcel() {
 function download(name, text) { const u = URL.createObjectURL(new Blob([text], { type: 'application/json' })); const a = document.createElement('a'); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 3000); }
 
 // ---------- Pelihat: watermark, anti-screenshot, izin cetak ----------
-const PRINT_OK = () => isOwner() || permOf(ui.page, 'd') || (!can() && !!S.grant && S.grant.status === 'approved');
+const PRINT_OK = () => (SHARE_KEY && !!GUEST_ROLE) || isOwner() || permOf(ui.page, 'd') || (!can() && !!S.grant && S.grant.status === 'approved');
 function wmPaint() {
   const d = new Date(), p = (n) => String(n).padStart(2, '0'), who = (S.user && S.user.email) || 'Pelihat · tanpa login';
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="380" height="220"><g transform="rotate(-22 190 110)" font-family="Plus Jakarta Sans,Segoe UI,sans-serif" text-anchor="middle" fill="#1E1B3A" fill-opacity=".085"><text x="190" y="100" font-size="17" font-weight="800">MONITORING APD · RAHASIA</text><text x="190" y="126" font-size="13" font-weight="600">${esc(who)} · ${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}</text></g></svg>`;
