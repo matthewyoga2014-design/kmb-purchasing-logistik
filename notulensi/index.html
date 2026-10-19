@@ -2332,7 +2332,8 @@ $("calFolder").onchange=renderCal;
 
 /* ================= perbaikan data (sekali jalan, aman diulang) ================= */
 async function repairData(){
-  if(!S.canEdit||!S.db||repairData.done)return;repairData.done=true;let n=0;
+  // Tautan Editor hanya untuk perubahan yang dipilih pengguna; jangan jalankan perbaikan/hapus data historis otomatis.
+  if(new URLSearchParams(location.search).has("share")||!S.canEdit||!S.db||repairData.done)return;repairData.done=true;let n=0;
   const unlink=async vid=>{for(const f of S.files.filter(f=>f.versionId===vid)){await S.db.collection("files").doc(f.id).update({seriesId:null,versionId:null});}};
   const dropFiles=async vid=>{for(const f of S.files.filter(f=>f.versionId===vid)){try{await delFile(f);}catch(e){}}};
   /* 1. KKA: Meeting ke-2 berisi notulensi BUPR -> hapus */
