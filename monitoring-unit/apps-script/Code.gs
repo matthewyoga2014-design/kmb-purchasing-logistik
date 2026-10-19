@@ -103,7 +103,7 @@ function verify_(token, share) {
 /* Pemeriksaan link langsung ke Supabase pada setiap request: revoked/expired langsung ditolak. */
 function sharedWho_(token) {
   if (!/^[a-f0-9]{48}$/.test(String(token || ''))) return null;
-  const h={apikey:SB_KEY,Authorization:'Bearer '+SB_KEY};
+  const h={apikey:SB_KEY};
   const r=UrlFetchApp.fetch(SB_URL+'/rest/v1/rpc/monitoring_guest_check',{
     method:'post',contentType:'application/json',headers:h,
     payload:JSON.stringify({p_token:token}),muteHttpExceptions:true
