@@ -590,7 +590,7 @@ function shareAll() {
   modal(`${mh('Bagikan link menyeluruh', 'Satu link untuk beberapa web')}<div class="nb">Centang web yang boleh dibuka. Penerima cukup membuka <b>satu link</b> dan masuk dengan emailnya. Link hanya berlaku untuk email yang Anda isi.${own ? '' : ' Sebagai Editor, Anda hanya bisa membagikan link <b>Pelihat</b>.'}</div><form id="saForm" class="lf" novalidate>
     <label for="sa_e">Email penerima</label><input id="sa_e" type="email" required placeholder="nama@email.com" autocomplete="off">
     <label>Bagikan sebagai</label><div class="seg2" role="group" aria-label="Peran">${own ? '<button type="button" data-sar="editor" aria-pressed="false">Editor (bisa mengubah)</button>' : ''}<button type="button" data-sar="viewer" aria-pressed="true">Pelihat (hanya melihat)</button></div>
-    <label>Web yang dibagikan</label><div class="ckl"><label class="all"><input type="checkbox" id="saAll" checked> <b>Semua web</b></label>${list.map((x) => `<label><input type="checkbox" data-saapp="${x.app}" checked> ${esc(x.portal + ' · ' + x.name)} <small>${ROLE_L[roleOf(x.app)]}</small></label>`).join('')}</div>
+    <label>Web yang dibagikan</label><div class="ckl"><label class="all"><input type="checkbox" id="saAll"> <b>Semua web</b></label>${list.map((x) => `<label><input type="checkbox" data-saapp="${x.app}"> ${esc(x.portal + ' · ' + x.name)} <small>${ROLE_L[roleOf(x.app)]}</small></label>`).join('')}</div>
     <div id="saOut"></div>${acts('Buat Link')}</form>`);
   let role = 'viewer';
   $('saForm').addEventListener('click', (e) => { const b = e.target.closest('[data-sar]'); if (!b) return; role = b.dataset.sar; $('saForm').querySelectorAll('[data-sar]').forEach((x) => x.setAttribute('aria-pressed', x === b)); });
