@@ -568,6 +568,21 @@ function resultBox() {
   return h;
 }
 
+// Ketika Pemilik membuat undangan Editor, daftarkan email untuk web itu juga.
+// Email tetap WAJIB login/verifikasi Supabase; tidak ada akses anonim.
+async function registerInvitedEditor(app, email) {
+  if (roleOf(app) !== 'owner') return { ok: false, reason: 'Hanya Pemilik yang dapat mengaktifkan Editor.' };
+  const base = S.sb.from('app_access_roles');
+  const { data: member, error: readErr } = await base.select('role').eq('app_id', app).eq('email', email).maybeSingle();
+  if (readErr) return { ok: false, reason: readErr.message };
+  if (member && ['owner','editor'].includes(member.role)) return { ok: true };
+  const payload = { role: 'editor', updated_at: new Date().toISOString() };
+  const resp = member
+    ? await S.sb.from('app_access_roles').update(payload).eq('app_id', app).eq('email', email)
+    : await S.sb.from('app_access_roles').insert({ app_id: app, email, ...payload });
+  return resp.error ? { ok: false, reason: resp.error.message } : { ok: true };
+}
+
 // ---------- bagikan link menyeluruh (beberapa web sekaligus) ----------
 function shareAll() {
   const list = staffApps(); if (!list.length) return;
@@ -586,13 +601,21 @@ function shareAll() {
     const apps = [...$('saForm').querySelectorAll('[data-saapp]:checked')].map((c) => c.dataset.saapp).filter((a) => role === 'viewer' || roleOf(a) === 'owner');
     if (!apps.length) { toast('Centang minimal satu web.', true); return; }
     const btn = $('saForm').querySelector('[type=submit]'); btn.disabled = true; btn.textContent = 'Membuat link…';
-    const toks = [], fail = [];
-    for (const a of apps) { const { data, error } = await S.sb.rpc('kta_invite_create', { p_app: a, p_email: em, p_role: role }); if (error || !data) fail.push(subOf(a).name); else toks.push(data); }
+    const toks = [], fail = [], pendingEditors = [];
+    for (const a of apps) {
+      const { data, error } = await S.sb.rpc('kta_invite_create', { p_app: a, p_email: em, p_role: role });
+      if (error || !data) { fail.push(subOf(a).name); continue; }
+      toks.push(data);
+      if (role === 'editor') {
+        const granted = await registerInvitedEditor(a, em);
+        if (!granted.ok) pendingEditors.push(subOf(a).name + ': ' + granted.reason);
+      }
+    }
     btn.disabled = false; btn.textContent = 'Buat Link Lain';
     if (!toks.length) { toast('Gagal membuat link: ' + fail.join(', '), true); return; }
     const link = BASE + '?i=' + toks.join('.'), names = apps.filter((a) => !fail.includes(subOf(a).name)).map((a) => subOf(a).name).join(', ');
     const body = `Halo,\n\nAnda diundang sebagai ${ROLE_L[role]} di Monitoring (${names}).\nBuka link berikut lalu masuk dengan email ${em}:\n${link}\n\nLink hanya berlaku untuk email ini dan aktif 30 hari.`;
-    $('saOut').innerHTML = `<div class="shl"><input type="text" id="shUrl" readonly value="${esc(link)}" aria-label="Link undangan"><button type="button" class="btn btn-p" id="shCopy">Salin Link</button></div><div class="row l"><a class="btn btn-g btn-s" href="mailto:${esc(em)}?subject=${encodeURIComponent('Undangan ' + ROLE_L[role] + ' Monitoring')}&body=${encodeURIComponent(body)}">Kirim lewat email</a><a class="btn btn-g btn-s" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(body)}">Kirim lewat WhatsApp</a></div><p class="small">Satu link untuk <b>${esc(em)}</b> sebagai <b>${ROLE_L[role]}</b>: ${esc(names)}. Aktif 30 hari.${fail.length ? ` Gagal: ${esc(fail.join(', '))}.` : ''}</p>`;
+    $('saOut').innerHTML = `<div class="shl"><input type="text" id="shUrl" readonly value="${esc(link)}" aria-label="Link undangan"><button type="button" class="btn btn-p" id="shCopy">Salin Link</button></div><div class="row l"><a class="btn btn-g btn-s" href="mailto:${esc(em)}?subject=${encodeURIComponent('Undangan ' + ROLE_L[role] + ' Monitoring')}&body=${encodeURIComponent(body)}">Kirim lewat email</a><a class="btn btn-g btn-s" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(body)}">Kirim lewat WhatsApp</a></div><p class="small">Satu link untuk <b>${esc(em)}</b> sebagai <b>${ROLE_L[role]}</b>: ${esc(names)}. Aktif 30 hari.${role === 'editor' && !pendingEditors.length ? ' Email langsung terdaftar sebagai Editor; penerima tinggal verifikasi login.' : ''}${fail.length ? ` Gagal membuat link: ${esc(fail.join(', '))}.` : ''}${pendingEditors.length ? ` Pendaftaran Editor belum selesai: ${esc(pendingEditors.join('; '))}. Penerima tetap dapat menggunakan undangan setelah login.` : ''}</p>`;
     $('sa_e').value = ''; Object.keys(S.acc).forEach((a) => loadAccess(a));
   };
 }
@@ -611,9 +634,10 @@ function shareForm(app) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { toast('Format email belum benar.', true); return; }
     const { data, error } = await S.sb.rpc('kta_invite_create', { p_app: app, p_email: em, p_role: role });
     if (error) { toast('Gagal: ' + error.message, true); return; }
+    const registration = role === 'editor' ? await registerInvitedEditor(app, em) : null;
     const link = BASE + '?i=' + data, subj = `Undangan ${ROLE_L[role]} ${s.portal} ${s.name}`;
     const body = `Halo,\n\nAnda diundang sebagai ${ROLE_L[role]} di ${s.portal} · ${s.name}.\nBuka link berikut lalu masuk dengan email ${em}:\n${link}\n\nLink hanya berlaku untuk email ini dan aktif 30 hari.`;
-    $('shOut').innerHTML = `<div class="shl"><input type="text" id="shUrl" readonly value="${esc(link)}" aria-label="Link undangan"><button type="button" class="btn btn-p" id="shCopy">Salin Link</button></div><div class="row l"><a class="btn btn-g btn-s" href="mailto:${esc(em)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}">Kirim lewat email</a><a class="btn btn-g btn-s" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(body)}">Kirim lewat WhatsApp</a></div><p class="small">Link untuk <b>${esc(em)}</b> sebagai <b>${ROLE_L[role]}</b>, aktif 30 hari.</p>`;
+    $('shOut').innerHTML = `<div class="shl"><input type="text" id="shUrl" readonly value="${esc(link)}" aria-label="Link undangan"><button type="button" class="btn btn-p" id="shCopy">Salin Link</button></div><div class="row l"><a class="btn btn-g btn-s" href="mailto:${esc(em)}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}">Kirim lewat email</a><a class="btn btn-g btn-s" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(body)}">Kirim lewat WhatsApp</a></div><p class="small">Link untuk <b>${esc(em)}</b> sebagai <b>${ROLE_L[role]}</b>, aktif 30 hari.${registration?.ok ? ' Email langsung terdaftar sebagai Editor; penerima tinggal verifikasi login.' : registration && !registration.ok ? ' Pendaftaran Editor belum aktif: ' + esc(registration.reason) + '. Penerima masih dapat klaim melalui link.' : ''}</p>`;
     $('shForm').querySelector('[type=submit]').textContent = 'Buat Link Lain'; $('sh_e').value = '';
     if (S.acc[app]) loadAccess(app);
   };
