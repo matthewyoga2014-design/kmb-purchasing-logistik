@@ -626,7 +626,7 @@ function shareForm(app) {
   modal(`${mh('Bagikan link', esc(s.portal + ' · ' + s.name))}<div class="nb">Link hanya berlaku untuk <b>email yang Anda isi</b>. Jika diteruskan ke orang lain, orang itu harus minta izin dulu.${r === 'editor' ? ' Sebagai Editor, Anda hanya bisa membagikan link <b>Pelihat</b>.' : ''}</div><form id="shForm" class="lf" novalidate>
     <label for="sh_e">Email penerima</label><input id="sh_e" type="email" required placeholder="nama@email.com" autocomplete="off">
     <label>Bagikan sebagai</label><div class="seg2" role="group" aria-label="Peran">${r === 'owner' ? '<button type="button" data-shr="editor" aria-pressed="false">Editor (bisa mengubah)</button>' : ''}<button type="button" data-shr="viewer" aria-pressed="true">Pelihat (hanya melihat)</button></div>
-    <div id="shOut"></div>${r === 'owner' && ['kta-tra','mbj','bupr-ampah','kmb','apd'].includes(app) ? '<button type="button" class="btn btn-p" id="shDirect">Buat Link Tanpa Login (seperti Spreadsheet)</button><button type="button" class="btn btn-g" id="shListGuest">Kelola Link Tanpa Login</button><div id="shGuestList"></div>' : ''}${acts('Buat Link dengan Email')}</form>`);
+    <div id="shOut"></div>${r === 'owner' && ['kta-tra','mbj','bupr-ampah','kmb','apd','unit-monitoring','notulensi'].includes(app) ? '<button type="button" class="btn btn-p" id="shDirect">Buat Link Tanpa Login (seperti Spreadsheet)</button><button type="button" class="btn btn-g" id="shListGuest">Kelola Link Tanpa Login</button><div id="shGuestList"></div>' : ''}${acts('Buat Link dengan Email')}</form>`);
   let role = 'viewer';
   $('shForm').addEventListener('click', (e) => { const b = e.target.closest('[data-shr]'); if (!b) return; role = b.dataset.shr; $('shForm').querySelectorAll('[data-shr]').forEach((x) => x.setAttribute('aria-pressed', x === b)); });
   if ($('shListGuest')) $('shListGuest').addEventListener('click', async () => {
@@ -656,7 +656,7 @@ function shareForm(app) {
       const result = await S.sb.rpc('monitoring_guest_manage', { p_app: app, p_role: role });
       if (result.error || !result.data) throw new Error(result.error ? result.error.message : 'Server tidak memberikan link.');
       const link = new URL(s.url, BASE).href + '?share=' + encodeURIComponent(result.data);
-      $('shOut').innerHTML = '<div class="shl"><input type="text" id="shUrl" readonly aria-label="Link undangan" value="' + esc(link) + '"><button type="button" class="btn btn-p" id="shCopy">Salin Link</button></div><p class="small">Link ' + ROLE_L[role] + ' tanpa login, berlaku 30 hari. Siapa pun yang memiliki link dapat menggunakan akses ini. Bagikan hanya kepada orang yang dipercaya.</p>';
+      $('shOut').innerHTML = '<div class="shl"><input type="text" id="shUrl" readonly aria-label="Link undangan" value="' + esc(link) + '"><button type="button" class="btn btn-p" id="shCopy">Salin Link</button></div><p class="small">Link ' + ROLE_L[role] + ' tanpa login, berlaku 30 hari. Siapa pun yang memiliki link dapat menggunakan akses ini. Bagikan hanya kepada orang yang dipercaya.</p>' + (['unit-monitoring','notulensi'].includes(app) ? '<p class="small"><b>Belum aktif di Google:</b> perbarui deployment Apps Script terkait ke versi kode terbaru sebelum membagikan link ini.</p>' : '');
     } catch (e) { toast('Gagal membuat link: ' + ((e && e.message) || 'Periksa server.'), true); }
     finally { b.disabled = false; b.textContent = 'Buat Link Tanpa Login (seperti Spreadsheet)'; }
   });
