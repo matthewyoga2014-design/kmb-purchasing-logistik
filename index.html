@@ -515,7 +515,11 @@ function loginHtml() {
 async function doLogin(e) {
   e.preventDefault(); const em = $('lg_e').value.trim().toLowerCase(), pw = $('lg_p').value;
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { toast('Format email belum benar.', true); return; }
-  const r = pw ? await S.sb.auth.signInWithPassword({ email: em, password: pw }) : await S.sb.auth.signInWithOtp({ email: em, options: { emailRedirectTo: BASE, shouldCreateUser: true } });
+  // Bawa kembali token undangan saat Magic Link dibuka di browser lain (misalnya WhatsApp -> Gmail).
+  const redirectUrl = new URL(BASE);
+  const pendingInvite = inviteToken();
+  if (pendingInvite) redirectUrl.searchParams.set('i', pendingInvite);
+  const r = pw ? await S.sb.auth.signInWithPassword({ email: em, password: pw }) : await S.sb.auth.signInWithOtp({ email: em, options: { emailRedirectTo: redirectUrl.href, shouldCreateUser: true } });
   if (r.error) { toast(/invalid login/i.test(r.error.message) ? 'Email atau password salah.' : /rate|seconds/i.test(r.error.message) ? 'Terlalu sering meminta link. Tunggu beberapa menit.' : 'Gagal masuk: ' + r.error.message, true); return; }
   toast(pw ? 'Berhasil masuk.' : `Link masuk dikirim ke ${em}. Buka email lalu klik linknya.`);
 }
