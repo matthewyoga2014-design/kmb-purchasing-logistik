@@ -630,6 +630,8 @@ body.locked > *:not(#lockScr):not(#toast):not(.modal):not(#modal) { visibility: 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script id="app">var PARSE_CFG;
+const SHARE_KEY = new URLSearchParams(location.search).get('share') || '';
+let GUEST_ROLE = '';
 const PROJ_CFG = { id: 'kmb-c4', app: 'kmb', title: 'Monitoring Manpower KMB', sites: [
   { id: 'kmb-c4', name: 'C4', cfg: { mpp: /^C4$/i, mppLabel: 'C4', site: /^C4/i, unitBlock: /^C4$/i, autoSection: true } },
   { id: 'kmb-slr-maintenance', name: 'SLR - Maintenance', cfg: { mpp: /^SLR - MAINTENANCE$/i, mppLabel: 'SLR - MAINTENANCE', site: /maintenance/i, unitBlock: /^SLR - MAINTENANCE$/i, autoSection: true } },
@@ -3601,8 +3603,7 @@ const cacheKey = () => WEB_ID === 'main' ? 'kta-web-cache' : 'kta-web-cache:' + 
 const WEB = { sb: null, user: null, role: 'viewer', ver: null, editors: null, edErr: null, ready: false, offline: false, empty: false, grant: null, grants: null, gch: null };
 const WEB_PRINT = 'kta_print_grants';
 // Link anonim ?k= sudah tidak dipakai: semua orang wajib masuk dengan email yang diundang (Pusat Monitoring).
-const SHARE_KEY = new URLSearchParams(location.search).get('share') || '';
-let GUEST_ROLE = '';
+
 const HUB = '../';
 (function () {
   try { localStorage.removeItem('kta-share:' + PROJ.app); const u = new URL(location.href); if (u.searchParams.has('k')) { u.searchParams.delete('k'); history.replaceState(null, '', u.pathname + u.search + u.hash); } } catch (e) {}
