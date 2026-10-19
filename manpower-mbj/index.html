@@ -3354,7 +3354,7 @@ renameForm = function (kind, sec, grp) {
 let PRINT_OK = false;            // set true by the web adapter when the Pemilik approved this viewer
 let GUARD_WHO = '';              // email shown in the watermark (web adapter fills it after login)
 const LOCK_SEL = '#printBtn,[data-oexp],#xlsxBtn,#bkBtn,#csvPel';
-const guardFree = () => (typeof DL_OK === 'function' ? DL_OK() : (CAN_EDIT || PRINT_OK));
+const guardFree = () => (SHARE_KEY && GUEST_ROLE) || (typeof DL_OK === 'function' ? DL_OK() : (CAN_EDIT || PRINT_OK));
 document.body.insertAdjacentHTML('beforeend', `<div id="wm" aria-hidden="true"></div>
 <div id="shield" hidden><div><b>Tampilan disembunyikan</b><span>Screenshot dan rekam layar tidak diizinkan untuk Pelihat. Klik di sini untuk melanjutkan.</span></div></div>
 <div id="nopr"><b>Monitoring Manpower</b><br>Cetak tidak diizinkan. Minta izin cetak ke Pemilik melalui tombol Print di web.</div>`);
@@ -3596,7 +3596,8 @@ const cacheKey = () => WEB_ID === 'main' ? 'kta-web-cache' : 'kta-web-cache:' + 
 const WEB = { sb: null, user: null, role: 'viewer', ver: null, editors: null, edErr: null, ready: false, offline: false, empty: false, grant: null, grants: null, gch: null };
 const WEB_PRINT = 'kta_print_grants';
 // Link anonim ?k= sudah tidak dipakai: semua orang wajib masuk dengan email yang diundang (Pusat Monitoring).
-const SHARE_KEY = '';
+const SHARE_KEY = new URLSearchParams(location.search).get('share') || '';
+let GUEST_ROLE = '';
 const HUB = '../';
 (function () {
   try { localStorage.removeItem('kta-share:' + PROJ.app); const u = new URL(location.href); if (u.searchParams.has('k')) { u.searchParams.delete('k'); history.replaceState(null, '', u.pathname + u.search + u.hash); } } catch (e) {}
@@ -3606,13 +3607,14 @@ let PERMS = {};
 const PERM_FIXED = ['dashboard', 'setting'];
 function permOf(id, k) {
   const r = WEB.role; if (r === 'owner') return true; if (r !== 'editor' && r !== 'viewer') return false;
+  if (id === 'setting' && !IS_OWNER) return false;
   if (k === 'v' && PERM_FIXED.includes(id)) return true;
   const p = (PERMS[r] || {})[id]; if (p && typeof p[k] === 'boolean') return p[k];
   return k === 'v' ? true : r === 'editor';
 }
 function DL_OK() { try { if (!WEB.ready) return CAN_EDIT || PRINT_OK; return IS_OWNER || permOf(ui.page, 'd') || (!CAN_EDIT && PRINT_OK); } catch (e) { return CAN_EDIT || PRINT_OK; } }
 async function loadPerms() {
-  PERMS = {}; if (!WEB.sb || !WEB.user || WEB.role === 'none') return;
+  PERMS = {}; if (!WEB.sb || !WEB.user || WEB.role === 'none' || SHARE_KEY) return;
   const { data } = await WEB.sb.from('kta_app_perms').select('perms').eq('app_id', WEB_ROLE_APP).maybeSingle();
   PERMS = (data && data.perms) || {};
 }
@@ -3654,7 +3656,7 @@ const WEB_ASSETS = { async upload(f) {
 } };
 
 async function webLoad() {
-  const r = await WEB.sb.rpc('kta_web_read', { p_ids: [WEB_ID], p_key: SHARE_KEY || null });
+  const r = SHARE_KEY ? await WEB.sb.rpc('monitoring_guest_read', {p_token:SHARE_KEY,p_ids:[WEB_ID]}) : await WEB.sb.rpc('kta_web_read', {p_ids:[WEB_ID],p_key:null});
   if (r.error) throw r.error;
   const row = (r.data || [])[0] || null;
   WEB.noAccess = !row;
@@ -3687,6 +3689,7 @@ document.addEventListener('click', async (e) => {
 function unlockWeb() { const el = document.getElementById('lockScr'); if (el) el.hidden = true; document.body.classList.remove('locked'); }
 document.addEventListener('click', (e) => { if (e.target.closest('#lockIn')) { e.stopPropagation(); openLogin(); } }, true);
 async function webRole() {
+  if(SHARE_KEY && GUEST_ROLE) return GUEST_ROLE;
   const email = ((WEB.user && WEB.user.email) || '').trim().toLowerCase();
   if (!email) return 'none';
   const r = await WEB.sb.rpc('kta_member_role', { p_app: WEB_ROLE_APP });
@@ -3696,7 +3699,7 @@ async function webRole() {
 }
 async function applyRole() {
   WEB.role = await webRole();
-  IS_OWNER = WEB.role === 'owner';
+  IS_OWNER = !SHARE_KEY && WEB.role === 'owner';
   CAN_EDIT = WEB.role === 'owner' || WEB.role === 'editor';
   ROLE = IS_OWNER ? 'Pemilik · Editor' : CAN_EDIT ? 'Editor' : 'Pelihat';
   ASSETS = CAN_EDIT ? WEB_ASSETS : null;
@@ -3727,12 +3730,12 @@ async function commit(mutate, okMsg) {
   SAVING = true; showSaving(true);
   let reopen = null; try { reopen = sessionStorage.getItem('mp5-cands'); sessionStorage.removeItem('mp5-cands'); } catch (e) {}
   try {
-    const cur = await WEB.sb.from(WEB_TABLE).select('updated_at').eq('id', WEB_ID).maybeSingle();
+    const cur = SHARE_KEY ? {data:{updated_at:WEB.ver}} : await WEB.sb.from(WEB_TABLE).select('updated_at').eq('id', WEB_ID).maybeSingle();
     if (cur.error) throw cur.error;
     if ((cur.data ? cur.data.updated_at : null) !== WEB.ver) { await webLoad(); toast('Data baru saja diubah editor lain. Data terbaru sudah dimuat, silakan ulangi perubahan.', true); return false; }
-    const r = await WEB.sb.from(WEB_TABLE).upsert({ id: WEB_ID, data: next, updated_at: new Date().toISOString(), updated_by: WEB.user.email }).select('updated_at').single();
+    const r = SHARE_KEY ? await WEB.sb.rpc('monitoring_guest_write',{p_token:SHARE_KEY,p_id:WEB_ID,p_data:next,p_old:WEB.ver}) : await WEB.sb.from(WEB_TABLE).upsert({ id: WEB_ID, data: next, updated_at: new Date().toISOString(), updated_by: WEB.user.email }).select('updated_at').single();
     if (r.error) throw r.error;
-    WEB.ver = r.data.updated_at;
+    WEB.ver = SHARE_KEY ? r.data : r.data.updated_at;
     setState(next);
     toast(okMsg || 'Perubahan tersimpan.');
     if (reopen !== null && DATA.positions[+reopen]) setTimeout(() => openCands(+reopen), 60);
@@ -3848,6 +3851,7 @@ async function webInit() {
   authBtn();
   if (!window.supabase || !window.supabase.createClient) { WEB.offline = true; toast('Tidak bisa terhubung ke server data. Menampilkan data terakhir yang tersimpan.', true); return; }
   WEB.sb = window.supabase.createClient(WEB_CFG.url, WEB_CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'kta-web-auth' } });
+  if(SHARE_KEY){const x=await WEB.sb.rpc('monitoring_guest_check',{p_token:SHARE_KEY});const g=(x.data||[]).find(v=>v.app_id===WEB_ROLE_APP);GUEST_ROLE=g?g.access_role:'';if(!GUEST_ROLE){lockWeb();toast('Link tidak berlaku.',true);return;}}
   try { const { data } = await WEB.sb.auth.getSession(); WEB.user = (data && data.session && data.session.user) || null; } catch (e) {}
   try { await webLoad(); } catch (e) { toast('Data terbaru belum bisa dimuat: ' + ((e && e.message) || 'periksa koneksi.'), true); }
   await applyRole();
@@ -3897,6 +3901,7 @@ function watchGrants() {
   }).subscribe();
 }
 function PRINT_ASK() {
+  if(SHARE_KEY && GUEST_ROLE){window.print();return;}
   const info = (title, intro, submit, fn) => openForm({ eyebrow: 'Izin cetak', title, intro, values: {}, fields: [], submit, onSave: fn || (() => true) });
   if (CAN_EDIT) { info('Print & unduh dimatikan', 'Pemilik tidak mengizinkan print / unduh di menu ini untuk Editor. Hubungi Pemilik bila perlu.', 'Tutup'); return; }
   if (!WEB.sb) { info('Cetak & unduh perlu izin Pemilik', 'Server belum terhubung. Periksa koneksi lalu muat ulang.', 'Tutup'); return; }
@@ -4156,7 +4161,7 @@ async function openMutasi(idx) {
 const SITE_DATA = {};
 async function loadAllSites() {
   if (!PROJ.sites || !WEB.sb) return;
-  const { data, error } = await WEB.sb.rpc('kta_web_read', { p_ids: PROJ.sites.map((s) => s.id), p_key: SHARE_KEY || null });
+  const { data, error } = SHARE_KEY ? await WEB.sb.rpc('monitoring_guest_read',{p_token:SHARE_KEY,p_ids:PROJ.sites.map(s=>s.id)}) : await WEB.sb.rpc('kta_web_read',{p_ids:PROJ.sites.map(s=>s.id),p_key:null});
   if (error || !data) return;
   data.forEach((r) => { SITE_DATA[r.id] = r.data; });
   if (ui.page === 'karyawan') render(); else siteNavCount();
