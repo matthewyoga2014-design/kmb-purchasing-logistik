@@ -964,6 +964,8 @@ const COL = {proj:"projects",units:"units",mobs:"mobilisasi",kirim:"pengiriman",
 
 const S = {projects:[],units:[],mobs:[],kirim:[],revisi:[],view:"all",tab:"ringkasan",fProj:"all",fUnit:"Semua",fMob:"Aktif",q:"",ready:false};
 const SB_URL="https://yoviojbfyvgpllxisjvy.supabase.co", SB_KEY="sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9";
+const GUEST_SHARE = new URLSearchParams(location.search).get('share') || '';
+let GUEST_ROLE = '';
 const APP="unit-monitoring", OWNER_EMAIL="matthewyoga2014@gmail.com";
 const DEFAULT_SHEET_URL="https://docs.google.com/spreadsheets/d/1XH5dtCDQFDJZK7npxxh-b6MZEt3ZTJFaAfmCvWdsRI4/edit";
 let sb=null, mode="loading", canWrite=false, role="loading", meEmail="", STATE=null, saving=Promise.resolve();
@@ -1071,14 +1073,14 @@ function applyState(st){ STATE=ensureCols(st||EMPTY()); lastJson=JSON.stringify(
   S.revisi=STATE.revisi.slice().sort((a,b)=>String(b.waktu).localeCompare(String(a.waktu)));
   S.ready=true; render(); }
 async function fetchSb(){
-  const {data,error}=await sb.from("app_state_public").select("data").eq("app_id",APP).maybeSingle();
-  if(error) throw error; SBDATA=(data&&data.data)||EMPTY();
+  const {data,error}=GUEST_SHARE ? await sb.rpc("monitoring_guest_unit_config",{p_token:GUEST_SHARE}) : await sb.from("app_state_public").select("data").eq("app_id",APP).maybeSingle();
+  if(error) throw error; SBDATA=GUEST_SHARE ? ((data||[])[0] ? {sheetApi:data[0].sheet_api,sheetUrl:data[0].sheet_url}:EMPTY()) : (data&&data.data)||EMPTY();
   SHEET_API=SBDATA.sheetApi||""; SHEET_URL=SBDATA.sheetUrl||DEFAULT_SHEET_URL; SRC=SHEET_API?"sheet":"supabase";
   return SBDATA; }
 async function fetchSheet(api){
-  const {data:ss}=await sb.auth.getSession(); const tk=ss&&ss.session&&ss.session.access_token; if(!tk) throw new Error("not_signed_in");
+  const {data:ss}=await sb.auth.getSession(); const tk=ss&&ss.session&&ss.session.access_token; if(!tk && !GUEST_SHARE) throw new Error("not_signed_in");
   const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),30000);
-  const r=await fetch((api||SHEET_API)+((api||SHEET_API).includes("?")?"&":"?")+"t="+Date.now()+"&token="+encodeURIComponent(tk),{cache:"no-store",signal:ctl.signal}).finally(()=>clearTimeout(to));
+  const r=await fetch((api||SHEET_API)+((api||SHEET_API).includes("?")?"&":"?")+"t="+Date.now()+"&token="+encodeURIComponent(tk||"")+(GUEST_SHARE?"&share="+encodeURIComponent(GUEST_SHARE):""),{cache:"no-store",signal:ctl.signal}).finally(()=>clearTimeout(to));
   const j=await r.json(); if(j&&(j.error==="forbidden"||j.error==="not_signed_in")){ lockUnit(); throw new Error(j.error); } if(!j||!j.ok||!j.state) throw new Error((j&&j.message)||"sheet");
   return ensureCols(j.state); }
 async function fetchState(){
@@ -1096,7 +1098,7 @@ async function sheetOp(op){
   const done=()=>{ const i=PENDING.indexOf(ops); if(i>=0) PENDING.splice(i,1); };
   const job=saving.then(async()=>{
     const {data}=await sb.auth.getSession(); const token=data&&data.session&&data.session.access_token;
-    const r=await fetch(SHEET_API,{method:"POST",body:JSON.stringify({token,ops:Array.isArray(op)?op:[op]})});
+    const r=await fetch(SHEET_API,{method:"POST",body:JSON.stringify({token,share:GUEST_SHARE,ops:Array.isArray(op)?op:[op]})});
     const j=await r.json().catch(()=>null);
     if(!j||!j.ok){ const e=j&&j.error; throw {code:(e==="forbidden"||e==="not_signed_in")?"forbidden":e==="busy"?"conflict":"failed"}; }
     done(); let st=j.state; if(PENDING.length){ st=JSON.parse(JSON.stringify(st)); PENDING.forEach(p=>applyOpsLocal(st,p)); }
@@ -1109,6 +1111,7 @@ async function doMutate(fn){
   for(let attempt=0;attempt<4;attempt++){
     const prevRev=Number(STATE.rev)||0;
     const next=ensureCols(JSON.parse(JSON.stringify(STATE))); fn(next); next.rev=prevRev+1;
+    if(GUEST_SHARE) throw {code:"forbidden"};
     const {data,error}=await sb.from("app_state_public").update({data:next,updated_at:new Date().toISOString(),updated_by:meEmail}).eq("app_id",APP).eq("data->>rev",String(prevRev)).select("app_id");
     if(error) throw error;
     if(data&&data.length){ applyState(next); return; }
@@ -1909,6 +1912,17 @@ render();
 const ROLE_TXT={owner:"Pemilik",editor:"Editor",viewer:"Pelihat",guest:"Belum masuk",none:"Belum diundang",loading:"Memeriksa akses"};
 async function onSession(s){
   meEmail=((s&&s.user&&s.user.email)||"").toLowerCase();
+  if(GUEST_SHARE) {
+    const res=await sb.rpc('monitoring_guest_check',{p_token:GUEST_SHARE});
+    const row=(res.data||[]).find(x=>x.app_id===APP);
+    GUEST_ROLE=row?row.access_role:'';
+    role=GUEST_ROLE||'none';canWrite=role==='editor';
+    meEmail=GUEST_ROLE ? role+'-link@monitoring.local' : '';
+    if(!GUEST_ROLE){lockUnit();renderWho();return;}
+    unlockUnit();renderWho();render();
+    if(!UNLOCKED_ONCE){UNLOCKED_ONCE=true;startData();}
+    return;
+  }
   role=meEmail?"viewer":"guest"; canWrite=false;
   if(meEmail){
     if(meEmail===OWNER_EMAIL) role="owner";
@@ -1938,7 +1952,7 @@ function renderWho(){
   $("#whoAv").textContent=(meEmail||"?").charAt(0).toUpperCase();
   $("#whoRole").textContent=ROLE_TXT[role]||"";
   const priv=role==="owner"||role==="editor";
-  $("#btnDownload").hidden=!priv; $("#btnPrint").hidden=!priv;
+  $("#btnDownload").hidden=!priv; $("#btnPrint").hidden=!(priv || (GUEST_SHARE && role==="viewer"));
 }
 function showLogin(){
   openForm({title:"Masuk",desc:"Pakai akun yang sama dengan Portal Monitoring Manpower. Pemilik dan Editor bisa mengubah data, mengunduh Excel, dan print.",ok:"Masuk",
@@ -2195,7 +2209,7 @@ async function boot(){
 }
 async function startData(){
   let cached=null; try{ cached=JSON.parse(localStorage.getItem("mu_state_v1")||"null"); }catch(e){}
-  if(cached&&cached.state){ SRC=cached.src||"supabase"; SHEET_API=cached.api||""; SHEET_URL=cached.url||SHEET_URL; mode="ok"; applyState(cached.state); }
+  if(!GUEST_SHARE && cached&&cached.state){ SRC=cached.src||"supabase"; SHEET_API=cached.api||""; SHEET_URL=cached.url||SHEET_URL; mode="ok"; applyState(cached.state); }
   setSync("busy");
   try{ await fetchSb(); const st=SRC==="sheet"?await fetchSheet():SBDATA; mode="ok"; if(JSON.stringify(ensureCols(st))!==lastJson) applyState(st); else render(); setSync("ok"); }
   catch(e){ setSync("err"); if(!cached){ mode="error"; S.ready=true; render(); } }
