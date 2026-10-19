@@ -510,6 +510,9 @@ function inviteBox() {
 function loginHtml() {
   return `<div class="lock lgc"><span class="lg">M</span><h2>Masuk</h2><p>Gunakan email yang diundang atau didaftarkan Pemilik.</p>${inviteBox()}
     <form id="lgForm" class="lf" novalidate><label for="lg_e">Email</label><input id="lg_e" type="email" autocomplete="email" required placeholder="nama@email.com"><label for="lg_p">Password (opsional)</label><input id="lg_p" type="password" autocomplete="current-password" placeholder="Kosongkan untuk menerima link masuk lewat email"><button type="submit" class="btn btn-p">Masuk</button></form>
+    <div class="invite"><h3>Link email membuka halaman yang salah?</h3><p>Di Gmail, klik kanan tombol/link masuk dan pilih <b>Salin alamat link</b> (jangan klik link). Tempel di bawah agar verifikasi selesai langsung di portal ini.</p>
+      <form id="mailLinkForm" class="lf" novalidate><label for="mailLinkInput">Alamat link dari email Supabase</label><input id="mailLinkInput" type="text" autocomplete="off" placeholder="Tempel link verifikasi dari Gmail" required><button type="submit" class="btn btn-g">Verifikasi & masuk</button></form>
+      <p class="small">Link bersifat rahasia dan sekali pakai. Jangan bagikan kepada siapa pun.</p></div>
     <p class="small">Belum punya akses? Minta Pemilik atau Editor membagikan link undangan ke email Anda.</p></div>`;
 }
 async function doLogin(e) {
@@ -522,6 +525,37 @@ async function doLogin(e) {
   const r = pw ? await S.sb.auth.signInWithPassword({ email: em, password: pw }) : await S.sb.auth.signInWithOtp({ email: em, options: { emailRedirectTo: redirectUrl.href, shouldCreateUser: true } });
   if (r.error) { toast(/invalid login/i.test(r.error.message) ? 'Email atau password salah.' : /rate|seconds/i.test(r.error.message) ? 'Terlalu sering meminta link. Tunggu beberapa menit.' : 'Gagal masuk: ' + r.error.message, true); return; }
   toast(pw ? 'Berhasil masuk.' : `Link masuk dikirim ke ${em}. Buka email lalu klik linknya.`);
+}
+// Verifikasi Magic Link langsung di portal: menghindari email lama yang masih mengarah ke localhost.
+async function redeemMailLink(e) {
+  e.preventDefault();
+  if (!S.sb) return;
+  const raw = ($('mailLinkInput')?.value || '').trim();
+  let url, configuredUrl;
+  try { url = new URL(raw); configuredUrl = new URL(CFG.url); }
+  catch (_) { toast('Alamat link tidak valid. Salin alamat link lengkap dari Gmail.', true); return; }
+  if (url.protocol !== 'https:' || url.host !== configuredUrl.host || url.pathname !== '/auth/v1/verify') {
+    toast('Gunakan tautan verifikasi yang dikirim Supabase untuk monitoring ini.', true); return;
+  }
+  const token = url.searchParams.get('token_hash') || url.searchParams.get('token');
+  const rawType = url.searchParams.get('type') || 'magiclink';
+  if (!token || !['magiclink', 'email', 'signup', 'invite'].includes(rawType)) {
+    toast('Kode pada link tidak dikenal. Salin link lengkap dari Gmail.', true); return;
+  }
+  const btn = document.querySelector('#mailLinkForm button[type="submit"]');
+  if (btn) btn.disabled = true;
+  try {
+    const { data, error } = await S.sb.auth.verifyOtp({ token_hash: token, type: rawType });
+    if (error) throw error;
+    if (!data?.session?.user) throw new Error('Sesi login tidak terbentuk.');
+    S.user = data.session.user;
+    await boot();
+    toast('Email terverifikasi. Berhasil masuk sebagai ' + data.session.user.email + '.');
+  } catch (err) {
+    toast('Link gagal diverifikasi: ' + (err?.message || 'tidak dikenal') + '. Pastikan link belum pernah diklik dan belum kedaluwarsa.', true);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
 }
 function resultBox() {
   const L = S.inviteRes; if (!L || !L.length) return '';
@@ -682,7 +716,7 @@ document.addEventListener('change', async (e) => {
   const { error } = await S.sb.rpc('kta_member_set', { p_app: ui.app, p_email: m, p_role: e.target.value });
   if (error) toast('Gagal: ' + error.message, true); else { toast(`${m} sekarang ${ROLE_L[e.target.value]}.`); loadAccess(ui.app); }
 });
-document.addEventListener('submit', (e) => { if (e.target.id === 'lgForm') doLogin(e); });
+document.addEventListener('submit', (e) => { if (e.target.id === 'lgForm') doLogin(e); else if (e.target.id === 'mailLinkForm') redeemMailLink(e); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (!$('modal').hidden) closeModal(); $('menu').hidden = true; } });
 
 // ---------- start ----------
