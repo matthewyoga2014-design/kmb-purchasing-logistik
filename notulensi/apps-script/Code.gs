@@ -115,7 +115,7 @@ function guestRole_(share) {
   if (!/^[a-f0-9]{48}$/.test(String(share||''))) throw new Error('Link berbagi tidak berlaku');
   var res=UrlFetchApp.fetch(SUPABASE_URL+'/rest/v1/rpc/monitoring_guest_check',{
     method:'post',contentType:'application/json',
-    headers:{apikey:SUPABASE_KEY,Authorization:'Bearer '+SUPABASE_KEY},
+    headers:{apikey:SUPABASE_KEY},
     payload:JSON.stringify({p_token:share}),muteHttpExceptions:true
   });
   if (res.getResponseCode()!==200) throw new Error('Gagal memeriksa hak akses link');
