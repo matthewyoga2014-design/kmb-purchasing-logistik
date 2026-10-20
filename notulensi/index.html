@@ -410,7 +410,7 @@ select.stsel.s-close{background:var(--green-soft);color:#24774E;font-weight:700;
 
 .phgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
 .ph{margin:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--sunk)}
-.ph img,.ph .phload{display:block;width:100%;aspect-ratio:4/3;object-fit:cover;max-width:100%}
+.ph img,.ph .phload{display:block;width:100%;aspect-ratio:4/3;object-fit:contain;max-width:100%;background:#F7F8FA}
 .ph .phload{display:grid;place-items:center;color:var(--muted);font-size:12px}
 .ph figcaption{display:flex;align-items:center;justify-content:space-between;gap:6px;padding:4px 4px 4px 10px;font-size:12px;color:var(--muted);background:var(--surface);min-width:0}
 .wordbar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;padding:12px 14px;border:1px solid #CFDDF5;background:#F5F8FE;border-radius:10px}
@@ -719,7 +719,17 @@ body{background:radial-gradient(1200px 500px at 85% 0%,#E9E6FB 0%,rgba(233,230,2
   /* halaman notulensi */
   .v3 .tline{gap:6px}.v3 .tstep{padding:6px 8px!important;min-width:0}
   .v3 .sh2 h1{font-size:18px}.v3 .meta{gap:6px 16px!important}.v3 .meta dd{font-size:11px}
-  .phgrid{grid-template-columns:repeat(4,1fr)!important;gap:6px}
+  /* Foto dokumentasi untuk cetak: dua kolom proporsional, gambar utuh dan tidak terpotong. */
+  .v3 #v-series .phgrid,.printdoc #v-series .phgrid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:5mm!important;align-items:start!important}
+  .v3 #v-series .ph,.printdoc #v-series .ph{display:flex!important;flex-direction:column!important;align-items:stretch!important;min-width:0!important;margin:0!important;padding:2.5mm!important;overflow:visible!important;border:1px solid #D7DEE5!important;border-radius:6px!important;background:#fff!important;box-sizing:border-box!important;break-inside:avoid!important;page-break-inside:avoid!important}
+  .v3 #v-series .ph img,.printdoc #v-series .ph img{display:block!important;width:100%!important;max-width:100%!important;height:auto!important;max-height:105mm!important;aspect-ratio:auto!important;object-fit:contain!important;object-position:center center!important;overflow:visible!important;border-radius:4px!important;background:#fff!important;break-inside:avoid!important}
+  .v3 #v-series .ph .phload,.printdoc #v-series .ph .phload{min-height:20mm;aspect-ratio:auto}
+  .v3 #v-series .ph figcaption,.printdoc #v-series .ph figcaption{display:block!important;text-align:center!important;padding:2mm 1mm 0!important;font-size:9.5px!important;line-height:1.35!important;color:#4B5563!important;background:#fff!important}
+  .v3 #v-series .ph figcaption button,.printdoc #v-series .ph figcaption button{display:none!important}
+  .v3 #v-series .phgrid,.v3 #v-series .phgrid .ph{height:auto!important;max-height:none!important}
+  /* Lampiran foto dapat dilanjutkan ke halaman berikutnya; setiap foto dan judul tetap utuh. */
+  .v3 #v-series .vfiles,.v3 #v-series .card:has(.phgrid){overflow:visible!important}
+  @media (max-width:600px){.v3 #v-series .phgrid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
 }
 
 .gate{position:fixed;inset:0;z-index:200;display:grid;place-items:center;padding:16px;background:radial-gradient(1200px 500px at 85% 0%,#E9E6FB 0%,rgba(233,230,251,0) 70%),linear-gradient(180deg,#F4F3FB 0%,#ECEEF7 60%,#E6E9F3 100%)}
@@ -2455,8 +2465,28 @@ async function repairData(){
 function printTitle(){const v=S.view;if(v==="series"){const x=sById(S.sid);const ve=vById(S.vid)||latestV(S.sid);return (x?x.title:"Notulensi")+(ve?" - Meeting ke-"+ve.no+" - "+fmtD(ve.date):"");}
   return({dash:"Dashboard Notulensi",list:"Daftar Notulensi",files:"Unit & File",cal:"Kalender Meeting",edit:"Notulensi"})[v]+" - "+fmtD(iso(today()));}
 function printHead(){const P=period();return `<div class="printhead"><b>${esc(printTitle())}</b><span>${S.view==="dash"?esc((S.f.folder?fPathName(S.f.folder):"Semua unit")+" · "+P.label)+" · ":""}Dicetak ${esc(fmtTs(Date.now()))}${S.me?"":""}</span></div>`;}
+/* Siapkan seluruh foto asli sebelum membuka dialog cetak.
+   Thumbnail Google Drive dapat masih dalam proses download ketika Print diklik. */
+async function readyPrintPhotos(){
+  if(S.view!=="series")return;
+  const v=vById(S.vid)||latestV(S.sid);if(!v)return;
+  const photos=S.files.filter(f=>f.versionId===v.id&&f.kind==="photo");
+  const missing=photos.filter(f=>!S.thumbs[f.id]);
+  if(missing.length)toast("Menyiapkan "+missing.length+" foto dokumentasi untuk print…",true);
+  for(let i=0;i<missing.length;i+=3){
+    await Promise.all(missing.slice(i,i+3).map(async f=>{
+      try{const bytes=await getBytes(f);S.thumbs[f.id]=URL.createObjectURL(new Blob([bytes],{type:f.type||"image/jpeg"}));}
+      catch(e){console.warn("Foto belum dapat dimuat untuk print:",f.name,e);}
+    }));
+  }
+  if(missing.length)renderSeries();
+  const imgs=[...$("v-series").querySelectorAll(".phgrid .ph img")];
+  await Promise.all(imgs.map(img=>img.decode?img.decode().catch(()=>{}):Promise.resolve()));
+}
 async function printPage(){
-  const v=$("v-"+S.view);if(!v)return;document.querySelectorAll(".printhead").forEach(e=>e.remove());v.insertAdjacentHTML("afterbegin",printHead());
+  const v=$("v-"+S.view);if(!v)return;
+  await readyPrintPhotos();
+  document.querySelectorAll(".printhead").forEach(e=>e.remove());v.insertAdjacentHTML("afterbegin",printHead());
   const wraps=[...v.querySelectorAll(".tbl-wrap")];wraps.forEach(w=>w.dataset.pmh=w.style.maxHeight||"");
   if(window.NOTU_SA){document.title=printTitle();setTimeout(()=>{window.print();setTimeout(()=>{document.querySelectorAll(".printhead").forEach(e=>e.remove());document.title="Notulensi · Monitoring Meeting";},500);},50);return;}
   if(!S.downloads){v.querySelector(".printhead")?.remove();return toast("Print tidak tersedia di tampilan ini");}
