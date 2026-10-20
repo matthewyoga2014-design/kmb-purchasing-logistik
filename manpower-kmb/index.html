@@ -1208,7 +1208,7 @@ function buildDoc(state) {
     + S + ' src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer>' + E + '\n'
     + S + ' src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer>' + E + '\n'
     + S + ' src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer>' + E + '\n'
-    + S + ' id="app">' + app + E + '<script src="../spreadsheet-inline.js?v=20261020"></script></body></html>';
+    + S + ' id="app">' + app + E + '</body></html>';
 }
 async function commit(mutate, okMsg) {
   if (!CAN_EDIT || SAVING) return false;
@@ -4505,4 +4505,4 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
   }, true);
   try { after(); } catch (e) {}
 })();
-</script><!--/permx--></body></html>
+</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script></body></html>
