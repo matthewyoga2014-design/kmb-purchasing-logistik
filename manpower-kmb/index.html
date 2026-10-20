@@ -625,7 +625,7 @@ body.pp .noprint { display: none !important; }
 body.locked > *:not(#lockScr):not(#toast):not(.modal):not(#modal) { visibility: hidden; }
 @media print { body.locked * { display: none !important; } }
 .shl { display: flex; gap: 8px; flex-wrap: wrap; } .shl input { flex: 1 1 260px; min-width: 0; font: inherit; font-size: 13px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card-2, #F7F6FC); color: var(--ink); }
-</style><style>.backbtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;flex-shrink:0}@media (max-width:560px){.backbtn span{display:none}.backbtn{padding-left:10px;padding-right:10px}}@media print{.backbtn{display:none!important}}</style></head><body>
+</style><style>.backbtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;flex-shrink:0}@media (max-width:560px){.backbtn span{display:none}.backbtn{padding-left:10px;padding-right:10px}}@media print{.backbtn{display:none!important}}</style><script src="../remembered-access.js?v=20261020"></script></head><body>
 <script type="application/json" id="state">{"positions": [], "aktif": [], "keluar": [], "units": [], "meta": {}}</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -3879,6 +3879,7 @@ async function webInit() {
     if(check.error) { monitoringStatus('Tidak dapat memeriksa link',check.error.message||'Server tidak merespons.'); return; }
     const g=(check.data||[]).find(v=>v.app_id===WEB_ROLE_APP);
     GUEST_ROLE=g?g.access_role:'';
+    if(GUEST_ROLE&&window.KMBRememberedAccess)window.KMBRememberedAccess.remember(WEB_ROLE_APP,SHARE_KEY,GUEST_ROLE);
     if(!GUEST_ROLE){ monitoringStatus('Link tidak berlaku','Minta Pemilik membuat link baru melalui Bagikan → Link tanpa login.'); return; }
   }
   // Link berbagi memegang token izin sendiri. Jangan menunggu Auth email di HP (dapat menggantung pada sinyal lemah).
