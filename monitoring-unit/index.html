@@ -784,7 +784,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 @media print and (min-width:1181px){ .wrap{zoom:1} }
 
 </style>
-</head>
+<script src="../remembered-access.js?v=20261020"></script></head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-truck" viewBox="0 0 24 24"><path d="M2 15V7h11v8"/><path d="M13 10h4.5l3.5 3.5V15h-8"/><path d="M2 15h19"/><circle cx="6.5" cy="17.5" r="2"/><circle cx="16.5" cy="17.5" r="2"/></symbol>
@@ -1916,6 +1916,7 @@ async function onSession(s){
     const res=await sb.rpc('monitoring_guest_check',{p_token:GUEST_SHARE});
     const row=(res.data||[]).find(x=>x.app_id===APP);
     GUEST_ROLE=row?row.access_role:'';
+    if(GUEST_ROLE&&window.KMBRememberedAccess)window.KMBRememberedAccess.remember(APP,GUEST_SHARE,GUEST_ROLE);
     role=GUEST_ROLE||'none';canWrite=role==='editor';
     meEmail=GUEST_ROLE ? role+'-link@monitoring.local' : '';
     if(!GUEST_ROLE){lockUnit();renderWho();return;}
