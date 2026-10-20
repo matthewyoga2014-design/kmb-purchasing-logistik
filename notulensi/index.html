@@ -2283,6 +2283,7 @@ async function mergeRows(prev,neu){
     else out.push({...r,st:r.st||"open"});});
   const got=new Set(out.map(r=>r.k));
   prev.filter(p=>!got.has(p.k)&&p.st!=="close").forEach(p=>{let at=-1;out.forEach((r,i)=>{if(r.sec===p.sec)at=i;});if(at<0)out.push({...p});else out.splice(at+1,0,{...p});});
+  out.forEach(r=>{delete r.key;});
   return out;
 }
 function replaceMeetingFile(sid,vid){
@@ -2326,7 +2327,7 @@ function chooseTarget(file,parsed,folderId){const unitId=unitOf(folderId);
   });
 }
 const mkColsFrom=(baseCols,colNames)=>{const cols=(baseCols||[]).map(c=>({...c}));(colNames||[]).forEach(n=>{if(!cols.some(c=>norm(c.name)===norm(n)))cols.push({id:"c"+uid().slice(0,6),name:n});});return cols;};
-const withXCols=(rs,cols)=>rs.map(r=>{const o={...r};if(r.xn){o.x={};cols.forEach(c=>{const k=Object.keys(r.xn).find(n=>norm(n)===norm(c.name));if(k!==undefined)o.x[c.id]=r.xn[k];});}delete o.xn;delete o.key;return o;});
+const withXCols=(rs,cols)=>rs.map(r=>{const o={...r};if(r.xn){o.x={};cols.forEach(c=>{const k=Object.keys(r.xn).find(n=>norm(n)===norm(c.name));if(k!==undefined)o.x[c.id]=r.xn[k];});}delete o.xn;return o;});
 const metaOf=(m,date,src)=>({date,time:m.time||"",place:m.place||"",lead:m.lead||"",people:m.people||"",agenda:m.agenda||"",next:parseIndoDate(m.next)||"",purpose:m.purpose||"",source:src});
 /* Folder meeting: satu folder bertanggal berisi satu file notulensi -> Meeting ke-n dari notulensi di folder induknya */
 async function importMeetingFolder(file,p,folderId,fdate,fname){
@@ -2383,7 +2384,7 @@ async function importNotulensi(file,folderId,batch,forceNew,forceSid,existingFil
   try{const meta={date:ch.date,time:m.time||"",place:m.place||"",lead:m.lead||"",people:m.people||"",agenda:m.agenda||"",next:parseIndoDate(m.next)||"",purpose:m.purpose||"",source:file.name};
     let sid,vid,no;
     const mkCols=baseCols=>{const cols=(baseCols||[]).map(c=>({...c}));colNames.forEach(n=>{if(!cols.some(c=>norm(c.name)===norm(n)))cols.push({id:"c"+uid().slice(0,6),name:n});});return cols;};
-    const withX=(rs,cols)=>rs.map(r=>{const o={...r};if(r.xn){o.x={};cols.forEach(c=>{const k=Object.keys(r.xn).find(n=>norm(n)===norm(c.name));if(k!==undefined)o.x[c.id]=r.xn[k];});}delete o.xn;delete o.key;return o;});
+    const withX=(rs,cols)=>rs.map(r=>{const o={...r};if(r.xn){o.x={};cols.forEach(c=>{const k=Object.keys(r.xn).find(n=>norm(n)===norm(c.name));if(k!==undefined)o.x[c.id]=r.xn[k];});}delete o.xn;return o;});
     if(ch.mode==="next"){sid=ch.sid;const lv=latestV(sid);no=(lv?.no||0)+1;const cols=mkCols(lv?.cols);const merged=await mergeRows(lv?.rows||[],withX(rows,cols));
       vid=(await S.db.collection("versions").add({seriesId:sid,no,...meta,rows:merged,cols,kind:"upload",basedOn:lv?.id||null,createdAt:Date.now(),...stamp()})).id;await S.db.collection("series").doc(sid).update({ended:null,...stamp()});}
     else{const sr=await S.db.collection("series").add({title:ch.title,folderId:unitOf(folderId),createdAt:Date.now(),...stamp()});sid=sr.id;no=1;
