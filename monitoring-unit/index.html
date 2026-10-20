@@ -2206,7 +2206,7 @@ async function boot(){
   if(!window.supabase){ mode="error"; S.ready=true; render(); return; }
   sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:'kta-web-auth'}});
   sb.auth.onAuthStateChange((_ev,s)=>{ setTimeout(()=>onSession(s),0); });
-  try{ const {data}=await sb.auth.getSession(); await onSession(data.session); }catch(e){ role="guest"; lockUnit(); renderWho(); }
+  try{ if(GUEST_SHARE) await onSession(null); else { const {data}=await sb.auth.getSession(); await onSession(data.session); } }catch(e){ role="guest"; lockUnit(); renderWho(); }
 }
 async function startData(){
   let cached=null; try{ cached=JSON.parse(localStorage.getItem("mu_state_v1")||"null"); }catch(e){}
