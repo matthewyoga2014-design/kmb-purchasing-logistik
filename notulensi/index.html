@@ -341,7 +341,8 @@ details.raw[open] summary::before{transform:rotate(90deg)}
 .ntbl tr.r-close td:not(.grp),.ntbl td.grp.g-close{background:var(--r-close)}
 .ntbl tr.r-continue td:not(.grp),.ntbl td.grp.g-continue{background:var(--r-cont)}
 .ntbl tr.r-close td{border-bottom-color:#C4E3D0}
-.ntbl td.chg{box-shadow:inset 3px 0 0 var(--upd)}
+/* Penanda perubahan memakai teks lama dicoret; hilangkan garis biru tebal yang terputus pada sel merge/rowspan. Garis tabel tetap tipis 1px. */
+.ntbl td.chg{box-shadow:none}
 .ntbl.hl .oldv{display:block;font-size:11.5px;color:var(--upd);text-decoration:line-through;text-decoration-color:rgba(47,111,181,.55);margin-bottom:3px;white-space:pre-line}
 .ntbl:not(.hl) td.chg{box-shadow:none}
 .ntbl:not(.hl) .newtag{display:none}
