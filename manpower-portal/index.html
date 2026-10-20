@@ -427,7 +427,7 @@ function roleFor(key) {
 }
 function actsHtml(p) {
   const r = roleFor(p.key); if (!r) return '';
-  const staff = r === 'owner' || r === 'editor';
+  const staff = !HUB_SHARE && (r === 'owner' || r === 'editor'); // no owner/editor administration via bearer links
   return `<div class="acts"><span class="chip ${r === 'owner' ? 'own' : r === 'viewer' ? 'vw' : ''}">${ROLE_L[r]}</span>${staff ? `<button type="button" class="ab" data-shr="${p.key}"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 11 21 3l-8 18-2-8z"/></svg>Bagikan link</button><a class="ab" href="../#akses:${APP_OF[p.key]}">Akses</a>` : ''}</div>`;
 }
 // Owner-selected editors are registered immediately; authentication still requires the recipient email.
