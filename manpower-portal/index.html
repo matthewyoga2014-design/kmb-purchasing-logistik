@@ -608,7 +608,7 @@ skeleton(); whoUI(); guard();
 (async () => {
   if (!window.supabase) { const e = document.getElementById('err'); e.textContent = 'Tidak bisa terhubung ke server data. Periksa koneksi lalu muat ulang.'; e.hidden = false; return; }
   SB = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'kta-web-auth' } });
-  try { const { data } = await SB.auth.getSession(); USER = (data && data.session && data.session.user) || null; } catch (e) {}
+  if(!HUB_SHARE){try { const { data } = await SB.auth.getSession(); USER = (data && data.session && data.session.user) || null; } catch (e) {}}
   if (!HUB_SHARE && !USER) {
     try {
       const saved=JSON.parse(localStorage.getItem('kmb-shared-access-v1')||'{}');
