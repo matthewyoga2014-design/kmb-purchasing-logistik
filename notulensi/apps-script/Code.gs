@@ -24,7 +24,7 @@ var COLS = ['folders', 'series', 'versions', 'files'];
 var MAX_BYTES = 20 * 1024 * 1024;
 
 function doGet() {
-  return out_({ ok: true, app: 'notulensi', time: new Date().toISOString() });
+  return out_({ ok: true, app: 'notulensi', guestAccess: true, version: '20261020-no-login', time: new Date().toISOString() });
 }
 
 function doPost(e) {
