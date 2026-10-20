@@ -2285,6 +2285,9 @@ async function mergeRows(prev,neu){
 }
 async function importMany(files,folderId,forceNew){for(const f of files)await importNotulensi(f,folderId,files.length>1,forceNew);}
 const unitOf=id=>{const f=fById(id);return f&&f.parentId&&parseIndoDate(f.name)?f.parentId:(id||null);};
+function importPreview(rows){
+  return `<details open style="margin-top:10px"><summary class="stamp" style="cursor:pointer;font-weight:700">Pratinjau isi dokumen (${rows.length} baris) — periksa sebelum simpan</summary><div class="tbl-wrap" style="margin-top:8px;max-height:235px;overflow:auto"><table style="font-size:12px"><thead><tr><th>Bagian / Topik</th><th>Pembahasan sumber</th><th>Tindak lanjut</th><th>PIC</th><th>Status</th></tr></thead><tbody>${rows.slice(0,15).map(r=>`<tr><td>${esc([r.sec,r.topik].filter(Boolean).join(' / '))}</td><td>${esc(r.bahas||'—')}</td><td>${esc(r.tl||'—')}</td><td>${esc(r.pic||'—')}</td><td>${esc(r.st?ST[r.st]:'Belum ditetapkan')}</td></tr>`).join('')}</tbody></table></div>${rows.length>15?`<div class="stamp">Menampilkan 15 baris pertama dari ${rows.length} baris.</div>`:''}</details>`;
+}
 function chooseTarget(file,parsed,folderId){const unitId=unitOf(folderId);
   return new Promise(res=>{
     const cands=S.series.map(s=>({s,v:latestV(s.id)})).filter(x=>x.v).sort((a,b)=>((b.s.folderId===folderId)-(a.s.folderId===folderId))||(b.v.date||"").localeCompare(a.v.date||""));
@@ -2294,6 +2297,7 @@ function chooseTarget(file,parsed,folderId){const unitId=unitOf(folderId);
     let done=false;S.onModalClose=()=>{if(!done)res(null);};
     openModal(mHead("Upload notulensi")+`<form class="mb" id="ct">
       <div class="note ok"><b>${esc(file.name)}</b> terbaca: ${parsed.rows.length} tindak lanjut${parsed.rows.some(r=>r.key)?` (${parsed.rows.filter(r=>r.key).length} cocok lewat Kode)`:""}${parsed.date?`, tanggal meeting ${fmtD(parsed.date)}`:""}.${parsed.ai?" (dirangkum otomatis)":""}</div>
+      ${importPreview(parsed.rows)}
       ${dup?`<div class="note">File dengan nama ini sudah pernah diupload sebagai Meeting ke-${dup.no} di “${esc(sById(dup.seriesId)?.title||"")}”.</div>`:""}
       <div class="choice">
         <label><input type="radio" name="tg" value="new" ${guess&&!parsed.forceNew?"":"checked"}><span><b>Notulensi baru</b><small>Dibuat sebagai Meeting ke-1 di ${esc(fPathName(unitId))}.</small></span></label>
@@ -2341,7 +2345,7 @@ async function importNotulensi(file,folderId,batch,forceNew,forceSid,existingFil
   let p;try{p=await readNotulensi(file);}catch(err){return toast(file.name+" tidak bisa dibaca: "+errMsg(err));}
   let rows=p.rows,ai=false,aiT="",aiD="";const colNames=p.meta.cols||[];
   if(!rows.length){if(S.sample){toast("Merangkum "+file.name+"…",true);try{const r=await aiRows(p.text,file.name);rows=r.rows;ai=true;aiT=r.judul;aiD=r.tanggal;}catch(err){}}}
-  if(!rows.length)toast(`Tabel tindak lanjut tidak ditemukan di ${file.name}. Notulensi tetap dibuat, isi bisa dilengkapi lewat Koreksi.`);
+  if(!rows.length)return toast(`Tabel dari ${file.name} belum terbaca. Penyimpanan dibatalkan agar data notulensi tidak terganti oleh hasil kosong. Periksa struktur tabel sumber.`);
   const m=p.meta;const title=m.subtitle||m.title||aiT||m.agenda||file.name.replace(/\.\w+$/,"");
   const date=parseIndoDate(m.date)||aiD||parseIndoDate(file.name)||"";
   const ch=await chooseTarget(file,{rows,title,date,ai,forceNew,forceSid},folderId);if(!ch)return toast(file.name+" dilewati");
