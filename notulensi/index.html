@@ -734,7 +734,7 @@ body{background:radial-gradient(1200px 500px at 85% 0%,#E9E6FB 0%,rgba(233,230,2
 
 .dragh{cursor:grab;display:inline-block;margin-right:4px;padding:2px 3px;border-radius:6px;color:#9A96B8;font-size:15px;line-height:1;user-select:none;vertical-align:-1px}.dragh:hover{background:#EFE9FE;color:#6D28D9}.dragh:active{cursor:grabbing}tr.dragging td{opacity:.45}tr.drop-b td{box-shadow:inset 0 3px 0 #6D28D9}tr.drop-a td{box-shadow:inset 0 -3px 0 #6D28D9}.mgc{margin-top:4px;display:flex;gap:6px}.mgb{border:1px dashed #C9C4E6;background:#fff;color:#6D28D9;border-radius:8px;padding:2px 8px;font-weight:600;font-size:11.5px;line-height:1.5;font-family:inherit;cursor:pointer;opacity:0;transition:opacity .12s}td:hover>.mgc .mgb,td:focus-within>.mgc .mgb,.mgb:focus-visible{opacity:1}.mgadd{display:block;margin-top:6px;border:0;background:none;color:#6D28D9;font-weight:700;font-size:12px;line-height:1.4;font-family:inherit;cursor:pointer;padding:2px 0;opacity:0;transition:opacity .12s}td:hover>.mgadd,td:focus-within>.mgadd,.mgadd:focus-visible{opacity:1}td.mgd{background:#FBFAFF;vertical-align:top}td.mgv{vertical-align:middle}@media (hover:none){.mgb,.mgadd{opacity:1}}</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-</head>
+<script src="../remembered-access.js?v=20261020"></script></head>
 <body>
 <div id="gate" class="gate"><div class="gcard"><div style="margin-bottom:14px"><a href="../" title="Kembali ke halaman utama Monitoring" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:700;font-size:13px;color:#4B4868;background:#fff;border:1px solid #E6E4F2;border-radius:10px;padding:8px 12px;flex-shrink:0">&larr; Kembali</a></div><div class="brand"><span class="logo">N</span><div><div class="eb">Integrated Monitoring</div><h1>Web Notulensi</h1></div></div><div id="gBody"><p class="gmsg">Memeriksa login…</p></div></div></div>
 <div class="app v3">
@@ -931,6 +931,7 @@ async function start(){
     try{
       WHO=await call("whoami",{});
       if(!["editor","viewer"].includes(WHO.role))throw new Error("Link berbagi tidak berlaku");
+       if(window.KMBRememberedAccess)window.KMBRememberedAccess.remember('notulensi',GUEST_SHARE,WHO.role);
       await pull(true);
       $("gate").hidden=true;readyRes();
       pollT=pollT||setInterval(()=>{if(!document.hidden)pull(false);},20000);
