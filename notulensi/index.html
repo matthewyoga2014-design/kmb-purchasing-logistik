@@ -1816,6 +1816,7 @@ async function notuBulk(root){
   for(const f of list){i++;toast(`Memproses ${i}/${list.length}: ${f.name}`,true);
     try{const bytes=await getBytes(f);const file=new File([bytes],f.name,{type:f.type||"application/octet-stream"});
       let p;try{p=await readNotulensi(file);}catch(e){p={rows:[],meta:{}};}
+      if(!(p.rows||[]).length){notes.push(`${f.name}: tabel pembahasan/tindak lanjut tidak terbaca, tidak dimasukkan agar tidak menghasilkan Meeting kosong.`);continue;}
       const fo=fById(f.folderId),dated=fo&&parseIndoDate(fo.name);const unitId=dated?(fo.parentId||null):(f.folderId||null);
       const date=parseIndoDate(p.meta&&p.meta.date)||dated||parseIndoDate(f.name)||new Date(f.at||Date.now()).toISOString().slice(0,10);
       const r=await importMeetingFolder(file,p,unitId,date,(unitId&&fById(unitId)?.name)||"");
@@ -2384,7 +2385,7 @@ async function importNotulensi(file,folderId,batch,forceNew,forceSid,existingFil
     const mkCols=baseCols=>{const cols=(baseCols||[]).map(c=>({...c}));colNames.forEach(n=>{if(!cols.some(c=>norm(c.name)===norm(n)))cols.push({id:"c"+uid().slice(0,6),name:n});});return cols;};
     const withX=(rs,cols)=>rs.map(r=>{const o={...r};if(r.xn){o.x={};cols.forEach(c=>{const k=Object.keys(r.xn).find(n=>norm(n)===norm(c.name));if(k!==undefined)o.x[c.id]=r.xn[k];});}delete o.xn;delete o.key;return o;});
     if(ch.mode==="next"){sid=ch.sid;const lv=latestV(sid);no=(lv?.no||0)+1;const cols=mkCols(lv?.cols);const merged=await mergeRows(lv?.rows||[],withX(rows,cols));
-      vid=(await S.db.collection("versions").add({seriesId:sid,no,...meta,rows:merged,cols,kind:"upload",basedOn:lv?.id||null,createdAt:Date.now(),...stamp()})).id;await S.db.collection("series").doc(sid).update(stamp());}
+      vid=(await S.db.collection("versions").add({seriesId:sid,no,...meta,rows:merged,cols,kind:"upload",basedOn:lv?.id||null,createdAt:Date.now(),...stamp()})).id;await S.db.collection("series").doc(sid).update({ended:null,...stamp()});}
     else{const sr=await S.db.collection("series").add({title:ch.title,folderId:unitOf(folderId),createdAt:Date.now(),...stamp()});sid=sr.id;no=1;
       const cols=mkCols([]);vid=(await S.db.collection("versions").add({seriesId:sid,no,...meta,rows:withX(rows,cols).map(r=>({...r,st:r.st||"open"})),cols,kind:"upload",createdAt:Date.now(),...stamp()})).id;}
     try{if(existingFileId){const ef=S.files.find(x=>x.id===existingFileId);if(ef){const{id:_i,...rest}=ef;await S.db.collection("files").doc(existingFileId).update({...rest,seriesId:sid,versionId:vid});ef.seriesId=sid;ef.versionId=vid;}}
