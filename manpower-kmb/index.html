@@ -3877,7 +3877,13 @@ async function webInit() {
     GUEST_ROLE=g?g.access_role:'';
     if(!GUEST_ROLE){ monitoringStatus('Link tidak berlaku','Minta Pemilik membuat link baru melalui Bagikan → Link tanpa login.'); return; }
   }
-  try { const { data } = await WEB.sb.auth.getSession(); WEB.user = (data && data.session && data.session.user) || null; } catch (e) {}
+  // Link berbagi memegang token izin sendiri. Jangan menunggu Auth email di HP (dapat menggantung pada sinyal lemah).
+  if (!SHARE_KEY) {
+    try {
+      const authState = await Promise.race([WEB.sb.auth.getSession(), new Promise(resolve=>setTimeout(()=>resolve({data:null}),8000))]);
+      WEB.user = (authState.data && authState.data.session && authState.data.session.user) || null;
+    } catch (e) { WEB.user = null; }
+  } else { WEB.user = null; }
   try {
     const received=await Promise.race([
       webLoad().then(()=>({ok:true})),
