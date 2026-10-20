@@ -3289,6 +3289,10 @@ document.addEventListener('click', (e) => {
 
 // ================= v22: Struktur Organisasi on the Dashboard (read-only, full width) =================
 function dashOrgCard(D) {
+  // Mobile: hindari merender bagan organisasi bersarang besar di dashboard awal.
+  // Halaman Struktur Organisasi tetap tersedia lewat tombol; data lainnya tetap live.
+  const compact = (typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 820px)').matches);
+  if (compact) return '<div class="card dashorg" style="margin-top:18px;padding:18px"><div class="ch"><div><div class="eyebrow">Struktur Organisasi</div><h2>Struktur Organisasi</h2><p>Bagan lengkap dibuka terpisah agar dashboard cepat di HP.</p></div></div><button type="button" class="btn btn-p" data-go="org">Buka Struktur Organisasi →</button></div>';
   const ce = CAN_EDIT, lay = ui.olay, sec = ui.osec;
   CAN_EDIT = false; ui.olay = 'v'; ui.osec = 'semua';
   let chart; try { chart = orgChart(D); } finally { CAN_EDIT = ce; ui.olay = lay; ui.osec = sec; }
@@ -4119,6 +4123,20 @@ async function switchSite(id) {
 const _renderSite = render;
 render = function () { _renderSite.apply(this, arguments); siteBar(); };
 
+// Hindari layar putih jika salah satu diagram/tabel gagal dirender di browser HP.
+const _renderSafeMobile = render;
+render = function () {
+  try { return _renderSafeMobile.apply(this, arguments); }
+  catch (err) {
+    console.error('Monitoring render error:', err);
+    const view = document.getElementById('view');
+    if (view) {
+      view.innerHTML = '<section style="padding:20px;margin:14px auto;max-width:600px;background:#fff;border:1px solid #e2dcf0;border-radius:14px;color:#302a42"><h2 style="margin:0 0 10px">Dashboard belum dapat ditampilkan</h2><p>Halaman sedang mengalami kendala saat menampilkan data. Coba muat ulang menggunakan Safari atau Chrome. Data monitoring di server tidak berubah.</p><button type="button" id="retryDashboard" style="padding:12px 18px;background:#6d28d9;color:#fff;border:0;border-radius:10px">Muat ulang</button></section>';
+      const retry=document.getElementById('retryDashboard');
+      if(retry) retry.onclick=()=>location.reload();
+    }
+  }
+};
 // ---------- tautan kembali ke portal ----------
 (function () {
   const brand = document.querySelector('.side .brand');
