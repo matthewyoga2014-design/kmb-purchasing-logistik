@@ -684,7 +684,7 @@ body.locked > *:not(#lockScr):not(#toast):not(.modal):not(#modal) { visibility: 
 .gaview { overflow: auto; border: 1px solid var(--line); border-radius: 12px; margin-top: 10px; background: #fff; }
 .gaview .gadoc { min-width: 860px; }
 .tohub { display: block; margin: 0 0 10px; padding: 8px 12px; border-radius: 10px; font-size: 13px; font-weight: 600; color: var(--primary); text-decoration: none; background: var(--soft, #F4F3FA); }
-</style><style>.backbtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;flex-shrink:0}@media (max-width:560px){.backbtn span{display:none}.backbtn{padding-left:10px;padding-right:10px}}@media print{.backbtn{display:none!important}}</style></head><body>
+</style><style>.backbtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;flex-shrink:0}@media (max-width:560px){.backbtn span{display:none}.backbtn{padding-left:10px;padding-right:10px}}@media print{.backbtn{display:none!important}}</style><script src="../remembered-access.js?v=20261020"></script></head><body>
 <aside class="side" id="side" aria-label="Menu">
   <div class="brand"><span class="lg">M</span><div><b>Monitoring</b><span>APD KMB</span></div></div>
   <nav class="nav" id="nav"></nav>
@@ -1992,7 +1992,7 @@ async function init() {
   S.state = empty(); applyTypes(); render();
   if (!window.supabase || !window.supabase.createClient) { toast('Tidak bisa terhubung ke server. Periksa koneksi lalu muat ulang.', true); return; }
   S.sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'kta-web-auth' } });
-  if(SHARE_KEY){const r=await S.sb.rpc('monitoring_guest_check',{p_token:SHARE_KEY});const g=(r.data||[]).find(x=>x.app_id==='apd');GUEST_ROLE=g?g.access_role:'';if(!GUEST_ROLE){S.loaded=true;S.noAccess=true;render();return;}}
+  if(SHARE_KEY){const r=await S.sb.rpc('monitoring_guest_check',{p_token:SHARE_KEY});const g=(r.data||[]).find(x=>x.app_id==='apd');GUEST_ROLE=g?g.access_role:'';if(GUEST_ROLE&&window.KMBRememberedAccess)window.KMBRememberedAccess.remember('apd',SHARE_KEY,GUEST_ROLE);if(!GUEST_ROLE){S.loaded=true;S.noAccess=true;render();return;}}
   try { const { data } = await S.sb.auth.getSession(); S.user = (data && data.session && data.session.user) || null; } catch (e) {}
   if (SHARE_KEY && GUEST_ROLE && !S.user) S.user = { email: 'pengguna-link@monitoring.local' };
   await findRole(); await loadAll(); live();
