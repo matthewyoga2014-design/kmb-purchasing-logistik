@@ -371,10 +371,17 @@ async function loadGuestPortal() {
       GUEST_LINKS[r.app_id] = { token:t, role:r.access_role };
     }
   }));
-  // Save only verified bearer links on this device. Revoked/expired saved links are discarded.
+  // Only server-validated bearer links are remembered, per app, on this device.
   try {
-    if (Object.keys(GUEST_LINKS).length) localStorage.setItem(SHARE_CACHE_KEY, PORTAL_SHARE);
-    else if (SHARE_REUSED) { localStorage.removeItem(SHARE_CACHE_KEY); PORTAL_SHARE = ''; }
+    const validated = Object.fromEntries(Object.entries(GUEST_LINKS).map(([k,v])=>[k,{token:v.token,role:v.role}]));
+    if (Object.keys(validated).length) {
+      localStorage.setItem(SHARE_CACHE_KEY, Object.values(validated).map(v=>v.token).join('.'));
+      localStorage.setItem('kmb-shared-access-v1', JSON.stringify(validated));
+    } else if (SHARE_REUSED) {
+      localStorage.removeItem(SHARE_CACHE_KEY);
+      localStorage.removeItem('kmb-shared-access-v1');
+      PORTAL_SHARE = '';
+    }
   } catch (e) {}
 }
 function renderGuestPortal() {
@@ -383,9 +390,12 @@ function renderGuestPortal() {
   $('page').innerHTML = '';
   $('note').innerHTML = '<div class="nb"><b>Akses melalui link tanpa login.</b> Editor dapat mengubah data pada web yang dibagikan; Pelihat hanya melihat dan mencetak. Pengaturan hanya untuk Pemilik. Link dapat dicabut atau kedaluwarsa.</div>';
   const allowed = SUBS.filter(s => GUEST_LINKS[s.app]);
+  const manpowerApps = ['kta-tra','bupr-ampah','mbj','kmb'];
+  const manpowerTokens = manpowerApps.filter(a => GUEST_LINKS[a]).map(a => GUEST_LINKS[a].token);
+  const manpowerPortal = manpowerTokens.length ? '<article class="card" style="padding:22px;min-height:160px"><h3 style="margin:0 0 10px">Monitoring Manpower · Semua Project</h3><p class="small">Dashboard gabungan MPP, Actual, Vacant dan progress di semua project yang dibagikan.</p><p class="small"><b>Tanpa login</b> · Hanya project yang diizinkan</p><a class="btn btn-p" style="display:inline-flex;text-decoration:none" href="'+esc(new URL('manpower-portal/',BASE).href+'?share='+encodeURIComponent(manpowerTokens.join('.')))+'">Buka dashboard gabungan →</a></article>' : '';
   $('grid').innerHTML = allowed.length
     ? '<div style="grid-column:1/-1;padding:16px 4px"><h2 style="margin:0 0 6px">Web Monitoring yang dibagikan</h2><p class="small">Pilih web untuk membukanya langsung tanpa email atau password.</p></div>'
-      + allowed.map(s => {
+      + manpowerPortal + allowed.map(s => {
          const link=new URL(s.url,BASE).href+'?share='+encodeURIComponent(GUEST_LINKS[s.app].token)+'&v=20261020-mobile';
          const role=GUEST_LINKS[s.app].role;
          return '<article class="card" style="padding:22px;min-height:160px"><h3 style="margin:0 0 10px">'+esc(s.name)+'</h3><p class="small">'+esc(s.portal)+'</p><p class="small"><b>'+ROLE_L[role]+'</b> · '+(role==='editor'?'Bisa mengedit':'Lihat & print')+' · Tanpa login</p><a class="btn btn-p" style="display:inline-flex;text-decoration:none" href="'+esc(link)+'">Buka web →</a></article>';
@@ -802,7 +812,7 @@ document.addEventListener('click', async (e) => {
   const c = (s) => e.target.closest(s);
   if (c('[data-close]') || e.target.id === 'modal') { closeModal(); return; }
   if (c('[data-clear-share]')) {
-    try { localStorage.removeItem(SHARE_CACHE_KEY); } catch (er) {}
+    try { localStorage.removeItem(SHARE_CACHE_KEY); localStorage.removeItem('kmb-shared-access-v1'); } catch (er) {}
     location.href = BASE;
     return;
   }
