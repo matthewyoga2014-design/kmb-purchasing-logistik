@@ -924,7 +924,7 @@ function gate(kind,msg){
 async function start(){
   if(!window.supabase?.createClient){gate("error","Tidak bisa memuat layanan login. Periksa koneksi lalu muat ulang.");return;}
   SB=window.supabase.createClient(SUPA.url,SUPA.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-  SESSION=(await SB.auth.getSession()).data.session;
+  SESSION=GUEST_SHARE ? null : (await SB.auth.getSession()).data.session;
   let first=true;SB.auth.onAuthStateChange((ev,s)=>{if(first){first=false;return;}if(ev==="SIGNED_IN"&&!SESSION||ev==="SIGNED_OUT")location.reload();SESSION=s;});
   if(GUEST_SHARE){
     if(!gasUrl()){gate("setup");return;}
