@@ -1462,6 +1462,7 @@ function renderSeries(){
   const hl=$("hlT");if(hl)hl.onchange=()=>{S.hl=hl.checked;store("rn2-hl",S.hl);renderSeries();};
   $("attBtn").onclick=()=>{const i=document.createElement("input");i.type="file";i.multiple=true;i.onchange=()=>uploadFiles([...i.files],s.folderId,s.id,v?.id||null);i.click();};
   $("sMenu").onclick=e=>{e.stopPropagation();const items=[...(en?[{label:"Buka kembali notulensi",run:()=>reopenAsk(s.id)}]:[{label:"Atur next meeting / tutup notulensi",run:()=>nextAsk(s.id)}]),{label:"Koreksi isi Meeting ke-"+v.no+" (tanpa membuat meeting baru)",run:()=>openEditor("fix",s.id,v.id)},{label:"Ubah judul notulensi",run:()=>renameItem("series",s.id)},{label:"Pindahkan ke folder…",run:()=>moveItem("series",s.id)}];
+    if(isLatest)items.push({label:"Ganti file sumber Meeting ke-"+v.no+" (tanpa membuat meeting baru)",run:()=>replaceMeetingFile(s.id,v.id)});
     if(isLatest&&vs.length>1)items.push({label:"Hapus Meeting ke-"+v.no+" saja",danger:true,run:()=>deleteVersion(v)});
     items.push({label:"Hapus seluruh notulensi",danger:true,run:()=>deleteItem("series",s.id)});openMenu($("sMenu"),items);};
 }
@@ -2283,6 +2284,12 @@ async function mergeRows(prev,neu){
   prev.filter(p=>!got.has(p.k)&&p.st!=="close").forEach(p=>{let at=-1;out.forEach((r,i)=>{if(r.sec===p.sec)at=i;});if(at<0)out.push({...p});else out.splice(at+1,0,{...p});});
   return out;
 }
+function replaceMeetingFile(sid,vid){
+  if(!S.canEdit)return toast('Mode lihat: hanya editor yang bisa mengganti file sumber');
+  const i=document.createElement('input');i.type='file';i.accept='.docx,.xlsx,.xlsm,.xls';
+  i.onchange=()=>{const f=i.files&&i.files[0];if(f)importNotulensi(f,sById(sid)?.folderId||null,false,false,sid,null,vid);};
+  i.click();
+}
 async function importMany(files,folderId,forceNew){for(const f of files)await importNotulensi(f,folderId,files.length>1,forceNew);}
 const unitOf=id=>{const f=fById(id);return f&&f.parentId&&parseIndoDate(f.name)?f.parentId:(id||null);};
 function importPreview(rows){
@@ -2338,7 +2345,7 @@ async function importMeetingFolder(file,p,folderId,fdate,fname){
   const vid=(await S.db.collection("versions").add({seriesId:sr.id,no:1,...metaOf(m,date,file.name),rows,cols,kind:"upload",createdAt:Date.now(),...stamp()})).id;
   S.series.push({id:sr.id,title,folderId:folderId||null,createdAt:Date.now()});S.versions.push({id:vid,seriesId:sr.id,no:1,date,rows,cols});
   return{sid:sr.id,vid,no:1,title,created:true};}
-async function importNotulensi(file,folderId,batch,forceNew,forceSid,existingFileId){
+async function importNotulensi(file,folderId,batch,forceNew,forceSid,existingFileId,replaceVid){
   if(!S.db)return toast("Penyimpanan belum tersedia");
   if(file.size>MAXB)return toast(`${file.name} (${fmtSize(file.size)}) melebihi batas 20 MB`);
   toast("Membaca "+file.name+"…",true);
@@ -2348,6 +2355,28 @@ async function importNotulensi(file,folderId,batch,forceNew,forceSid,existingFil
   if(!rows.length)return toast(`Tabel dari ${file.name} belum terbaca. Penyimpanan dibatalkan agar data notulensi tidak terganti oleh hasil kosong. Periksa struktur tabel sumber.`);
   const m=p.meta;const title=m.subtitle||m.title||aiT||m.agenda||file.name.replace(/\.\w+$/,"");
   const date=parseIndoDate(m.date)||aiD||parseIndoDate(file.name)||"";
+  if(replaceVid){
+    const original=vById(replaceVid),series=original&&sById(original.seriesId);
+    if(!series||latestV(series.id)?.id!==replaceVid)return toast('Hanya Meeting terakhir yang dapat diganti dari file sumber.');
+    const confirmed=await new Promise(resolve=>{
+      S.onModalClose=()=>resolve(false);
+      openModal(mHead(`Ganti isi Meeting ke-${original.no} dari sumber?`)+`<div class="mb"><div class="note"><b>${esc(file.name)}</b> akan mengganti isi <b>Meeting ke-${original.no}</b> di ${esc(series.title)}. Tidak membuat Meeting ke-${original.no+1}, dan Meeting sebelumnya tetap tersimpan. Perubahan manual di Meeting ini akan diganti hasil pembacaan file.</div>${importPreview(rows)}</div><div class="mf"><button class="btn" type="button" data-x>Batal</button><button class="btn pri" type="button" id="replaceSourceOk">Ganti isi dari file ini</button></div>`,
+        box=>{box.style.maxWidth='950px';box.querySelector('#replaceSourceOk').onclick=()=>{S.onModalClose=null;closeModal();resolve(true);};});
+    });
+    if(!confirmed)return toast('Penggantian dokumen dibatalkan');
+    toast('Mengimpor ulang isi dokumen sumber…',true);
+    try{
+      const cols=mkColsFrom(original.cols||[],colNames),incoming=withXCols(rows,cols);
+      const prev=prevOf(original),merged=prev?await mergeRows(prev.rows||[],incoming):incoming.map(x=>({...x,st:x.st||'open'}));
+      const meta=metaOf({...m,date:date||original.date},date||original.date,file.name);
+      await S.db.collection('versions').doc(replaceVid).update({...meta,rows:merged,cols,kind:'upload',fixedAt:Date.now(),...stamp()});
+      try{await storeFile(file,{folderId:series.folderId||null,seriesId:series.id,versionId:replaceVid});}
+      catch(err){toast('Isi diperbarui, tetapi lampiran file belum tersimpan: '+errMsg(err));}
+      go('series',{sid:series.id,vid:replaceVid,force:true});
+      toast(`Isi Meeting ke-${original.no} diperbarui sesuai file sumber`);
+    }catch(err){toast('Gagal mengganti isi meeting: '+errMsg(err));}
+    return;
+  }
   const ch=await chooseTarget(file,{rows,title,date,ai,forceNew,forceSid},folderId);if(!ch)return toast(file.name+" dilewati");
   toast("Menyimpan "+file.name+"…",true);
   try{const meta={date:ch.date,time:m.time||"",place:m.place||"",lead:m.lead||"",people:m.people||"",agenda:m.agenda||"",next:parseIndoDate(m.next)||"",purpose:m.purpose||"",source:file.name};
