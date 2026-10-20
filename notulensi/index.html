@@ -840,6 +840,8 @@ const SUPA={url:"https://yoviojbfyvgpllxisjvy.supabase.co",key:"sb_publishable_I
 const GUEST_SHARE = new URLSearchParams(location.search).get("share") || "";
 const GAS_DEFAULT="https://script.google.com/macros/s/AKfycbxEVSGJYpi-q9BiO8iiRSirX9OuVnvP0rVNUYQR4SlcSgkvkfAsYsw8vc1iIzXKFR4X/exec";
 const gasUrl=()=>{try{return localStorage.getItem("notu-gas")||(GAS_DEFAULT.startsWith("@@")?"":GAS_DEFAULT);}catch(e){return GAS_DEFAULT.startsWith("@@")?"":GAS_DEFAULT;}};
+let VERIFIED_GUEST_GAS = "";
+const sharedGasCandidates=()=>[...new Set([gasUrl(),GAS_DEFAULT].filter(url=>/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(url)))];
 const COLS=["folders","series","versions","files"];
 let SB=null,SESSION=null,WHO=null,REV=0,STATE={folders:{},series:{},versions:{},files:{}};
 const subs={},queue=[];let flushing=false,pollT=null;
@@ -848,14 +850,30 @@ const clone=d=>JSON.parse(JSON.stringify(d??{}));
 const $=id=>document.getElementById(id);
 
 async function call(op,body){
-  const url=gasUrl();if(!url)throw new Error("Alamat Apps Script belum diisi");
-  const tok=(await SB.auth.getSession()).data.session?.access_token;
-  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),op==="upload"||op==="download"?180000:45000);
-  let r;try{r=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({op,token:tok,share:GUEST_SHARE,...body}),redirect:"follow",signal:ctl.signal});}
-  catch(e){throw new Error(e.name==="AbortError"?"Server Drive terlalu lama menjawab":"Server Drive tidak bisa dihubungi. Pastikan deployment Apps Script diatur 'Yang memiliki akses: Siapa saja'");}
-  finally{clearTimeout(tm);}
-  if(!r.ok)throw new Error("Server Drive tidak menjawab ("+r.status+")");
-  const j=await r.json();if(!j.ok){const e=new Error(j.error||"Gagal");e.code=j.code;throw e;}return j;}
+  const tok=GUEST_SHARE?null:(await SB.auth.getSession()).data.session?.access_token;
+  const urls=(GUEST_SHARE && !VERIFIED_GUEST_GAS && op==="whoami")
+    ? sharedGasCandidates() : [VERIFIED_GUEST_GAS||gasUrl()];
+  if(!urls.length||!urls[0])throw new Error("Alamat Apps Script belum diisi");
+  let lastError=null;
+  for(const url of urls){
+    const ctl=new AbortController();
+    const tm=setTimeout(()=>ctl.abort(),op==="upload"||op==="download"?180000:45000);
+    try{
+      const r=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({op,token:tok,share:GUEST_SHARE,...body}),redirect:"follow",signal:ctl.signal});
+      if(!r.ok)throw new Error("Server Drive tidak menjawab (HTTP "+r.status+")");
+      let j;
+      try{j=await r.json();}catch(e){throw new Error("Respons Google Apps Script bukan JSON. Periksa deployment Web App terbaru dan akses Anyone.");}
+      if(!j||!j.ok){const e=new Error(j?.error||"Google Apps Script menolak permintaan");e.code=j?.code;throw e;}
+      if(GUEST_SHARE && op==="whoami") VERIFIED_GUEST_GAS=url;
+      return j;
+    }catch(e){
+      lastError=e;
+      if(!GUEST_SHARE||op!=="whoami")break;
+    }finally{clearTimeout(tm);}
+  }
+  if(lastError?.name==="AbortError")throw new Error("Server Drive terlalu lama menjawab. Periksa koneksi.");
+  throw lastError||new Error("Tidak dapat terhubung ke Google Apps Script.");
+}
 
 const CK="notu-cache";
 function saveCache(){try{if(WHO)localStorage.setItem(CK,JSON.stringify({email:WHO.email,who:WHO,rev:REV,data:STATE,at:Date.now()}));}catch(e){}}
@@ -866,7 +884,7 @@ function setSync(t,on){const l=$("liveTxt");if(l)l.textContent=t;const b=$("live
 async function pull(force){
   if(queue.length||flushing)return;
   try{const j=await call("state",{rev:force?0:REV});if(!j.same&&j.data){COLS.forEach(c=>STATE[c]=j.data[c]||{});REV=j.rev;emitAll();saveCache();}setSync("Live · Drive",true);}
-  catch(e){setSync("Offline",false);}}
+  catch(e){setSync("Offline",false);if(force)throw e;}}
 function enqueue(o){queue.push(o);setSync("Menyimpan…",true);flush();}
 async function flush(){
   if(flushing)return;flushing=true;
@@ -927,17 +945,25 @@ async function start(){
   SESSION=GUEST_SHARE ? null : (await SB.auth.getSession()).data.session;
   let first=true;SB.auth.onAuthStateChange((ev,s)=>{if(first){first=false;return;}if(ev==="SIGNED_IN"&&!SESSION||ev==="SIGNED_OUT")location.reload();SESSION=s;});
   if(GUEST_SHARE){
-    if(!gasUrl()){gate("setup");return;}
+    if(!sharedGasCandidates().length){gate("setup");return;}
     try{
+      const check=await SB.rpc("monitoring_guest_check",{p_token:GUEST_SHARE});
+      if(check.error)throw new Error("Server izin tidak merespons: "+check.error.message);
+      const grant=(check.data||[]).find(r=>r.app_id==="notulensi");
+      if(!grant||!["editor","viewer"].includes(grant.access_role))throw new Error("Link Notulensi sudah dicabut, kedaluwarsa, atau bukan untuk portal ini.");
       WHO=await call("whoami",{});
-      if(!["editor","viewer"].includes(WHO.role))throw new Error("Link berbagi tidak berlaku");
-       if(window.KMBRememberedAccess)window.KMBRememberedAccess.remember('notulensi',GUEST_SHARE,WHO.role);
+      if(WHO.role!==grant.access_role)throw new Error("Peran link di Google Apps Script tidak sesuai. Perbarui versi deployment Apps Script.");
       await pull(true);
+      if(window.KMBRememberedAccess)window.KMBRememberedAccess.remember("notulensi",GUEST_SHARE,WHO.role);
       $("gate").hidden=true;readyRes();
       pollT=pollT||setInterval(()=>{if(!document.hidden)pull(false);},20000);
       document.addEventListener("visibilitychange",()=>{if(!document.hidden)pull(false);});
       setTimeout(wireTop,600);
-    }catch(e){gate("error","Link belum aktif di Google Apps Script: "+(e.message||e));}
+    }catch(e){
+      const message=String(e.message||e);
+      const likelyDeploy=/belum masuk|token|login|unknown|forbidden|akses|whoami|json|deployment|tidak dikenal/i.test(message);
+      gate("error","Notulensi belum dapat dibuka: "+message+(likelyDeploy?" Pastikan kode Code.gs terbaru sudah di-deploy sebagai versi baru (Execute as: Me; Who has access: Anyone).":" Periksa sambungan Google Drive."));
+    }
     return;
   }
   if(!SESSION){gate("login");return;}
