@@ -676,7 +676,7 @@ function shareAll() {
     if (!toks.length) { toast('Gagal membuat link: ' + fail.join(', '), true); return; }
     const link = BASE + (guest ? '?share=' : '?i=') + toks.join('.') + (guest ? '&v=20261020-mobile' : ''), names = apps.filter((a) => !fail.includes(subOf(a).name)).map((a) => subOf(a).name).join(', ');
     const body = guest ? `Halo${guestEmail ? ' ' + guestEmail : ''},\n\nAkses ${ROLE_L[role]} Monitoring KMB tanpa login:\n${link}\nWeb: ${names}\n\nBerlaku 30 hari. Jangan teruskan tanpa izin.` : `Halo,\n\nAnda diundang sebagai ${ROLE_L[role]} di Monitoring (${names}).\nBuka link berikut lalu masuk dengan email ${em}:\n${link}\n\nLink hanya berlaku untuk email ini dan aktif 30 hari.`;
-    $('saOut').innerHTML = `<div class="shl"><input type="text" id="shUrl" readonly value="${esc(link)}" aria-label="Link undangan"><button type="button" class="btn btn-p" id="shCopy">Salin Link</button></div><div class="row l"><a class="btn btn-g btn-s" href="mailto:${esc(em)}?subject=${encodeURIComponent('Undangan ' + ROLE_L[role] + ' Monitoring')}&body=${encodeURIComponent(body)}">Kirim lewat email</a><a class="btn btn-g btn-s" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(body)}">Kirim lewat WhatsApp</a></div><p class="small">${guest ? 'Link langsung tanpa login' : 'Link untuk <b>' + esc(em) + '</b>'} sebagai <b>${ROLE_L[role]}</b>: ${esc(names)}. Aktif 30 hari.${!guest && role === 'editor' && !pendingEditors.length ? ' Email terdaftar sebagai Editor; penerima perlu login.' : ''}${fail.length ? ` Gagal membuat link: ${esc(fail.join(', '))}.` : ''}${pendingEditors.length ? ` Pendaftaran Editor belum selesai: ${esc(pendingEditors.join('; '))}. Penerima tetap dapat menggunakan undangan setelah login.` : ''}</p>`;
+    $('saOut').innerHTML = `<div class="shl"><input type="text" id="shUrl" readonly value="${esc(link)}" aria-label="Link undangan"><button type="button" class="btn btn-p" id="shCopy">Salin Link</button></div><div class="row l"><a class="btn btn-g btn-s" href="mailto:${esc(guest ? guestEmail : em)}?subject=${encodeURIComponent('Undangan ' + ROLE_L[role] + ' Monitoring')}&body=${encodeURIComponent(body)}">Kirim lewat email</a><a class="btn btn-g btn-s" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(body)}">Kirim lewat WhatsApp</a></div><p class="small">${guest ? 'Link langsung tanpa login' : 'Link untuk <b>' + esc(em) + '</b>'} sebagai <b>${ROLE_L[role]}</b>: ${esc(names)}. Aktif 30 hari.${!guest && role === 'editor' && !pendingEditors.length ? ' Email terdaftar sebagai Editor; penerima perlu login.' : ''}${fail.length ? ` Gagal membuat link: ${esc(fail.join(', '))}.` : ''}${pendingEditors.length ? ` Pendaftaran Editor belum selesai: ${esc(pendingEditors.join('; '))}. Penerima tetap dapat menggunakan undangan setelah login.` : ''}</p>`;
     $('sa_e').value = ''; if(!guest)Object.keys(S.acc).forEach((a) => loadAccess(a));
   };
 }
@@ -859,6 +859,9 @@ document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (!$('
 
 // ---------- start ----------
 async function boot() {
+  // Shared access is already authorized by its signed server-side bearer token.
+  // Never block no-login links on a Supabase email-session lookup.
+  if (PORTAL_SHARE) { await loadGuestPortal(); S.loaded = true; render(); return; }
   await peekInvite();
   await redeemInvite();
   await loadApps();
@@ -870,7 +873,7 @@ async function init() {
   render();
   if (!window.supabase || !window.supabase.createClient) { S.loaded = true; render(); toast('Tidak bisa terhubung ke server. Periksa koneksi lalu muat ulang.', true); return; }
   S.sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, storageKey: 'kta-web-auth' } });
-  try { const { data } = await S.sb.auth.getSession(); S.user = (data && data.session && data.session.user) || null; } catch (e) {}
+  if(!PORTAL_SHARE){try { const { data } = await S.sb.auth.getSession(); S.user = (data && data.session && data.session.user) || null; } catch (e) {}}
   // A verified link can reopen from the plain homepage on the same browser, like a shared sheet.
   // Owners and pending email invitations keep their normal sign-in flow.
   if (!PORTAL_SHARE && !S.user && !inviteToken()) {
