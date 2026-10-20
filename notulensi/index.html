@@ -1070,15 +1070,23 @@ const vById=id=>S.versions.find(v=>v.id===id);
 const versionsOf=sid=>S.versions.filter(v=>v.seriesId===sid).sort((a,b)=>(a.no||0)-(b.no||0));
 const latestV=sid=>{const vs=versionsOf(sid);return vs[vs.length-1]||null;};
 const prevOf=v=>{const vs=versionsOf(v.seriesId).filter(x=>(x.no||0)<(v.no||0));return vs[vs.length-1]||null;};
-function seriesRows(sid,upto){const m=new Map();for(const v of versionsOf(sid)){if(upto&&(v.date||"")>upto)continue;const ks=new Set();
-  (v.rows||[]).forEach(r=>{m.set(r.k,{...r,_v:v});ks.add(r.k);});for(const[k,r]of[...m])if(!ks.has(k)&&r.st!=="close")m.delete(k);}const en=sById(sid)?.ended,out=[...m.values()];
-  return en&&(!upto||(en.date||"")<=upto)?out.map(r=>r.st==="close"?r:{...r,st:"close",auto:r.st||"open"}):out;}
+function seriesRows(sid,upto){
+  // Semua tindak lanjut mempunyai riwayat. OPEN lama tetap dipantau sampai dinyatakan CLOSE.
+  const m=new Map();let current=null;
+  for(const v of versionsOf(sid)){
+    if(upto&&(v.date||"")>upto)continue;
+    current=v;
+    (v.rows||[]).forEach(r=>m.set(r.k,{...r,_v:v}));
+  }
+  const en=sById(sid)?.ended,out=[...m.values()].map(r=>({...r,_v:current||r._v}));
+  return en&&(!upto||(en.date||"")<=upto)?out.map(r=>r.st==="close"?r:{...r,st:"close",auto:r.st||"open"}):out;
+}
 const sStatus=(sid,upto)=>vStatus({rows:seriesRows(sid,upto)});
 /* ---------- next meeting ---------- */
 const NEAR=3;
 function nextInfo(sid){const s=sById(sid),v=latestV(sid);if(!s||!v)return null;const n=(v.no||0)+1;
   if(s.ended)return{k:"ended",cls:"close",lb:"Selesai",sub:"Ditutup tanpa meeting lanjutan · "+fmtD(s.ended.date),n};
-  const rr=seriesRows(sid);if(!v.next&&rr.length&&rr.every(r=>r.st==="close"))return{k:"done",cls:"close",lb:"Semua close",sub:"Tidak perlu meeting lanjutan",n};
+  const rr=seriesRows(sid).filter(r=>clean(r.tl));if(!v.next&&rr.length&&rr.every(r=>r.st==="close"))return{k:"done",cls:"close",lb:"Semua close",sub:"Tidak perlu meeting lanjutan",n};
   if(!v.next)return{k:"none",cls:"grey",lb:"Belum dijadwalkan",sub:"Tanggal next meeting belum diisi",n};
   const d=daysTo(v.next);
   if(d<0)return{k:"over",d,cls:"open",lb:`Lewat jatuh tempo · ${-d} hari`,sub:"Konfirmasi: ada meeting atau tidak?",date:v.next,n};
@@ -1093,7 +1101,7 @@ function nextAsk(sid){
   if(!S.canEdit)return toast("Mode lihat: hanya editor yang bisa mengubah data");
   const s=sById(sid),v=latestV(sid),x=nextInfo(sid);if(!s||!v||!x)return;
   if(s.ended)return reopenAsk(sid);
-  const open=seriesRows(sid).filter(r=>r.st!=="close").length;
+  const open=seriesRows(sid).filter(r=>clean(r.tl)&&r.st!=="close").length;
   const head=x.k==="over"?`Next meeting sudah lewat ${-x.d} hari`:x.k==="due"?"Next meeting hari ini":x.k==="none"?"Next meeting belum dijadwalkan":"Next meeting";
   openModal(mHead(head)+`<div class="mb">
     <div class="stamp"><b>${esc(s.title)}</b> · Meeting terakhir ke-${v.no} (${fmtD(v.date)})${v.next?` · next meeting dijadwalkan <b>${fmtD(v.next)}</b>`:""}. Masih ada <b>${open}</b> tindak lanjut Open/Continue.</div>
@@ -1126,7 +1134,7 @@ function covMap(rows){const cov=rows.map(()=>({})),top=rows.map(()=>({}));
   const span=rows.map(()=>({}));for(let i=rows.length-1;i>=0;i--)MF.forEach(f=>{let n=1,k=i+1;while(k<rows.length&&cov[k][f]){n++;k++;}span[i][f]=cov[i][f]?0:n;});
   return{cov,top,span};}
 function uniqRows(rows){rows=rows||[];const{cov}=covMap(rows);return rows.filter((r,i)=>!(cov[i].tl&&cov[i].st));}
-function cnt(rows){const c={open:0,continue:0,close:0,total:0};uniqRows(rows).forEach(r=>{c[r.st||"open"]++;c.total++;});return c;}
+function cnt(rows){const c={open:0,continue:0,close:0,total:0};uniqRows(rows).filter(r=>clean(r.tl)).forEach(r=>{const k=ST[r.st]?r.st:"open";c[k]++;c.total++;});return c;}
 function vStatus(v){const c=cnt(v&&v.rows);if(!c.total)return"open";if(c.close===c.total)return"close";if(c.close||c.continue)return"continue";return"open";}
 const pct=(n,t)=>t?Math.round(n/t*100):0;
 const stackBar=c=>`<div class="stack" title="Open ${c.open} · Continue ${c.continue} · Close ${c.close}">${STK.map(k=>c[k]?`<span class="m-${k}" style="width:${c[k]/c.total*100}%"></span>`:"").join("")}</div>`;
@@ -1332,7 +1340,7 @@ function renderNext(fid){const set=folderSet(fid);if(S.nmF===undefined)S.nmF=loa
     <td style="text-align:right;white-space:nowrap">${x.k==="over"||x.k==="due"?`<button class="btn sm pri ed-only" type="button" data-act="nextAsk" data-id="${s.id}">Konfirmasi</button>`:x.k==="none"?`<button class="btn sm ed-only" type="button" data-act="nextAsk" data-id="${s.id}">Atur</button>`:x.k==="ended"?`<button class="btn sm ed-only" type="button" data-act="reopen" data-id="${s.id}">Buka kembali</button>`:""}</td></tr>`;}).join("")}</tbody></table></div>`
     :`<div class="empty" style="padding:16px"><b>${all.length?"Tidak ada notulensi dengan status ini":"Belum ada notulensi"}</b>${all.length?"Pilih status lain di atas.":"Jadwal next meeting muncul di sini setelah notulensi dibuat."}</div>`;}
 function renderResults(snaps,P){
-  const items=snaps.flatMap(x=>x.rows.map(r=>({r,s:x.s,v:r._v||x.v})));const c=cnt(items.map(i=>i.r));
+  const items=snaps.flatMap(x=>x.rows.filter(r=>clean(r.tl)).map(r=>({r,s:x.s,v:x.v})));const c=cnt(items.map(i=>i.r));
   const tabs=[["open","Open"],["continue","Continue"],["close","Close"],["all","Semua"]];
   $("resTabs").innerHTML=tabs.map(([k,l])=>`<button type="button" data-act="dtab" data-t="${k}" aria-pressed="${S.dtab===k}">${l} (${k==="all"?c.total:c[k]})</button>`).join("");
   $("resSub").textContent=`${S.f.folder?fPathName(S.f.folder):"Semua unit"} · ${P.label} · posisi dari meeting terakhir tiap notulensi`;
@@ -2157,7 +2165,11 @@ function parseIndoDate(s){if(!s)return"";s=String(s).toLowerCase();
   let m=s.match(/(\d{1,2})\s+([a-z]+)\.?\s+(\d{4})/);if(m&&BULAN[m[2]])return m[3]+"-"+pad(BULAN[m[2]])+"-"+pad(+m[1]);
   m=s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);if(m)return m[1]+"-"+pad(+m[2])+"-"+pad(+m[3]);
   m=s.match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/);if(m){const y=m[3].length===2?"20"+m[3]:m[3];if(+m[2]<=12&&+m[1]<=31)return y+"-"+pad(+m[2])+"-"+pad(+m[1]);}return"";}
-function mapSt(s){s=norm(s);if(!s)return"";if(/clos|selesai|done|complete|tuntas|finish|^ok$|100\s*%/.test(s))return"close";if(/cont|lanjut|proses|progress|berjalan|on\s*going|sedang|pending|kendala|hold/.test(s))return"continue";if(/open|belum|baru|new/.test(s))return"open";return"";}
+function mapSt(s){s=norm(s);if(!s)return"";
+  if(/\b(belum|tidak|masih belum)\s+(?:selesai|close|closed|done|complete|tuntas|finish|terlaksana|terpenuhi)/.test(s))return"open";
+  if(/clos|selesai|done|complete|tuntas|finish|^ok$|100\s*%/.test(s))return"close";
+  if(/cont|lanjut|proses|progress|berjalan|on\s*going|sedang|pending|kendala|hold/.test(s))return"continue";
+  if(/open|belum|baru|new/.test(s))return"open";return"";}
 function gridify(table){const rows=[...table.querySelectorAll("tr")].filter(tr=>tr.closest("table")===table);const grid=[];
   rows.forEach((tr,r)=>{grid[r]=grid[r]||[];let c=0;[...tr.children].forEach(td=>{while(grid[r][c]!==undefined)c++;const rs=+td.getAttribute("rowspan")||1,cs=+td.getAttribute("colspan")||1;
     td.querySelectorAll("br").forEach(b=>b.replaceWith("\n"));const ps=[...td.querySelectorAll("p,li")];const c1=x=>String(x||"").replace(/\s+/g," ").trim();const t=(ps.length?ps.map(p=>c1(p.textContent)).filter(Boolean).join("\n"):String(td.textContent||"").split(/\n/).map(c1).filter(Boolean).join("\n"));
@@ -2174,7 +2186,7 @@ function parseDoc(html){
       if(tl>-1&&h.some((x,i)=>i!==tl&&/topik|topic|pic|penanggung|pembahasan|agenda|pokok|issue/.test(x))){hi=r;
         const f=re=>h.findIndex((x,i)=>i!==tl&&re.test(x));
         c={tl,topik:f(/^(topik|topic|agenda|pokok|item|permasalahan|masalah|issue|isu)/),bahas:f(/pembahasan|kesepakatan|hasil|diskusi|discussion|uraian|penjelasan|^progres/),pic:f(/^pic|penanggung|\bpj\b|person\s*in\s*charge|pelaksana|^oleh/),
-          due:f(/due|tenggat|deadline|target|batas|jadwal|waktu\s*penyelesaian/),st:f(/^status/),ket:-1,sec:f(/^(bagian|section|project|kategori|kelompok)$/),key:f(/^(kode|id|ref)\b/)};
+          due:f(/due|tenggat|deadline|target|batas|jadwal|waktu\s*penyelesaian/),st:f(/^status/),ket:f(/^(keterangan|ket|catatan|notes?|remarks?)$/),sec:f(/^(bagian|section|project|kategori|kelompok)$/),key:f(/^(kode|id|ref)\b/)};
         const used=new Set(Object.values(c).filter(i=>i>-1));c.extra=g[r].map((x,i)=>({i,name:clean(x)})).filter(e=>!used.has(e.i)&&e.name&&!/^(no\.?|nomor|perubahan)$/i.test(e.name));
         meta.cols=[...new Set([...(meta.cols||[]),...c.extra.map(e=>e.name)])];break;}}
     if(!c){g.forEach(r=>{const cc=r.filter(x=>x&&x!==":");for(let i=0;i+1<cc.length;i+=2)setMeta(cc[i],cc[i+1]);});lines.push(...g.map(r=>r.filter(Boolean).join(" | ")));return;}
@@ -2228,16 +2240,39 @@ ${text.slice(0,lim)}`,{modelTier:"default"});
 const toks=s=>new Set(norm(s).replace(/[^a-z0-9\s]/g," ").split(/\s+/).filter(w=>w.length>2));
 function jac(a,b){const A=toks(a),B=toks(b);if(!A.size||!B.size)return 0;let n=0;A.forEach(w=>{if(B.has(w))n++;});return n/(A.size+B.size-n);}
 async function matchRows(prev,neu){
+  // Utamakan Kode, lalu kecocokan pasti; jangan pakai AI lintas topik/project.
   const map=new Map(),used=new Set();
-  neu.forEach((r,i)=>{if(r.key&&!used.has(r.key)&&prev.some(p=>p.k===r.key)){map.set(i,r.key);used.add(r.key);}});
-  neu.forEach((r,i)=>{if(map.has(i))return;const p=prev.find(p=>!used.has(p.k)&&norm(p.tl)===norm(r.tl)&&norm(p.tl));if(p){map.set(i,p.k);used.add(p.k);}});
-  neu.forEach((r,i)=>{if(map.has(i))return;let best=null,bs=0;prev.forEach(p=>{if(used.has(p.k))return;const sc=jac(p.tl,r.tl)*0.75+jac(p.topik,r.topik)*0.25;if(sc>bs){bs=sc;best=p;}});if(best&&bs>=0.5){map.set(i,best.k);used.add(best.k);}});
-  const restN=neu.map((r,i)=>i).filter(i=>!map.has(i)),restP=prev.filter(p=>!used.has(p.k));
-  if(S.sample&&restN.length&&restP.length){try{
-    const res=await S.sample.json(`Cocokkan tindak lanjut di notulensi BARU dengan tindak lanjut di notulensi SEBELUMNYA yang membahas hal yang sama (lanjutan/update dari item yang sama). Kembalikan HANYA JSON {"map":[{"i":nomor_baru,"k":"key_lama"}]} untuk pasangan yang yakin saja.
-SEBELUMNYA: ${JSON.stringify(restP.map(p=>({k:p.k,topik:p.topik,tindak_lanjut:p.tl})))}
-BARU: ${JSON.stringify(restN.map(i=>({i,topik:neu[i].topik,tindak_lanjut:neu[i].tl})))}`,{modelTier:"quick"});
-    (res&&Array.isArray(res.map)?res.map:[]).forEach(m=>{const i=+m.i;if(restN.includes(i)&&!map.has(i)&&restP.some(p=>p.k===m.k)&&!used.has(m.k)){map.set(i,m.k);used.add(m.k);}});}catch(e){}}
+  const same=(p,r)=>{
+    const a=secN(p.sec),b=secN(r.sec);
+    if(a&&b&&a!==b&&jac(a,b)<0.8)return false;
+    const x=norm(p.topik),y=norm(r.topik);
+    return !(x&&y&&x!==y&&jac(x,y)<0.65);
+  };
+  neu.forEach((r,i)=>{
+    const p=r.key&&prev.find(p=>p.k===r.key);
+    if(p&&!used.has(p.k)&&same(p,r)){map.set(i,p.k);used.add(p.k);}
+  });
+  neu.forEach((r,i)=>{
+    if(map.has(i)||!norm(r.tl))return;
+    const p=prev.find(p=>!used.has(p.k)&&same(p,r)&&norm(p.tl)===norm(r.tl));
+    if(p){map.set(i,p.k);used.add(p.k);}
+  });
+  neu.forEach((r,i)=>{
+    if(map.has(i)||!norm(r.topik))return;
+    const ps=prev.filter(p=>!used.has(p.k)&&same(p,r)&&norm(p.topik)===norm(r.topik));
+    const ns=neu.filter((n,j)=>!map.has(j)&&norm(n.topik)===norm(r.topik)&&secN(n.sec)===secN(r.sec));
+    if(ps.length===1&&ns.length===1){map.set(i,ps[0].k);used.add(ps[0].k);}
+  });
+  neu.forEach((r,i)=>{
+    if(map.has(i)||!norm(r.tl))return;
+    let best=null,bs=0;
+    prev.forEach(p=>{
+      if(used.has(p.k)||!same(p,r))return;
+      const score=jac(p.tl,r.tl)*0.75+jac(p.topik,r.topik)*0.25;
+      if(score>bs){bs=score;best=p;}
+    });
+    if(best&&bs>=0.78){map.set(i,best.k);used.add(best.k);}
+  });
   return map;
 }
 async function mergeRows(prev,neu){
@@ -2440,7 +2475,7 @@ document.addEventListener("focusout",()=>setTimeout(()=>{if(S.pending&&$("modal"
   if(user){try{S.me=await user.id();const me=await user.me();if(me&&me.name){$("meName").textContent=me.name;$("meAv").textContent=me.name.trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase();}}catch(e){}}
   const sub=(col,key)=>db.collection(col).onSnapshot(snap=>{S[key]=snap.docs.map(d=>({id:d.id,...d.data()}));$("live").classList.add("on");$("liveTxt").textContent="Live";scheduleRender();},()=>{$("live").classList.remove("on");$("liveTxt").textContent="Terputus";});
   sub("folders","folders");sub("series","series");sub("versions","versions");sub("files","files");
-  setTimeout(()=>repairData().catch(e=>console.warn("repair",e)),2500);
+  // Tidak mengubah atau menghapus data historis otomatis saat halaman dibuka.
 })();
 
 </script>
