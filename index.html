@@ -379,7 +379,7 @@ function renderGuestPortal() {
   $('grid').innerHTML = allowed.length
     ? '<div style="grid-column:1/-1;padding:16px 4px"><h2 style="margin:0 0 6px">Web Monitoring yang dibagikan</h2><p class="small">Pilih web untuk membukanya langsung tanpa email atau password.</p></div>'
       + allowed.map(s => {
-         const link=new URL(s.url,BASE).href+'?share='+encodeURIComponent(GUEST_LINKS[s.app].token);
+         const link=new URL(s.url,BASE).href+'?share='+encodeURIComponent(GUEST_LINKS[s.app].token)+'&v=20261020-mobile';
          const role=GUEST_LINKS[s.app].role;
          return '<article class="card" style="padding:22px;min-height:160px"><h3 style="margin:0 0 10px">'+esc(s.name)+'</h3><p class="small">'+esc(s.portal)+'</p><p class="small"><b>'+ROLE_L[role]+'</b> · '+(role==='editor'?'Bisa mengedit':'Lihat & print')+' · Tanpa login</p><a class="btn btn-p" style="display:inline-flex;text-decoration:none" href="'+esc(link)+'">Buka web →</a></article>';
       }).join('')
@@ -648,7 +648,7 @@ function shareAll() {
     }
     btn.disabled = false; updateShareMode();
     if (!toks.length) { toast('Gagal membuat link: ' + fail.join(', '), true); return; }
-    const link = BASE + (guest ? '?share=' : '?i=') + toks.join('.'), names = apps.filter((a) => !fail.includes(subOf(a).name)).map((a) => subOf(a).name).join(', ');
+    const link = BASE + (guest ? '?share=' : '?i=') + toks.join('.') + (guest ? '&v=20261020-mobile' : ''), names = apps.filter((a) => !fail.includes(subOf(a).name)).map((a) => subOf(a).name).join(', ');
     const body = guest ? `Halo,\n\nAkses ${ROLE_L[role]} Monitoring KMB tanpa login:\n${link}\nWeb: ${names}\n\nBerlaku 30 hari. Jangan teruskan tanpa izin.` : `Halo,\n\nAnda diundang sebagai ${ROLE_L[role]} di Monitoring (${names}).\nBuka link berikut lalu masuk dengan email ${em}:\n${link}\n\nLink hanya berlaku untuk email ini dan aktif 30 hari.`;
     $('saOut').innerHTML = `<div class="shl"><input type="text" id="shUrl" readonly value="${esc(link)}" aria-label="Link undangan"><button type="button" class="btn btn-p" id="shCopy">Salin Link</button></div><div class="row l"><a class="btn btn-g btn-s" href="mailto:${esc(em)}?subject=${encodeURIComponent('Undangan ' + ROLE_L[role] + ' Monitoring')}&body=${encodeURIComponent(body)}">Kirim lewat email</a><a class="btn btn-g btn-s" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(body)}">Kirim lewat WhatsApp</a></div><p class="small">${guest ? 'Link langsung tanpa login' : 'Link untuk <b>' + esc(em) + '</b>'} sebagai <b>${ROLE_L[role]}</b>: ${esc(names)}. Aktif 30 hari.${!guest && role === 'editor' && !pendingEditors.length ? ' Email terdaftar sebagai Editor; penerima perlu login.' : ''}${fail.length ? ` Gagal membuat link: ${esc(fail.join(', '))}.` : ''}${pendingEditors.length ? ` Pendaftaran Editor belum selesai: ${esc(pendingEditors.join('; '))}. Penerima tetap dapat menggunakan undangan setelah login.` : ''}</p>`;
     $('sa_e').value = ''; if(!guest)Object.keys(S.acc).forEach((a) => loadAccess(a));
@@ -707,7 +707,7 @@ function shareForm(app) {
     try {
       const result = await S.sb.rpc('monitoring_guest_manage', { p_app: app, p_role: role });
       if (result.error || !result.data) throw new Error(result.error ? result.error.message : 'Server tidak memberikan link.');
-      const link = new URL(s.url, BASE).href + '?share=' + encodeURIComponent(result.data);
+      const link = new URL(s.url, BASE).href + '?share=' + encodeURIComponent(result.data) + '&v=20261020-mobile';
       $('shOut').innerHTML = '<div class="shl"><input type="text" id="shUrl" readonly aria-label="Link undangan" value="' + esc(link) + '"><button type="button" class="btn btn-p" id="shCopy">Salin Link</button></div><p class="small">Link ' + ROLE_L[role] + ' tanpa login, berlaku 30 hari. Siapa pun yang memiliki link dapat menggunakan akses ini. Bagikan hanya kepada orang yang dipercaya.</p>' + (['unit-monitoring','notulensi'].includes(app) ? '<p class="small"><b>Belum aktif di Google:</b> perbarui deployment Apps Script terkait ke versi kode terbaru sebelum membagikan link ini.</p>' : '');
     } catch (e) { toast('Gagal membuat link: ' + ((e && e.message) || 'Periksa server.'), true); }
     finally { b.disabled = false; b.textContent = 'Buat Link '+ROLE_L[role]+' Tanpa Login'; }
