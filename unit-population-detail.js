@@ -142,6 +142,21 @@
     const previousUnitBlock = window.unitBlock;
     window.unitBlock=function(D){return previousUnitBlock(D)+dashboardUnitBreakdown();};
   }
+  // Read-only full MPP audit. Preserves the existing operational MPP table.
+  if (typeof window.pageMPP === "function") {
+    const oldMPP=window.pageMPP;
+    window.pageMPP=function(D) {
+      const cols=["No","Section","Sub-section","Nama","Jabatan","Keterangan","PIC","PTK","Tanggal Pengajuan","Psikotest","Interview User","Offering","MCU","FU MCU","On Site","Induksi","Due Date","Status","Tanggal Close"];
+      const row=p=>[p.no,p.section,p.group,p.nama,p.jabatan,p.ket,p.pic,p.ptk,p.aju,
+        ...(Array.isArray(p.stages)?p.stages.slice(0,6):[]),p.due,p.status,p.close];
+      const list=Array.isArray(DATA.positions)?DATA.positions:[];
+      return oldMPP(D)+'<details class="card ud-mpp-audit" style="margin-top:18px"><summary style="cursor:pointer;font-weight:750;padding:4px 2px">Lihat Database MPP Lengkap ('+list.length+' posisi · 19 kolom)</summary>'+
+        '<p class="ud-small" style="margin:10px 0">Semua data MPP yang tersimpan ditampilkan tanpa filter status. Tabel ini hanya untuk pengecekan dan tidak mengubah data.</p>'+
+        '<div class="tw" style="overflow:auto"><table class="t mpp"><thead><tr>'+cols.map(c=>'<th>'+html(c)+'</th>').join('')+'</tr></thead><tbody>'+
+        list.map(p=>{const a=row(p);return '<tr>'+cols.map((c,i)=>'<td style="min-width:100px;white-space:pre-wrap">'+html(a[i]??"")+'</td>').join('')+'</tr>';}).join('')+
+        '</tbody></table></div></details>';
+    };
+  }
   window.pageUnit=function(D){return oldPageUnit(D)+detailPanel();};
   function rowTemplate(it,j){
     const thumb=cleanPhoto(it.foto)?'<img class="ud-thumb" src="'+html(it.foto)+'" alt="Pratinjau foto unit">':'<div class="ud-photo-empty">Belum ada foto</div>';
