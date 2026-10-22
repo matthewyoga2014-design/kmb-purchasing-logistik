@@ -1149,7 +1149,7 @@ function normalize(v) {
   const d = { types, stockIn: arr(v.stockIn), receipts: arr(v.receipts), returns: arr(v.returns), adjust: arr(v.adjust), transfers: arr(v.transfers), requests: arr(v.requests),
     limits: Object.fromEntries(codes.map((t) => [t, Math.max(0, Number(v.limits && v.limits[t]) || 0)])),
     images: Object.fromEntries(codes.filter((t) => typeof (v.images && v.images[t]) === 'string' && v.images[t].startsWith('data:image/')).map((t) => [t, v.images[t]])),
-    personOverrides: v.personOverrides && typeof v.personOverrides === 'object' && !Array.isArray(v.personOverrides) ? v.personOverrides : {},
+    stockResetReceiptIds: arr(v.stockResetReceiptIds), personOverrides: v.personOverrides && typeof v.personOverrides === 'object' && !Array.isArray(v.personOverrides) ? v.personOverrides : {},
     dashboardLayout: v.dashboardLayout, ga: gaNorm(v.ga), warehouses: arr(v.warehouses).map(String).filter(Boolean) };
   // gudang: daftar tersimpan + semua lokasi yang pernah dipakai (data lama tetap terbaca)
   const used = [...d.stockIn.map((x) => x.location), ...d.adjust.map((x) => x.location), ...d.receipts.filter((x) => x.source === 'NEW' || x.source === 'REUSE').map((x) => x.warehouse), ...d.transfers.flatMap((x) => [x.from, x.to])].map((x) => String(x || '').trim()).filter(Boolean);
@@ -1172,7 +1172,7 @@ function moves(d = S.state) {
   d.adjust.forEach((x) => m.push({ date: x.date, p: qty(x.qty) > 0 ? 0 : 3, t: x.type, v: variant(x), g: x.grade === 'REUSE' ? 'REUSE' : 'NEW', w: whOf(x.location), n: qty(x.qty) }));
   d.transfers.forEach((x) => { m.push({ date: x.date, p: 1.5, t: x.type, v: variant(x), g: x.grade === 'REUSE' ? 'REUSE' : 'NEW', w: whOf(x.from), n: -qty(x.qty) }); m.push({ date: x.date, p: 1.6, t: x.type, v: variant(x), g: x.grade === 'REUSE' ? 'REUSE' : 'NEW', w: whOf(x.to), n: qty(x.qty) }); });
   d.returns.forEach((x) => { const r = d.receipts.find((y) => y.id === x.receiptId); if (r && x.action === 'REUSE') m.push({ date: x.date, p: 1, t: r.type, v: variant(r), g: 'REUSE', w: whOf(x.warehouse || (r.source === 'NEW' || r.source === 'REUSE' ? r.warehouse : '')), n: qty(x.qty) }); });
-  d.receipts.forEach((x) => { if (x.source === 'NEW' || x.source === 'REUSE') m.push({ date: x.date, p: 2, t: x.type, v: variant(x), g: x.source, w: whOf(x.warehouse), n: -qty(x.qty) }); });
+  d.receipts.forEach((x) => { if ((d.stockResetReceiptIds || []).includes(x.id)) return; if (x.source === 'NEW' || x.source === 'REUSE') m.push({ date: x.date, p: 2, t: x.type, v: variant(x), g: x.source, w: whOf(x.warehouse), n: -qty(x.qty) }); });
   return m;
 }
 function stock(type, d = S.state, wh = 'ALL') {
