@@ -122,7 +122,7 @@
     const paint=()=>{
       const wrap=document.getElementById("ud-rows");if(!wrap)return;
       wrap.innerHTML=entries.map(rowTemplate).join("");
-      const count=document.getElementById("ud-count");if(count)count.textContent=entries.length+" identitas dicatat";
+      const count=document.getElementById("ud-count");if(count)count.textContent=entries.length+" identitas dicatat";const j=document.getElementById("f_jumlah");if(j && Number(j.value)<entries.length)j.value=String(entries.length);
     };
     openForm({
       eyebrow:"Populasi Unit",
@@ -142,7 +142,7 @@
       onSave:async(v)=>{
         try{await Promise.all(pending);readRows();}catch(e){return setError(e.message||"Gagal memproses foto.");}
         if(uploadError)return setError(uploadError);
-        if(entries.length>v.jumlah)return setError("Jumlah unit ("+v.jumlah+") tidak boleh kurang dari "+entries.length+" identitas yang sudah didaftarkan.");
+        const finalJumlah=Math.max(Number(v.jumlah)||0,entries.length);
         const seen=new Set();
         for(let i=0;i<entries.length;i++){
           const lambung=String(entries[i].lambung||"").trim();
@@ -156,7 +156,7 @@
           return rec;
         });
         return commit(S=>{
-          const rec={...(u||{}),unit:v.unit,jumlah:v.jumlah,catatan:v.catatan,details:cleaned};
+          const rec={...(u||{}),unit:v.unit,jumlah:finalJumlah,catatan:v.catatan,details:cleaned};
           if(u)S.units[idx]=rec;else S.units.push(rec);
         },u?"Data populasi dan detail unit diperbarui.":"Jenis unit ditambahkan.");
       }
