@@ -1128,6 +1128,9 @@ const MP_COLS = [
   ['jk', 'Jenis Kelamin', (p) => esc(p.jk || ''), false],
   ['kategori', 'Keterangan', (p) => esc(p.kategori || ''), false],
   ['site', 'Site', (p) => esc(p.site || ''), false],
+  ['pendidikan', 'Pendidikan', (p) => esc(p.pendidikan || ''), true],
+  ['statusData', 'Verifikasi Data', (p) => esc(p.statusData || ''), false],
+  ['catatanHR', 'Catatan Kepegawaian', (p) => esc(p.catatanHR || ''), false],
 ];
 function masaKerja(a, b) {
   if (!a) return '';
@@ -1143,6 +1146,7 @@ function pageKaryawan(D) {
   const rows = src.filter((p) => !q || `${p.nama} ${p.jabatan} ${p.poh}`.toLowerCase().includes(q));
   const cols = MP_COLS.filter((c) => ui.allCols || c[3]).filter((c) => !(out && c[0] === 'sisa'));
   if (out) cols.push(['keluar', 'Tanggal Keluar', (p) => p.keluar ? fmt(p.keluar) : '']);
+  if (out) cols.push(['alasan', 'Alasan Keluar', (p) => esc(p.alasan || ''), true]);
   return `${header('Database', out ? 'MP Out' : 'MP Aktif', 'Database manpower BUPR Ampah. Data lengkap dapat disinkronkan dari Excel.')}
   <div class="card"><div class="toolbar">
     <div class="seg" role="group" aria-label="Pilih data">${[['aktif', 'MP Aktif'], ['out', 'MP Out']].map(([k, l]) => `<button type="button" data-kt="${k}" aria-pressed="${ui.kt === k}">${l}</button>`).join('')}</div>
@@ -1340,13 +1344,16 @@ const MP_FIELDS = () => [
   { k: 'jk', label: 'Jenis Kelamin', type: 'select', options: [['', '—'], 'Laki - Laki', 'Perempuan'] },
   { k: 'kategori', label: 'Keterangan (Ring)', type: 'select', options: [['', '—'], 'Ring 1', 'Ring 2', 'Ring 3', 'Nasional'] },
   { k: 'site', label: 'Site', list: ['TRA'] },
+  { k: 'pendidikan', label: 'Pendidikan Terakhir', type: 'select', options: [['','—'],'SD','SMP','SMA','SMK','D1','D2','D3','DIII','S1','S2','S3'] },
+  { k: 'statusData', label: 'Verifikasi Data Kepegawaian', type: 'select', options: [['','—'],'Terverifikasi','Perlu Verifikasi'] },
+  { k: 'catatanHR', label: 'Catatan Kepegawaian' },
 ];
 function mpForm(kind, idx) {
   const list = kind === 'out' ? DATA.keluar : DATA.aktif;
   const p = idx == null ? null : list[idx];
   const vac = DATA.positions.map((x, i) => [x, i]).filter(([x]) => isVacant(x));
   const fields = MP_FIELDS();
-  if (kind === 'out') fields.push({ k: 'keluar', label: 'Tanggal Keluar', type: 'date' });
+  if (kind === 'out') fields.push({ k: 'keluar', label: 'Tanggal Keluar', type: 'date' }, { k: 'alasan', label: 'Alasan Keluar' });
   if (!p && kind === 'aktif') fields.push({ k: 'fill', label: 'Isi posisi Vacant di MPP', type: 'select', full: true, options: [['', 'Tidak dihubungkan']].concat(vac.map(([x, i]) => [String(i), `No. ${x.no} · ${x.jabatan} · ${x.group || x.section}`])), hint: 'Nama di MPP berubah dari Vacant menjadi nama karyawan ini.' });
   openForm({
     eyebrow: kind === 'out' ? 'MP Out' : 'MP Aktif', title: p ? `Edit ${p.nama}` : 'Tambah Data Karyawan',
@@ -1354,8 +1361,8 @@ function mpForm(kind, idx) {
     fields, danger: p ? { label: 'Hapus data' } : null,
     onSave: (v) => commit((S) => {
       const L = kind === 'out' ? S.keluar : S.aktif;
-      const rec = { nama: v.nama, jabatan: v.jabatan, dept: v.dept, level: v.level, kontrak: v.kontrak, masuk: v.masuk, akhir: v.akhir, poh: v.poh, jk: v.jk, kategori: v.kategori, site: v.site };
-      if (kind === 'out') rec.keluar = v.keluar;
+      const rec = { nama: v.nama, jabatan: v.jabatan, dept: v.dept, level: v.level, kontrak: v.kontrak, masuk: v.masuk, akhir: v.akhir, poh: v.poh, jk: v.jk, kategori: v.kategori, site: v.site, pendidikan: v.pendidikan, statusData: v.statusData, catatanHR: v.catatanHR };
+      if (kind === 'out') { rec.keluar = v.keluar; rec.alasan = v.alasan; }
       if (p) L[idx] = { ...L[idx], ...rec }; else L.push(rec);
       if (!p && v.fill !== null && v.fill !== undefined && v.fill !== '') { const pos = S.positions[+v.fill]; if (pos) pos.nama = v.nama; }
     }, p ? 'Data karyawan diperbarui.' : 'Karyawan ditambahkan.'),
@@ -1398,12 +1405,12 @@ async function save(filename, data) {
 }
 const MPP_HEAD = ['No', 'Section', 'Sub-section', 'Nama', 'Jabatan', 'Keterangan', 'PIC', 'PTK', 'Tanggal Pengajuan PTK', 'Psikologi Test', 'Interview User', 'Offering Latter', 'MCU', 'FU MCU', 'On Site', 'Induksi', 'Due Date', 'Status', 'Tanggal Close', 'Keterangan PTK', 'Lama Closing (Hari)'];
 const mppRow = (p) => [p.no, p.section, p.group, p.nama, p.jabatan, p.ket, p.pic, p.ptk, p.aju, ...p.stages, p.due, p.status, p.close, ketPTK(p), isClose(p) ? diff(p.close, p.aju) : ''];
-const MP_HEAD = ['No', 'Nama', 'Jabatan', 'Departemen', 'Level', 'Status Kontrak', 'Tanggal Masuk', 'Akhir Kontrak', 'POH', 'Jenis Kelamin', 'Keterangan', 'Site'];
-const mpRow = (p, i) => [i + 1, p.nama, p.jabatan, p.dept, p.level, p.kontrak, p.masuk, p.akhir, p.poh, p.jk, p.kategori, p.site];
+const MP_HEAD = ['No', 'Nama', 'Jabatan', 'Departemen', 'Level', 'Status Kontrak', 'Tanggal Masuk', 'Akhir Kontrak', 'POH', 'Jenis Kelamin', 'Keterangan', 'Site', 'Pendidikan Terakhir', 'Verifikasi Data', 'Catatan Kepegawaian'];
+const mpRow = (p, i) => [i + 1, p.nama, p.jabatan, p.dept, p.level, p.kontrak, p.masuk, p.akhir, p.poh, p.jk, p.kategori, p.site, p.pendidikan, p.statusData, p.catatanHR];
 function exportCSV(kind) {
   if (kind === 'mpp') return save('MPP_BUPR.csv', csvOf(MPP_HEAD, DATA.positions.map(mppRow)));
   if (kind === 'aktif') return save('MP_Aktif_BUPR.csv', csvOf(MP_HEAD, DATA.aktif.map(mpRow)));
-  if (kind === 'out') return save('MP_Out_BUPR.csv', csvOf(MP_HEAD.concat(['Tanggal Keluar']), DATA.keluar.map((p, i) => mpRow(p, i).concat([p.keluar]))));
+  if (kind === 'out') return save('MP_Out_BUPR.csv', csvOf(MP_HEAD.concat(['Tanggal Keluar', 'Alasan Keluar']), DATA.keluar.map((p, i) => mpRow(p, i).concat([p.keluar,p.alasan]))));
   if (kind === 'unit') return save('Populasi_Unit_BUPR.csv', csvOf(['No', 'Jenis Unit', 'Jumlah'], DATA.units.map((u, i) => [i + 1, u.unit, u.jumlah])));
 }
 function exportXLSX() {
@@ -1411,7 +1418,7 @@ function exportXLSX() {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([MPP_HEAD].concat(DATA.positions.map(mppRow))), 'MPP BUPR');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([MP_HEAD].concat(DATA.aktif.map(mpRow))), 'MP Aktif');
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([MP_HEAD.concat(['Tanggal Keluar'])].concat(DATA.keluar.map((p, i) => mpRow(p, i).concat([p.keluar])))), 'MP Out');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([MP_HEAD.concat(['Tanggal Keluar', 'Alasan Keluar'])].concat(DATA.keluar.map((p, i) => mpRow(p, i).concat([p.keluar,p.alasan])))), 'MP Out');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Jenis Unit', 'Jumlah']].concat(DATA.units.map((u) => [u.unit, u.jumlah]))), 'Populasi Unit');
   const unitDetailsHead = ['Jenis Unit','Nomor Lambung','Merek','Model/Tipe','Tahun','Serial/Chassis','HM','Status Operasional','Kondisi','Jobsite','Keterangan','Foto'];
   const unitDetailsRows = DATA.units.flatMap(u => (Array.isArray(u.details) ? u.details : []).map(d => [u.unit, d.lambung||'', d.merk||'', d.model||'', d.tahun||'', d.serial||'', d.hm||'', d.status||'', d.kondisi||'', d.jobsite||'', d.keterangan||'', d.foto ? 'Ada (lihat di web / JSON backup)' : 'Belum']));
