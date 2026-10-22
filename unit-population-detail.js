@@ -32,14 +32,20 @@
     .ud-item{border:1px solid var(--line,#e5e7eb);border-radius:14px;padding:14px;background:#fff;display:flex;gap:12px;align-items:start}
     .ud-thumb{width:92px;height:92px;flex:0 0 92px;border-radius:12px;object-fit:cover;border:1px solid #e5e7eb;background:#f8fafc}
     .ud-photo-empty{width:92px;height:92px;flex:0 0 92px;border-radius:12px;display:grid;place-items:center;background:#f1f5f9;color:#64748b;font-size:12px;text-align:center}
+    .ud-type-list{display:grid;gap:16px}
+    .ud-type-group{border:1px solid #e4e1f3;border-radius:16px;padding:16px;background:#fdfcff}
+    .ud-type-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+    .ud-type-head h3{margin:2px 0 3px;font-size:17px;font-weight:800;color:#1e1b4b}
+    .ud-type-kicker{font-size:10px;letter-spacing:.09em;font-weight:800;color:#6d28d9}
+    .ud-type-group .ud-summary-grid{gap:12px}
     .ud-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
     .ud-sum-box{border:1px solid #e5e7eb;border-radius:12px;padding:16px;min-width:0}
-    .ud-sum-box h3{font-size:14px;margin:0 0 14px;color:#312e81}
+    .ud-sum-box h4{font-size:13px;margin:0 0 14px;color:#312e81}
     .ud-sum-row{margin:12px 0}.ud-sum-line{display:flex;gap:10px;align-items:baseline;justify-content:space-between;font-size:13px}
     .ud-sum-line span{min-width:0;overflow-wrap:anywhere}.ud-sum-line b{font-size:12px;white-space:nowrap}
     .ud-sum-track{height:8px;border-radius:999px;background:#e9e5f8;overflow:hidden;margin-top:7px}
     .ud-sum-track>div{height:100%;border-radius:999px;background:#8050f4}
-    @media(max-width:680px){.ud-summary-grid{grid-template-columns:1fr}}
+    @media(max-width:680px){.ud-summary-grid{grid-template-columns:1fr}.ud-type-group{padding:12px}}
     .ud-meta{min-width:0;flex:1}.ud-meta strong{display:block;font-size:15px;word-break:break-word}.ud-meta small{display:block;color:#64748b;margin-top:4px;line-height:1.5}
     .ud-tag{display:inline-block;padding:3px 8px;border-radius:999px;background:#f1f5f9;color:#475569;font-size:11px;font-weight:700;margin-top:8px}
     .ud-small{font-size:12px;color:#64748b;line-height:1.5}.ud-form{border-top:1px solid #e5e7eb;margin-top:14px;padding-top:14px}
@@ -78,32 +84,59 @@
         (CAN_EDIT?'<button type="button" class="ud-btn" data-ud-edit="'+idx+':'+j+'" style="margin-top:10px">Edit Detail</button>':'')+'</div></div>';
       }).join("")+'</div>':'<p class="ud-small">Belum ada nomor lambung yang didaftarkan. Data jumlah unit sebelumnya tetap aman.</p>')+'</div>';
   }
-  function unitAggregate(key) {
-    const registered = DATA.units.flatMap(u => recordsOf(u));
-    const total = DATA.units.reduce((n,u) => n + Math.max(0,Number(u.jumlah)||0),0);
-    const buckets = new Map();
-    const add = (name,count=1) => {
-      const display=String(name||"").trim()||"Belum diisi";
-      const lookup=display.toLocaleLowerCase("id-ID");
-      const prev=buckets.get(lookup);
-      if(prev)prev.count+=count;else buckets.set(lookup,{name:display,count});
+  // Dashboard is grouped by unit type so different machines never share the
+  // same vendor/brand chart. Counting remains based on existing register data.
+  function groupUnitTypes() {
+    const grouped = new Map();
+    (DATA.units || []).forEach(u => {
+      const type = String(u.unit || "").trim() || "Jenis belum diisi";
+      const key = type.toLocaleLowerCase("id-ID");
+      if (!grouped.has(key)) grouped.set(key, { type, planned: 0, details: [] });
+      const g = grouped.get(key);
+      g.planned += Math.max(0, Number(u.jumlah) || 0);
+      g.details.push(...recordsOf(u));
+    });
+    return [...grouped.values()].sort((a,b) =>
+      b.planned-a.planned || a.type.localeCompare(b.type,"id"));
+  }
+  function countByField(group,field) {
+    const bucket = new Map();
+    const add=(raw,n=1)=>{
+      const name=String(raw||"").trim() || "Belum diisi";
+      const key=name.toLocaleLowerCase("id-ID");
+      const prev=bucket.get(key);
+      if(prev)prev.count+=n;else bucket.set(key,{name,count:n});
     };
-    registered.forEach(unit=>add(unit[key]));
-    const unregistered=Math.max(0,total-registered.length);
-    if(unregistered) add("Belum diisi",unregistered);
-    return [...buckets.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name,"id"));
+    group.details.forEach(d=>add(d[field]));
+    const absent=Math.max(0,group.planned-group.details.length);
+    if(absent)add("Belum diisi",absent);
+    return [...bucket.values()].sort((a,b)=>b.count-a.count ||
+      a.name.localeCompare(b.name,"id"));
   }
   function dashboardUnitBreakdown() {
     if (!Array.isArray(DATA.units)) return "";
-    const total = DATA.units.reduce((n,u)=>n+Math.max(0,Number(u.jumlah)||0),0);
-    const graph=(key,title)=>'<div class="ud-sum-box"><h3>'+title+'</h3>'+
-      (total?unitAggregate(key).map(item=>{
-        const w=Math.min(100,Math.round(item.count/total*100));
-        return '<div class="ud-sum-row"><div class="ud-sum-line"><span>'+html(item.name)+'</span><b>'+item.count+' unit</b></div><div class="ud-sum-track"><div style="width:'+w+'%"></div></div></div>';
-      }).join(""):'<p class="ud-small">Belum ada unit.</p>')+'</div>';
-    return '<div class="card ud-summary-panel"><div class="ch"><div><div class="eyebrow">Populasi Unit</div><h2>Komposisi Vendor & Merek</h2><p>Rekap otomatis dari Register Per Unit di jobsite yang dipilih.</p></div><span class="pill">'+total+' unit</span></div>'+
-      '<div class="ud-summary-grid">'+graph("vendor","Vendor / Pemilik Unit")+graph("merk","Merek Unit")+'</div>'+
-      '<p class="ud-small" style="margin-top:12px">Unit yang belum mempunyai identitas atau vendor/merek dicatat sebagai “Belum diisi”.</p></div>';
+    const groups=groupUnitTypes();
+    const grandTotal=groups.reduce((n,g)=>n+Math.max(g.planned,g.details.length),0);
+    const graph=(g,key,label)=>'<section class="ud-sum-box" aria-label="'+html(label)+' untuk '+html(g.type)+'">'+
+      '<h4>'+html(label)+'</h4>'+
+      (countByField(g,key).map(item=>{
+        const total=Math.max(g.planned,g.details.length,1);
+        const pct=Math.min(100,Math.round(item.count/total*100));
+        return '<div class="ud-sum-row"><div class="ud-sum-line"><span>'+html(item.name)+'</span><b>'+item.count+' unit</b></div>'+
+          '<div class="ud-sum-track" role="img" aria-label="'+html(item.name)+': '+item.count+' dari '+total+' unit"><div style="width:'+pct+'%"></div></div></div>';
+      }).join("") || '<p class="ud-small">Belum ada unit.</p>')+'</section>';
+    return '<div class="card ud-summary-panel"><div class="ch"><div>'+
+      '<div class="eyebrow">Populasi Unit</div><h2>Komposisi Unit per Jenis</h2>'+
+      '<p>Rincian vendor dan merek dikelompokkan menurut jenis unit agar mudah dibandingkan.</p>'+
+      '</div><span class="pill">'+grandTotal+' unit</span></div>'+
+      (groups.length?'<div class="ud-type-list">'+groups.map(g=>
+        '<section class="ud-type-group"><div class="ud-type-head"><div>'+
+          '<span class="ud-type-kicker">JENIS UNIT</span><h3>'+html(g.type)+'</h3>'+
+          '<span class="ud-small">'+Math.min(g.details.length,g.planned)+' identitas terdata</span></div>'+
+          '<span class="pill">'+g.planned+' unit</span></div>'+
+          '<div class="ud-summary-grid">'+graph(g,"vendor","Vendor / Pemilik Unit")+graph(g,"merk","Merek Unit")+'</div></section>'
+      ).join("")+'</div>':'<p class="ud-small">Belum ada populasi unit di jobsite ini.</p>')+
+      '<p class="ud-small" style="margin-top:12px">“Belum diisi” berarti identitas, vendor, atau merek belum dilengkapi pada Register Per Unit.</p></div>';
   }
   if (typeof window.unitBlock === "function") {
     const previousUnitBlock = window.unitBlock;
