@@ -32,6 +32,14 @@
     .ud-item{border:1px solid var(--line,#e5e7eb);border-radius:14px;padding:14px;background:#fff;display:flex;gap:12px;align-items:start}
     .ud-thumb{width:92px;height:92px;flex:0 0 92px;border-radius:12px;object-fit:cover;border:1px solid #e5e7eb;background:#f8fafc}
     .ud-photo-empty{width:92px;height:92px;flex:0 0 92px;border-radius:12px;display:grid;place-items:center;background:#f1f5f9;color:#64748b;font-size:12px;text-align:center}
+    .ud-summary-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
+    .ud-sum-box{border:1px solid #e5e7eb;border-radius:12px;padding:16px;min-width:0}
+    .ud-sum-box h3{font-size:14px;margin:0 0 14px;color:#312e81}
+    .ud-sum-row{margin:12px 0}.ud-sum-line{display:flex;gap:10px;align-items:baseline;justify-content:space-between;font-size:13px}
+    .ud-sum-line span{min-width:0;overflow-wrap:anywhere}.ud-sum-line b{font-size:12px;white-space:nowrap}
+    .ud-sum-track{height:8px;border-radius:999px;background:#e9e5f8;overflow:hidden;margin-top:7px}
+    .ud-sum-track>div{height:100%;border-radius:999px;background:#8050f4}
+    @media(max-width:680px){.ud-summary-grid{grid-template-columns:1fr}}
     .ud-meta{min-width:0;flex:1}.ud-meta strong{display:block;font-size:15px;word-break:break-word}.ud-meta small{display:block;color:#64748b;margin-top:4px;line-height:1.5}
     .ud-tag{display:inline-block;padding:3px 8px;border-radius:999px;background:#f1f5f9;color:#475569;font-size:11px;font-weight:700;margin-top:8px}
     .ud-small{font-size:12px;color:#64748b;line-height:1.5}.ud-form{border-top:1px solid #e5e7eb;margin-top:14px;padding-top:14px}
@@ -66,9 +74,40 @@
       (all.length?'<div class="ud-grid">'+all.map(({it,idx,j,type})=>{
         let model=[it.merk,it.model].filter(Boolean).join(" ");
         return '<div class="ud-item">'+(cleanPhoto(it.foto)?'<button type="button" data-ud-photo="'+idx+':'+j+'" style="border:0;background:transparent;padding:0;cursor:zoom-in">'+picture(it.foto,it.lambung||type,"ud-thumb")+'</button>':picture("",type,"ud-thumb"))+
-        '<div class="ud-meta"><strong>'+html(it.lambung||"Nomor lambung belum diisi")+'</strong><small>'+html(type)+(model?' · '+html(model):"")+'</small><small>'+html(it.jobsite||"Lokasi belum dicatat")+' · '+html(it.hm||"HM belum diisi")+(it.hm?" HM":"")+'</small><span class="ud-tag">'+html(it.status||"Belum Diketahui")+'</span><small>Kondisi: '+html(it.kondisi||"Belum Diperiksa")+'</small>'+
+        '<div class="ud-meta"><strong>'+html(it.lambung||"Nomor lambung belum diisi")+'</strong><small>'+html(type)+(model?' · '+html(model):"")+'</small><small>Vendor: '+html(it.vendor||"Belum diisi")+' · Merek: '+html(it.merk||"Belum diisi")+'</small><small>'+html(it.jobsite||"Lokasi belum dicatat")+' · '+html(it.hm||"HM belum diisi")+(it.hm?" HM":"")+'</small><span class="ud-tag">'+html(it.status||"Belum Diketahui")+'</span><small>Kondisi: '+html(it.kondisi||"Belum Diperiksa")+'</small>'+
         (CAN_EDIT?'<button type="button" class="ud-btn" data-ud-edit="'+idx+':'+j+'" style="margin-top:10px">Edit Detail</button>':'')+'</div></div>';
       }).join("")+'</div>':'<p class="ud-small">Belum ada nomor lambung yang didaftarkan. Data jumlah unit sebelumnya tetap aman.</p>')+'</div>';
+  }
+  function unitAggregate(key) {
+    const registered = DATA.units.flatMap(u => recordsOf(u));
+    const total = DATA.units.reduce((n,u) => n + Math.max(0,Number(u.jumlah)||0),0);
+    const buckets = new Map();
+    const add = (name,count=1) => {
+      const display=String(name||"").trim()||"Belum diisi";
+      const lookup=display.toLocaleLowerCase("id-ID");
+      const prev=buckets.get(lookup);
+      if(prev)prev.count+=count;else buckets.set(lookup,{name:display,count});
+    };
+    registered.forEach(unit=>add(unit[key]));
+    const unregistered=Math.max(0,total-registered.length);
+    if(unregistered) add("Belum diisi",unregistered);
+    return [...buckets.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name,"id"));
+  }
+  function dashboardUnitBreakdown() {
+    if (!Array.isArray(DATA.units)) return "";
+    const total = DATA.units.reduce((n,u)=>n+Math.max(0,Number(u.jumlah)||0),0);
+    const graph=(key,title)=>'<div class="ud-sum-box"><h3>'+title+'</h3>'+
+      (total?unitAggregate(key).map(item=>{
+        const w=Math.min(100,Math.round(item.count/total*100));
+        return '<div class="ud-sum-row"><div class="ud-sum-line"><span>'+html(item.name)+'</span><b>'+item.count+' unit</b></div><div class="ud-sum-track"><div style="width:'+w+'%"></div></div></div>';
+      }).join(""):'<p class="ud-small">Belum ada unit.</p>')+'</div>';
+    return '<div class="card ud-summary-panel"><div class="ch"><div><div class="eyebrow">Populasi Unit</div><h2>Komposisi Vendor & Merek</h2><p>Rekap otomatis dari Register Per Unit di jobsite yang dipilih.</p></div><span class="pill">'+total+' unit</span></div>'+
+      '<div class="ud-summary-grid">'+graph("vendor","Vendor / Pemilik Unit")+graph("merk","Merek Unit")+'</div>'+
+      '<p class="ud-small" style="margin-top:12px">Unit yang belum mempunyai identitas atau vendor/merek dicatat sebagai “Belum diisi”.</p></div>';
+  }
+  if (typeof window.unitBlock === "function") {
+    const previousUnitBlock = window.unitBlock;
+    window.unitBlock=function(D){return previousUnitBlock(D)+dashboardUnitBreakdown();};
   }
   window.pageUnit=function(D){return oldPageUnit(D)+detailPanel();};
   function rowTemplate(it,j){
@@ -76,6 +115,7 @@
     const val=(key)=>html(it[key]||"");
     return '<details class="ud-record" data-ud-row="'+j+'" '+(it._expand?"open":"")+'><summary><span class="ud-summary">'+html(it.lambung||"Unit #"+(j+1))+'</span><span class="ud-tag" style="margin-top:0;margin-left:auto">'+html(it.status||"Belum Diketahui")+'</span></summary><div class="ud-record-body"><div class="ud-fields">'+
     '<div class="ud-fld"><label>Nomor Lambung *</label><input data-ud-key="lambung" value="'+val("lambung")+'" placeholder="Contoh: EXC-001" maxlength="70"></div>'+
+    '<div class="ud-fld"><label>Vendor / Pemilik Unit</label><input data-ud-key="vendor" value="'+val("vendor")+'" placeholder="Contoh: KMB / TRINANDA" maxlength="90"></div>'+
     '<div class="ud-fld"><label>Merek</label><input data-ud-key="merk" value="'+val("merk")+'" placeholder="Contoh: Sany / Komatsu" maxlength="80"></div>'+
     '<div class="ud-fld"><label>Model / Tipe</label><input data-ud-key="model" value="'+val("model")+'" placeholder="Contoh: SY500H" maxlength="80"></div>'+
     '<div class="ud-fld"><label>Tahun Unit</label><input data-ud-key="tahun" value="'+val("tahun")+'" placeholder="Contoh: 2022" inputmode="numeric" maxlength="4"></div>'+
