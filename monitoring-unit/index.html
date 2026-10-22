@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#6D28D9">
 <title>Monitoring Unit &amp; Mobilisasi</title>
-<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI",sans-serif}img{max-width:100%}[hidden]{display:none!important}.mu-loc-box{border-top:1px solid #e8e5f3;padding:11px 14px 13px;text-align:left}.mu-loc-top{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:9px;font-size:12px;color:#35304b}.mu-loc-top span{font-weight:700;color:#6d28d9}.mu-loc-group{margin:9px 0}.mu-loc-head{display:flex;justify-content:space-between;gap:9px;font-size:11px;color:#433b60}.mu-loc-head span{color:#706988}.mu-loc-ids{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}.mu-loc-pill{display:inline-flex;padding:4px 7px;border-radius:7px;background:#f1edff;border:1px solid #e5dcff;color:#5830ad;font-size:10px;font-weight:700}.mu-loc-empty,.mu-loc-note{font-size:11px;color:#716b84;padding-top:5px}.mu-loc-note{margin-top:8px}</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap">
@@ -1519,6 +1519,17 @@ function renderPFilter(){
   const el=$("#pfilter"); el.hidden=true;
   el.innerHTML=`<button type="button" data-fp="all" aria-pressed="${S.fProj==="all"}">Semua project</button>`+projects().map(p=>`<button type="button" data-fp="${p.id}" aria-pressed="${S.fProj===p.id}"><i style="background:${DOT[projColor(p.id)]}"></i>${esc(p.kode)}</button>`).join("");
 }
+function unitLocationMini(pid, compact=false){
+  const us=S.units.filter(u=>arrived(u)&&u.projectId===pid).slice().sort((a,b)=>
+    String(a.tipe||"").localeCompare(String(b.tipe||""),"id")||String(a.kode||"").localeCompare(String(b.kode||""),"id",{numeric:true}));
+  const groups=new Map();
+  us.forEach(u=>{const kind=String(u.tipe||"Jenis belum diisi").trim();if(!groups.has(kind))groups.set(kind,[]);groups.get(kind).push(u);});
+  const x=[...groups].map(([kind,units])=>'<div class="mu-loc-group"><div class="mu-loc-head"><b>'+esc(kind)+'</b><span>'+units.length+' unit</span></div>'+
+    '<div class="mu-loc-ids">'+units.map(u=>'<span class="mu-loc-pill" title="'+esc((u.lokasi||"Belum ada posisi")+' · '+(u.status||""))+'">'+esc(u.kode||"Nomor belum diisi")+'</span>').join("")+'</div></div>').join("");
+  return '<div class="mu-loc-box"><div class="mu-loc-top"><strong>Unit di Lokasi</strong><span>'+us.length+' unit</span></div>'+
+    (us.length?x:'<div class="mu-loc-empty">Belum ada unit di lokasi project ini.</div>')+
+    (!compact&&us.length?'<div class="mu-loc-note">Status dan posisi unit lengkap tersedia pada tab Unit di Lokasi.</div>':"")+'</div>';
+}
 function renderProjDash(P){
   const st=projStats(P.id), us=S.units.filter(u=>arrived(u)&&u.projectId===P.id);
   const head=`<div class="irow head"><span>Item unit</span><span>Progres</span><span style="text-align:right">Tiba</span><span>Status</span><span></span></div>`;
@@ -1539,6 +1550,7 @@ function renderProjDash(P){
       <div class="card-head"><h3><span class="tile-ic" style="background:var(--g-${c})">${ic(projIcon(P.id))}</span>Progres kedatangan per item</h3>${canWrite?`<button class="btn small primary" data-act="addItem" data-id="${P.id}" type="button">+ Item unit</button>`:""}</div>
       <div class="irows">${rows?head+rows:`<div class="muted">${st.items.length?"Tidak ada item di filter ini.":"Belum ada item unit di project ini."}</div>`}</div>
     </div>
+    <div class="card pcard"><div class="card-head"><h3>Unit di Lokasi — Nomor Lambung</h3><button class="btn open small" data-goto="unit" type="button">Lihat semua →</button></div>${unitLocationMini(P.id,false)}</div>
     <div class="dash-side">
       <div class="card pcard">
         <div class="card-head"><h3><span class="tile-ic" style="background:var(--g-teal)">${ic("truck")}</span>Status unit di lokasi</h3><button class="btn open small" data-goto="unit" type="button">Lihat unit →</button></div>
@@ -1579,6 +1591,7 @@ function renderRingkasan(){
         </div>
         <div class="pbar"><i style="width:${q}%"></i></div>
         ${rows?`<div class="rows">${rows}</div>`:`<div class="rows"><div class="row"><span class="nm muted">${s.items.length?"Tidak ada item di filter ini":"Belum ada item unit"}</span></div></div>`}
+        ${unitLocationMini(p.id,true)}
         <div class="tfoot"><span class="note">${p.catatan?`${ic("alert")}${esc(p.catatan)}`:`${q}% unit tiba`}</span><span>${ic("clock")}${s.last?fmtTime(s.last):"—"}</span></div>
       </div>`;
     });
