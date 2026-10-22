@@ -1413,6 +1413,9 @@ function exportXLSX() {
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([MP_HEAD].concat(DATA.aktif.map(mpRow))), 'MP Aktif');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([MP_HEAD.concat(['Tanggal Keluar'])].concat(DATA.keluar.map((p, i) => mpRow(p, i).concat([p.keluar])))), 'MP Out');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['Jenis Unit', 'Jumlah']].concat(DATA.units.map((u) => [u.unit, u.jumlah]))), 'Populasi Unit');
+  const unitDetailsHead = ['Jenis Unit','Nomor Lambung','Merek','Model/Tipe','Tahun','Serial/Chassis','HM','Status Operasional','Kondisi','Jobsite','Keterangan','Foto'];
+  const unitDetailsRows = DATA.units.flatMap(u => (Array.isArray(u.details) ? u.details : []).map(d => [u.unit, d.lambung||'', d.merk||'', d.model||'', d.tahun||'', d.serial||'', d.hm||'', d.status||'', d.kondisi||'', d.jobsite||'', d.keterangan||'', d.foto ? 'Ada (lihat di web / JSON backup)' : 'Belum']));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([unitDetailsHead].concat(unitDetailsRows)), 'Detail Unit');
   const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' });
   save(`Monitoring_Manpower_KTA-TRA_${TODAY}.xlsx`, new Blob([buf]));
 }
