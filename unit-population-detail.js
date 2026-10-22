@@ -148,7 +148,7 @@
     window.pageMPP=function(D) {
       const cols=["No","Section","Sub-section","Nama","Jabatan","Keterangan","PIC","PTK","Tanggal Pengajuan","Psikotest","Interview User","Offering","MCU","FU MCU","On Site","Induksi","Due Date","Status","Tanggal Close"];
       const row=p=>[p.no,p.section,p.group,p.nama,p.jabatan,p.ket,p.pic,p.ptk,p.aju,
-        ...(Array.isArray(p.stages)?p.stages.slice(0,6):[]),p.due,p.status,p.close];
+        ...Array.from({length:7},(_,i)=>(Array.isArray(p.stages)?p.stages[i]:null)||''),p.due,p.status,p.close];
       const list=Array.isArray(DATA.positions)?DATA.positions:[];
       return oldMPP(D)+'<details class="card ud-mpp-audit" style="margin-top:18px"><summary style="cursor:pointer;font-weight:750;padding:4px 2px">Lihat Database MPP Lengkap ('+list.length+' posisi · 19 kolom)</summary>'+
         '<p class="ud-small" style="margin:10px 0">Semua data MPP yang tersimpan ditampilkan tanpa filter status. Tabel ini hanya untuk pengecekan dan tidak mengubah data.</p>'+
