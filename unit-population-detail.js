@@ -4,6 +4,22 @@
   if (typeof window.unitForm !== "function" || typeof window.pageUnit !== "function") return;
   window.__kmbUnitDetailsV1 = true;
   const oldPageUnit = window.pageUnit;
+  // Keep previously registered lambung and photos when syncing the older
+  // two-column Excel population sheet (which contains type/count only).
+  if (typeof window.parseSheets === "function") {
+    const originalParseSheets = window.parseSheets;
+    window.parseSheets = function () {
+      const parsed = originalParseSheets.apply(this, arguments);
+      if (parsed && Array.isArray(parsed.units) && Array.isArray(DATA.units)) {
+        const existing = DATA.units;
+        parsed.units = parsed.units.map(u => {
+          const prev = existing.find(x => String(x.unit || "").trim().toLowerCase() === String(u.unit || "").trim().toLowerCase());
+          return prev ? { ...prev, ...u, details: Array.isArray(prev.details) ? prev.details : [] } : u;
+        });
+      }
+      return parsed;
+    };
+  }
   const html = value => String(value == null ? "" : value).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const cleanPhoto = src => typeof src === "string" && /^data:image\/(?:webp|jpeg|png);base64,[a-z0-9+/=]+$/i.test(src) ? src : "";
   const statusOpts = ["Operasional","Standby","Breakdown","Dalam Perbaikan","Off Site","Belum Diketahui"];
@@ -94,7 +110,7 @@
     const u=idx==null?null:DATA.units[idx];
     const entries=recordsOf(u).map(x=>({...x,_expand:false}));
     if(Number.isInteger(focusIndex)&&entries[focusIndex])entries[focusIndex]._expand=true;
-    let pending=[];
+    let pending=[],uploadError='';
     const setError=msg=>{const err=document.getElementById("ferr");if(err){err.hidden=false;err.textContent=msg;}return false;};
     const readRows=()=>{
       document.querySelectorAll("#ud-rows [data-ud-row]").forEach(node=>{
@@ -125,6 +141,7 @@
       danger:u?{label:"Hapus jenis unit"}:null,
       onSave:async(v)=>{
         try{await Promise.all(pending);readRows();}catch(e){return setError(e.message||"Gagal memproses foto.");}
+        if(uploadError)return setError(uploadError);
         if(entries.length>v.jumlah)return setError("Jumlah unit ("+v.jumlah+") tidak boleh kurang dari "+entries.length+" identitas yang sudah didaftarkan.");
         const seen=new Set();
         for(let i=0;i<entries.length;i++){
@@ -159,8 +176,8 @@
     });
     form.addEventListener("change",e=>{
       const inp=e.target.closest("[data-ud-upload]");if(!inp||!inp.files?.length)return;
-      readRows();const i=Number(inp.dataset.udUpload),file=inp.files[0];if(!entries[i])return;
-      const p=compactPhoto(file).then(uri=>{if(!entries[i])return;entries[i].foto=uri;const row=wrapper.querySelector('[data-ud-row="'+i+'"]');if(row){const preview=row.querySelector(".ud-upload .ud-thumb,.ud-upload .ud-photo-empty");if(preview)preview.outerHTML=picture(uri,entries[i].lambung||"Foto unit","ud-thumb");}}).catch(err=>{setError(err.message);throw err;});
+      readRows();const i=Number(inp.dataset.udUpload),file=inp.files[0];if(!entries[i])return;uploadError='';
+      const p=compactPhoto(file).then(uri=>{if(!entries[i])return;entries[i].foto=uri;const row=wrapper.querySelector('[data-ud-row="'+i+'"]');if(row){const preview=row.querySelector(".ud-upload .ud-thumb,.ud-upload .ud-photo-empty");if(preview)preview.outerHTML=picture(uri,entries[i].lambung||"Foto unit","ud-thumb");}}).catch(err=>{uploadError=err.message||'Gagal memproses foto.';setError(uploadError);throw err;});
       pending.push(p);
       p.finally(()=>{pending=pending.filter(q=>q!==p);}).catch(()=>{});
     });
