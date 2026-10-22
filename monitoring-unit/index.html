@@ -1083,8 +1083,26 @@ async function fetchSheet(api){
   const r=await fetch((api||SHEET_API)+((api||SHEET_API).includes("?")?"&":"?")+"t="+Date.now()+"&token="+encodeURIComponent(tk||"")+(GUEST_SHARE?"&share="+encodeURIComponent(GUEST_SHARE):""),{cache:"no-store",signal:ctl.signal}).finally(()=>clearTimeout(to));
   const j=await r.json(); if(j&&(j.error==="forbidden"||j.error==="not_signed_in")){ lockUnit(); throw new Error(j.error); } if(!j||!j.ok||!j.state) throw new Error((j&&j.message)||"sheet");
   return ensureCols(j.state); }
+// Cache Apps Script on doGet is 6 hours. For owner/editor, an empty POST safely
+// triggers bumpRev_ (cache invalidation) without adding, editing or deleting rows.
+// Throttle to avoid unnecessary requests; viewers reuse the freshly cleared cache.
+let LAST_SHEET_INVALIDATION=0;
+async function fetchSheetWithRefresh(){
+  if(canWrite && !GUEST_SHARE && SHEET_API && Date.now()-LAST_SHEET_INVALIDATION>180000){
+    LAST_SHEET_INVALIDATION=Date.now();
+    try {
+      const {data:a}=await sb.auth.getSession(), token=a&&a.session&&a.session.access_token;
+      if(token){
+        const r=await fetch(SHEET_API,{method:"POST",body:JSON.stringify({token,ops:[]})});
+        const result=await r.json();
+        if(result&&result.ok&&result.state)return ensureCols(result.state);
+      }
+    }catch(err){console.warn("Live Google Sheet cache invalidation unavailable",err);}
+  }
+  return fetchSheet();
+}
 async function fetchState(){
-  if(SRC==="sheet") return fetchSheet();
+  if(SRC==="sheet") return fetchSheetWithRefresh();
   return ensureCols(await fetchSb()); }
 let PENDING=[];
 function applyOpsLocal(st,ops){ ops.forEach(o=>{ if(!st[o.col]) st[o.col]=[];
@@ -2225,7 +2243,7 @@ async function startData(){
   let cached=null; try{ cached=JSON.parse(localStorage.getItem("mu_state_v1")||"null"); }catch(e){}
   if(!GUEST_SHARE && cached&&cached.state){ SRC=cached.src||"supabase"; SHEET_API=cached.api||""; SHEET_URL=cached.url||SHEET_URL; mode="ok"; applyState(cached.state); }
   setSync("busy");
-  try{ await fetchSb(); const st=SRC==="sheet"?await fetchSheet():SBDATA; mode="ok"; if(JSON.stringify(ensureCols(st))!==lastJson) applyState(st); else render(); setSync("ok"); }
+  try{ await fetchSb(); const st=SRC==="sheet"?await fetchSheetWithRefresh():SBDATA; mode="ok"; if(JSON.stringify(ensureCols(st))!==lastJson) applyState(st); else render(); setSync("ok"); }
   catch(e){ setSync("err"); if(!cached){ mode="error"; S.ready=true; render(); } }
   const refresh=async()=>{ if(document.hidden||PENDING.length) return; try{ const st=await fetchState(); if(JSON.stringify(st)!==lastJson) applyState(st); if(mode==="error"){ mode="ok"; render(); } setSync("ok"); }catch(e){ setSync("err"); } };
   setInterval(refresh,20000);
