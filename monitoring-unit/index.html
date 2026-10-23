@@ -1069,6 +1069,54 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .mu-loc-detail-note{font-size:10px;color:#77708d;margin-top:6px}
 @media(max-width:470px){.mu-loc-compact .mu-loc-groups{grid-template-columns:1fr}}
 @media print{.tcard .mu-summary-rows .row{break-inside:avoid}.mu-loc-compact .mu-loc-groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Project dashboard auto-balanced masonry (berdasarkan tinggi asli kartu).
+   Kartu mengalir rapat tanpa kolom kosong saat jumlah project bertambah. */
+#projCards.masonry{
+ display:block!important;
+ columns:var(--mc,3);
+ column-gap:12px;
+ column-fill:balance;
+ width:100%;
+}
+#projCards.masonry>.tcard{
+ display:inline-block;
+ vertical-align:top;
+ width:100%;
+ max-width:100%;
+ min-width:0;
+ margin:0 0 12px!important;
+ break-inside:avoid-column;
+ page-break-inside:avoid;
+ -webkit-column-break-inside:avoid;
+}
+#projCards .tcard .tfoot{min-width:0}
+#projCards .mu-loc-more{margin-top:6px}
+#projCards .mu-loc-more>summary{
+ cursor:pointer;display:block;
+ padding:6px 8px;
+ text-align:center;
+ font-size:10px;font-weight:750;
+ color:#6d28d9;
+ background:#f3efff;
+ border:1px solid #e5d9fc;
+ border-radius:7px;
+ list-style:none
+}
+#projCards .mu-loc-more>summary::-webkit-details-marker{display:none}
+#projCards .mu-loc-more>summary:hover{background:#eae1ff}
+#projCards .mu-loc-more[open]>.mu-loc-groups{margin-top:6px}
+#projCards .tcard{box-shadow:0 5px 18px rgba(49,31,108,.055)}
+#projCards .tcard .stats{gap:5px}
+#projCards .tcard .mu-loc-top{margin-bottom:5px}
+#projCards .tcard .mu-loc-compact .mu-loc-groups{gap:5px}
+@media(max-width:950px){#projCards.masonry{columns:2}}
+@media(max-width:500px){#projCards.masonry{columns:1}}
+@media print{
+ #projCards.masonry{display:block!important;columns:3!important;column-gap:8px!important;column-fill:auto}
+ #projCards.masonry>.tcard{display:inline-block!important;width:100%;margin-bottom:8px!important;break-inside:avoid-page;break-inside:avoid-column}
+ #projCards .mu-loc-more>summary{font-size:9px;padding:4px 5px}
+}
 </style>
 <script src="../remembered-access.js?v=20261020"></script></head>
 <body>
@@ -2148,19 +2196,29 @@ function muDashboardControls(){
 }
 
 function unitLocationMini(pid, compact=false){
-  // Hanya jenis dan jumlah dalam dashboard; seluruh nomor lambung,
-  // status, lokasi, dan catatan tersedia di sheet Populasi Unit.
+  // Ringkasan project menampilkan jenis + jumlah; rincian unit ada di sheet.
+  // Jenis di atas ambang awal dapat diperluas; tinggi kartu tidak lagi
+  // memengaruhi ruang kosong kolom lain pada dashboard.
   const us=S.units.filter(u=>arrived(u)&&u.projectId===pid);
   const grouped=new Map();
   for(const u of us){
-    const name=String(u.tipe||"Jenis belum diisi").trim()||"Jenis belum diisi",key=name.toLocaleLowerCase("id");
+    const name=String(u.tipe||"Jenis belum diisi").trim()||"Jenis belum diisi";
+    const key=name.toLocaleLowerCase("id");
     if(!grouped.has(key))grouped.set(key,{name,count:0});
     grouped.get(key).count++;
   }
   const types=[...grouped.values()].sort((a,b)=>a.name.localeCompare(b.name,"id",{numeric:true}));
-  const lines=types.map(({name,count})=>'<div class="mu-loc-group"><div class="mu-loc-head"><b>'+esc(name)+'</b><span>'+count+' unit</span></div></div>').join("");
-  return '<div class="mu-loc-box mu-loc-compact"><div class="mu-loc-top"><strong>Unit di Lokasi</strong><span>'+us.length+' unit</span></div>'+
-    (us.length?'<div class="mu-loc-groups">'+lines+'</div>':'<div class="mu-loc-empty">Belum ada unit di lokasi.</div>')+
+  const toLine=({name,count})=>'<div class="mu-loc-group"><div class="mu-loc-head"><b>'+esc(name)+'</b><span>'+count+' unit</span></div></div>';
+  // Maksimal 8 jenis di ringkasan card. Pembaca dapat membuka sisanya.
+  const limit=compact?8:Infinity;
+  const first=types.slice(0,limit).map(toLine).join("");
+  const remaining=types.slice(limit);
+  const more=remaining.length?
+    '<details class="mu-loc-more"><summary>+ '+remaining.length+' jenis lainnya · Tampilkan / Sembunyikan</summary>'+
+    '<div class="mu-loc-groups">'+remaining.map(toLine).join("")+'</div></details>':"";
+  return '<div class="mu-loc-box mu-loc-compact"><div class="mu-loc-top"><strong>Unit di Lokasi</strong><span>'+us.length+' unit · '+types.length+' jenis</span></div>'+
+    (us.length?'<div class="mu-loc-groups">'+first+'</div>'+more:
+     '<div class="mu-loc-empty">Belum ada unit di lokasi.</div>')+
     (!compact&&us.length?'<div class="mu-loc-detail-note">Nomor lambung dan rincian ada di sheet Populasi Unit.</div>':"")+'</div>';
 }
 function renderProjDash(P){
@@ -2344,7 +2402,7 @@ function renderRingkasan(){
         <div class="tfoot"><span class="note">${p.catatan?`${ic("alert")}${esc(p.catatan)}`:`${q}% unit tiba`}</span><span>${ic("clock")}${s.last?fmtTime(s.last):"—"}</span></div>
       </div>`;
     });
-    $("#projCards").innerHTML=packCols(cardsHtml,ps.map(p=>150+itemsOf(p.id).filter(itemOk).length*36+(p.catatan?20:0)));
+    $("#projCards").innerHTML=packCols(cardsHtml);
   }
   const next=S.mobs.filter(m=>isAktif(m)&&(!P||mobProj(m)===P.id)).sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam)).slice(0,5);
   $("#nextMob").innerHTML=next.length?next.map(m=>`<div class="li"><span class="when">${fmtDate(m.tanggal)}<br>${esc(m.jam||"")}</span><span class="what"><span class="plate">${esc(m.unitKode)}</span> <span class="ptag">${esc(projKode(mobProj(m)))}</span><span style="display:block">${esc(m.dari)} → <b>${esc(m.ke)}</b></span><span class="small muted" style="display:block">${esc(m.moda||"")}${m.jarak?` · ${m.jarak} km`:""}</span></span>${chip(MOB_STATUS,m.status)}</div>`).join("")
@@ -2918,19 +2976,32 @@ $("#btnPrint").addEventListener("click",()=>{
   const oldTitle=document.title; document.title=judul.replace(/ · /g," - ")+" - "+todayStr();
   setTimeout(()=>{ window.print(); setTimeout(()=>{ document.title=oldTitle; },500); },50); });
 
-/* ---------- susunan kartu project: 3 kolom rapat ---------- */
-let PRINT_COLS=0, lastCols=0;
-function colCount(){ if(PRINT_COLS) return PRINT_COLS; const w=window.innerWidth||1280; return w<=560?1:w<=900?2:3; }
-function packCols(html,weights){
-  const n=colCount(); lastCols=n;
-  const cols=Array.from({length:n},()=>({h:0,items:[]}));
-  html.forEach((h,i)=>{ const c=cols.reduce((a,b)=>b.h<a.h?b:a); c.items.push(h); c.h+=weights[i]+14; });
-  $("#projCards").style.setProperty("--mc",n);
-  return cols.map(c=>`<div class="mcol">${c.items.join("")}</div>`).join("");
+/* ---------- susunan kartu project responsif ---------- */
+/*
+  Sebelumnya jumlah kolom diisi dengan prediksi tinggi yang bisa sangat
+  meleset setelah data project/jenis unit bertambah. CSS multi-column
+  memakai tinggi riil tiap kartu, menyeimbangkan ruang kosong secara
+  otomatis tanpa urutan tinggi manual.
+*/
+let PRINT_COLS=0,lastCols=0;
+function colCount(){
+  if(PRINT_COLS)return PRINT_COLS;
+  const el=$("#projCards"),width=(el&&el.clientWidth)||window.innerWidth||1280;
+  return width<500?1:width<950?2:3;
 }
-window.addEventListener("beforeprint",()=>{ PRINT_COLS=3; renderRingkasan(); });
-window.addEventListener("afterprint",()=>{ PRINT_COLS=0; renderRingkasan(); });
-window.addEventListener("resize",()=>{ if(colCount()!==lastCols) renderRingkasan(); });
+function packCols(html){
+  const n=colCount();lastCols=n;
+  const host=$("#projCards");
+  host.style.setProperty("--mc",n);
+  return html.join("");
+}
+window.addEventListener("beforeprint",()=>{PRINT_COLS=3;$("#projCards").style.setProperty("--mc",3);});
+window.addEventListener("afterprint",()=>{PRINT_COLS=0;$("#projCards").style.setProperty("--mc",colCount());});
+let lastResizeCols=0;
+window.addEventListener("resize",()=>{
+  const n=colCount();
+  if(n!==lastResizeCols){lastResizeCols=n;const host=$("#projCards");if(host)host.style.setProperty("--mc",n);}
+});
 
 /* ---------- dokumentasi bukti per tahap ---------- */
 const TAHAP=[
