@@ -1021,6 +1021,22 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
  .mu-pop-grid{gap:6px!important}
 }
 
+
+/* Simpan cepat dengan konfirmasi server terpisah dari modal. */
+.mu-save-notice{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#F4F1FF;border:1px solid #DDD3FD;border-left:3px solid #7C3AED;
+ border-radius:10px;padding:9px 12px;margin:7px 0 11px;color:#3B2C67;font-size:11px;box-shadow:0 3px 14px rgba(51,37,95,.035)}
+.mu-save-notice[hidden]{display:none!important}
+.mu-save-content{display:flex;flex:1;gap:3px;flex-direction:column;min-width:180px}
+.mu-save-content b{font-size:11.5px;font-weight:800}
+.mu-save-content span{font-size:10.5px;line-height:1.45}
+.mu-save-spinner{flex:0 0 16px;height:16px;border:2px solid #DDD2FF;border-top-color:#6D28D9;border-radius:50%;animation:mu-spin 850ms linear infinite}
+@keyframes mu-spin{to{transform:rotate(360deg)}}
+.mu-save-notice.saved{background:#EFFBF3;border-color:#C5EAD0;border-left-color:#16A34A;color:#166534}
+.mu-save-notice.error{background:#FFF2F2;border-color:#F5C4C4;border-left-color:#E5484D;color:#9F2929}
+.mu-save-notice.error .btn{border-color:#E4A1A1;background:#fff;color:#9F2929}
+.mu-notice-dismiss{border:0;background:transparent;color:inherit;cursor:pointer;font-size:18px;padding:2px 7px;line-height:1.1}
+@media print{.mu-save-notice{display:none!important}}
+@media(prefers-reduced-motion:reduce){.mu-save-spinner{animation:none}}
 </style>
 <script src="../remembered-access.js?v=20261020"></script></head>
 <body>
@@ -1083,6 +1099,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
   <div class="print-head" id="printHead"></div>
   <div class="kpis" id="kpis"></div>
 
+  <div class="mu-save-notice" id="muSaveNotice" role="status" aria-live="polite" hidden></div>
   <div class="banner" id="banner" hidden></div>
 
   <div class="tabs-wrap" id="sheetTabs" hidden>
@@ -1414,11 +1431,12 @@ const store = {
 };
 
 /* ---------- dialog ---------- */
-let dlgSubmit=null, dlgLive=null;
+let dlgSubmit=null, dlgLive=null, dlgLastConfig=null;
 const optV = o => typeof o==="object" ? o.v : o;
 const optL = o => typeof o==="object" ? o.l : o;
 function optionsHtml(opts,v){ return opts.map(o=>`<option value="${esc(optV(o))}" ${String(optV(o))===String(v)?"selected":""}>${esc(optL(o))}</option>`).join(""); }
-function openForm({title,desc="",fields,values={},ok="Simpan",onSubmit,live,danger}){
+function openForm({title,desc="",fields,values={},ok="Simpan",onSubmit,live,danger,closeOnPending=false}){
+  dlgLastConfig={title,desc,fields,values,ok,onSubmit,live,danger,closeOnPending};
   $("#dlgTitle").textContent=title; $("#dlgDesc").textContent=desc; $("#dlgOk").textContent=ok;
   $("#dlgOk").style.background = danger ? "var(--bad)" : "";
   const body=$("#dlgBody"); body.innerHTML="";
@@ -1454,17 +1472,72 @@ function openForm({title,desc="",fields,values={},ok="Simpan",onSubmit,live,dang
 function readForm(fields){ const o={}; fields.forEach(f=>{ if(f.type==="html") return; const el=document.getElementById("f_"+f.key); if(el) o[f.key]=el.value; }); return o; }
 function confirmBox(title,desc,ok,fn){ openForm({title,desc,fields:[],ok,danger:true,onSubmit:()=>{fn();}}); }
 let DIALOG_BUSY=false;
+let muSaveActive=0,muSaveFailed=null,muSaveConfirmed=false,muSaveNoticeTimer=null;
+function muUpdateSaveNotice(){
+  const el=$("#muSaveNotice");if(!el)return;
+  if(muSaveNoticeTimer){clearTimeout(muSaveNoticeTimer);muSaveNoticeTimer=null;}
+  if(muSaveFailed){
+    el.hidden=false;el.className="mu-save-notice error";
+    el.innerHTML='<div class="mu-save-content"><b>Perubahan belum berhasil tersimpan.</b> <span>Isian '+esc(muSaveFailed.title)+' tetap tersedia. '+(muSaveActive?muSaveActive+' penyimpanan lain masih berlangsung.':'')+'</span></div>'+
+      '<button type="button" class="btn small" data-mu-save-restore>Perbaiki / Simpan lagi</button>'+
+      '<button type="button" class="mu-notice-dismiss" data-mu-save-dismiss aria-label="Tutup pemberitahuan">×</button>';
+    return;
+  }
+  if(muSaveActive>0){
+    el.hidden=false;el.className="mu-save-notice pending";
+    el.innerHTML='<span class="mu-save-spinner" aria-hidden="true"></span><div class="mu-save-content"><b>Sedang menyimpan '+muSaveActive+' perubahan…</b> <span>Form sudah ditutup, data belum dikonfirmasi server. Jangan tutup halaman sebelum selesai.</span></div>';
+    return;
+  }
+  if(muSaveConfirmed){
+    el.hidden=false;el.className="mu-save-notice saved";
+    el.innerHTML='<span aria-hidden="true">✓</span><div class="mu-save-content"><b>Perubahan berhasil disimpan.</b> <span>Google Sheets telah mengembalikan konfirmasi penyimpanan.</span></div>'+
+      '<button type="button" class="mu-notice-dismiss" data-mu-save-dismiss aria-label="Tutup pemberitahuan">×</button>';
+    muSaveNoticeTimer=setTimeout(()=>{if(muSaveActive===0&&!muSaveFailed)el.hidden=true;},4500);
+  }else el.hidden=true;
+}
+function muRestoreUnsaved(){
+  if(!muSaveFailed)return;
+  if($("#dlg").open){toast("Tutup form yang sedang terbuka terlebih dahulu.");return;}
+  const failed=muSaveFailed;
+  openForm({...failed.config,values:{...failed.config.values,...failed.values}});
+  muSaveFailed=null;muUpdateSaveNotice();
+}
+document.addEventListener("click",e=>{
+  if(e.target.closest("[data-mu-save-restore]")){muRestoreUnsaved();}
+  if(e.target.closest("[data-mu-save-dismiss]")){$("#muSaveNotice").hidden=true;}
+});
 $("#dlgForm").addEventListener("submit",async e=>{
-  e.preventDefault(); if(DIALOG_BUSY||!dlgSubmit)return;
-  const submit=dlgSubmit,btn=$("#dlgOk");
+  e.preventDefault();if(DIALOG_BUSY||!dlgSubmit)return;
+  const config=dlgLastConfig,submit=dlgSubmit,btn=$("#dlgOk");
+  const snapshot=config?readForm(config.fields):{};
+  let result;
+  try{result=submit();}
+  catch(err){console.error("Save form",err);toast("Gagal memproses isian, silakan periksa kembali.");return;}
+  if(result&&typeof result.then==="function" && config&&config.closeOnPending){
+    // Populasi unit: tutup dialog langsung setelah validasi. Penyimpanan
+    // masih berjalan; status sukses hanya boleh muncul setelah terverifikasi.
+    muSaveActive++;muSaveConfirmed=false;muUpdateSaveNotice();
+    if($("#dlg").open)$("#dlg").close();
+    Promise.resolve(result).then(ok=>{
+      muSaveActive=Math.max(0,muSaveActive-1);
+      if(ok!==false){muSaveConfirmed=true;}
+      else {muSaveFailed={config,values:snapshot,title:config.title};muSaveConfirmed=false;}
+      muUpdateSaveNotice();
+    },err=>{
+      muSaveActive=Math.max(0,muSaveActive-1);
+      muSaveFailed={config,values:snapshot,title:config.title};muSaveConfirmed=false;
+      console.error("Save population unit",err);muUpdateSaveNotice();
+    });
+    return;
+  }
   try{
-    const result=submit();
     if(result&&typeof result.then==="function"){
-      DIALOG_BUSY=true; btn.disabled=true; btn.textContent="Menyimpan…";
-      const ok=await result;if(ok!==false)$("#dlg").close();
-    }else if(result!==false)$("#dlg").close();
+      DIALOG_BUSY=true;btn.disabled=true;const previous=btn.textContent;btn.textContent="Menyimpan…";
+      const ok=await result;if(ok!==false&&$("#dlg").open)$("#dlg").close();
+      if($("#dlg").open)btn.textContent=previous;
+    }else if(result!==false&&$("#dlg").open)$("#dlg").close();
   }catch(err){console.error("Save dialog",err);toast("Simpan belum berhasil. Periksa data dan coba kembali.");}
-  finally{DIALOG_BUSY=false;btn.disabled=false;if($("#dlg").open)btn.textContent="Simpan perubahan";}
+  finally{DIALOG_BUSY=false;btn.disabled=false;}
 });
 $("#dlgCancel").addEventListener("click",()=>$("#dlg").close());
 
@@ -1643,6 +1716,7 @@ function formExistingUnit(presetProject){
   ];
   openForm({
     title:"Tambah Populasi Unit Existing",
+    closeOnPending:true,
     desc:"Unit yang sudah berada di jobsite. Tidak menambah rencana kirim dan tidak mengubah progres mobilisasi.",
     values:{projectId:pid,tipe:"",kode:"",jumlah:1,lokasi:(projOf(pid)||{}).kode||"Area Site",tglTiba:"",hm:0,status:"Standby",kondisi:"Belum diverifikasi",catatan:""},
     fields,ok:"Simpan populasi unit",
@@ -1754,6 +1828,7 @@ function formUnit(u,presetItem){
   ];
   openForm({
     title:"Edit Populasi Unit · "+u.kode,
+    closeOnPending:true,
     desc:existing?"Sumber: Populasi existing / rekonsiliasi MPP. Tidak memengaruhi jumlah rencana kirim.":"Sumber: unit dari rencana kirim. Ubah identitas dan kondisi tanpa menghapus riwayat.",
     values:{...u,...meta,projectId:pid0,kirimId:existing?"":u.kirimId||"",kondisi:meta.kondisi||"Belum diverifikasi"},
     fields,ok:"Simpan perubahan",
