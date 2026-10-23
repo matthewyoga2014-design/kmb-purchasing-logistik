@@ -1188,6 +1188,8 @@ border:1px solid transparent;background:var(--unit-soft);border-radius:7px;color
 #muPhotoDlg [hidden]{display:none!important}
 @media(max-width:580px){.mu-photo-head{padding:13px}.mu-photo-body{padding:11px}.mu-photo-drop{min-height:210px}.mu-photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media print{#muPhotoDlg{display:none!important}}
+.mu-photo-form-note{border:1px solid #e1d3fa;background:#f7f3ff;color:#655480;border-radius:9px;padding:10px;font-size:11px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.mu-photo-btn{color:#6D28D9!important;border-color:#d9c9fa!important}
 </style>
 <script src="../remembered-access.js?v=20261020"></script></head>
 <body>
@@ -1942,7 +1944,7 @@ function formExistingUnit(presetProject){
     {key:"tglTiba",label:"Tanggal tiba (jika diketahui)",type:"date"},
     muSection("03 · Keterangan & Bukti","Catatan pemantauan yang bisa dibaca editor"),
     {key:"catatan",label:"Keterangan",type:"textarea",full:true,ph:"Contoh: Unit sudah berada di SLR Rekondisi sebelum rencana kirim."},
-    {key:"foto",label:"Foto unit (link Drive / URL)",full:true,ph:"https://…"},
+    {key:"photoHelp",type:"html",html:'<div class="mu-photo-form-note">Foto dapat diunggah setelah unit disimpan. Buka tombol Foto pada baris Populasi Unit.</div>'},
     {key:"preview",type:"preview"}
   ];
   openForm({
@@ -1970,7 +1972,7 @@ function formExistingUnit(presetProject){
       if(!Number.isInteger(n)||n<1||n>300){toast("Jumlah unit harus 1–300.");return false;}
       if(new Set(list).size!==list.length){toast("Nomor lambung diketik dua kali.");return false;}
       if(list.some(k=>S.units.some(u=>String(u.kode||"").toUpperCase()===k))){toast("Nomor lambung sudah terdaftar.");return false;}
-      if(d.foto&&!/^https:\/\//i.test(d.foto)){toast("Link foto harus dimulai dengan https:// atau dikosongkan.");return false;}
+
       const uniq=Date.now().toString(36).toUpperCase()+"-"+uid().slice(0,5).toUpperCase();
       const codes=list.length?list:Array.from({length:n},(_,i)=>"EX-"+uniq+"-"+String(i+1).padStart(3,"0"));
       const base=muPrepareUnitData({...d,projectId:d.projectId,kirimId:"",tipe:d.tipe.trim(),lokasi:d.lokasi.trim(),tglTiba:d.tglTiba||"",hm:d.hm===""?0:d.hm,
@@ -2055,7 +2057,7 @@ function formUnit(u,presetItem){
     {key:"hm",label:"Hour meter (HM)",type:"number",min:0,step:"0.1"},
     muSection("03 · Catatan & Dokumentasi","Keterangan panjang tidak lagi memenuhi tabel unit"),
     {key:"catatan",label:"Keterangan / Riwayat",type:"textarea",full:true,ph:"Kondisi aktual, progres rekondisi, catatan pengecekan…"},
-    {key:"foto",label:"Foto unit (link Drive / URL)",full:true,ph:"https://…",hint:"Link opsional yang dapat dibuka oleh Viewer."}
+    {key:"photoUpload",type:"html",html:'<div class="mu-photo-form-note"><button type="button" class="btn primary small" data-unit-photo="'+esc(u.id)+'">📷 Unggah / Lihat Foto</button><span> Pilih JPG/PNG, lihat, dan unduh.</span></div>'}
   ];
   openForm({
     title:"Edit Populasi Unit · "+u.kode,
@@ -2074,8 +2076,8 @@ function formUnit(u,presetItem){
     onSubmit:d=>{
       const code=String(d.kode||"").trim().toUpperCase();
       if(S.units.some(x=>x.id!==u.id&&String(x.kode||"").toUpperCase()===code)){toast("Nomor lambung sudah terdaftar.");return false;}
-      if(d.foto&&!/^https:\/\//i.test(d.foto)){toast("Link foto harus diawali https:// atau dikosongkan.");return false;}
-      const data=muPrepareUnitData({...d,kode:code,updatedAt:nowIso(),hm:d.hm===""?0:d.hm,
+
+      const data=muPrepareUnitData({...d,foto:meta.foto,kode:code,updatedAt:nowIso(),hm:d.hm===""?0:d.hm,
         kodeSementara:code!==u.kode?false:!!u.kodeSementara,
         ...(existing?{kirimId:"",via:"Populasi awal"}:{})});
       return store.update(COL.units,u.id,data)
