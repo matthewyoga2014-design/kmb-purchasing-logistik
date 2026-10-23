@@ -810,7 +810,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .mu-mpp-proportion b{min-width:32px;text-align:right;font-size:10px}
 .mu-mpp-recap-action{text-align:right!important}.mu-mpp-choose{color:#6d28d9;white-space:nowrap;font-size:10px;font-weight:750}
 .mu-mpp-details{margin-top:12px}.mu-mpp-detail-head{padding:13px 16px}
-.mu-mpp-detail-wrap{overflow:auto;width:100%}.mu-mpp-detail-table{width:100%;min-width:920px;border-collapse:collapse;table-layout:auto}
+.mu-mpp-detail-wrap{overflow:auto;width:100%}.mu-mpp-detail-table{width:100%;min-width:1150px;border-collapse:collapse;table-layout:auto}
 .mu-mpp-detail-table th,.mu-mpp-detail-table td{padding:8px 9px!important;vertical-align:middle!important;border-bottom:1px solid #eeecf4!important;font-size:10.5px!important;line-height:1.3!important;white-space:normal}
 .mu-mpp-detail-table th{color:#6b6586;background:#faf9ff;font-size:9px!important;white-space:nowrap;text-transform:uppercase}
 .mu-mpp-detail-table tr:nth-child(even) td{background:#fdfcff}.mu-mpp-detail-table tr:last-child td{border-bottom:0!important}
@@ -828,6 +828,35 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .mu-mpp-summary{overflow:visible}.mu-mpp-details{overflow:visible}.mu-mpp-detail-wrap{overflow:visible}.mu-mpp-detail-table{min-width:0;font-size:9px}
 .mu-mpp-card,.mu-mpp-proportion{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .mu-mpp-choose,.mu-mpp-view,.mu-mpp-recap-action,.mu-mpp-actions,#muPopReset{display:none!important}}
+
+/* Populasi Unit terlihat langsung pada dashboard + form detail MPP */
+.mu-dash-pop{background:#fff;border:1px solid #e9e5f3;border-radius:14px;padding:13px 15px;margin-bottom:14px;box-shadow:0 4px 18px rgba(43,28,96,.04)}
+.mu-dash-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.mu-dash-head h2{font-size:16px;margin:1px 0 4px;color:#241f40}
+.mu-dash-head p{font-size:11px;color:#77728e;margin:0}
+.mu-dash-stat{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-bottom:11px}
+.mu-dash-stat>div{border:1px solid #eeeaf8;background:#faf9fe;border-radius:9px;padding:9px 11px}
+.mu-dash-stat b{display:block;font-size:19px;color:#5523ae;font-weight:850;font-variant-numeric:tabular-nums;line-height:1.1}
+.mu-dash-stat span{display:block;font-size:10px;margin-top:3px;color:#6d6883;line-height:1.3}
+.mu-dash-types{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:7px}
+.mu-dash-type{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:9px;min-height:43px;
+ background:var(--ubg);border:1px solid var(--ubd);border-left:3px solid var(--uc);text-align:left;cursor:pointer;font:inherit}
+.mu-dash-type .mu-dash-icon{display:grid;place-items:center;color:#fff;background:var(--uc);border-radius:6px;width:25px;height:25px;flex-shrink:0}
+.mu-dash-icon svg{width:16px;height:16px}.mu-dash-name{font-size:11px;font-weight:700;color:#433d54;flex:1;overflow-wrap:anywhere}
+.mu-dash-type b{font-size:16px;color:var(--uc);font-variant-numeric:tabular-nums}
+.mu-dash-empty{font-size:11px;color:#77718e;padding:4px}
+#dlg:has(.mu-form-section){width:min(760px,calc(100vw - 26px))}
+.mu-form-section{border-bottom:1px solid #e6e0f6;padding:6px 0 9px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.mu-form-section b{font-size:12px;color:#5723ae}.mu-form-section span{font-size:10px;color:#817a95}
+.mu-info-line{display:flex;justify-content:space-between;gap:16px;border-bottom:1px solid #f0edf7;padding:7px 0}
+.mu-info-line span{font-size:11px;color:#77718e}.mu-info-line b{font-size:12px;text-align:right;overflow-wrap:anywhere;color:#342e4d}
+.mu-cond{display:inline-block;color:#655a86;background:#f4f1fb;border:1px solid #eee8f8;border-radius:15px;font-size:9px;padding:3px 7px;white-space:nowrap}
+@media(max-width:900px){.mu-dash-stat{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){.mu-dash-head{align-items:flex-start;flex-direction:column}
+.mu-dash-stat{grid-template-columns:repeat(2,minmax(0,1fr))}.mu-dash-types{grid-template-columns:repeat(2,minmax(0,1fr))}
+#dlg:has(.mu-form-section) .dlg-body{grid-template-columns:1fr}}
+@media print{.mu-dash-pop,.mu-dash-type{break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.mu-dash-types{grid-template-columns:repeat(5,minmax(0,1fr))} .mu-dash-head .btn{display:none}}
 </style>
 <script src="../remembered-access.js?v=20261020"></script></head>
 <body>
@@ -860,7 +889,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
   <nav class="nav" role="tablist" id="tabs" aria-label="Menu">
       <button role="tab" data-tab="ringkasan" aria-selected="true" type="button"><svg class="i"><use href="#i-pie"/></svg><span>Dashboard</span></button>
       <button role="tab" data-tab="pengiriman" aria-selected="false" type="button"><svg class="i"><use href="#i-ship"/></svg><span>Rencana kirim</span><span class="count" id="cRev">0</span></button>
-      <button role="tab" data-tab="unit" aria-selected="false" type="button"><svg class="i"><use href="#i-pin"/></svg><span>Unit di lokasi</span><span class="count" id="cUnit">0</span></button>
+      <button role="tab" data-tab="unit" aria-selected="false" type="button"><svg class="i"><use href="#i-pin"/></svg><span>Populasi Unit</span><span class="count" id="cUnit">0</span></button>
       <button role="tab" data-tab="mobilisasi" aria-selected="false" type="button"><svg class="i"><use href="#i-route"/></svg><span>Mobilisasi</span><span class="count" id="cMob">0</span></button>
       <button role="tab" data-tab="dokumentasi" aria-selected="false" type="button"><svg class="i"><use href="#i-cam"/></svg><span>Dokumentasi</span><span class="count" id="cDok">0</span></button>
     </nav>
@@ -900,6 +929,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 
   <!-- RINGKASAN -->
   <section class="panel" id="p-ringkasan" role="tabpanel">
+    <div id="popDash"></div>
     <div id="projDash" hidden></div>
     <div id="homeTop">
       <div class="row2">
@@ -940,7 +970,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
   <!-- UNIT -->
   <section class="panel" id="p-unit" role="tabpanel" hidden>
     <div class="sec-head">
-      <div><h2>Unit di lokasi</h2><p>Populasi seluruh unit yang berada di jobsite, baik <b>existing (sudah di lokasi)</b> maupun <b>tiba dari rencana kirim</b>. Unit existing tidak mengubah jumlah rencana atau progres pengiriman.</p></div>
+      <div><h2>Sheet Populasi Unit di Lokasi</h2><p><b>Satu sumber data</b> untuk semua unit yang sudah ada di jobsite. Ringkasan, nomor lambung, vendor, kondisi dan status dapat dilihat di sini. <b>Existing</b> tidak dihitung sebagai kedatangan dari rencana kirim.</p></div>
       <div class="actions"><button class="btn" id="addExisting" type="button">+ Input unit existing</button><button class="btn primary" id="addUnit" type="button">+ Catat unit tiba</button></div>
     </div>
     <div class="toolbar">
@@ -955,7 +985,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
     <section class="mu-mpp-details" id="muPopDetails" aria-label="Detail unit per jenis">
       <div class="mu-mpp-detail-head"><div><span class="mu-mpp-eyebrow">DETAIL UNIT</span><h3 id="muPopDetailTitle">Seluruh unit di lokasi</h3><p id="muPopDetailSub">Pilih jenis unit pada kartu atau tabel rekap untuk menyaring daftar.</p></div><button type="button" class="btn small" data-unit-all hidden id="muPopReset">Lihat semua</button></div>
       <div class="mu-mpp-detail-wrap"><table class="mu-mpp-detail-table">
-      <thead><tr><th>No</th><th>Nomor lambung</th><th>Jenis Unit</th><th>Project</th><th>Posisi</th><th>Status</th><th class="n">HM</th><th>Tanggal tiba</th><th>Keterangan</th><th class="mu-mpp-actions">Aksi</th></tr></thead>
+      <thead><tr><th>No</th><th>Nomor lambung</th><th>Jenis Unit</th><th>Vendor</th><th>Project</th><th>Posisi</th><th>Status Operasional</th><th>Kondisi</th><th class="n">HM</th><th>Tanggal tiba</th><th>Keterangan</th><th class="mu-mpp-actions">Aksi</th></tr></thead>
       <tbody id="tUnit"></tbody>
       </table></div>
     </section>
@@ -1599,7 +1629,7 @@ function render(){
   $("#cMob").textContent=S.mobs.filter(m=>isAktif(m)&&inFilter(mobProj(m))).length;
   $("#cRev").textContent=S.revisi.filter(r=>inFilter(r.projectId)).length;
   ["addUnit","addExisting","addMob","addKirim"].forEach(id=>$("#"+id).hidden=!canWrite); $("#addProj").hidden=true;
-  renderBanner(); renderSummary(); renderKpi(); renderFbar(); renderCharts(); renderPFilter(); renderRingkasan(); renderKirim(); renderUnit(); renderMob(); renderDok();
+  renderBanner(); renderSummary(); renderKpi(); renderFbar(); renderCharts(); renderPFilter(); renderRingkasan(); renderPopDash(); renderKirim(); renderUnit(); renderMob(); renderDok();
 }
 function renderBanner(){
   const b=$("#banner");
@@ -1660,7 +1690,7 @@ function renderFbar(){
   const prev=document.activeElement&&document.activeElement.id;
   el.innerHTML=`<label class="ff"><span>Project</span><select id="fProjSel">${`<option value="all">Semua project</option>`+ps.map(p=>`<option value="${p.id}"${P&&P.id===p.id?" selected":""}>${esc(p.kode)}</option>`).join("")}</select></label>
     <label class="ff"><span>Status item</span><select id="fItemSel"><option value="all">Semua item</option><option value="sisa"${S.fItem==="sisa"?" selected":""}>Masih ada sisa kirim</option><option value="lengkap"${S.fItem==="lengkap"?" selected":""}>Sudah lengkap</option></select></label>
-    <label class="ff"><span>Tampilan</span><select id="fTabSel">${[["ringkasan","Dashboard"],["pengiriman","Rencana kirim"],["unit","Unit di lokasi"],["mobilisasi","Mobilisasi"],["dokumentasi","Dokumentasi"]].map(([k,n])=>`<option value="${k}"${S.tab===k?" selected":""}>${n}</option>`).join("")}</select></label>
+    <label class="ff"><span>Tampilan</span><select id="fTabSel">${[["ringkasan","Dashboard"],["pengiriman","Rencana kirim"],["unit","Populasi Unit"],["mobilisasi","Mobilisasi"],["dokumentasi","Dokumentasi"]].map(([k,n])=>`<option value="${k}"${S.tab===k?" selected":""}>${n}</option>`).join("")}</select></label>
     <button class="btn" type="button" id="fReset">Reset</button>
     <span class="fsum">${S.ready?`${P?esc(P.kode):`${ps.length} project`} · ${t.rencana} unit rencana · ${t.units.length} unit di lokasi`:"Memuat data…"}</span>`;
   if(prev&&$("#"+prev)) $("#"+prev).focus();
@@ -1733,6 +1763,39 @@ function renderProjDash(P){
       </div>
     </div>
   </div>`;
+}
+function renderPopDash(){
+  const el=$("#popDash");if(!el)return;
+  const P=curProj(),us=S.units.filter(u=>arrived(u)&&(!P||u.projectId===P.id));
+  const existing=us.filter(isExistingUnit).length,arrivals=us.length-existing;
+  const groups=new Map();
+  us.forEach(u=>{const label=String(u.tipe||"Jenis belum diisi").trim(),key=MU_TYPE_KEY(label);
+    if(!groups.has(key))groups.set(key,{key,label,units:[]});
+    groups.get(key).units.push(u);
+  });
+  const kinds=[...groups.values()].sort((a,b)=>a.label.localeCompare(b.label,"id",{numeric:true}));
+  const c=MU_UNIT_COLORS;
+  el.innerHTML=`<section class="mu-dash-pop">
+    <div class="mu-dash-head">
+      <div><span class="mu-mpp-eyebrow">POPULASI UNIT · ${esc(P?P.kode:"SEMUA PROJECT")}</span>
+        <h2>Unit yang Sudah di Lokasi</h2>
+        <p>Rekap aktual dari sheet Populasi Unit. Bukan jumlah rencana kirim.</p>
+      </div>
+      <button type="button" class="btn small primary" data-goto="unit">Buka sheet Populasi Unit →</button>
+    </div>
+    <div class="mu-dash-stat">
+      <div><b>${us.length}</b><span>Total di lokasi</span></div>
+      <div><b>${existing}</b><span>Existing / Populasi MPP</span></div>
+      <div><b>${arrivals}</b><span>Masuk dari pengiriman</span></div>
+      <div><b>${us.filter(u=>u.status==="Beroperasi").length}</b><span>Beroperasi</span></div>
+      <div><b>${us.filter(u=>u.status==="Breakdown").length}</b><span>Breakdown</span></div>
+    </div>
+    <div class="mu-dash-types">${kinds.length?kinds.map((g,i)=>{
+       const col=c[i%c.length],encoded=esc(encodeURIComponent(g.key));
+       return `<button type="button" data-dash-kind="${encoded}" title="Lihat ${esc(g.label)} di sheet Populasi Unit" class="mu-dash-type" style="--uc:${col};--ubg:color-mix(in srgb,${col} 7%,white);--ubd:color-mix(in srgb,${col} 20%,white)">
+         <span class="mu-dash-icon">${MU_UNIT_ICON}</span><span class="mu-dash-name">${esc(g.label)}</span><b>${g.units.length}</b></button>`;
+    }).join(""):`<span class="mu-dash-empty">Belum ada unit terdaftar di lokasi ini. ${canWrite?"Gunakan + Input Unit Existing pada sheet Populasi Unit.":""}</span>`}</div>
+  </section>`;
 }
 function renderRingkasan(){
   const L=!S.ready, ps=projects(), P=curProj();
@@ -1983,7 +2046,7 @@ function renderUnit(){
   const fs=["Semua",...UNIT_STATUS.map(s=>s.k)];
   $("#fUnit").innerHTML=fs.map(f=>{const n=f==="Semua"?base.length:base.filter(u=>u.status===f).length; return `<button type="button" data-fu="${esc(f)}" aria-pressed="${S.fUnit===f}">${esc(f)} <span class="num">${n}</span></button>`;}).join("");
   const q=String(S.q||"").trim().toLowerCase();
-  const all=base.filter(u=>(S.fUnit==="Semua"||u.status===S.fUnit)&&(!q||[u.kode,u.tipe,u.lokasi,u.catatan,u.status,projKode(u.projectId)].join(" ").toLowerCase().includes(q)));
+  const all=base.filter(u=>(S.fUnit==="Semua"||u.status===S.fUnit)&&(!q||[u.kode,u.tipe,u.lokasi,u.catatan,u.status,projKode(u.projectId),muDetails(u).vendor,muDetails(u).merk,muDetails(u).kondisi].join(" ").toLowerCase().includes(q)));
   const rows=all.slice().sort((a,b)=>String(a.tipe||"").localeCompare(String(b.tipe||""),"id")||String(a.kode||"").localeCompare(String(b.kode||""),"id",{numeric:true}));
   const kinds=new Map();
   rows.forEach(u=>{const key=MU_TYPE_KEY(u.tipe);if(!kinds.has(key))kinds.set(key,{name:String(u.tipe||"Jenis belum diisi").trim(),key,units:[]});kinds.get(key).units.push(u);});
@@ -2009,21 +2072,23 @@ function renderUnit(){
   $("#muPopReset").hidden=selected==="all";
   $("#tUnit").innerHTML=detailRows.length?detailRows.map((u,i)=>{
     const mob=S.mobs.find(m=>(m.unitId===u.id||m.unitKode===u.kode)&&isAktif(m));
-    const catatan=String(u.catatan||"").trim();
+    const m=muDetails(u),catatan=String(m.catatan||"").trim();
     const ops=canWrite?`${!mob?`<button class="btn small" data-act="planUnit" data-id="${esc(u.id)}" type="button">Kirim</button>`:""}<button class="btn small edit" data-act="editUnit" data-id="${esc(u.id)}" type="button">Edit</button>${SRC==="sheet"?`<button class="btn small ghost" data-act="dokUnit" data-id="${esc(u.id)}" type="button">Bukti</button>`:""}<button class="btn small ghost danger" data-act="delUnit" data-id="${esc(u.id)}" type="button">Hapus</button>`:"";
     return `<tr>
       <td class="mu-mpp-num">${i+1}</td>
       <td><span class="plate">${esc(u.kode)}</span>${isExistingUnit(u)?`<span class="sub" style="font-size:9px;color:#6d28d9">Existing</span>`:""}${u.kodeSementara?`<span class="sub" style="color:var(--warn);font-size:9px">Nomor sementara</span>`:""}</td>
       <td><b>${esc(u.tipe||"—")}</b></td>
+      <td>${esc(m.vendor||"—")}</td>
       <td><span class="ptag">${esc(projKode(u.projectId))}</span></td>
       <td><span title="${esc(u.lokasi||"")}">${esc(u.lokasi||"—")}</span>${mob?`<span class="sub" style="font-size:9px">→ ${esc(mob.ke)} (${esc(mob.status)})</span>`:""}</td>
       <td>${chip(UNIT_STATUS,u.status)}</td>
+      <td><span class="mu-cond">${esc(m.kondisi||"Belum diverifikasi")}</span></td>
       <td class="n">${Number(u.hm||0).toLocaleString("id-ID")}</td>
       <td>${u.tglTiba?fmtDate(u.tglTiba):"—"}</td>
       <td class="mu-mpp-description">${catatan?`<span class="mu-mpp-ellipsis" title="${esc(catatan)}">${esc(catatan)}</span><button class="mu-mpp-view" data-act="unitInfo" data-id="${esc(u.id)}" type="button">Lihat detail</button>`:`<button class="mu-mpp-view" data-act="unitInfo" data-id="${esc(u.id)}" type="button">Rincian</button>`}</td>
       <td class="mu-mpp-actions">${ops||"—"}</td>
     </tr>`;
-  }).join(""):`<tr><td colspan="10">${emptyState(S.ready?"Belum ada unit untuk filter ini":"Memuat data…",S.ready?"Pilih filter lain atau tambahkan unit existing dan unit tiba.":"",canWrite&&S.ready?`<button class="btn small" data-act="addExistingUnit" type="button">+ Input unit existing</button> ${S.kirim.length?`<button class="btn primary small" data-act="addUnitBtn" type="button">+ Catat unit tiba</button>`:""}`:"")}</td></tr>`;
+  }).join(""):`<tr><td colspan="12">${emptyState(S.ready?"Belum ada unit untuk filter ini":"Memuat data…",S.ready?"Pilih filter lain atau tambahkan unit existing dan unit tiba.":"",canWrite&&S.ready?`<button class="btn small" data-act="addExistingUnit" type="button">+ Input unit existing</button> ${S.kirim.length?`<button class="btn primary small" data-act="addUnitBtn" type="button">+ Catat unit tiba</button>`:""}`:"")}</td></tr>`;
 }
 function showUnitInfo(u){
   if(!u)return;
@@ -2070,6 +2135,7 @@ function setTab(t){ S.tab=t; document.querySelectorAll("#tabs button").forEach(b
   if(window.__muReady && (was||t!=="ringkasan")) try{ window.scrollTo({top:0,behavior:"smooth"}); }catch(e){ window.scrollTo(0,0); } }
 $("#tabs").addEventListener("click",e=>{ const b=e.target.closest("button[data-tab]"); if(b) setTab(b.dataset.tab); });
 document.addEventListener("click",e=>{
+  const dg=e.target.closest("[data-dash-kind]");if(dg){try{S.unitGroup=decodeURIComponent(dg.dataset.dashKind)}catch(err){S.unitGroup="all"}setTab("unit");renderUnit();return;}
   const g=e.target.closest("[data-goto]"); if(g){ setTab(g.dataset.goto); return; }
   const fp=e.target.closest("[data-fp]"); if(fp){ S.fProj=fp.dataset.fp; render(); return; }
   const ug=e.target.closest("[data-unit-kind]"); if(ug){ try{ S.unitGroup=decodeURIComponent(ug.dataset.unitKind); }catch(err){ S.unitGroup="all"; } renderUnit(); return; }
