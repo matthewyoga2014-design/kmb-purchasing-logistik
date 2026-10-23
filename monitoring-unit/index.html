@@ -1117,6 +1117,21 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
  #projCards.masonry>.tcard{display:inline-block!important;width:100%;margin-bottom:8px!important;break-inside:avoid-page;break-inside:avoid-column}
  #projCards .mu-loc-more>summary{font-size:9px;padding:4px 5px}
 }
+
+/* Status Unit di Lokasi: warna KPI konsisten antara donat & legenda. */
+#donut .ring{filter:drop-shadow(0 3px 7px rgba(45,29,100,.08))}
+#donut .dleg{gap:6px}
+#donut .dleg>.mu-status-legend{
+  display:grid;grid-template-columns:12px minmax(0,1fr) auto 45px;
+  align-items:center;gap:9px;padding:5px 9px;border-radius:7px;
+  background:var(--unit-soft,#F6F4FC);color:#332F4E
+}
+#donut .dleg>.mu-status-legend i{width:11px;height:11px;border-radius:50%}
+#donut .dleg>.mu-status-legend b{color:var(--unit-color,#6D28D9);font-variant-numeric:tabular-nums;font-size:13px}
+#donut .dleg>.mu-status-legend small{font-variant-numeric:tabular-nums;color:#6D6980;text-align:right}
+#donut .dleg>p{margin:7px 2px 0;color:#6D6980;font-size:11px;line-height:1.45}
+@media(max-width:600px){#donut .dleg{min-width:0;width:100%}#donut .dwrap{gap:14px}}
+@media print{#donut .dleg>.mu-status-legend{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style>
 <script src="../remembered-access.js?v=20261020"></script></head>
 <body>
@@ -1290,12 +1305,15 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 <script>
 (function(){
 "use strict";
+// Palet identik dengan kartu KPI di dashboard:
+// ungu=rencana/tiba, biru=standby, oranye=mobilisasi,
+// hijau=beroperasi, merah=breakdown.
 const UNIT_STATUS = [
-  {k:"Tiba",cls:"s-accent",col:"var(--accent)"},
-  {k:"Standby",cls:"s-idle",col:"var(--idle)"},
-  {k:"Mobilisasi",cls:"s-info",col:"var(--info)"},
-  {k:"Beroperasi",cls:"s-ok",col:"var(--ok)"},
-  {k:"Breakdown",cls:"s-bad",col:"var(--bad)"}
+  {k:"Tiba",cls:"s-accent",col:"#7C3AED",soft:"#F2EDFF"},
+  {k:"Standby",cls:"s-idle",col:"#2563EB",soft:"#EAF1FF"},
+  {k:"Mobilisasi",cls:"s-info",col:"#F7871F",soft:"#FFF0DE"},
+  {k:"Beroperasi",cls:"s-ok",col:"#16A34A",soft:"#E7F8EE"},
+  {k:"Breakdown",cls:"s-bad",col:"#EF4F5F",soft:"#FEECEF"}
 ];
 const PRE_STATUS = [
   {k:"Persiapan kirim",cls:"s-idle",col:"#A8A5C4"},
@@ -2148,7 +2166,7 @@ function renderCharts(){
   let acc=0; const segs=UNIT_STATUS.map(x=>{ const n=us.filter(u=>u.status===x.k).length, a0=acc; acc+=n; return {x,n,a0}; });
   const grad=tot?segs.filter(o=>o.n).map(o=>`${o.x.col} ${o.a0/tot*360}deg ${(o.a0+o.n)/tot*360}deg`).join(","):"#EDEBF5 0deg 360deg";
   dn.innerHTML=`<div class="dwrap"><div class="ring" style="background:conic-gradient(${grad})"><div><b>${tot}</b><small>unit di lokasi</small></div></div>
-    <div class="dleg">${segs.map(o=>`<div><i style="background:${o.x.col}"></i><span>${o.x.k}</span><b>${o.n}</b><small>(${pct(o.n,tot)}%)</small></div>`).join("")}
+    <div class="dleg">${segs.map(o=>`<div class="mu-status-legend" style="--unit-color:${o.x.col};--unit-soft:${o.x.soft}"><i style="background:${o.x.col}"></i><span>${o.x.k}</span><b>${o.n}</b><small>(${pct(o.n,tot)}%)</small></div>`).join("")}
     <p>${t.sisa?`${t.sisa} unit lagi belum tiba dari rencana ${t.rencana} unit.`:"Semua unit rencana sudah tiba."}</p></div></div>`;
 }
 function renderPFilter(){
