@@ -397,7 +397,7 @@ function backupPortalNamesToDrive() {
   try {
     // Nama/deskripsi portal bersifat konfigurasi tampilan publik. Supabase
     // policy SELECT anon tersedia; tidak menggunakan service_role atau JWT user.
-    const url=SB_URL+'/rest/v1/portal_display_settings?select=app_key,name,description,updated_at&order=app_key.asc';
+    const url=SB_URL+'/rest/v1/portal_display_settings?select=app_key,name,description,mpp_title,updated_at&order=app_key.asc';
     const resp=UrlFetchApp.fetch(url,{
       method:'get',
       headers:{'apikey':SB_KEY,'Accept':'application/json'},
@@ -417,10 +417,11 @@ function backupPortalNamesToDrive() {
     // Bandingkan nama+deskripsi, bukan timestamp, untuk menghindari
     // snapshot ganda akibat perubahan format timestamp ISO.
     const lastRow=sheet.getLastRow(), latest={};
+    if(sheet.getRange(1,6).getValue()!=='Nama Sheet MPP')sheet.getRange(1,6).setValue('Nama Sheet MPP');
     if (lastRow>1) {
-      const history=sheet.getRange(2,1,lastRow-1,4).getDisplayValues();
+      const history=sheet.getRange(2,1,lastRow-1,6).getDisplayValues();
       history.forEach(function(r) {
-        if (r[1]) latest[String(r[1]).toLowerCase()]={name:String(r[2]),description:String(r[3])};
+        if (r[1]) latest[String(r[1]).toLowerCase()]={name:String(r[2]),description:String(r[3]),mpp:String(r[5]||'')};
       });
     }
     const timestamp=Utilities.formatDate(new Date(),'Asia/Jakarta','yyyy-MM-dd HH:mm:ss');
@@ -428,13 +429,13 @@ function backupPortalNamesToDrive() {
     rows.forEach(function(r) {
       const k=String(r.app_key||'').trim().toLowerCase();
       if (['kta','bupr','mbj','kmb'].indexOf(k)<0) return;
-      const name=String(r.name||''),description=String(r.description||'');
+      const name=String(r.name||''),description=String(r.description||''),mpp=String(r.mpp_title||'');
       const prev=latest[k];
-      if (!prev||prev.name!==name||prev.description!==description) {
-        inserts.push([String(r.updated_at||''),k,name,description,timestamp]);
+      if (!prev||prev.name!==name||prev.description!==description||prev.mpp!==mpp) {
+        inserts.push([String(r.updated_at||''),k,name,description,timestamp,mpp]);
       }
     });
-    if (inserts.length) sheet.getRange(lastRow+1,1,inserts.length,5).setValues(inserts);
+    if (inserts.length) sheet.getRange(lastRow+1,1,inserts.length,6).setValues(inserts);
     return {ok:true,rowsSeen:rows.length,backedUp:inserts.length,sheet:PORTAL_NAME_BACKUP_TAB};
   } finally {
     lock.releaseLock();
