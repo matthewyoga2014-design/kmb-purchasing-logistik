@@ -260,6 +260,7 @@ a.hb { text-decoration: none; }
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+<dialog id="portalRenameDlg" class="portal-rename-dialog"><form id="portalRenameForm"><h3>Edit Nama Portal</h3><p>Hanya nama dan deskripsi tampilan. Link dan data MPP tidak berubah.</p><input type="hidden" id="portalRenameKey"><label>Nama portal<input id="portalRenameName" maxlength="70" required></label><label>Deskripsi<textarea id="portalRenameDesc" maxlength="180"></textarea></label><small id="portalRenameStatus"></small><footer><button type="button" id="portalRenameCancel">Batal</button><button type="submit" id="portalRenameSave">Simpan</button></footer></form></dialog>
 <script>
 const CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
 let HUB_SHARE = new URLSearchParams(location.search).get('share') || '';
@@ -672,4 +673,4 @@ skeleton(); whoUI(); guard();
   document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
 })();
 </script>
-<dialog id="portalRenameDlg" class="portal-rename-dialog"><form id="portalRenameForm"><h3>Edit Nama Portal</h3><p>Hanya nama dan deskripsi tampilan. Link dan data MPP tidak berubah.</p><input type="hidden" id="portalRenameKey"><label>Nama portal<input id="portalRenameName" maxlength="70" required></label><label>Deskripsi<textarea id="portalRenameDesc" maxlength="180"></textarea></label><small id="portalRenameStatus"></small><footer><button type="button" id="portalRenameCancel">Batal</button><button type="submit" id="portalRenameSave">Simpan</button></footer></form></dialog></body></html>
+</body></html>
