@@ -964,6 +964,63 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
  .mu-pop-table-scroller{overflow:visible}
 }
 
+
+
+/* Tampilan dashboard dapat disembunyikan per bagian, tersimpan per project.
+   Saat print bagian hidden benar-benar dikeluarkan dari dokumen. */
+.mu-dashboard-controls{display:flex;align-items:center;justify-content:flex-end;flex-wrap:wrap;gap:7px;font-size:10px;color:#675d81;margin:0 0 7px}
+.mu-dashboard-controls>span:first-child{margin-right:auto}
+.mu-hidden-count{font-weight:700;color:#6D28D9;background:#f2ecff;padding:4px 8px;border-radius:10px}
+.mu-toggle-panel,.mu-toggle-type{border:1px solid #e3dafa;background:#fff;color:#6D28D9;cursor:pointer;font-size:10px;font-weight:750;border-radius:7px;padding:4px 7px;white-space:nowrap;line-height:1.3}
+.mu-toggle-panel:hover,.mu-toggle-type:hover{background:#f4efff}
+.mu-toggle-panel:focus-visible,.mu-toggle-type:focus-visible{outline:2px solid #6D28D9;outline-offset:2px}
+.mu-dash-module{min-width:0}
+.mu-dash-module-body{min-width:0}
+.mu-module-restorer{display:none}
+.mu-dash-module.mu-is-hidden>.mu-dash-module-body{display:none!important}
+.mu-dash-module.mu-is-hidden>.mu-module-restorer{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:36px;padding:7px 10px;background:#f9f7ff;border:1px dashed #d6c7f7;border-radius:9px}
+.mu-module-restorer b{font-size:11px;color:#473671}
+.mu-module-restorer span{font-size:10px;color:#817a98;flex:1}
+.mu-pop-card.mu-is-hidden .mu-pop-card-content,.mu-pop-card.mu-is-hidden .mu-pop-card-foot{display:none}
+.mu-pop-card.mu-is-hidden .mu-pop-card-head{border-bottom:0}
+.mu-toggle-type{font-size:9px;padding:3px 6px}
+.mu-pop-head-actions{flex-wrap:wrap;justify-content:flex-end}
+.dash.mu-project-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;align-items:start}
+.mu-project-layout .mu-layout-wide{grid-column:1/-1;min-width:0}
+.mu-project-layout .card.pcard{padding-bottom:0}
+.mu-project-layout .card-head{padding:10px 12px;gap:6px;flex-wrap:wrap}
+.mu-project-layout .card-head h3{font-size:12px;margin-right:auto;gap:6px}
+.mu-project-layout .card-head .btn{padding:5px 7px;font-size:10px}
+.mu-project-layout .irows,.mu-project-layout .slist,.mu-project-layout .list{padding:5px 11px 8px}
+.mu-project-layout .stackbar{margin:5px 10px}
+.mu-project-layout .slist{font-size:11px}
+.mu-project-layout .irow{padding:6px 3px;gap:6px}
+.mu-project-layout .mu-loc-box{border-top:1px solid #ede8f5;padding:7px 12px 10px}
+.mu-project-layout .mu-loc-top{margin-bottom:5px}
+.mu-loc-count{font-size:10px;color:#6D28D9;background:#f4efff;border-radius:10px;padding:2px 7px}
+.mu-loc-groups{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px 12px}
+.mu-loc-groups .mu-loc-group{min-width:0;margin:0;padding:6px 8px;background:#faf9fe;border:1px solid #ece7f5;border-radius:7px}
+.mu-loc-groups .mu-loc-ids{gap:3px;margin-top:4px}
+.mu-loc-groups .mu-loc-pill{padding:2px 5px;font-size:9px;line-height:1.3;overflow-wrap:anywhere}
+.mu-loc-groups .mu-loc-head{font-size:10px;gap:6px}
+.mu-loc-groups .mu-loc-note{display:none}
+@media(max-width:950px){.dash.mu-project-layout{grid-template-columns:1fr}.mu-loc-groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:590px){.mu-loc-groups{grid-template-columns:1fr}.mu-dashboard-controls{justify-content:flex-start}.mu-dashboard-controls>span:first-child{flex:1 0 100%}}
+@media print{
+ .mu-dashboard-controls,.mu-toggle-panel,.mu-toggle-type,.mu-module-restorer{display:none!important}
+ .mu-dash-module.mu-is-hidden{display:none!important}
+ .mu-pop-card.mu-is-hidden{display:none!important}
+ .dash.mu-project-layout{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:6px!important}
+ .mu-project-layout .mu-layout-wide{grid-column:1/-1}
+ .mu-project-layout .mu-loc-groups{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:5px}
+ .mu-project-layout .mu-loc-group{break-inside:avoid}
+ .mu-project-layout .mu-loc-pill{font-size:8px}
+ .mu-project-layout .card-head{padding:7px 9px}
+ .mu-project-layout .card.pcard{break-inside:avoid}
+ .mu-dash-module{break-inside:avoid}
+ .mu-pop-grid{gap:6px!important}
+}
+
 </style>
 <script src="../remembered-access.js?v=20261020"></script></head>
 <body>
@@ -1036,6 +1093,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 
   <!-- RINGKASAN -->
   <section class="panel" id="p-ringkasan" role="tabpanel">
+    <div id="dashControls" class="mu-dashboard-controls"></div>
     <div id="popDash"></div>
     <div id="projDash" hidden></div>
     <div id="homeTop">
@@ -1791,7 +1849,7 @@ function render(){
   $("#cMob").textContent=S.mobs.filter(m=>isAktif(m)&&inFilter(mobProj(m))).length;
   $("#cRev").textContent=S.revisi.filter(r=>inFilter(r.projectId)).length;
   ["addUnit","addExisting","addMob","addKirim"].forEach(id=>$("#"+id).hidden=!canWrite); $("#addProj").hidden=true;
-  renderBanner(); renderSummary(); renderKpi(); renderFbar(); renderCharts(); renderPFilter(); renderRingkasan(); renderPopDash(); renderKirim(); renderUnit(); renderMob(); renderDok();
+  renderBanner(); renderSummary(); renderKpi(); renderFbar(); renderCharts(); renderPFilter(); renderRingkasan(); renderPopDash(); muDashboardControls(); renderKirim(); renderUnit(); renderMob(); renderDok();
 }
 function renderBanner(){
   const b=$("#banner");
@@ -1877,6 +1935,46 @@ function renderPFilter(){
   const el=$("#pfilter"); el.hidden=true;
   el.innerHTML=`<button type="button" data-fp="all" aria-pressed="${S.fProj==="all"}">Semua project</button>`+projects().map(p=>`<button type="button" data-fp="${p.id}" aria-pressed="${S.fProj===p.id}"><i style="background:${DOT[projColor(p.id)]}"></i>${esc(p.kode)}</button>`).join("");
 }
+
+// Pengaturan tampilan dashboard bersifat per-browser dan per-project.
+// Ini hanya pilihan tampilan/print, bukan perubahan data semua pengguna.
+const MU_DASH_VIS_KEY="mu_dashboard_visibility_v2";
+const MU_DASH_PANELS=["population","progress","status","mobilization","revision","location"];
+let MU_DASH_VIS={};
+try{const saved=JSON.parse(localStorage.getItem(MU_DASH_VIS_KEY)||"{}");if(saved&&typeof saved==="object")MU_DASH_VIS=saved;}catch(e){}
+function muDashboardScope(){const p=curProj();return p?p.id:"all";}
+function muDashboardHidden(k){return !!((MU_DASH_VIS[muDashboardScope()]||{})[k]);}
+function muDashboardSet(k,hidden){
+  const scope=muDashboardScope();
+  if(!MU_DASH_VIS[scope])MU_DASH_VIS[scope]={};
+  if(hidden)MU_DASH_VIS[scope][k]=true;
+  else delete MU_DASH_VIS[scope][k];
+  try{localStorage.setItem(MU_DASH_VIS_KEY,JSON.stringify(MU_DASH_VIS));}catch(e){}
+}
+function muDashboardRestoreAll(){
+  MU_DASH_VIS[muDashboardScope()]={};
+  try{localStorage.setItem(MU_DASH_VIS_KEY,JSON.stringify(MU_DASH_VIS));}catch(e){}
+}
+function muDashboardCollapseButton(k){
+  return '<button type="button" class="mu-toggle-panel" data-dash-toggle="'+k+'" aria-label="Sembunyikan bagian '+k+'">Sembunyikan <span aria-hidden="true">▴</span></button>';
+}
+function muDashboardWrap(k,label,html){
+  const hidden=muDashboardHidden(k);
+  return '<section class="mu-dash-module'+(hidden?' mu-is-hidden':'')+'" data-dash-panel="'+k+'">'+
+   '<div class="mu-module-restorer"><b>'+esc(label)+'</b><span>Disembunyikan dari dashboard dan print</span>'+
+   '<button type="button" class="mu-toggle-panel" data-dash-toggle="'+k+'">Tampilkan ▾</button></div>'+
+   '<div class="mu-dash-module-body">'+html+'</div></section>';
+}
+function muDashboardControls(){
+  const el=$("#dashControls");if(!el)return;
+  const scoped=MU_DASH_VIS[muDashboardScope()]||{};
+  const count=Object.values(scoped).filter(Boolean).length;
+  el.innerHTML='<span>Atur tampilan: bagian yang disembunyikan tidak ikut dicetak.</span>'+
+    (count?'<span class="mu-hidden-count">'+count+' disembunyikan</span>':'')+
+    '<button type="button" class="btn small" data-dash-all="hide">Sembunyikan semua</button>'+
+    '<button type="button" class="btn small" data-dash-all="show">Tampilkan semua</button>';
+}
+
 function unitLocationMini(pid, compact=false){
   const us=S.units.filter(u=>arrived(u)&&u.projectId===pid).slice().sort((a,b)=>
     String(a.tipe||"").localeCompare(String(b.tipe||""),"id")||String(a.kode||"").localeCompare(String(b.kode||""),"id",{numeric:true}));
@@ -1885,7 +1983,7 @@ function unitLocationMini(pid, compact=false){
   const x=[...groups].map(([kind,units])=>'<div class="mu-loc-group"><div class="mu-loc-head"><b>'+esc(kind)+'</b><span>'+units.length+' unit</span></div>'+
     '<div class="mu-loc-ids">'+units.map(u=>'<span class="mu-loc-pill" title="'+esc((u.lokasi||"Belum ada posisi")+' · '+(u.status||""))+'">'+esc(u.kode||"Nomor belum diisi")+'</span>').join("")+'</div></div>').join("");
   return '<div class="mu-loc-box"><div class="mu-loc-top"><strong>Unit di Lokasi</strong><span>'+us.length+' unit · '+us.filter(isExistingUnit).length+' existing</span></div>'+
-    (us.length?x:'<div class="mu-loc-empty">Belum ada unit di lokasi project ini.</div>')+
+    (us.length?'<div class="mu-loc-groups">'+x+'</div>':'<div class="mu-loc-empty">Belum ada unit di lokasi project ini.</div>')+
     (!compact&&us.length?'<div class="mu-loc-note">Status dan posisi unit lengkap tersedia pada tab Unit di Lokasi.</div>':"")+'</div>';
 }
 function renderProjDash(P){
@@ -1903,28 +2001,32 @@ function renderProjDash(P){
   const sc=UNIT_STATUS.map(x=>({x,n:us.filter(u=>u.status===x.k).length}));
   const stack=us.length?sc.filter(o=>o.n).map(o=>`<i style="width:${o.n/us.length*100}%;background:${o.x.col}" title="${o.x.k}: ${o.n}"></i>`).join(""):"";
   const c=projColor(P.id);
-  $("#projDash").innerHTML=`<div class="dash">
-    <div class="card pcard">
-      <div class="card-head"><h3><span class="tile-ic" style="background:var(--g-${c})">${ic(projIcon(P.id))}</span>Progres kedatangan per item</h3>${canWrite?`<button class="btn small primary" data-act="addItem" data-id="${P.id}" type="button">+ Item unit</button>`:""}</div>
-      <div class="irows">${rows?head+rows:`<div class="muted">${st.items.length?"Tidak ada item di filter ini.":"Belum ada item unit di project ini."}</div>`}</div>
-    </div>
-    <div class="card pcard"><div class="card-head"><h3>Unit di Lokasi — Nomor Lambung</h3><span class="actions">${canWrite?`<button class="btn small" data-act="addExistingUnit" data-id="${P.id}" type="button">+ Unit existing</button>`:""}<button class="btn open small" data-goto="unit" type="button">Lihat semua →</button></span></div>${unitLocationMini(P.id,false)}</div>
-    <div class="dash-side">
-      <div class="card pcard">
-        <div class="card-head"><h3><span class="tile-ic" style="background:var(--g-teal)">${ic("truck")}</span>Status unit di lokasi</h3><button class="btn open small" data-goto="unit" type="button">Lihat unit →</button></div>
-        ${us.length?`<div class="stackbar">${stack}</div><div class="slist">${sc.map(o=>`<div><i style="background:${o.x.col}"></i>${o.x.k}<b>${o.n}</b><span class="p">${pct(o.n,us.length)}%</span></div>`).join("")}</div>`
-          :`<div class="muted small">Belum ada unit di lokasi project ini. Unit lama bisa diinput lewat tombol + Unit existing; unit kiriman dicatat dari rencana kirim.</div>`}
-      </div>
-      <div class="card pcard">
-        <div class="card-head"><h3><span class="tile-ic" style="background:var(--g-orange)">${ic("route")}</span>Jadwal mobilisasi</h3><button class="btn open small" data-goto="mobilisasi" type="button">Buka →</button></div>
-        <div class="list" id="pNext"></div>
-      </div>
-      <div class="card pcard">
-        <div class="card-head"><h3><span class="tile-ic" style="background:var(--g-blue)">${ic("history")}</span>Perubahan rencana</h3><button class="btn open small" data-goto="pengiriman" type="button">Buka →</button></div>
-        <div class="list" id="pRev"></div>
-      </div>
-    </div>
-  </div>`;
+
+  const progress='<div class="card pcard"><div class="card-head"><h3><span class="tile-ic" style="background:var(--g-'+c+')">'+ic(projIcon(P.id))+'</span>Progres kedatangan per item</h3>'+
+    (canWrite?'<button class="btn small primary" data-act="addItem" data-id="'+esc(P.id)+'" type="button">+ Item unit</button>':'')+
+    muDashboardCollapseButton("progress")+'</div>'+
+    '<div class="irows">'+(rows?head+rows:'<div class="muted">'+(st.items.length?"Tidak ada item di filter ini.":"Belum ada item unit di project ini.")+'</div>')+'</div></div>';
+  const status='<div class="card pcard"><div class="card-head"><h3><span class="tile-ic" style="background:var(--g-teal)">'+ic("truck")+'</span>Status unit di lokasi</h3>'+
+    '<button class="btn open small" data-goto="unit" type="button">Lihat unit →</button>'+muDashboardCollapseButton("status")+'</div>'+
+    (us.length?'<div class="stackbar">'+stack+'</div><div class="slist">'+sc.map(o=>'<div><i style="background:'+o.x.col+'"></i>'+o.x.k+'<b>'+o.n+'</b><span class="p">'+pct(o.n,us.length)+'%</span></div>').join("")+'</div>':
+    '<div class="muted small">Belum ada unit di lokasi project ini.</div>')+'</div>';
+  const mob='<div class="card pcard"><div class="card-head"><h3><span class="tile-ic" style="background:var(--g-orange)">'+ic("route")+'</span>Jadwal mobilisasi</h3>'+
+    '<button class="btn open small" data-goto="mobilisasi" type="button">Buka →</button>'+muDashboardCollapseButton("mobilization")+'</div><div class="list" id="pNext"></div></div>';
+  const revision='<div class="card pcard"><div class="card-head"><h3><span class="tile-ic" style="background:var(--g-blue)">'+ic("history")+'</span>Perubahan rencana</h3>'+
+    '<button class="btn open small" data-goto="pengiriman" type="button">Buka →</button>'+muDashboardCollapseButton("revision")+'</div><div class="list" id="pRev"></div></div>';
+  const location='<div class="card pcard"><div class="card-head"><h3>Unit di Lokasi — Nomor Lambung <span class="mu-loc-count">'+us.length+' unit</span></h3><span class="actions">'+
+    (canWrite?'<button class="btn small" data-act="addExistingUnit" data-id="'+esc(P.id)+'" type="button">+ Unit existing</button>':'')+
+    '<button class="btn open small" data-goto="unit" type="button">Lihat semua →</button>'+
+    muDashboardCollapseButton("location")+'</span></div>'+unitLocationMini(P.id,false)+'</div>';
+  // Kartu ringkas diletakkan berpasangan. Nomor lambung yang panjang
+  // melebar di seluruh dashboard agar tidak menyisakan kolom kosong.
+  $("#projDash").innerHTML='<div class="dash mu-project-layout">'+
+    muDashboardWrap("progress","Progres kedatangan",progress)+
+    muDashboardWrap("status","Status unit di lokasi",status)+
+    muDashboardWrap("mobilization","Jadwal mobilisasi",mob)+
+    muDashboardWrap("revision","Perubahan rencana",revision)+
+    '<div class="mu-layout-wide">'+muDashboardWrap("location","Unit di Lokasi — Nomor Lambung",location)+'</div>'+
+    '</div>';
 }
 
 /* Rekap populasi aktual: Jenis Unit -> Vendor -> Merek.
@@ -2013,26 +2115,29 @@ function renderPopDash(){
           '<td><div class="mu-pop-badges">'+muPopBadges(b.items,x=>x.kondisi,true)+'</div></td></tr>'
         ).join('')+'</tbody></table></div></section>';
     }).join("");
-    return '<article class="mu-pop-card" style="--mu-head:'+color.head+';--mu-accent:'+color.edge+';--mu-wash:'+color.wash+'">'+
+    const key='type:'+type,hidden=muDashboardHidden(key);
+    return '<article class="mu-pop-card'+(hidden?' mu-is-hidden':'')+'" style="--mu-head:'+color.head+';--mu-accent:'+color.edge+';--mu-wash:'+color.wash+'">'+
       '<div class="mu-pop-card-head"><span class="mu-pop-truck">'+MU_UNIT_ICON+'</span>'+
-        '<h3>'+esc(title)+'</h3><span class="mu-pop-card-count"><strong>'+count+'</strong> unit</span></div>'+
+        '<h3>'+esc(title)+'</h3><span class="mu-pop-card-count"><strong>'+count+'</strong> unit</span>'+
+        '<button class="mu-toggle-type" type="button" data-dash-type-toggle="'+esc(encodeURIComponent(type))+'">'+(hidden?'Tampilkan ▾':'Sembunyikan ▴')+'</button></div>'+
       '<div class="mu-pop-card-content"><div class="mu-pop-vendors">'+vendorHTML+'</div></div>'+
       (incomplete?'<div class="mu-pop-card-foot"><span>⚠ '+incomplete+' unit masih menggunakan nomor sementara / identitas belum lengkap.</span></div>':'')+
       '</article>';
   }).join("");
-  el.innerHTML='<section class="mu-pop-dashboard" aria-label="Rekap populasi unit aktual">'+
+  const populationHtml='<section class="mu-pop-dashboard" aria-label="Rekap populasi unit aktual">'+
     '<div class="mu-pop-titlebar"><div class="mu-pop-mainheading">'+
       '<span class="mu-pop-eyebrow">POPULASI UNIT</span>'+
       '<p>Rekap otomatis berdasarkan jenis, vendor, merek, status operasional, dan kondisi dari sheet Populasi Unit'+
       (P?' — '+esc(P.kode):'')+'.</p></div>'+
       '<div class="mu-pop-head-actions"><span class="mu-pop-total">'+us.length+' <small>Total unit</small></span>'+
-        '<button type="button" class="btn small mu-pop-source" data-goto="unit">Lihat sumber data →</button></div></div>'+
+        '<button type="button" class="btn small mu-pop-source" data-goto="unit">Lihat sumber data →</button>'+muDashboardCollapseButton("population")+'</div></div>'+
     '<div class="mu-pop-guide">ⓘ <b>Jenis Unit → Vendor → Merek</b> · Jumlah status dan kondisi adalah rincian unit, bukan tambahan populasi.</div>'+
     (types.length?'<div class="mu-pop-grid">'+content+'</div>':
       '<div class="mu-pop-no-data">Belum ada unit yang tercatat di lokasi. '+(canWrite?'Input melalui sheet Populasi Unit.':'')+'</div>')+
     '<p class="mu-pop-legend"><b>Belum Diketahui</b> = status operasional belum dicatat (termasuk status hanya “Tiba”). '+
     '<b>Belum Diperiksa</b> = kondisi belum dinilai. Semua angka dihitung otomatis dari Populasi Unit.</p>'+
     '</section>';
+  el.innerHTML=muDashboardWrap("population","Populasi Unit",populationHtml);
 }
 
 function renderRingkasan(){
@@ -2373,6 +2478,27 @@ function setTab(t){ S.tab=t; document.querySelectorAll("#tabs button").forEach(b
   if(window.__muReady && (was||t!=="ringkasan")) try{ window.scrollTo({top:0,behavior:"smooth"}); }catch(e){ window.scrollTo(0,0); } }
 $("#tabs").addEventListener("click",e=>{ const b=e.target.closest("button[data-tab]"); if(b) setTab(b.dataset.tab); });
 document.addEventListener("click",e=>{
+  const all=e.target.closest("[data-dash-all]");
+  if(all){
+    if(all.dataset.dashAll==="show")muDashboardRestoreAll();
+    else MU_DASH_PANELS.forEach(k=>muDashboardSet(k,true));
+    renderRingkasan();renderPopDash();muDashboardControls();return;
+  }
+  const toggle=e.target.closest("[data-dash-toggle]");
+  if(toggle){
+    const k=toggle.dataset.dashToggle;
+    if(MU_DASH_PANELS.includes(k)){
+      muDashboardSet(k,!muDashboardHidden(k));
+      renderRingkasan();renderPopDash();muDashboardControls();
+    }
+    return;
+  }
+  const typeToggle=e.target.closest("[data-dash-type-toggle]");
+  if(typeToggle){
+    let type="";try{type=decodeURIComponent(typeToggle.dataset.dashTypeToggle);}catch(err){return;}
+    const key="type:"+type;muDashboardSet(key,!muDashboardHidden(key));
+    renderPopDash();muDashboardControls();return;
+  }
   const dg=e.target.closest("[data-dash-kind]");if(dg){try{S.unitGroup=decodeURIComponent(dg.dataset.dashKind)}catch(err){S.unitGroup="all"}setTab("unit");renderUnit();return;}
   const g=e.target.closest("[data-goto]"); if(g){ setTab(g.dataset.goto); return; }
   const fp=e.target.closest("[data-fp]"); if(fp){ S.fProj=fp.dataset.fp; render(); return; }
