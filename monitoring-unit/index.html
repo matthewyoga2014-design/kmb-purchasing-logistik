@@ -1049,6 +1049,26 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .mu-trash-item small{display:block;font-size:10px;color:#716d82;padding-top:4px}
 .mu-trash-empty{font-size:11px;color:#77718a;padding:14px 4px}
 @media print{#muTrashPanel,#btnTrash{display:none!important}}
+
+
+/* Card dashboard: cukup jenis dan jumlah, detail ada di sheet masing-masing. */
+.tcard .mu-brief-label{font-size:10px;font-weight:800;color:#6d28d9;letter-spacing:.03em;padding:7px 12px 3px;text-transform:uppercase}
+.tcard .mu-summary-rows{padding:0 9px 4px!important}
+.tcard .mu-summary-rows .row{min-height:0;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px!important;border-bottom:1px solid #f0ecfa}
+.tcard .mu-summary-rows .row:last-child{border-bottom:0}
+.tcard .mu-summary-rows .row .nm{min-width:0;flex:1}
+.tcard .mu-summary-rows .row .nm b{font-size:11px;font-weight:700;white-space:normal;overflow-wrap:anywhere;line-height:1.25}
+.tcard .mu-summary-rows .ct{font-size:11px;color:#5b21b6;white-space:nowrap;font-weight:800}
+.tcard .mu-loc-box{padding:7px 12px 9px;border-top:1px solid #eeeaf5}
+.tcard .mu-loc-top{margin-bottom:6px;font-size:11px}
+.mu-loc-compact .mu-loc-groups{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px}
+.mu-loc-compact .mu-loc-group{border:1px solid #ece7f6;border-radius:7px;background:#faf9ff;margin:0!important;padding:6px 8px;min-width:0}
+.mu-loc-compact .mu-loc-head{align-items:center;font-size:10.5px;gap:5px}
+.mu-loc-compact .mu-loc-head b{overflow-wrap:anywhere;flex:1}
+.mu-loc-compact .mu-loc-head span{white-space:nowrap;font-weight:800;color:#6d28d9}
+.mu-loc-detail-note{font-size:10px;color:#77708d;margin-top:6px}
+@media(max-width:470px){.mu-loc-compact .mu-loc-groups{grid-template-columns:1fr}}
+@media print{.tcard .mu-summary-rows .row{break-inside:avoid}.mu-loc-compact .mu-loc-groups{grid-template-columns:repeat(2,minmax(0,1fr))}}
 </style>
 <script src="../remembered-access.js?v=20261020"></script></head>
 <body>
@@ -2128,15 +2148,20 @@ function muDashboardControls(){
 }
 
 function unitLocationMini(pid, compact=false){
-  const us=S.units.filter(u=>arrived(u)&&u.projectId===pid).slice().sort((a,b)=>
-    String(a.tipe||"").localeCompare(String(b.tipe||""),"id")||String(a.kode||"").localeCompare(String(b.kode||""),"id",{numeric:true}));
-  const groups=new Map();
-  us.forEach(u=>{const kind=String(u.tipe||"Jenis belum diisi").trim();if(!groups.has(kind))groups.set(kind,[]);groups.get(kind).push(u);});
-  const x=[...groups].map(([kind,units])=>'<div class="mu-loc-group"><div class="mu-loc-head"><b>'+esc(kind)+'</b><span>'+units.length+' unit</span></div>'+
-    '<div class="mu-loc-ids">'+units.map(u=>'<span class="mu-loc-pill" title="'+esc((u.lokasi||"Belum ada posisi")+' · '+(u.status||""))+'">'+esc(u.kode||"Nomor belum diisi")+'</span>').join("")+'</div></div>').join("");
-  return '<div class="mu-loc-box"><div class="mu-loc-top"><strong>Unit di Lokasi</strong><span>'+us.length+' unit · '+us.filter(isExistingUnit).length+' existing</span></div>'+
-    (us.length?'<div class="mu-loc-groups">'+x+'</div>':'<div class="mu-loc-empty">Belum ada unit di lokasi project ini.</div>')+
-    (!compact&&us.length?'<div class="mu-loc-note">Status dan posisi unit lengkap tersedia pada tab Unit di Lokasi.</div>':"")+'</div>';
+  // Hanya jenis dan jumlah dalam dashboard; seluruh nomor lambung,
+  // status, lokasi, dan catatan tersedia di sheet Populasi Unit.
+  const us=S.units.filter(u=>arrived(u)&&u.projectId===pid);
+  const grouped=new Map();
+  for(const u of us){
+    const name=String(u.tipe||"Jenis belum diisi").trim()||"Jenis belum diisi",key=name.toLocaleLowerCase("id");
+    if(!grouped.has(key))grouped.set(key,{name,count:0});
+    grouped.get(key).count++;
+  }
+  const types=[...grouped.values()].sort((a,b)=>a.name.localeCompare(b.name,"id",{numeric:true}));
+  const lines=types.map(({name,count})=>'<div class="mu-loc-group"><div class="mu-loc-head"><b>'+esc(name)+'</b><span>'+count+' unit</span></div></div>').join("");
+  return '<div class="mu-loc-box mu-loc-compact"><div class="mu-loc-top"><strong>Unit di Lokasi</strong><span>'+us.length+' unit</span></div>'+
+    (us.length?'<div class="mu-loc-groups">'+lines+'</div>':'<div class="mu-loc-empty">Belum ada unit di lokasi.</div>')+
+    (!compact&&us.length?'<div class="mu-loc-detail-note">Nomor lambung dan rincian ada di sheet Populasi Unit.</div>':"")+'</div>';
 }
 function renderProjDash(P){
   const st=projStats(P.id), us=S.units.filter(u=>arrived(u)&&u.projectId===P.id);
@@ -2302,9 +2327,8 @@ function renderRingkasan(){
     const cardsHtml=ps.map(p=>{
       const c=projColor(p.id), s=projStats(p.id), q=pct(s.tiba,s.rencana);
       const sub=[p.nama,p.lokasi].filter(Boolean).join(" · ");
-      const rows=s.items.filter(itemOk).map(k=>{ const n=tibaItem(k), r=Number(k.rencana)||0, jl=jalanItem(k), sisa=r-n-jl, ket=k.eta?`ETA ${fmtDate(k.eta)}${k.catatan&&!/^Jadwal/.test(k.catatan)?" · "+k.catatan:""}`:(k.catatan||"");
-        const st=(jl?`<span class="st jalan">${jl} jalan</span>`:"")+(sisa>0?`<span class="st todo">${sisa} sisa</span>`:r-n<0?`<span class="st over">+${n-r}</span>`:r-n===0?`<span class="st done">Lengkap</span>`:"");
-        return `<div class="row"><span class="nm"><b title="${esc(k.tipe)}">${esc(k.tipe)}</b>${ket?`<small title="${esc(ket)}">${esc(ket)}</small>`:""}</span><span class="ct">${n}/${r}</span>${st}</div>`; }).join("");
+      // Ringkasan project: hanya jenis dan jumlah rencana.
+      const rows=s.items.filter(itemOk).map(k=>`<div class="row mu-plan-summary"><span class="nm"><b title="${esc(k.tipe)}">${esc(k.tipe)}</b></span><span class="ct">${Number(k.rencana)||0} unit</span></div>`).join("");
       return `<div class="card tcard ${c}" data-proj="${p.id}" tabindex="0" role="link" aria-label="Buka dashboard ${esc(p.kode)}">
         <div class="tcard-head"><span class="tile-ic">${ic(projIcon(p.id))}</span><div class="tcard-title"><h3>${esc(p.kode)}</h3><span>${esc(sub||"—")}</span></div><button class="btn open small" data-act="openProj" data-id="${p.id}" type="button">Buka →</button></div>
         <div class="stats">
@@ -2314,7 +2338,8 @@ function renderRingkasan(){
           <div class="stat">${ic("ship","c-orange")}<span><b class="c-orange">${s.jalan}</b><small>Perjalanan</small></span></div>
         </div>
         <div class="pbar"><i style="width:${q}%"></i></div>
-        ${s.unitCount?`<div class="small muted" style="padding:7px 15px 0">${S.units.filter(u=>arrived(u)&&u.projectId===p.id&&isExistingUnit(u)).length} existing · ${s.tiba} tiba dari rencana</div>`:""}${rows?`<div class="rows">${rows}</div>`:`<div class="rows"><div class="row"><span class="nm muted">${s.items.length?"Tidak ada item di filter ini":"Belum ada item unit"}</span></div></div>`}
+        <div class="mu-brief-label">Rencana Kirim</div>
+        ${rows?`<div class="rows mu-summary-rows">${rows}</div>`:`<div class="rows mu-summary-rows"><div class="row"><span class="nm muted">${s.items.length?"Tidak ada item di filter ini":"Belum ada rencana kirim"}</span></div></div>`}
         ${unitLocationMini(p.id,true)}
         <div class="tfoot"><span class="note">${p.catatan?`${ic("alert")}${esc(p.catatan)}`:`${q}% unit tiba`}</span><span>${ic("clock")}${s.last?fmtTime(s.last):"—"}</span></div>
       </div>`;
