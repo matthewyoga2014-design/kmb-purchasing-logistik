@@ -82,6 +82,50 @@
     .ud-overview-explain{padding:10px 13px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;color:#475569;font-size:12px;line-height:1.6;margin:12px 0 16px}
     @media(max-width:720px){.ud-identity-grid,.ud-health-grid{grid-template-columns:1fr}.ud-type-group{padding:13px}.ud-type-count strong{font-size:22px}}
 
+
+    /* Populasi Unit — table-first reporting layout, without decorative photos. */
+    .ud-pop-hero{position:relative;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding:20px 22px 20px 28px;margin-bottom:16px;border-radius:14px;background:linear-gradient(110deg,#edf5fc 0%,#fafcff 78%);border:1px solid #dbe8f4}
+    .ud-pop-hero:before{content:"";position:absolute;left:12px;top:16px;bottom:16px;width:6px;background:#facc15;border-radius:999px}
+    .ud-pop-hero h2{font-size:clamp(24px,3vw,34px);line-height:1.05;letter-spacing:.018em;font-weight:850;color:#0a2153;margin:0 0 8px}
+    .ud-pop-hero p{font-size:13px;color:#294467;margin:0;line-height:1.55}
+    .ud-pop-total{display:flex;align-items:baseline;gap:6px;background:#fff;border:1px solid #d9e5f2;border-radius:12px;padding:9px 14px;color:#17365e;white-space:nowrap}
+    .ud-pop-total strong{font-size:24px}
+    .ud-pop-total span{font-size:12px;font-weight:750}
+    .ud-pop-explain{font-size:12px;line-height:1.6;color:#42526b;margin:0 2px 14px}
+    .ud-pop-list{display:grid;gap:16px}
+    .ud-pop-type{border:1px solid #e1e9f1;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 18px rgba(15,42,76,.045)}
+    .ud-pop-head{background:#174769;color:#fff;padding:13px 18px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .ud-pop-head h3{font-size:clamp(16px,1.7vw,22px);font-weight:850;letter-spacing:.018em;margin:0;color:#fff}
+    .ud-pop-head strong{font-size:24px;font-weight:850}
+    .ud-pop-head .ud-pop-total-label{font-size:12px;margin-left:5px;font-weight:600;opacity:.95}
+    .ud-pop-body{display:grid;grid-template-columns:175px minmax(0,1fr);gap:12px;padding:12px;background:#f8fbfe}
+    .ud-pop-count{padding:19px 15px;min-width:0;border-radius:13px;background:linear-gradient(150deg,#f0f7fd,#fff);border:1px solid #dcebf6}
+    .ud-pop-count .ud-count-label{font-weight:800;color:#13365d;font-size:13px}
+    .ud-pop-count .ud-count-number{font-size:clamp(44px,5vw,66px);line-height:1.1;color:#081e51;font-weight:900;margin:9px 0 0}
+    .ud-pop-count .ud-count-suffix{color:#204368;font-size:13px;font-weight:750}
+    .ud-pop-count .ud-count-note{font-size:11px;color:#526784;margin-top:14px;line-height:1.6}
+    .ud-pop-vendors{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,365px),1fr));gap:12px;min-width:0}
+    .ud-pop-vendor{min-width:0;border:1px solid var(--ud-vendor-line,#d7e4f1);background:var(--ud-vendor-bg,#fff);border-radius:13px;padding:12px;overflow:hidden}
+    .ud-pop-vendor-head{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px;padding-bottom:8px}
+    .ud-pop-vendor-name{font-weight:850;font-size:17px;color:#0d2857;min-width:0;overflow-wrap:anywhere}
+    .ud-pop-vendor-total{display:flex;align-items:baseline;gap:5px;white-space:nowrap;color:#14294d}
+    .ud-pop-vendor-total b{font-size:26px;line-height:1;font-weight:850}
+    .ud-pop-vendor-total span{font-size:12px;font-weight:700}
+    .ud-pop-table-wrap{overflow-x:auto;border:1px solid #dbe6f3;border-radius:9px;background:#fff}
+    .ud-pop-table{width:100%;min-width:395px;border-collapse:separate;border-spacing:0;table-layout:auto;font-size:12px;color:#1d3254}
+    .ud-pop-table th{padding:9px 8px;background:#e8f0fa;border-right:1px solid #d9e4f1;text-align:left;font-weight:850;color:#17325b;vertical-align:middle;font-size:11px}
+    .ud-pop-table td{padding:9px 8px;border-top:1px solid #e7edf5;border-right:1px solid #e7edf5;vertical-align:top;line-height:1.5}
+    .ud-pop-table th:last-child,.ud-pop-table td:last-child{border-right:0}
+    .ud-pop-table td:nth-child(2),.ud-pop-table th:nth-child(2){text-align:center;font-weight:800;white-space:nowrap}
+    .ud-pop-name{font-weight:800;overflow-wrap:anywhere}
+    .ud-pop-metrics{display:flex;flex-direction:column;gap:5px}
+    .ud-pop-pill{display:inline-flex;align-items:flex-start;gap:5px;line-height:1.35;padding:4px 6px;border-radius:6px;background:var(--ud-chip-bg);color:var(--ud-chip-text);font-size:11px;font-weight:700;overflow-wrap:anywhere}
+    .ud-pop-pill b{font-variant-numeric:tabular-nums}
+    .ud-pop-remark{margin:0;padding:9px 13px 11px;background:#fff;color:#52657e;font-size:11px;line-height:1.5;border-top:1px solid #edf1f6}
+    .ud-pop-footer{margin:12px 0 0;color:#475569;font-size:12px;line-height:1.65}
+    @media(max-width:850px){.ud-pop-body{grid-template-columns:1fr}.ud-pop-count{display:flex;align-items:center;gap:12px;padding:12px 16px}.ud-pop-count .ud-count-number{font-size:38px;margin:0}.ud-pop-count .ud-count-note{margin:0 0 0 auto}.ud-pop-count .ud-count-suffix{align-self:center}}
+    @media(max-width:550px){.ud-pop-head{padding:12px}.ud-pop-body{padding:9px}.ud-pop-hero{padding:17px 15px 17px 28px}.ud-pop-vendors{grid-template-columns:minmax(0,1fr)}.ud-pop-table{min-width:390px}.ud-pop-vendor{padding:10px}.ud-pop-count .ud-count-note{font-size:10px}}
+
     .ud-meta{min-width:0;flex:1}.ud-meta strong{display:block;font-size:15px;word-break:break-word}.ud-meta small{display:block;color:#64748b;margin-top:4px;line-height:1.5}
     .ud-tag{display:inline-block;padding:3px 8px;border-radius:999px;background:#f1f5f9;color:#475569;font-size:11px;font-weight:700;margin-top:8px}
     .ud-small{font-size:12px;color:#64748b;line-height:1.5}.ud-form{border-top:1px solid #e5e7eb;margin-top:14px;padding-top:14px}
@@ -135,101 +179,103 @@
     return [...grouped.values()].sort((a,b) =>
       b.planned-a.planned || a.type.localeCompare(b.type,"id"));
   }
-  function countByField(group,field,blankLabel="Belum diisi") {
-    const bucket = new Map();
-    const add=(raw,n=1)=>{
-      const name=String(raw||"").trim() || blankLabel;
-      const key=name.toLocaleLowerCase("id-ID");
-      const prev=bucket.get(key);
-      if(prev)prev.count+=n;else bucket.set(key,{name,count:n});
-    };
-    group.details.forEach(d=>add(d[field]));
-    const absent=Math.max(0,group.planned-group.details.length);
-    if(absent)add(blankLabel,absent);
-    return [...bucket.values()].sort((a,b)=>b.count-a.count ||
-      a.name.localeCompare(b.name,"id"));
-  }
-  // Status: what the unit is currently doing; condition: its physical readiness.
-  // Each row uses the same denominator (total units of that machine type).
-  function unitColor(field, name) {
-    const n=String(name||"").trim().toLocaleLowerCase("id-ID");
-    if (/belum|tidak diketahui|tanpa data|tidak ada data/.test(n)) return "#64748b";
-    if (field==="status") {
-      if (/selesai.*perbaikan|perbaikan selesai|normal|operasional|running|aktif/.test(n)) return "#15803d";
-      if (/breakdown|rusak|tidak beroperasi|down/.test(n)) return "#dc2626";
-      if (/perbaikan|repair|maintenance|service/.test(n)) return "#d97706";
-      if (/standby|siaga/.test(n)) return "#2563eb";
-      if (/off.site|mobilisasi|pengiriman/.test(n)) return "#7c3aed";
-    } else if (field==="kondisi") {
-      if (/perlu.*perbaikan|kurang baik|perbaikan/.test(n)) return "#d97706";
-      if (/rusak|tidak layak/.test(n)) return "#dc2626";
-      if (/baik|layak|normal/.test(n)) return "#15803d";
+  const rowName=(value, fallback)=>String(value == null ? "" : value).trim() || fallback;
+  const normalizeRow=(v)=>String(v).toLocaleLowerCase("id-ID");
+  // Don't derive a "progress rekondisi" from arbitrary operational status.
+  // Count only fields recorded for each individual unit. Missing identities
+  // count against the existing master total, without inventing records.
+  function vendorBreakdown(g) {
+    const owners=new Map();
+    function add(d) {
+      const vendor=rowName(d.vendor,"Belum diisi");
+      const brand=rowName(d.merk,"Belum diisi");
+      const vkey=normalizeRow(vendor);
+      if(!owners.has(vkey))owners.set(vkey,{name:vendor,total:0,brands:new Map()});
+      const owner=owners.get(vkey);
+      owner.total++;
+      const bkey=normalizeRow(brand);
+      if(!owner.brands.has(bkey))owner.brands.set(bkey,{name:brand,count:0,status:new Map(),kondisi:new Map()});
+      const b=owner.brands.get(bkey);
+      b.count++;
+      [
+        ["status",rowName(d.status,"Belum Diketahui")],
+        ["kondisi",rowName(d.kondisi,"Belum Diperiksa")]
+      ].forEach(([key,label])=>{
+        const k=normalizeRow(label);
+        if(!b[key].has(k))b[key].set(k,{label,count:0});
+        b[key].get(k).count++;
+      });
     }
-    return "#6366f1";
+    g.details.forEach(add);
+    const missing=Math.max(0,g.planned-g.details.length);
+    for(let i=0;i<missing;i++) add({});
+    const sorter=(a,b)=>b.count-a.count || a.name.localeCompare(b.name,"id");
+    return [...owners.values()].sort((a,b)=>{
+      const unknownA=/^belum/i.test(a.name), unknownB=/^belum/i.test(b.name);
+      if(unknownA!==unknownB)return unknownA?1:-1;
+      return b.total-a.total || a.name.localeCompare(b.name,"id");
+    }).map(v=>({...v,brands:[...v.brands.values()].sort(sorter)}));
   }
-  function unitMetricRows(g,field,blankLabel,visual) {
+  function popChipColors(field,label) {
+    const v=normalizeRow(label);
+    if(/belum|tidak diketahui|tidak ada data/.test(v))return ["#f1f5f9","#475569"];
+    if(/rusak|breakdown|tidak layak|tidak beroperasi/.test(v))return ["#fee2e2","#991b1b"];
+    if(/perlu|dalam perbaikan|perbaikan|repair|maintenance/.test(v) && !/selesai/.test(v))return ["#fef3c7","#92400e"];
+    if(/operasional|aktif|running|^baik$|layak/.test(v))return ["#dcfce7","#166534"];
+    if(/standby|siaga/.test(v))return ["#dbeafe","#1e40af"];
+    if(/selesai|off.site|mobilisasi|pengiriman/.test(v))return ["#ede9fe","#5b21b6"];
+    return ["#e0e7ff","#3730a3"];
+  }
+  function unitMetrics(map,field) {
+    return '<div class="ud-pop-metrics">'+[...map.values()].sort((a,b)=>b.count-a.count || a.label.localeCompare(b.label,"id")).map(it=>{
+      const colors=popChipColors(field,it.label);
+      return '<span class="ud-pop-pill" style="--ud-chip-bg:'+colors[0]+';--ud-chip-text:'+colors[1]+'"><b>'+it.count+'×</b> '+html(it.label)+'</span>';
+    }).join("")+'</div>';
+  }
+  function vendorCard(v,idx) {
+    const palettes=[
+      ["#fff9e6","#f2d58d"],
+      ["#fff1f3","#f6c8d0"],
+      ["#eef4ff","#cddcfb"],
+      ["#f5f1ff","#ddd2fc"]
+    ];
+    const palette=/^belum/i.test(v.name)?["#f8fafc","#cbd5e1"]:palettes[idx%palettes.length];
+    return '<article class="ud-pop-vendor" style="--ud-vendor-bg:'+palette[0]+';--ud-vendor-line:'+palette[1]+'">'+
+      '<div class="ud-pop-vendor-head"><div class="ud-pop-vendor-name">'+html(v.name)+'</div>'+
+      '<div class="ud-pop-vendor-total"><span>Total:</span><b>'+v.total+'</b><span>unit</span></div></div>'+
+      '<div class="ud-pop-table-wrap"><table class="ud-pop-table"><thead><tr>'+
+      '<th scope="col">Merek Unit</th><th scope="col">Total</th><th scope="col">Status Operasional</th><th scope="col">Kondisi Unit</th>'+
+      '</tr></thead><tbody>'+
+      v.brands.map(b=>'<tr><td class="ud-pop-name">'+html(b.name)+'</td><td>'+b.count+'</td>'+
+      '<td>'+unitMetrics(b.status,"status")+'</td><td>'+unitMetrics(b.kondisi,"kondisi")+'</td></tr>').join("")+
+      '</tbody></table></div></article>';
+  }
+  function unitPopType(g) {
     const total=Math.max(g.planned,g.details.length);
-    const counts=countByField(g,field,blankLabel);
-    if(!counts.length) return '<p class="ud-small">Belum ada unit yang tercatat.</p>';
-    return counts.map(item=>{
-      const pct=total>0?Math.round(item.count/total*100):0;
-      if(!visual) return '<div class="ud-identity-row"><span class="ud-identity-name">'+html(item.name)+'</span>'+
-        '<span class="ud-identity-num">'+item.count+' unit <span class="ud-percent">('+pct+'%)</span></span></div>';
-      const color=unitColor(field,item.name);
-      return '<div class="ud-health-row" style="--ud-color:'+color+'">'+
-        '<div class="ud-health-line"><span class="ud-health-label"><i class="ud-health-dot" aria-hidden="true"></i>'+html(item.name)+'</span>'+
-        '<span class="ud-health-num">'+item.count+' unit <span class="ud-percent">('+pct+'%)</span></span></div>'+
-        '<div class="ud-health-track" role="img" aria-label="'+html(item.name)+': '+item.count+' dari '+total+' unit, '+pct+' persen">'+
-        '<div class="ud-health-fill" style="width:'+Math.min(100,pct)+'%"></div></div></div>';
-    }).join("");
-  }
-  function unitInfoCard(g,field,title,description,missing) {
-    return '<section class="'+(missing?'ud-health-card':'ud-identity-card')+'">'+
-      '<h4>'+html(title)+'</h4><p>'+html(description)+'</p>'+
-      unitMetricRows(g,field,missing||"Belum diisi",!!missing)+'</section>';
-  }
-  function unknownTotal(g,field,label) {
-    return countByField(g,field,label).filter(x=>
-      /belum|tidak diketahui|tidak ada data|tanpa data/i.test(x.name)).reduce((n,x)=>n+x.count,0);
-  }
-  function unitTypeSummary(g) {
-    const total=Math.max(g.planned,g.details.length);
-    const missingStatus=unknownTotal(g,"status","Belum Diketahui");
-    const missingCondition=unknownTotal(g,"kondisi","Belum Diperiksa");
-    const missingId=Math.max(0,total-g.details.length);
-    const note=missingStatus||missingCondition?
-      '<div class="ud-data-quality"><strong>Catatan kelengkapan data:</strong> '+
-      (missingStatus?missingStatus+' dari '+total+' unit belum memiliki status operasional yang jelas. ':'Semua status operasional telah diisi. ')+
-      (missingCondition?missingCondition+' dari '+total+' unit belum memiliki hasil pemeriksaan kondisi.':'Semua kondisi unit telah diisi.')+
-      '</div>':'<div class="ud-data-quality">Data status operasional dan kondisi telah terisi untuk seluruh unit pada jenis ini.</div>';
-    return '<section class="ud-type-group">'+
-      '<div class="ud-type-head"><div>'+
-      '<span class="ud-type-kicker">JENIS UNIT</span><h3>'+html(g.type)+'</h3>'+
-      '<span class="ud-small">'+g.details.length+' dari '+total+' identitas unit terdata'+
-      (missingId?' · '+missingId+' belum terdaftar':'')+'</span></div>'+
-      '<div class="ud-type-count"><strong>'+total+'</strong><small>Total unit</small></div></div>'+
-      '<div class="ud-unit-sections">'+
-      '<div><div class="ud-section-heading">Identitas dan kepemilikan</div><div class="ud-identity-grid">'+
-      unitInfoCard(g,"vendor","Vendor / Pemilik","Unit ini milik siapa?","")+
-      unitInfoCard(g,"merk","Merek Unit","Unit berasal dari merek apa?","")+
-      '</div></div>'+
-      '<div><div class="ud-section-heading">Situasi unit saat ini</div><div class="ud-health-grid">'+
-      unitInfoCard(g,"status","Status Operasional","Apa aktivitas/status unit sekarang?","Belum Diketahui")+
-      unitInfoCard(g,"kondisi","Kondisi Fisik Unit","Bagaimana kondisi atau kelayakan unit?","Belum Diperiksa")+
-      '</div></div></div>'+note+'</section>';
+    const missing=Math.max(0,total-g.details.length);
+    const vendors=vendorBreakdown(g);
+    return '<section class="ud-pop-type" aria-label="'+html(g.type)+'">'+
+      '<div class="ud-pop-head"><h3>'+html(g.type)+'</h3><div><span class="ud-pop-total-label">Total:</span> <strong>'+total+'</strong><span class="ud-pop-total-label"> unit</span></div></div>'+
+      '<div class="ud-pop-body"><div class="ud-pop-count">'+
+      '<span class="ud-count-label">Total Unit</span><div class="ud-count-number">'+total+'</div><span class="ud-count-suffix">unit</span>'+
+      '<div class="ud-count-note">'+g.details.length+' identitas terdata'+
+      (missing?'<div>'+missing+' unit belum memiliki identitas detail</div>':'')+'</div></div>'+
+      '<div class="ud-pop-vendors">'+vendors.map(vendorCard).join("")+'</div></div>'+
+      (missing?'<p class="ud-pop-remark">Keterangan: '+missing+' unit belum tercatat identitasnya dan ditampilkan sebagai “Belum diisi”, “Belum Diketahui”, atau “Belum Diperiksa”.</p>':'')+
+      '</section>';
   }
   function dashboardUnitBreakdown() {
     if (!Array.isArray(DATA.units)) return "";
     const groups=groupUnitTypes();
     const grandTotal=groups.reduce((n,g)=>n+Math.max(g.planned,g.details.length),0);
-    return '<div class="card ud-summary-panel"><div class="ch"><div>'+
-      '<div class="eyebrow">Populasi Unit</div><h2>Komposisi Unit per Jenis</h2>'+
-      '<p>Jumlah dan persentase dihitung terhadap total unit di masing-masing jenis.</p>'+
-      '</div><span class="pill">'+grandTotal+' unit</span></div>'+
-      '<div class="ud-overview-explain"><strong>Cara membaca:</strong> Status Operasional menunjukkan apa yang sedang dilakukan unit (misalnya operasional, standby, atau perbaikan). Kondisi Fisik menunjukkan keadaan unit (misalnya baik, perlu perbaikan, atau rusak). <strong>Keduanya berbeda</strong> dan tidak boleh dijumlahkan menjadi satu. Warna abu-abu berarti informasi belum dicatat, bukan berarti unit rusak.</div>'+
-      (groups.length?'<div class="ud-type-list">'+groups.map(unitTypeSummary).join("")+'</div>':
-        '<p class="ud-small">Belum ada populasi unit di jobsite ini.</p>')+
-      '</div>';
+    return '<div class="card ud-summary-panel">'+
+      '<div class="ud-pop-hero"><div><h2>POPULASI UNIT</h2>'+
+      '<p>Jumlah unit berdasarkan jenis, vendor, merek, status operasional, dan kondisi.</p></div>'+
+      '<div class="ud-pop-total"><strong>'+grandTotal+'</strong><span>Total unit</span></div></div>'+
+      '<p class="ud-pop-explain">Tabel dibaca per <strong>Jenis Unit → Vendor → Merek</strong>. Angka pada kolom status dan kondisi adalah jumlah unit dari merek tersebut, bukan tambahan unit baru. Status Operasional dan Kondisi Unit adalah dua informasi yang berbeda.</p>'+
+      (groups.length?'<div class="ud-pop-list">'+groups.map(unitPopType).join("")+'</div>':
+        '<p class="ud-small">Belum ada populasi unit pada monitoring ini.</p>')+
+      '<p class="ud-pop-footer">Keterangan: <strong>Belum Diketahui</strong> berarti status operasional belum dicatat; <strong>Belum Diperiksa</strong> berarti kondisi belum dinilai. Keduanya tidak otomatis berarti unit rusak. Warna kartu vendor hanya membedakan kelompok, bukan menandakan progress.</p></div>';
   }
   if (typeof window.unitBlock === "function") {
     const previousUnitBlock = window.unitBlock;
