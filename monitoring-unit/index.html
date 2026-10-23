@@ -1011,7 +1011,7 @@ const ALL_STATUS = [...PRE_STATUS, ...UNIT_STATUS];
 const arrived = u => !PRE_STATUS.some(x=>x.k===u.status);
 // Penanda sumber unit existing disimpan pada kolom "Via" yang sudah tersedia.
 // Tidak membutuhkan perubahan skema ataupun deploy ulang Apps Script.
-const isExistingUnit = u => String(u.via||"").trim().toLowerCase()==="populasi awal";
+const isExistingUnit = u => String(u.via||"").trim().toLowerCase()==="populasi awal" || /rekonsiliasi\s+populasi\s+mpp/i.test(String(u.catatan||""));
 const MOB_STATUS = [{k:"Direncanakan",cls:"s-idle"},{k:"Berjalan",cls:"s-info"},{k:"Selesai",cls:"s-ok"},{k:"Ditunda",cls:"s-warn"}];
 const MODA = {"Perjalanan darat":30,"Jalan sendiri (self-propelled)":15,"Lowboy trailer":25,"Dump truck/carrier":30,"Tongkang":10,"Bongkar-rakit (knock down)":20};
 const COLORS = ["purple","blue","red","orange","teal","pink"];
@@ -1331,57 +1331,102 @@ function tibaChecklist(kid){
       :`<div class="tcl-empty">Belum ada unit ${esc(k.tipe)} yang dicatat dikirim. Isi no. lambung di kolom "Unit lain" di bawah, atau jadwalkan dulu di tabel unit (Rencana kirim → Lihat unit).</div>`}
     ${arr.length?`<div class="tcl-done">Sudah tiba: ${arr.map(u=>`<span class="plate">${esc(u.kodeSementara?"(tanpa no.)":u.kode)}</span>`).join(" ")}</div>`:""}`;
 }
+
+// Detail populasi mengikuti kolom Detail Unit pada portal MPP.
+// Nilai juga dipertahankan sebagai teks terstruktur di "Catatan" untuk
+// kompatibilitas dengan Apps Script lama yang belum menambah kolom baru.
+const MU_DETAIL_TAG="\n\n--- DETAIL POPULASI UNIT ---\n";
+const MU_DETAIL_NAMES={vendor:"Vendor",merk:"Merek",model:"Model/Tipe",tahun:"Tahun",serial:"Serial/Chassis",kondisi:"Kondisi",foto:"Foto Unit (URL)"};
+function muDetails(u){
+  const raw=String((u&&u.catatan)||"");
+  const i=raw.lastIndexOf(MU_DETAIL_TAG);
+  const tail=i<0?"":raw.slice(i+MU_DETAIL_TAG.length), meta={};
+  if(i>=0) tail.split("\n").forEach(line=>{
+    const sep=line.indexOf(": ");if(sep<0)return;
+    const name=line.slice(0,sep), k=Object.keys(MU_DETAIL_NAMES).find(x=>MU_DETAIL_NAMES[x]===name);
+    if(k)meta[k]=line.slice(sep+2);
+  });
+  const v={catatan:i>=0?raw.slice(0,i):raw};
+  for(const key of Object.keys(MU_DETAIL_NAMES))v[key]=String((u&&u[key])||meta[key]||"");
+  return v;
+}
+function muPrepareUnitData(d){
+  const clean=String(d.catatan||"").trim();
+  const lines=Object.entries(MU_DETAIL_NAMES).filter(([key])=>String(d[key]||"").trim()).map(([key,label])=>label+": "+String(d[key]).trim().replace(/\r?\n/g," "));
+  d.catatan=clean+(lines.length?MU_DETAIL_TAG+lines.join("\n"):"");
+  return d;
+}
+function muSection(label,hint){
+  return {key:"head_"+label.replace(/\W/g,""),type:"html",
+    html:'<div class="mu-form-section"><b>'+esc(label)+'</b><span>'+esc(hint||"")+'</span></div>'};
+}
+function muDetailInputs(){
+  return [
+    {key:"vendor",label:"Vendor / pemilik unit",ph:"Contoh: KMB, NUSATAMA, TRINANDA"},
+    {key:"merk",label:"Merek",ph:"Volvo, Sandin, Sany…"},
+    {key:"model",label:"Model / tipe",ph:"Contoh: Dolly 50T"},
+    {key:"tahun",label:"Tahun",ph:"Contoh: 2023"},
+    {key:"serial",label:"Serial / chassis",ph:"Nomor seri dari unit"},
+    {key:"kondisi",label:"Kondisi unit",type:"select",
+      options:["Belum diverifikasi","Ready Done Rekondisi","Dalam Rekondisi","Belum Rekondisi","Layak operasi","Dalam Perbaikan","Rusak / Breakdown","Lainnya"]},
+    {key:"foto",label:"Foto unit (link Drive / URL)",full:true,ph:"Tempel tautan foto unit; opsional",hint:"Gunakan URL foto yang dapat dibuka oleh pembaca."}
+  ];
+}
+
 function formExistingUnit(presetProject){
-  if(!canWrite){ toast("Hanya Pemilik atau Editor yang dapat menginput data unit."); return; }
-  if(!S.projects.length){ toast("Tambahkan project terlebih dahulu."); return; }
-  const pid=presetProject||((curProj()||{}).id)||defaultProj();
-  let priorPid=pid;
+  if(!canWrite){toast("Hanya Pemilik atau Editor dapat menginput unit.");return;}
+  if(!S.projects.length){toast("Tambahkan project terlebih dahulu.");return;}
+  const pid=presetProject||((curProj()||{}).id)||defaultProj();let priorPid=pid;
+  const fields=[
+    muSection("01 · Identitas Unit","Jenis, nomor lambung, vendor dan merek"),
+    {key:"projectId",label:"Jobsite / Project",type:"select",options:projOpts()},
+    {key:"tipe",label:"Jenis unit",req:true,ph:"Contoh: Dolly, Vessel, Dump Truck",list:[...new Set([...S.units.map(u=>u.tipe),...S.kirim.map(k=>k.tipe)].filter(Boolean))]},
+    {key:"kode",label:"Nomor lambung",type:"textarea",full:true,ph:"DLCD50001, DLCD50002 (pisahkan dengan koma)",hint:"Boleh kosong. Sistem membuat nomor sementara yang dapat diedit."},
+    {key:"jumlah",label:"Jumlah unit (tanpa nomor lambung)",type:"number",min:1,step:"1",req:true},
+    ...muDetailInputs().slice(0,5),
+    muSection("02 · Operasional & Kondisi","Lokasi fisik dan kondisi per unit"),
+    {key:"lokasi",label:"Posisi unit sekarang",req:true,list:lokasiList()},
+    {key:"status",label:"Status operasional",type:"select",options:UNIT_STATUS.map(s=>s.k)},
+    {key:"kondisi",label:"Kondisi unit",type:"select",options:["Belum diverifikasi","Ready Done Rekondisi","Dalam Rekondisi","Belum Rekondisi","Layak operasi","Dalam Perbaikan","Rusak / Breakdown","Lainnya"]},
+    {key:"hm",label:"Hour meter (HM)",type:"number",min:0,step:"0.1"},
+    {key:"tglTiba",label:"Tanggal tiba (jika diketahui)",type:"date"},
+    muSection("03 · Keterangan & Bukti","Catatan pemantauan yang bisa dibaca editor"),
+    {key:"catatan",label:"Keterangan",type:"textarea",full:true,ph:"Contoh: Unit sudah berada di SLR Rekondisi sebelum rencana kirim."},
+    {key:"foto",label:"Foto unit (link Drive / URL)",full:true,ph:"https://…"},
+    {key:"preview",type:"preview"}
+  ];
   openForm({
-    title:"Input populasi unit existing",
-    desc:"Untuk unit yang sudah berada di site sebelum pencatatan rencana kirim. Data masuk ke Unit di Lokasi dan dashboard, tanpa menambah rencana kirim.",
-    values:{projectId:pid,tipe:"",kode:"",jumlah:1,lokasi:(projOf(pid)||{}).kode||"Area Site",tglTiba:"",hm:0,status:"Standby",catatan:""},
-    fields:[
-      {key:"projectId",label:"Project / jobsite",type:"select",options:projOpts()},
-      {key:"tipe",label:"Jenis / tipe unit",req:true,ph:"Contoh: Volvo FMX 440 / Vessel / Dozer",list:[...new Set([...S.units.map(u=>u.tipe),...S.kirim.map(k=>k.tipe)].filter(Boolean))]},
-      {key:"kode",label:"Nomor lambung unit (jika ada)",type:"textarea",full:true,ph:"Contoh: DT 375, DT 376, DT 377",hint:"Pisahkan beberapa nomor dengan koma atau baris baru. Bila belum ada nomor lambung, kosongkan dan isi jumlah unit."},
-      {key:"jumlah",label:"Jumlah (jika nomor lambung kosong)",type:"number",min:1,step:"1",req:true,hint:"Jika nomor lambung diisi, jumlah dihitung otomatis dari daftar."},
-      {key:"lokasi",label:"Posisi unit saat ini",req:true,list:lokasiList(),ph:"Contoh: Workshop, Pit 1, SLR Rekondisi"},
-      {key:"tglTiba",label:"Tanggal tiba (jika diketahui)",type:"date",hint:"Boleh dikosongkan untuk unit yang telah lama berada di lokasi."},
-      {key:"hm",label:"Hour meter (HM)",type:"number",min:0,step:"0.1"},
-      {key:"status",label:"Status operasional",type:"select",options:UNIT_STATUS.map(s=>s.k)},
-      {key:"catatan",label:"Kondisi / keterangan",type:"textarea",full:true,ph:"Contoh: Rekondisi, standby, operasional, perbaikan…"},
-      {key:"preview",type:"preview"}
-    ],
+    title:"Tambah Populasi Unit Existing",
+    desc:"Unit yang sudah berada di jobsite. Tidak menambah rencana kirim dan tidak mengubah progres mobilisasi.",
+    values:{projectId:pid,tipe:"",kode:"",jumlah:1,lokasi:(projOf(pid)||{}).kode||"Area Site",tglTiba:"",hm:0,status:"Standby",kondisi:"Belum diverifikasi",catatan:""},
+    fields,ok:"Simpan populasi unit",
     live:(v,target)=>{
       if(target&&target.id==="f_projectId"){
-        const prev=projOf(priorPid), next=projOf(v.projectId);
-        if(next && $("#f_lokasi") && (!$("#f_lokasi").value || (prev&&$("#f_lokasi").value===prev.kode))) $("#f_lokasi").value=next.kode;
+        const prev=projOf(priorPid),next=projOf(v.projectId);
+        if(next&&(!$("#f_lokasi").value||(prev&&$("#f_lokasi").value===prev.kode)))$("#f_lokasi").value=next.kode;
         priorPid=v.projectId;
       }
-      const list=parseLambung(v.kode);
-      const duplicates=list.filter(code=>S.units.some(u=>String(u.kode||"").toUpperCase()===code));
-      const repeated=list.filter((code,i)=>list.indexOf(code)!==i);
-      const n=list.length || Number(v.jumlah)||0;
+      const list=parseLambung(v.kode), repeated=list.filter((k,i)=>list.indexOf(k)!==i);
+      const duplicated=list.filter(k=>S.units.some(u=>String(u.kode||"").toUpperCase()===k));
+      const n=list.length||Number(v.jumlah)||0;
       const p=$("#f_preview");
-      if(p) p.innerHTML=`<b>${n} unit existing</b> akan dicatat di ${esc(projKode(v.projectId))}. ${list.length?"Nomor lambung terisi.":"Nomor lambung kosong akan diberi kode sementara (dapat diedit nanti)."}`
-        +(duplicates.length?`<br><span style="color:var(--bad)">Sudah terdaftar: ${esc(duplicates.join(", "))}</span>`:"")
-        +(repeated.length?`<br><span style="color:var(--bad)">Nomor ganda: ${esc([...new Set(repeated)].join(", "))}</span>`:"");
+      if(p)p.innerHTML=`<b>${n} unit existing</b> akan tercatat di ${esc(projKode(v.projectId))}. ${list.length?"Nomor lambung tersedia.":"Nomor sementara dibuat otomatis."}`
+        +(duplicated.length?`<div style="color:var(--bad)">Sudah terdaftar: ${esc(duplicated.join(", "))}</div>`:"")
+        +(repeated.length?`<div style="color:var(--bad)">Nomor ganda: ${esc([...new Set(repeated)].join(", "))}</div>`:"");
     },
-    ok:"Simpan unit existing",
     onSubmit:d=>{
-      const list=parseLambung(d.kode), n=list.length||Number(d.jumlah);
-      if(!Number.isInteger(n)||n<1||n>300){ toast("Jumlah unit harus 1 sampai 300."); return false; }
-      if(!String(d.tipe||"").trim()){ toast("Isi jenis atau tipe unit."); return false; }
-      if(new Set(list).size!==list.length){toast("Ada nomor lambung yang diketik dua kali.");return false;}
-      const seen=new Set(S.units.map(u=>String(u.kode||"").trim().toUpperCase()));
-      if(list.some(k=>seen.has(k))){toast("Nomor lambung sudah terdaftar. Periksa daftar unit di lokasi.");return false;}
+      const list=parseLambung(d.kode),n=list.length||Number(d.jumlah);
+      if(!Number.isInteger(n)||n<1||n>300){toast("Jumlah unit harus 1–300.");return false;}
+      if(new Set(list).size!==list.length){toast("Nomor lambung diketik dua kali.");return false;}
+      if(list.some(k=>S.units.some(u=>String(u.kode||"").toUpperCase()===k))){toast("Nomor lambung sudah terdaftar.");return false;}
+      if(d.foto&&!/^https:\/\//i.test(d.foto)){toast("Link foto harus dimulai dengan https:// atau dikosongkan.");return false;}
       const uniq=Date.now().toString(36).toUpperCase()+"-"+uid().slice(0,5).toUpperCase();
-      const kodes=list.length?list:Array.from({length:n},(_,i)=>"EX-"+uniq+"-"+String(i+1).padStart(3,"0"));
-      if(kodes.some(k=>seen.has(k))){toast("Kode unit sudah ada. Silakan simpan ulang.");return false;}
-      const base={projectId:d.projectId,kirimId:"",tipe:d.tipe.trim(),lokasi:d.lokasi.trim(),tglTiba:d.tglTiba||"",hm:d.hm===""?0:d.hm,
-        status:d.status,catatan:d.catatan,updatedAt:nowIso(),via:"Populasi awal",rencanaKirim:"",tglKirim:"",kodeSementara:!list.length};
-      const ops=kodes.map(kode=>({col:COL.units,action:"add",id:"u-"+uid(),data:{...base,kode}}));
-      store.batch(ops).then(()=>toast(`${kodes.length} unit existing tercatat di ${projKode(d.projectId)}.`)).catch(()=>{});
+      const codes=list.length?list:Array.from({length:n},(_,i)=>"EX-"+uniq+"-"+String(i+1).padStart(3,"0"));
+      const base=muPrepareUnitData({...d,projectId:d.projectId,kirimId:"",tipe:d.tipe.trim(),lokasi:d.lokasi.trim(),tglTiba:d.tglTiba||"",hm:d.hm===""?0:d.hm,
+        updatedAt:nowIso(),via:"Populasi awal",rencanaKirim:"",tglKirim:"",kodeSementara:!list.length});
+      delete base.kode;delete base.jumlah;
+      const ops=codes.map(kode=>({col:COL.units,action:"add",id:"u-"+uid(),data:{...base,kode}}));
+      store.batch(ops).then(()=>toast(`${codes.length} unit existing tersimpan di ${projKode(d.projectId)}.`)).catch(()=>{});
     }
   });
 }
@@ -1435,63 +1480,55 @@ function formTiba(presetItem){
   });
 }
 function formUnit(u,presetItem){
-  if(!u) return formTiba(presetItem);
-  if(!S.projects.length){ toast("Tambahkan project dulu."); return; }
-  const pid0 = u?u.projectId:(presetItem?presetItem.projectId:defaultProj());
-  const v0 = u || {projectId:pid0,kirimId:presetItem?presetItem.id:(itemsOf(pid0)[0]||{}).id||"",tglTiba:todayStr(),status:"Tiba",lokasi:"Laydown Pelabuhan",hm:0};
-  if(!u){ const it=S.kirim.find(k=>k.id===v0.kirimId); v0.tipe=it?it.tipe:""; }
-  let lastPid=pid0;
+  if(!u)return formTiba(presetItem);
+  if(!canWrite)return showUnitInfo(u);
+  const pid0=u.projectId,existing=isExistingUnit(u),meta=muDetails(u);let lastPid=pid0;
+  const fields=[
+    muSection("01 · Identitas Unit","Data unit seperti pada Populasi Unit MPP"),
+    {key:"projectId",label:"Jobsite / Project",type:"select",options:projOpts()},
+    ...(!existing?[{key:"kirimId",label:"Item rencana kirim",type:"select",options:itemOpts(pid0)}]:[]),
+    {key:"kode",label:"Nomor lambung",req:true,full:true,ph:"Contoh: DLCD50001",hint:u.kodeSementara?"Nomor saat ini sementara. Ganti dengan nomor lambung asli jika sudah tersedia.":""},
+    {key:"tipe",label:"Jenis unit",req:true,ph:"Dolly, Vessel, Dump Truck…"},
+    {key:"vendor",label:"Vendor / pemilik unit",ph:"KMB, NUSATAMA, TRINANDA…"},
+    {key:"merk",label:"Merek",ph:"Volvo, Sandin, Sany…"},
+    {key:"model",label:"Model / tipe",ph:"Contoh: Dolly 50T"},
+    {key:"tahun",label:"Tahun",ph:"2023"},
+    {key:"serial",label:"Serial / chassis",ph:"Nomor seri atau chassis",full:true},
+    muSection("02 · Operasional & Kondisi","Status fisik, lokasi dan HM"),
+    {key:"lokasi",label:"Posisi unit sekarang",req:true,list:lokasiList()},
+    {key:"status",label:"Status operasional",type:"select",options:UNIT_STATUS.map(s=>s.k)},
+    {key:"kondisi",label:"Kondisi unit",type:"select",options:["Belum diverifikasi","Ready Done Rekondisi","Dalam Rekondisi","Belum Rekondisi","Layak operasi","Dalam Perbaikan","Rusak / Breakdown","Lainnya"]},
+    {key:"tglTiba",label:"Tanggal tiba (jika diketahui)",type:"date",hint:"Boleh kosong untuk unit existing lama."},
+    {key:"hm",label:"Hour meter (HM)",type:"number",min:0,step:"0.1"},
+    muSection("03 · Catatan & Dokumentasi","Keterangan panjang tidak lagi memenuhi tabel unit"),
+    {key:"catatan",label:"Keterangan / Riwayat",type:"textarea",full:true,ph:"Kondisi aktual, progres rekondisi, catatan pengecekan…"},
+    {key:"foto",label:"Foto unit (link Drive / URL)",full:true,ph:"https://…",hint:"Link opsional yang dapat dibuka oleh Viewer."}
+  ];
   openForm({
-    title:u?`Edit unit ${u.kode}`:"Catat unit tiba",
-    desc:u?(u.kodeSementara?"Nomor lambung unit ini belum diisi. Ganti kode sementara dengan nomor lambung asli.":""):"Isi nomor lambung setiap unit yang datang. Hitungan Tiba dan Sisa kirim project ikut bertambah.",
-    values:u?{...v0,kirimId:isExistingUnit(u)?"":u.kirimId,...(u.kodeSementara?{kode:""}:{})}:v0,
-    fields:[
-      {key:"projectId",label:"Project",type:"select",options:projOpts()},
-      {key:"kirimId",label:"Item rencana kirim",type:"select",options:itemOpts(pid0)},
-      u?{key:"kode",label:"Nomor lambung",req:true,full:true,ph:u.kodeSementara?`Sebelumnya: ${u.kode}`:"Contoh: ZT96-01"}
-       :{key:"kode",label:"Nomor lambung",type:"textarea",req:true,full:true,ph:"Contoh: ZT96-01, ZT96-02, ZT96-03",hint:"Satu unit satu nomor. Untuk beberapa unit sekaligus, pisahkan dengan koma atau baris baru."},
-      ...(u?[]:[{key:"preview",type:"preview"}]),
-      {key:"tipe",label:"Tipe unit",req:true,hint:u&&isExistingUnit(u)?"Unit existing tidak harus terkait item rencana kirim.":"Terisi otomatis dari item rencana kirim"},
-      {key:"lokasi",label:"Posisi sekarang",req:true,list:lokasiList()},
-      {key:"tglTiba",label:"Tanggal tiba",type:"date",req:true},
-      {key:"hm",label:"Hour meter (HM)",type:"number",min:0,step:"0.1"},
-      {key:"status",label:"Status",type:"select",options:UNIT_STATUS.map(s=>s.k)},
-      {key:"catatan",label:"Catatan",type:"textarea",full:true,ph:"Kondisi saat tiba, hasil PDI, kebutuhan rakit…"}
-    ],
+    title:"Edit Populasi Unit · "+u.kode,
+    desc:existing?"Sumber: Populasi existing / rekonsiliasi MPP. Tidak memengaruhi jumlah rencana kirim.":"Sumber: unit dari rencana kirim. Ubah identitas dan kondisi tanpa menghapus riwayat.",
+    values:{...u,...meta,projectId:pid0,kirimId:existing?"":u.kirimId||"",kondisi:meta.kondisi||"Belum diverifikasi"},
+    fields,ok:"Simpan perubahan",
     live:(v,target)=>{
-      const sel=$("#f_kirimId"); if(!sel) return;
-      if(v.projectId!==lastPid){ lastPid=v.projectId; sel.innerHTML=optionsHtml(itemOpts(v.projectId),(itemsOf(v.projectId)[0]||{}).id||""); }
-      if(target && (target.id==="f_kirimId"||target.id==="f_projectId")){ const it=S.kirim.find(k=>k.id===sel.value); if(it) $("#f_tipe").value=it.tipe; }
-      const pv=$("#f_preview"); if(!pv) return;
-      const list=parseLambung($("#f_kode").value), it=S.kirim.find(k=>k.id===sel.value);
-      if(!list.length){ pv.innerHTML='<span class="muted">Nomor lambung yang diketik muncul di sini.</span>'; return; }
-      const dup=list.filter(k=>S.units.some(x=>x.kode===k&&arrived(x))), twice=list.filter((k,i)=>list.indexOf(k)!==i);
-      const sisa=it?Math.max(0,(Number(it.rencana)||0)-tibaItem(it)):null;
-      pv.innerHTML=`<b>${list.length} unit</b> akan dicatat tiba: ${list.map(k=>`<span class="plate" style="margin:2px 2px 0 0">${esc(k)}</span>`).join("")}`
-        +(dup.length?`<br><span style="color:var(--bad)">Sudah terdaftar: ${esc(dup.join(", "))}</span>`:"")
-        +(twice.length?`<br><span style="color:var(--bad)">Diketik dua kali: ${esc([...new Set(twice)].join(", "))}</span>`:"")
-        +(it&&list.length>sisa?`<br><span style="color:var(--warn)">Melebihi sisa kirim ${esc(it.tipe)} (${sisa} unit). Unit tetap dicatat, tapi cek rencana kirimnya.</span>`:"");
+      if(existing)return;
+      const sel=$("#f_kirimId");if(!sel)return;
+      if(v.projectId!==lastPid){lastPid=v.projectId;sel.innerHTML=optionsHtml(itemOpts(v.projectId),"");}
+      if(target&&(target.id==="f_kirimId"||target.id==="f_projectId")){
+        const it=S.kirim.find(k=>k.id===sel.value);if(it)$("#f_tipe").value=it.tipe;
+      }
     },
     onSubmit:d=>{
-      d.updatedAt=nowIso(); if(d.hm==="") d.hm=0;
-      if(u){
-        d.kode=d.kode.trim().toUpperCase(); if(d.kode!==u.kode) d.kodeSementara=false; if(u.kodeSementara && /^Kode sementara/.test(d.catatan||"")) d.catatan="";
-        if(S.units.some(x=>x.kode===d.kode && x.id!==u.id)){ toast(`Nomor lambung ${d.kode} sudah terdaftar.`); return false; }
-        store.update(COL.units,u.id,d).then(()=>toast(`Unit ${d.kode} diperbarui.`)).catch(()=>{}); return;
-      }
-      const list=parseLambung(d.kode);
-      if(!list.length){ toast("Isi nomor lambung unit."); return false; }
-      const twice=list.filter((k,i)=>list.indexOf(k)!==i); if(twice.length){ toast(`Nomor lambung ${twice[0]} diketik dua kali.`); return false; }
-      const dup=list.find(k=>S.units.some(x=>x.kode===k&&(arrived(x)||x.kirimId!==d.kirimId))); if(dup){ toast(`Nomor lambung ${dup} sudah terdaftar.`); return false; }
-      const it=S.kirim.find(k=>k.id===d.kirimId), pool=it?unitsOfItem(it).filter(x=>!arrived(x)):[];
-      (async()=>{ for(const k of list){
-          const m=pool.find(x=>x.kode===k)||pool.find(x=>x.kodeSementara)||pool[0];
-          if(m){ pool.splice(pool.indexOf(m),1); await store.update(COL.units,m.id,{...d,kode:k,kodeSementara:false}); }
-          else await store.add(COL.units,{...d,kode:k}); }
-        toast(list.length>1?`${list.length} unit tercatat tiba di ${projKode(d.projectId)}.`:`${list[0]} tercatat tiba di ${projKode(d.projectId)}.`); })().catch(()=>{});
+      const code=String(d.kode||"").trim().toUpperCase();
+      if(S.units.some(x=>x.id!==u.id&&String(x.kode||"").toUpperCase()===code)){toast("Nomor lambung sudah terdaftar.");return false;}
+      if(d.foto&&!/^https:\/\//i.test(d.foto)){toast("Link foto harus diawali https:// atau dikosongkan.");return false;}
+      const data=muPrepareUnitData({...d,kode:code,updatedAt:nowIso(),hm:d.hm===""?0:d.hm,
+        kodeSementara:code!==u.kode?false:!!u.kodeSementara,
+        ...(existing?{kirimId:"",via:"Populasi awal"}:{})});
+      store.update(COL.units,u.id,data).then(()=>toast("Populasi unit "+code+" diperbarui.")).catch(()=>{});
     }
   });
 }
+
 function formMob(m,presetUnit){
   if(!S.units.some(arrived)){ toast("Catat unit yang sudah tiba dulu sebelum membuat rencana mobilisasi."); return; }
   const pool=S.units.filter(u=>arrived(u)&&inFilter(u.projectId)); const list=(pool.length?pool:S.units.filter(arrived)).slice().sort((a,b)=>a.kode.localeCompare(b.kode,"id",{numeric:true}));
@@ -1990,8 +2027,20 @@ function renderUnit(){
 }
 function showUnitInfo(u){
   if(!u)return;
-  const item=(name,value)=>`<div style="display:flex;justify-content:space-between;gap:15px;padding:8px 0;border-bottom:1px solid #eeeaf5"><span style="color:#77718b;font-size:11px">${esc(name)}</span><b style="font-size:12px;text-align:right;overflow-wrap:anywhere">${esc(value||"—")}</b></div>`;
-  openForm({title:"Rincian unit "+u.kode,desc:"Data unit di lokasi. Gunakan tombol Edit pada tabel untuk memperbarui.",fields:[{key:"detail",type:"html",html:`<div style="padding:6px 0">${item("Jenis unit",u.tipe)}${item("Project",projKode(u.projectId))}${item("Nomor lambung",u.kode)}${item("Sumber data",isExistingUnit(u)?"Unit existing":"Unit tiba / pengiriman")}${item("Posisi saat ini",u.lokasi)}${item("Tanggal tiba",u.tglTiba||"Tidak diketahui")}${item("HM",Number(u.hm||0).toLocaleString("id-ID"))}${item("Status",u.status)}<div style="margin-top:12px;font-size:11px;color:#77718b">Keterangan</div><div style="background:#f8f7fd;border:1px solid #eeeaf7;border-radius:9px;margin-top:6px;padding:11px;white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px">${esc(u.catatan||"Belum ada keterangan.")}</div></div>` }],ok:"Tutup",onSubmit:()=>{}});
+  const m=muDetails(u);
+  const item=(name,value)=>`<div class="mu-info-line"><span>${esc(name)}</span><b>${esc(value||"—")}</b></div>`;
+  const photo=/^https:\/\//i.test(m.foto)?`<a href="${esc(m.foto)}" target="_blank" rel="noopener noreferrer" style="color:#6d28d9;font-weight:700">Buka foto unit →</a>`:"Belum ada foto";
+  openForm({title:"Detail Populasi Unit · "+u.kode,
+    desc:"Data ini terhubung dengan sheet Populasi Unit. Pemilik dan Editor dapat mengubahnya melalui tombol Edit.",
+    fields:[{key:"detail",type:"html",html:`<div class="mu-info">
+      <div class="mu-form-section"><b>01 · Identitas Unit</b><span>Detail MPP</span></div>
+      ${item("Jenis unit",u.tipe)}${item("Nomor lambung",u.kode)}${item("Project",projKode(u.projectId))}${item("Vendor",m.vendor)}${item("Merek",m.merk)}${item("Model/Tipe",m.model)}${item("Tahun",m.tahun)}${item("Serial/Chassis",m.serial)}
+      <div class="mu-form-section"><b>02 · Operasional</b></div>
+      ${item("Posisi",u.lokasi)}${item("Status operasional",u.status)}${item("Kondisi",m.kondisi)}${item("HM",Number(u.hm||0).toLocaleString("id-ID"))}${item("Tanggal tiba",u.tglTiba||"Belum diketahui")}${item("Sumber data",isExistingUnit(u)?"Existing / Populasi MPP":"Dari rencana kirim")}
+      <div class="mu-form-section"><b>03 · Keterangan & Foto</b></div>
+      <div style="white-space:pre-wrap;overflow-wrap:anywhere;background:#f8f7fd;border-radius:8px;padding:11px;margin:8px 0;font-size:12px">${esc(m.catatan||"Belum ada keterangan")}</div>
+      <div class="mu-info-line"><span>Foto</span><b>${photo}</b></div>
+    </div>` }],ok:"Tutup",onSubmit:()=>{}});
 }
 
 function renderMob(){
