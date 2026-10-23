@@ -857,6 +857,53 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 #dlg:has(.mu-form-section) .dlg-body{grid-template-columns:1fr}}
 @media print{.mu-dash-pop,.mu-dash-type{break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .mu-dash-types{grid-template-columns:repeat(5,minmax(0,1fr))} .mu-dash-head .btn{display:none}}
+
+/* Dashboard populasi unit — format rekap jenis → vendor → merek sesuai portal MPP */
+.mu-pop-dashboard{background:#fff;border:1px solid #dedceb;border-radius:15px;padding:16px;margin-bottom:15px;box-shadow:0 4px 20px rgba(32,24,91,.035)}
+.mu-pop-titlebar{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.mu-pop-mainheading{min-width:0}.mu-pop-eyebrow{display:block;color:#6b22e1;font-size:12px;line-height:1.4;font-weight:850;letter-spacing:.02em}
+.mu-pop-mainheading p{font-size:11px;margin:2px 0 0;color:#675b83;line-height:1.5}
+.mu-pop-head-actions{display:flex;align-items:center;gap:7px;flex-shrink:0}
+.mu-pop-total{display:flex;align-items:baseline;gap:5px;white-space:nowrap;background:#f0e9ff;border-radius:10px;padding:7px 10px;color:#631ce2;font-weight:850;font-size:13px}
+.mu-pop-total small{font-size:10px;font-weight:650}.mu-pop-source{padding:8px 12px!important;font-size:10px!important;color:#611be3!important}
+.mu-pop-guide{background:#f2f5fc;border:1px solid #dfe5f5;color:#585676;border-radius:9px;padding:9px 11px;font-size:10px;line-height:1.45;margin-bottom:12px}
+.mu-pop-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+.mu-pop-card{border:1px solid #ddd9ea;border-radius:13px;min-width:0;overflow:hidden;background:#fff}
+.mu-pop-card-head{display:flex;align-items:center;gap:7px;background:var(--mu-head);border-bottom:1px solid #e7dfee;padding:10px 12px;color:#211941;min-height:38px}
+.mu-pop-truck{display:flex;align-items:center;justify-content:center;flex:0 0 19px}
+.mu-pop-truck svg{width:19px;height:19px}.mu-pop-card-head h3{font-size:12px;font-weight:850;letter-spacing:.015em;margin:0;flex:1;overflow-wrap:anywhere}
+.mu-pop-card-count{margin-left:auto;white-space:nowrap;font-size:10px;font-weight:650}
+.mu-pop-card-count strong{font-weight:850}.mu-pop-card-content{padding:7px;display:grid;grid-template-columns:112px minmax(0,1fr);gap:6px}
+.mu-pop-totals{background:#f5f6fb;border-radius:9px;padding:11px 9px;min-width:0}
+.mu-pop-totals>span{font-size:10px;color:#332858;font-weight:750}
+.mu-pop-big{color:#37129c;font-size:27px;font-weight:850;line-height:1.3;margin-top:2px;font-variant-numeric:tabular-nums}
+.mu-pop-big small{font-size:10px;font-weight:650}.mu-pop-totals p{font-size:9px;color:#6f668b;line-height:1.45;margin:9px 0 0}
+.mu-pop-vendors{display:flex;flex-direction:column;gap:11px;min-width:0;padding:4px 0}
+.mu-pop-vendor{min-width:0}.mu-pop-vendor-head{display:flex;justify-content:space-between;gap:8px;align-items:center;color:#36138e;margin-bottom:7px;font-size:10px}
+.mu-pop-vendor-head strong{font-size:10px;font-weight:850;white-space:nowrap}
+.mu-pop-table-scroller{max-width:100%;overflow-x:auto;border:1px solid #dcd8ec;border-radius:5px}
+.mu-pop-table{border-collapse:collapse;width:100%;table-layout:fixed;font-size:9px}
+.mu-pop-table th{background:#f0f1f7;color:#291554;text-align:center;font-size:9px;font-weight:750;padding:7px 4px;border-bottom:1px solid #dedbea}
+.mu-pop-table th+th,.mu-pop-table td+td{border-left:1px solid #e3dfef}
+.mu-pop-table th:nth-child(1){width:22%}.mu-pop-table th:nth-child(2){width:10%}.mu-pop-table th:nth-child(3){width:34%}.mu-pop-table th:nth-child(4){width:34%}
+.mu-pop-table td{padding:6px 4px;vertical-align:middle;border-bottom:1px solid #eeeaf5;font-size:9px;line-height:1.4}
+.mu-pop-table tbody tr:last-child td{border-bottom:0}.mu-pop-brand{font-weight:800;color:#111a4b;overflow-wrap:anywhere}
+.mu-pop-number{text-align:center;font-weight:850}.mu-pop-badges{display:flex;flex-direction:column;gap:3px}
+.mu-pbadge{display:flex;align-items:center;gap:3px;border-radius:4px;padding:2px 4px;font-size:9px;line-height:1.25;min-height:16px;overflow-wrap:anywhere}
+.mu-pbadge strong{flex-shrink:0;font-weight:850}.mu-pbadge.good{background:#dff8e8;color:#087c45}
+.mu-pbadge.bad{background:#fee2e2;color:#ad2020}.mu-pbadge.warn{background:#fff0c4;color:#a36009}
+.mu-pbadge.unknown{background:#e9ecf2;color:#62667b}.mu-pbadge.neutral{background:#ece8ff;color:#6438bb}
+.mu-pop-card-foot{background:#f3f5fc;margin:0 7px 7px;border-radius:7px;padding:9px 10px;font-size:9px;color:#7163a4;line-height:1.45}
+.mu-pop-legend{color:#655c83;font-size:10px;line-height:1.55;margin:11px 2px 0}
+.mu-pop-no-data{padding:18px 10px;color:#77718e;font-size:12px;text-align:center}
+@media(max-width:1070px){.mu-pop-grid{grid-template-columns:1fr}.mu-pop-card-content{grid-template-columns:110px minmax(0,1fr)}}
+@media(max-width:600px){.mu-pop-dashboard{padding:10px}.mu-pop-titlebar{flex-direction:column}
+.mu-pop-head-actions{width:100%;justify-content:space-between}.mu-pop-card-content{grid-template-columns:1fr}
+.mu-pop-totals{display:flex;align-items:baseline;gap:10px}.mu-pop-totals p{margin:0 0 0 auto}.mu-pop-vendors{padding:5px}
+.mu-pop-table{font-size:9px}.mu-pop-table td,.mu-pop-table th{font-size:9px}}
+@media print{.mu-pop-dashboard,.mu-pop-card{break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.mu-pop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.mu-pop-source{display:none!important}}
 </style>
 <script src="../remembered-access.js?v=20261020"></script></head>
 <body>
@@ -1764,39 +1811,119 @@ function renderProjDash(P){
     </div>
   </div>`;
 }
+
+/* Rekap populasi aktual: Jenis Unit -> Vendor -> Merek.
+   Seluruh angka berasal dari satu kumpulan unit di lokasi. */
+function muPopTypeName(value){
+  const t=String(value||"").trim();
+  if(/(?:vessel\s+)?side[\s-]*dump[\s-]*truck/i.test(t)||/^SDT$/i.test(t))return "SIDE DUMP TRUCK";
+  return t ? t.toUpperCase() : "JENIS BELUM DIISI";
+}
+function muPopBucket(value,fallback){
+  const str=String(value||"").trim();
+  return str || fallback;
+}
+function muPopSort(a,b){
+  return a.localeCompare(b,"id",{numeric:true,sensitivity:"base"});
+}
+function muPopCount(items,field){
+  const map=new Map();
+  items.forEach(it=>{const label=muPopBucket(field(it),"Belum Diketahui");
+    const key=label.toLocaleLowerCase("id");let r=map.get(key);
+    if(!r){r={label,n:0};map.set(key,r);}r.n++;
+  });
+  return [...map.values()].sort((a,b)=>b.n-a.n||muPopSort(a.label,b.label));
+}
+function muPopTone(value,condition){
+  const t=String(value||"").toLowerCase();
+  if(/belum|tidak diketahui|tidak diperiksa|belum diverifikasi/.test(t))return "unknown";
+  if(/breakdown|rusak|tidak layak|gagal/.test(t))return "bad";
+  if(/rekondisi|perbaikan|repair|proses|mobilisasi/.test(t))return "warn";
+  if(/operasional|beroperasi|baik|ready done|layak|selesai/.test(t))return "good";
+  if(condition&&/standby/.test(t))return "unknown";
+  return "neutral";
+}
+function muPopBadges(items,field,isCondition){
+  return muPopCount(items,field).map(({label,n})=>
+    '<span class="mu-pbadge '+muPopTone(label,isCondition)+'" title="'+esc(n+" unit: "+label)+'">'+
+      '<strong>'+n+'×</strong><span>'+esc(label)+'</span></span>').join("");
+}
 function renderPopDash(){
   const el=$("#popDash");if(!el)return;
   const P=curProj(),us=S.units.filter(u=>arrived(u)&&(!P||u.projectId===P.id));
-  const existing=us.filter(isExistingUnit).length,arrivals=us.length-existing;
-  const groups=new Map();
-  us.forEach(u=>{const label=String(u.tipe||"Jenis belum diisi").trim(),key=MU_TYPE_KEY(label);
-    if(!groups.has(key))groups.set(key,{key,label,units:[]});
-    groups.get(key).units.push(u);
+  const grouped=new Map();
+  us.forEach(u=>{
+    const details=muDetails(u),type=muPopTypeName(u.tipe),
+      vendor=muPopBucket(details.vendor,"Belum Diketahui"),
+      brand=muPopBucket(details.merk,"Belum Diketahui");
+    // Tiba adalah tahapan pengiriman; bukan informasi operasi mesin.
+    const operational=/^tiba$/i.test(String(u.status||""))?"Belum Diketahui":
+      muPopBucket(u.status,"Belum Diketahui");
+    const kondisi=muPopBucket(details.kondisi,"Belum Diperiksa");
+    const rec={u,operational,kondisi};
+    if(!grouped.has(type))grouped.set(type,new Map());
+    const vs=grouped.get(type),vkey=vendor.toLocaleLowerCase("id");
+    if(!vs.has(vkey))vs.set(vkey,{vendor,brands:new Map(),count:0});
+    const v=vs.get(vkey),bkey=brand.toLocaleLowerCase("id");
+    if(!v.brands.has(bkey))v.brands.set(bkey,{brand,items:[]});
+    v.brands.get(bkey).items.push(rec);
+    v.count++;
   });
-  const kinds=[...groups.values()].sort((a,b)=>a.label.localeCompare(b.label,"id",{numeric:true}));
-  const c=MU_UNIT_COLORS;
-  el.innerHTML=`<section class="mu-dash-pop">
-    <div class="mu-dash-head">
-      <div><span class="mu-mpp-eyebrow">POPULASI UNIT · ${esc(P?P.kode:"SEMUA PROJECT")}</span>
-        <h2>Unit yang Sudah di Lokasi</h2>
-        <p>Rekap aktual dari sheet Populasi Unit. Bukan jumlah rencana kirim.</p>
-      </div>
-      <button type="button" class="btn small primary" data-goto="unit">Buka sheet Populasi Unit →</button>
-    </div>
-    <div class="mu-dash-stat">
-      <div><b>${us.length}</b><span>Total di lokasi</span></div>
-      <div><b>${existing}</b><span>Existing / Populasi MPP</span></div>
-      <div><b>${arrivals}</b><span>Masuk dari pengiriman</span></div>
-      <div><b>${us.filter(u=>u.status==="Beroperasi").length}</b><span>Beroperasi</span></div>
-      <div><b>${us.filter(u=>u.status==="Breakdown").length}</b><span>Breakdown</span></div>
-    </div>
-    <div class="mu-dash-types">${kinds.length?kinds.map((g,i)=>{
-       const col=c[i%c.length],encoded=esc(encodeURIComponent(g.key));
-       return `<button type="button" data-dash-kind="${encoded}" title="Lihat ${esc(g.label)} di sheet Populasi Unit" class="mu-dash-type" style="--uc:${col};--ubg:color-mix(in srgb,${col} 7%,white);--ubd:color-mix(in srgb,${col} 20%,white)">
-         <span class="mu-dash-icon">${MU_UNIT_ICON}</span><span class="mu-dash-name">${esc(g.label)}</span><b>${g.units.length}</b></button>`;
-    }).join(""):`<span class="mu-dash-empty">Belum ada unit terdaftar di lokasi ini. ${canWrite?"Gunakan + Input Unit Existing pada sheet Populasi Unit.":""}</span>`}</div>
-  </section>`;
+  const colors=[
+    {edge:"#23bdbc",head:"#6fd6d2",wash:"#f0fbfa"},
+    {edge:"#f29c54",head:"#ffba8a",wash:"#fff8f0"},
+    {edge:"#7c67e8",head:"#bab2fa",wash:"#f7f4ff"},
+    {edge:"#438bdf",head:"#add0fc",wash:"#f2f8ff"},
+    {edge:"#e486aa",head:"#ffd0e2",wash:"#fff5fa"},
+    {edge:"#4fa36a",head:"#b4eac2",wash:"#f3fff7"}
+  ];
+  const types=[...grouped.entries()].sort((x,y)=>muPopSort(x[0],y[0]));
+  const content=types.map(([type,vs],i)=>{
+    const vendors=[...vs.values()].sort((a,b)=>muPopSort(a.vendor,b.vendor));
+    const count=vendors.reduce((sum,v)=>sum+v.count,0);
+    const color=colors[i%colors.length],title=type==="SIDE DUMP TRUCK"?"Side Dump Truck":type;
+    const incomplete=vendors.flatMap(v=>[...v.brands.values()].flatMap(b=>b.items))
+      .filter(x=>!String(x.u.kode||"").trim()||x.u.kodeSementara).length;
+    const vendorHTML=vendors.map(v=>{
+      const brands=[...v.brands.values()].sort((a,b)=>muPopSort(a.brand,b.brand));
+      return '<section class="mu-pop-vendor">'+
+        '<div class="mu-pop-vendor-head"><b>Vendor: '+esc(v.vendor)+'</b><strong>'+v.count+' unit</strong></div>'+
+        '<div class="mu-pop-table-scroller"><table class="mu-pop-table"><thead><tr>'+
+          '<th>Merek Unit</th><th>Total</th><th>Status Operasional</th><th>Kondisi Unit</th>'+
+        '</tr></thead><tbody>'+
+        brands.map(b=>
+          '<tr><td class="mu-pop-brand">'+esc(b.brand)+'</td><td class="mu-pop-number">'+b.items.length+'</td>'+
+          '<td><div class="mu-pop-badges">'+muPopBadges(b.items,x=>x.operational,false)+'</div></td>'+
+          '<td><div class="mu-pop-badges">'+muPopBadges(b.items,x=>x.kondisi,true)+'</div></td></tr>'
+        ).join('')+'</tbody></table></div></section>';
+    }).join("");
+    return '<article class="mu-pop-card" style="--mu-head:'+color.head+';--mu-accent:'+color.edge+';--mu-wash:'+color.wash+'">'+
+      '<div class="mu-pop-card-head"><span class="mu-pop-truck">'+MU_UNIT_ICON+'</span>'+
+        '<h3>'+esc(title)+'</h3><span class="mu-pop-card-count">Total: <strong>'+count+'</strong> unit</span></div>'+
+      '<div class="mu-pop-card-content"><div class="mu-pop-totals">'+
+          '<span>Total Unit</span><div class="mu-pop-big">'+count+'<small> unit</small></div>'+
+          '<p>'+count+' identitas terdata</p>'+
+        '</div><div class="mu-pop-vendors">'+vendorHTML+'</div></div>'+
+      '<div class="mu-pop-card-foot">'+(incomplete?
+        '<span>! '+incomplete+' unit masih memakai nomor sementara / belum lengkap.</span>':
+        '<span>✓ Seluruh identitas '+count+' unit telah dicatat.</span>')+'</div>'+
+      '</article>';
+  }).join("");
+  el.innerHTML='<section class="mu-pop-dashboard" aria-label="Rekap populasi unit aktual">'+
+    '<div class="mu-pop-titlebar"><div class="mu-pop-mainheading">'+
+      '<span class="mu-pop-eyebrow">POPULASI UNIT</span>'+
+      '<p>Rekap otomatis berdasarkan jenis, vendor, merek, status operasional, dan kondisi dari sheet Populasi Unit'+
+      (P?' — '+esc(P.kode):'')+'.</p></div>'+
+      '<div class="mu-pop-head-actions"><span class="mu-pop-total">'+us.length+' <small>Total unit</small></span>'+
+        '<button type="button" class="btn small mu-pop-source" data-goto="unit">Lihat sumber data →</button></div></div>'+
+    '<div class="mu-pop-guide">ⓘ Tabel dibaca per <b>Jenis Unit → Vendor → Merek</b>. Angka status dan kondisi adalah jumlah unit dari merek tersebut, bukan tambahan unit.</div>'+
+    (types.length?'<div class="mu-pop-grid">'+content+'</div>':
+      '<div class="mu-pop-no-data">Belum ada unit yang tercatat di lokasi. '+(canWrite?'Input melalui sheet Populasi Unit.':'')+'</div>')+
+    '<p class="mu-pop-legend"><b>Belum Diketahui</b> = status operasional belum dicatat (termasuk status hanya “Tiba”). '+
+    '<b>Belum Diperiksa</b> = kondisi belum dinilai. Semua angka dihitung otomatis dari Populasi Unit.</p>'+
+    '</section>';
 }
+
 function renderRingkasan(){
   const L=!S.ready, ps=projects(), P=curProj();
   $("#projDash").hidden=!P; $("#projCards").hidden=!!P; $("#homeTop").hidden=!!P; $("#ovBottom").hidden=!!P;
