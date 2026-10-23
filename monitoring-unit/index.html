@@ -895,8 +895,8 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
   <!-- UNIT -->
   <section class="panel" id="p-unit" role="tabpanel" hidden>
     <div class="sec-head">
-      <div><h2>Unit di lokasi</h2><p>Unit yang sudah sampai di jobsite. Setiap unit yang dicatat menambah hitungan <b>Tiba</b> pada item rencana kirimnya. Unit berstatus <b>Tiba</b> belum punya rencana mobilisasi.</p></div>
-      <div class="actions"><button class="btn primary" id="addUnit" type="button">+ Catat unit tiba</button></div>
+      <div><h2>Unit di lokasi</h2><p>Populasi seluruh unit yang berada di jobsite, baik <b>existing (sudah di lokasi)</b> maupun <b>tiba dari rencana kirim</b>. Unit existing tidak mengubah jumlah rencana atau progres pengiriman.</p></div>
+      <div class="actions"><button class="btn" id="addExisting" type="button">+ Input unit existing</button><button class="btn primary" id="addUnit" type="button">+ Catat unit tiba</button></div>
     </div>
     <div class="toolbar">
       <input class="search" id="qUnit" type="search" placeholder="Cari no. lambung, tipe, lokasi…" aria-label="Cari unit">
@@ -956,6 +956,9 @@ const PRE_STATUS = [
 ];
 const ALL_STATUS = [...PRE_STATUS, ...UNIT_STATUS];
 const arrived = u => !PRE_STATUS.some(x=>x.k===u.status);
+// Penanda sumber unit existing disimpan pada kolom "Via" yang sudah tersedia.
+// Tidak membutuhkan perubahan skema ataupun deploy ulang Apps Script.
+const isExistingUnit = u => String(u.via||"").trim().toLowerCase()==="populasi awal";
 const MOB_STATUS = [{k:"Direncanakan",cls:"s-idle"},{k:"Berjalan",cls:"s-info"},{k:"Selesai",cls:"s-ok"},{k:"Ditunda",cls:"s-warn"}];
 const MODA = {"Perjalanan darat":30,"Jalan sendiri (self-propelled)":15,"Lowboy trailer":25,"Dump truck/carrier":30,"Tongkang":10,"Bongkar-rakit (knock down)":20};
 const COLORS = ["purple","blue","red","orange","teal","pink"];
@@ -1005,7 +1008,7 @@ const projOf = id => S.projects.find(p=>p.id===id);
 const projColor = id => { const i=projects().findIndex(p=>p.id===id); return COLORS[(i<0?0:i)%COLORS.length]; };
 const projKode = id => (projOf(id)||{}).kode || "—";
 const itemsOf = pid => S.kirim.filter(k=>k.projectId===pid).sort((a,b)=>(Number(a.urut)||99)-(Number(b.urut)||99)||String(a.tipe).localeCompare(b.tipe));
-const unitsOfItem = k => S.units.filter(u=>u.kirimId===k.id || (!u.kirimId && u.projectId===k.projectId && u.tipe===k.tipe));
+const unitsOfItem = k => S.units.filter(u=>!isExistingUnit(u) && (u.kirimId===k.id || (!u.kirimId && u.projectId===k.projectId && u.tipe===k.tipe)));
 const tibaItem = k => unitsOfItem(k).filter(arrived).length;
 const unitOfMob = m => S.units.find(u=>u.id===m.unitId) || S.units.find(u=>u.kode===m.unitKode);
 const mobProj = m => { const u=unitOfMob(m); return (u&&u.projectId) || m.projectId || ""; };
@@ -1026,8 +1029,8 @@ async function siapkanTujuan(u,nama,tanggal){
 }
 async function pindahkanUnit(u,m){
   const P=projByName(m.ke); if(!P||P.id===u.projectId) return false;
-  const tipe=u.tipe, K=S.kirim.find(k=>k.projectId===P.id&&k.tipe===tipe), asal=S.kirim.find(k=>k.id===u.kirimId), dari=projKode(u.projectId);
-  await store.update(COL.units,u.id,{projectId:P.id,kirimId:K?K.id:"",status:"Tiba",lokasi:P.kode,tglTiba:todayStr(),updatedAt:nowIso()});
+  const tipe=u.tipe, K=S.kirim.find(k=>k.projectId===P.id&&k.tipe===tipe), asal=isExistingUnit(u)?null:S.kirim.find(k=>k.id===u.kirimId), dari=projKode(u.projectId);
+  await store.update(COL.units,u.id,{projectId:P.id,kirimId:K?K.id:"",via:"",status:"Tiba",lokasi:P.kode,tglTiba:todayStr(),updatedAt:nowIso()});
   if(asal){ const lama=Number(asal.rencana)||0; if(lama>0){ await store.update(COL.kirim,asal.id,{rencana:lama-1,updatedAt:nowIso()});
     await store.add(COL.revisi,{kirimId:asal.id,projectId:asal.projectId,tipe:asal.tipe,lama,baru:lama-1,alasan:`${u.kode} dipindah ke ${P.kode}`,etaLama:asal.eta||"",etaBaru:asal.eta||"",waktu:nowIso(),...(meEmail?{oleh:meEmail}:{})}); } }
   toast(`${u.kode} sudah tiba di ${P.kode} dan pindah ke project itu (dari ${dari}).`);
@@ -1042,7 +1045,7 @@ function projStats(pid){
   const items=itemsOf(pid);
   const rencana=items.reduce((a,k)=>a+(Number(k.rencana)||0),0);
   const tiba=items.reduce((a,k)=>a+Math.min(tibaItem(k),Number(k.rencana)||0),0);
-  const unitCount=S.units.filter(u=>u.projectId===pid).length;
+  const unitCount=S.units.filter(u=>arrived(u)&&u.projectId===pid).length;
   const mob=S.mobs.filter(m=>isAktif(m)&&mobProj(m)===pid).length;
   const revs=S.revisi.filter(r=>r.projectId===pid);
   const times=[...items.map(k=>k.updatedAt),...S.units.filter(u=>u.projectId===pid).map(u=>u.updatedAt),...revs.map(r=>r.waktu)].filter(Boolean).sort();
@@ -1275,6 +1278,61 @@ function tibaChecklist(kid){
       :`<div class="tcl-empty">Belum ada unit ${esc(k.tipe)} yang dicatat dikirim. Isi no. lambung di kolom "Unit lain" di bawah, atau jadwalkan dulu di tabel unit (Rencana kirim → Lihat unit).</div>`}
     ${arr.length?`<div class="tcl-done">Sudah tiba: ${arr.map(u=>`<span class="plate">${esc(u.kodeSementara?"(tanpa no.)":u.kode)}</span>`).join(" ")}</div>`:""}`;
 }
+function formExistingUnit(presetProject){
+  if(!canWrite){ toast("Hanya Pemilik atau Editor yang dapat menginput data unit."); return; }
+  if(!S.projects.length){ toast("Tambahkan project terlebih dahulu."); return; }
+  const pid=presetProject||((curProj()||{}).id)||defaultProj();
+  let priorPid=pid;
+  openForm({
+    title:"Input populasi unit existing",
+    desc:"Untuk unit yang sudah berada di site sebelum pencatatan rencana kirim. Data masuk ke Unit di Lokasi dan dashboard, tanpa menambah rencana kirim.",
+    values:{projectId:pid,tipe:"",kode:"",jumlah:1,lokasi:(projOf(pid)||{}).kode||"Area Site",tglTiba:"",hm:0,status:"Standby",catatan:""},
+    fields:[
+      {key:"projectId",label:"Project / jobsite",type:"select",options:projOpts()},
+      {key:"tipe",label:"Jenis / tipe unit",req:true,ph:"Contoh: Volvo FMX 440 / Vessel / Dozer",list:[...new Set([...S.units.map(u=>u.tipe),...S.kirim.map(k=>k.tipe)].filter(Boolean))]},
+      {key:"kode",label:"Nomor lambung unit (jika ada)",type:"textarea",full:true,ph:"Contoh: DT 375, DT 376, DT 377",hint:"Pisahkan beberapa nomor dengan koma atau baris baru. Bila belum ada nomor lambung, kosongkan dan isi jumlah unit."},
+      {key:"jumlah",label:"Jumlah (jika nomor lambung kosong)",type:"number",min:1,step:"1",req:true,hint:"Jika nomor lambung diisi, jumlah dihitung otomatis dari daftar."},
+      {key:"lokasi",label:"Posisi unit saat ini",req:true,list:lokasiList(),ph:"Contoh: Workshop, Pit 1, SLR Rekondisi"},
+      {key:"tglTiba",label:"Tanggal tiba (jika diketahui)",type:"date",hint:"Boleh dikosongkan untuk unit yang telah lama berada di lokasi."},
+      {key:"hm",label:"Hour meter (HM)",type:"number",min:0,step:"0.1"},
+      {key:"status",label:"Status operasional",type:"select",options:UNIT_STATUS.map(s=>s.k)},
+      {key:"catatan",label:"Kondisi / keterangan",type:"textarea",full:true,ph:"Contoh: Rekondisi, standby, operasional, perbaikan…"},
+      {key:"preview",type:"preview"}
+    ],
+    live:(v,target)=>{
+      if(target&&target.id==="f_projectId"){
+        const prev=projOf(priorPid), next=projOf(v.projectId);
+        if(next && $("#f_lokasi") && (!$("#f_lokasi").value || (prev&&$("#f_lokasi").value===prev.kode))) $("#f_lokasi").value=next.kode;
+        priorPid=v.projectId;
+      }
+      const list=parseLambung(v.kode);
+      const duplicates=list.filter(code=>S.units.some(u=>String(u.kode||"").toUpperCase()===code));
+      const repeated=list.filter((code,i)=>list.indexOf(code)!==i);
+      const n=list.length || Number(v.jumlah)||0;
+      const p=$("#f_preview");
+      if(p) p.innerHTML=`<b>${n} unit existing</b> akan dicatat di ${esc(projKode(v.projectId))}. ${list.length?"Nomor lambung terisi.":"Nomor lambung kosong akan diberi kode sementara (dapat diedit nanti)."}`
+        +(duplicates.length?`<br><span style="color:var(--bad)">Sudah terdaftar: ${esc(duplicates.join(", "))}</span>`:"")
+        +(repeated.length?`<br><span style="color:var(--bad)">Nomor ganda: ${esc([...new Set(repeated)].join(", "))}</span>`:"");
+    },
+    ok:"Simpan unit existing",
+    onSubmit:d=>{
+      const list=parseLambung(d.kode), n=list.length||Number(d.jumlah);
+      if(!Number.isInteger(n)||n<1||n>300){ toast("Jumlah unit harus 1 sampai 300."); return false; }
+      if(!String(d.tipe||"").trim()){ toast("Isi jenis atau tipe unit."); return false; }
+      if(new Set(list).size!==list.length){toast("Ada nomor lambung yang diketik dua kali.");return false;}
+      const seen=new Set(S.units.map(u=>String(u.kode||"").trim().toUpperCase()));
+      if(list.some(k=>seen.has(k))){toast("Nomor lambung sudah terdaftar. Periksa daftar unit di lokasi.");return false;}
+      const uniq=Date.now().toString(36).toUpperCase()+"-"+uid().slice(0,5).toUpperCase();
+      const kodes=list.length?list:Array.from({length:n},(_,i)=>"EX-"+uniq+"-"+String(i+1).padStart(3,"0"));
+      if(kodes.some(k=>seen.has(k))){toast("Kode unit sudah ada. Silakan simpan ulang.");return false;}
+      const base={projectId:d.projectId,kirimId:"",tipe:d.tipe.trim(),lokasi:d.lokasi.trim(),tglTiba:d.tglTiba||"",hm:d.hm===""?0:d.hm,
+        status:d.status,catatan:d.catatan,updatedAt:nowIso(),via:"Populasi awal",rencanaKirim:"",tglKirim:"",kodeSementara:!list.length};
+      const ops=kodes.map(kode=>({col:COL.units,action:"add",id:"u-"+uid(),data:{...base,kode}}));
+      store.batch(ops).then(()=>toast(`${kodes.length} unit existing tercatat di ${projKode(d.projectId)}.`)).catch(()=>{});
+    }
+  });
+}
+
 function formTiba(presetItem){
   if(!S.projects.length){ toast("Tambahkan project dulu."); return; }
   const pid0=presetItem?presetItem.projectId:defaultProj();
@@ -1333,14 +1391,14 @@ function formUnit(u,presetItem){
   openForm({
     title:u?`Edit unit ${u.kode}`:"Catat unit tiba",
     desc:u?(u.kodeSementara?"Nomor lambung unit ini belum diisi. Ganti kode sementara dengan nomor lambung asli.":""):"Isi nomor lambung setiap unit yang datang. Hitungan Tiba dan Sisa kirim project ikut bertambah.",
-    values:u&&u.kodeSementara?{...v0,kode:""}:v0,
+    values:u?{...v0,kirimId:isExistingUnit(u)?"":u.kirimId,...(u.kodeSementara?{kode:""}:{})}:v0,
     fields:[
       {key:"projectId",label:"Project",type:"select",options:projOpts()},
       {key:"kirimId",label:"Item rencana kirim",type:"select",options:itemOpts(pid0)},
       u?{key:"kode",label:"Nomor lambung",req:true,full:true,ph:u.kodeSementara?`Sebelumnya: ${u.kode}`:"Contoh: ZT96-01"}
        :{key:"kode",label:"Nomor lambung",type:"textarea",req:true,full:true,ph:"Contoh: ZT96-01, ZT96-02, ZT96-03",hint:"Satu unit satu nomor. Untuk beberapa unit sekaligus, pisahkan dengan koma atau baris baru."},
       ...(u?[]:[{key:"preview",type:"preview"}]),
-      {key:"tipe",label:"Tipe unit",req:true,hint:"Terisi otomatis dari item rencana kirim"},
+      {key:"tipe",label:"Tipe unit",req:true,hint:u&&isExistingUnit(u)?"Unit existing tidak harus terkait item rencana kirim.":"Terisi otomatis dari item rencana kirim"},
       {key:"lokasi",label:"Posisi sekarang",req:true,list:lokasiList()},
       {key:"tglTiba",label:"Tanggal tiba",type:"date",req:true},
       {key:"hm",label:"Hour meter (HM)",type:"number",min:0,step:"0.1"},
@@ -1445,12 +1503,12 @@ function render(){
   renderHero();
   const P0=curProj();
   $("#sheetTabs").hidden=true;
-  const tn=$("#topNew"); if(tn) tn.hidden=!canWrite||!S.kirim.length;
+  const tn=$("#topNew"); if(tn) tn.hidden=!canWrite||!S.projects.length;
   $("#heroActions").hidden=!!P0||!canWrite;
   $("#cUnit").textContent=S.units.filter(u=>arrived(u)&&inFilter(u.projectId)).length;
   $("#cMob").textContent=S.mobs.filter(m=>isAktif(m)&&inFilter(mobProj(m))).length;
   $("#cRev").textContent=S.revisi.filter(r=>inFilter(r.projectId)).length;
-  ["addUnit","addMob","addKirim"].forEach(id=>$("#"+id).hidden=!canWrite); $("#addProj").hidden=true;
+  ["addUnit","addExisting","addMob","addKirim"].forEach(id=>$("#"+id).hidden=!canWrite); $("#addProj").hidden=true;
   renderBanner(); renderSummary(); renderKpi(); renderFbar(); renderCharts(); renderPFilter(); renderRingkasan(); renderKirim(); renderUnit(); renderMob(); renderDok();
 }
 function renderBanner(){
@@ -1470,16 +1528,16 @@ function renderHero(){
 }
 function renderSummary(){ if(!$("#summary")) return;
   const L=!S.ready, P=curProj();
-  if(P){ const st=projStats(P.id); const us=S.units.filter(u=>u.projectId===P.id);
+  if(P){ const st=projStats(P.id); const us=S.units.filter(u=>arrived(u)&&u.projectId===P.id);
     $("#summary").innerHTML=[
-      ["box",`<b>${st.items.length}</b> item unit`],["truck",`<b>${us.length}</b> unit di lokasi`],["check",`<b>${us.filter(u=>u.status==="Beroperasi").length}</b> beroperasi`],
+      ["box",`<b>${st.items.length}</b> item rencana kirim`],["truck",`<b>${us.length}</b> unit di lokasi`],["pin",`<b>${us.filter(isExistingUnit).length}</b> existing`],["check",`<b>${us.filter(u=>u.status==="Beroperasi").length}</b> beroperasi`],
       ["history",`<b>${st.revs.length}</b> perubahan rencana`],...(P.catatan?[["alert",esc(P.catatan)]]:[]),["clock",st.last?`Diperbarui ${fmtTime(st.last)}`:"Belum ada pembaruan"]
     ].map(([i,h])=>`<span class="site-pill">${ic(i)}<span>${h}</span></span>`).join(""); return; }
   const r=S.kirim.reduce((a,k)=>a+(Number(k.rencana)||0),0), t=S.kirim.reduce((a,k)=>a+Math.min(tibaItem(k),Number(k.rencana)||0),0);
   const aktif=S.mobs.filter(isAktif).length;
   const v=x=>L?"–":x;
   $("#summary").innerHTML=[
-    ["box",`<b>${v(S.projects.length)}</b> project`],["ship",`<b>${v(r)}</b> unit direncanakan`],["pin",`<b>${v(t)}</b> unit tiba`],
+    ["box",`<b>${v(S.projects.length)}</b> project`],["ship",`<b>${v(r)}</b> unit direncanakan`],["pin",`<b>${v(S.units.filter(arrived).length)}</b> di lokasi`],["truck",`<b>${v(S.units.filter(u=>arrived(u)&&isExistingUnit(u)).length)}</b> existing`],
     ["hourglass",`<b>${v(Math.max(0,r-t))}</b> sisa kirim`],["route",`<b>${v(aktif)}</b> mobilisasi aktif`]
   ].map(([i,h])=>`<span class="site-pill">${ic(i)}<span>${h}</span></span>`).join("");
 }
@@ -1495,12 +1553,12 @@ function totals(P){
 }
 function renderKpi(){
   const L=!S.ready, P=curProj(), t=totals(P), v=x=>L?"–":x, q=pct(t.tiba,t.rencana);
-  const nP=projects().length;
+  const nP=projects().length, diLokasi=t.units.length, existing=t.units.filter(isExistingUnit).length;
   const cards=[
     {c:"kpt1",go:"pengiriman",goName:"Rencana kirim",lab:"Rencana kirim",icon:"box",val:v(t.rencana),sub:L?"Memuat…":`${t.items.length} item unit${P?"":` · ${nP} project`} · ${t.revs}× revisi`,bar:100},
     {c:"kpt2",go:"pengiriman",goName:"Rencana kirim",lab:"Sisa kirim",icon:"hourglass",val:v(t.sisa),sub:L?"":`${pct(t.sisa,t.rencana)}% belum berangkat`,bar:pct(t.sisa,t.rencana)},
     {c:"kpt3",go:"pengiriman",goName:"Rencana kirim",lab:"Dalam perjalanan",icon:"ship",val:v(t.jalan),sub:L?"":`${pct(t.jalan,t.rencana)}% sedang menuju site`,bar:pct(t.jalan,t.rencana)},
-    {c:"kpt4",go:"unit",goName:"Unit di lokasi",lab:"Unit tiba",icon:"pin",val:v(t.tiba),sub:L?"":`${q}% · ${t.tiba}/${t.rencana} unit sudah di lokasi`,bar:q},
+    {c:"kpt4",go:"unit",goName:"Unit di lokasi",lab:"Unit di lokasi",icon:"pin",val:v(diLokasi),sub:L?"":`${existing} existing · ${t.tiba} tiba dari rencana`,bar:t.rencana?q:100},
     {c:"kpt5",go:"mobilisasi",goName:"Mobilisasi",lab:"Dikirim ke site lain",icon:"route",val:v(t.keluar),sub:L?"":(t.keluar?`${t.keluarJalan} di jalan · ${t.keluarDone} sudah sampai`:"Belum ada unit dipindah"),bar:t.keluar?pct(t.keluarDone,t.keluar):0}
   ];
   $("#kpis").innerHTML=cards.map(kpiCard).join("");
@@ -1544,7 +1602,7 @@ function unitLocationMini(pid, compact=false){
   us.forEach(u=>{const kind=String(u.tipe||"Jenis belum diisi").trim();if(!groups.has(kind))groups.set(kind,[]);groups.get(kind).push(u);});
   const x=[...groups].map(([kind,units])=>'<div class="mu-loc-group"><div class="mu-loc-head"><b>'+esc(kind)+'</b><span>'+units.length+' unit</span></div>'+
     '<div class="mu-loc-ids">'+units.map(u=>'<span class="mu-loc-pill" title="'+esc((u.lokasi||"Belum ada posisi")+' · '+(u.status||""))+'">'+esc(u.kode||"Nomor belum diisi")+'</span>').join("")+'</div></div>').join("");
-  return '<div class="mu-loc-box"><div class="mu-loc-top"><strong>Unit di Lokasi</strong><span>'+us.length+' unit</span></div>'+
+  return '<div class="mu-loc-box"><div class="mu-loc-top"><strong>Unit di Lokasi</strong><span>'+us.length+' unit · '+us.filter(isExistingUnit).length+' existing</span></div>'+
     (us.length?x:'<div class="mu-loc-empty">Belum ada unit di lokasi project ini.</div>')+
     (!compact&&us.length?'<div class="mu-loc-note">Status dan posisi unit lengkap tersedia pada tab Unit di Lokasi.</div>':"")+'</div>';
 }
@@ -1568,12 +1626,12 @@ function renderProjDash(P){
       <div class="card-head"><h3><span class="tile-ic" style="background:var(--g-${c})">${ic(projIcon(P.id))}</span>Progres kedatangan per item</h3>${canWrite?`<button class="btn small primary" data-act="addItem" data-id="${P.id}" type="button">+ Item unit</button>`:""}</div>
       <div class="irows">${rows?head+rows:`<div class="muted">${st.items.length?"Tidak ada item di filter ini.":"Belum ada item unit di project ini."}</div>`}</div>
     </div>
-    <div class="card pcard"><div class="card-head"><h3>Unit di Lokasi — Nomor Lambung</h3><button class="btn open small" data-goto="unit" type="button">Lihat semua →</button></div>${unitLocationMini(P.id,false)}</div>
+    <div class="card pcard"><div class="card-head"><h3>Unit di Lokasi — Nomor Lambung</h3><span class="actions">${canWrite?`<button class="btn small" data-act="addExistingUnit" data-id="${P.id}" type="button">+ Unit existing</button>`:""}<button class="btn open small" data-goto="unit" type="button">Lihat semua →</button></span></div>${unitLocationMini(P.id,false)}</div>
     <div class="dash-side">
       <div class="card pcard">
         <div class="card-head"><h3><span class="tile-ic" style="background:var(--g-teal)">${ic("truck")}</span>Status unit di lokasi</h3><button class="btn open small" data-goto="unit" type="button">Lihat unit →</button></div>
         ${us.length?`<div class="stackbar">${stack}</div><div class="slist">${sc.map(o=>`<div><i style="background:${o.x.col}"></i>${o.x.k}<b>${o.n}</b><span class="p">${pct(o.n,us.length)}%</span></div>`).join("")}</div>`
-          :`<div class="muted small">Belum ada unit yang tiba di project ini.${canWrite&&st.items.length?" Pakai tombol + Tiba pada item saat unit sampai.":""}</div>`}
+          :`<div class="muted small">Belum ada unit di lokasi project ini. Unit lama bisa diinput lewat tombol + Unit existing; unit kiriman dicatat dari rencana kirim.</div>`}
       </div>
       <div class="card pcard">
         <div class="card-head"><h3><span class="tile-ic" style="background:var(--g-orange)">${ic("route")}</span>Jadwal mobilisasi</h3><button class="btn open small" data-goto="mobilisasi" type="button">Buka →</button></div>
@@ -1603,12 +1661,12 @@ function renderRingkasan(){
         <div class="tcard-head"><span class="tile-ic">${ic(projIcon(p.id))}</span><div class="tcard-title"><h3>${esc(p.kode)}</h3><span>${esc(sub||"—")}</span></div><button class="btn open small" data-act="openProj" data-id="${p.id}" type="button">Buka →</button></div>
         <div class="stats">
           <div class="stat">${ic("box","c-purple")}<span><b>${s.rencana}</b><small>Rencana</small></span></div>
-          <div class="stat">${ic("pin","c-blue")}<span><b>${s.tiba}</b><small>Tiba</small></span></div>
+          <div class="stat">${ic("pin","c-blue")}<span><b>${s.unitCount}</b><small>Di lokasi</small></span></div>
           <div class="stat">${ic("hourglass","c-red")}<span><b class="c-red">${s.sisa}</b><small>Sisa kirim</small></span></div>
           <div class="stat">${ic("ship","c-orange")}<span><b class="c-orange">${s.jalan}</b><small>Perjalanan</small></span></div>
         </div>
         <div class="pbar"><i style="width:${q}%"></i></div>
-        ${rows?`<div class="rows">${rows}</div>`:`<div class="rows"><div class="row"><span class="nm muted">${s.items.length?"Tidak ada item di filter ini":"Belum ada item unit"}</span></div></div>`}
+        ${s.unitCount?`<div class="small muted" style="padding:7px 15px 0">${S.units.filter(u=>arrived(u)&&u.projectId===p.id&&isExistingUnit(u)).length} existing · ${s.tiba} tiba dari rencana</div>`:""}${rows?`<div class="rows">${rows}</div>`:`<div class="rows"><div class="row"><span class="nm muted">${s.items.length?"Tidak ada item di filter ini":"Belum ada item unit"}</span></div></div>`}
         ${unitLocationMini(p.id,true)}
         <div class="tfoot"><span class="note">${p.catatan?`${ic("alert")}${esc(p.catatan)}`:`${q}% unit tiba`}</span><span>${ic("clock")}${s.last?fmtTime(s.last):"—"}</span></div>
       </div>`;
@@ -1833,11 +1891,11 @@ function renderUnit(){
   $("#fUnit").innerHTML=fs.map(f=>{const n=f==="Semua"?base.length:base.filter(u=>u.status===f).length; return `<button type="button" data-fu="${f}" aria-pressed="${S.fUnit===f}">${f} <span class="num">${n}</span></button>`;}).join("");
   const q=S.q.toLowerCase();
   const rows=base.filter(u=>(S.fUnit==="Semua"||u.status===S.fUnit)&&(!q||[u.kode,u.tipe,u.lokasi,u.catatan,projKode(u.projectId)].join(" ").toLowerCase().includes(q))).sort((a,b)=>a.kode.localeCompare(b.kode,"id",{numeric:true}));
-  if(!rows.length){ $("#tUnit").innerHTML=`<tr><td colspan="9">${base.length?emptyState("Tidak ada yang cocok","Ubah filter atau kata kunci pencarian."):emptyState(S.ready?"Belum ada unit yang tiba":"Memuat data…",S.ready?"Saat unit sampai di jobsite, catat di sini. Hitungan tiba dan sisa kirim project ikut diperbarui.":"",canWrite&&S.ready&&S.kirim.length?`<button class="btn primary small" data-act="addUnitBtn" type="button">+ Catat unit tiba</button>`:"")}</td></tr>`; return; }
+  if(!rows.length){ $("#tUnit").innerHTML=`<tr><td colspan="9">${base.length?emptyState("Tidak ada yang cocok","Ubah filter atau kata kunci pencarian."):emptyState(S.ready?"Belum ada unit yang tiba":"Memuat data…",S.ready?"Catat unit existing yang sudah berada di site atau unit yang baru tiba dari rencana kirim.":"",canWrite&&S.ready?`<button class="btn small" data-act="addExistingUnit" type="button">+ Input unit existing</button> ${S.kirim.length?`<button class="btn primary small" data-act="addUnitBtn" type="button">+ Catat unit tiba</button>`:""}`:"")}</td></tr>`; return; }
   $("#tUnit").innerHTML=rows.map(u=>{
     const mob=S.mobs.find(m=>(m.unitId===u.id||m.unitKode===u.kode)&&isAktif(m));
     return `<tr>
-    <td><span class="plate">${esc(u.kode)}</span>${u.kodeSementara?`<span class="sub" style="color:var(--warn);font-weight:600">no. lambung belum diisi</span>`:""}</td>
+    <td><span class="plate">${esc(u.kode)}</span>${isExistingUnit(u)?`<span class="sub" style="color:#6D28D9;font-weight:600">Populasi existing</span>`:""}${u.kodeSementara?`<span class="sub" style="color:var(--warn);font-weight:600">no. lambung belum diisi</span>`:""}</td>
     <td><span class="ptag">${esc(projKode(u.projectId))}</span></td>
     <td>${esc(u.tipe)}</td>
     <td>${esc(u.lokasi)}${mob?`<span class="sub nextgo">Kirim berikutnya → <b>${esc(mob.ke)}</b>, ${fmtDate(mob.tanggal)} · ${esc(mob.status)}</span>`:""}</td>
@@ -1898,11 +1956,12 @@ document.addEventListener("click",e=>{
   if(act==="editProj"&&P) formProject(P);
   if(act==="delProj"&&P) confirmBox(`Hapus project ${P.kode}?`,"Project tanpa item unit akan dihapus.","Hapus",()=>store.remove(COL.proj,P.id).then(()=>{ if(S.fProj===P.id) S.fProj="all"; toast("Project dihapus."); }).catch(()=>{}));
   if(act==="addItem"&&P) formKirim(null,P.id);
-  if(act==="addUnitBtn") formUnit(null);
+  if(act==="addExistingUnit") formExistingUnit(P?P.id:null);
+  if(act==="addUnitBtn") (S.kirim.length?formUnit(null):formExistingUnit());
   if(act==="tibaItem"&&K) formUnit(null,K);
   if(act==="editUnit"&&U) formUnit(U);
   if(act==="planUnit"&&U) formMob(null,U);
-  if(act==="delUnit"&&U) confirmBox(`Hapus ${U.kode}?`,"Unit dihapus dari daftar di lokasi dan hitungan tiba berkurang. Rencana mobilisasinya tetap tersimpan.","Hapus",()=>store.remove(COL.units,U.id).then(()=>toast(`${U.kode} dihapus.`)).catch(()=>{}));
+  if(act==="delUnit"&&U) confirmBox(`Hapus ${U.kode}?`,isExistingUnit(U)?"Unit existing dihapus dari populasi lokasi. Data rencana kirim tidak berubah. Rencana mobilisasi tetap tersimpan.":"Unit dihapus dari daftar di lokasi dan hitungan tiba dari rencana berkurang. Rencana mobilisasinya tetap tersimpan.","Hapus",()=>store.remove(COL.units,U.id).then(()=>toast(`${U.kode} dihapus.`)).catch(()=>{}));
   if(act==="editMob"&&M) formMob(M);
   if(act==="delMob"&&M) confirmBox(`Hapus rencana ${M.unitKode}?`,`${M.dari} → ${M.ke}, ${fmtDate(M.tanggal)}.`,"Hapus",()=>store.remove(COL.mobs,M.id).then(()=>toast("Rencana dihapus.")).catch(()=>{}));
   if(act==="jumlah"&&K) formUbahJumlah(K);
@@ -1929,7 +1988,8 @@ document.addEventListener("change",e=>{
   if(t.id==="fTabSel"){ setTab(t.value); renderFbar(); }
 });
 document.addEventListener("click",e=>{ if(e.target.closest("#fReset")){ S.fItem="all"; S.q=""; $("#gSearch").value=""; $("#qUnit").value=""; S.fUnit="Semua"; if(S.view!=="all") backAll(); else { setTab("ringkasan"); render(); } } });
-$("#addUnit").onclick=()=>formUnit(null);
+$("#addUnit").onclick=()=>S.kirim.length?formUnit(null):formExistingUnit();
+$("#addExisting").onclick=()=>formExistingUnit();
 $("#addMob").onclick=()=>formMob(null);
 $("#addKirim").onclick=()=>formKirim(null);
 $("#addProj").onclick=()=>formProject(null);
