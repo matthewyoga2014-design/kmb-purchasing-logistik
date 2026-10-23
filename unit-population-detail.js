@@ -126,6 +126,30 @@
     @media(max-width:850px){.ud-pop-body{grid-template-columns:1fr}.ud-pop-count{display:flex;align-items:center;gap:12px;padding:12px 16px}.ud-pop-count .ud-count-number{font-size:38px;margin:0}.ud-pop-count .ud-count-note{margin:0 0 0 auto}.ud-pop-count .ud-count-suffix{align-self:center}}
     @media(max-width:550px){.ud-pop-head{padding:12px}.ud-pop-body{padding:9px}.ud-pop-hero{padding:17px 15px 17px 28px}.ud-pop-vendors{grid-template-columns:minmax(0,1fr)}.ud-pop-table{min-width:390px}.ud-pop-vendor{padding:10px}.ud-pop-count .ud-count-note{font-size:10px}}
 
+
+    /* v4: one synchronized population panel; colors match existing purple/blue unit tiles. */
+    .ud-summary-panel{margin-bottom:18px}
+    .ud-summary-panel .ud-pop-hero{background:linear-gradient(110deg,#f3eeff 0%,#fcfbff 80%);border-color:#e3d9fa}
+    .ud-summary-panel .ud-pop-hero:before{background:#7c3aed}
+    .ud-summary-panel .ud-pop-hero h2{color:#29145b;font-size:clamp(23px,2.8vw,31px)}
+    .ud-summary-panel .ud-pop-hero p{color:#5b4a78}
+    .ud-summary-panel .ud-pop-total{border-color:#e3d9fa;color:#5b21b6;background:#fff}
+    .ud-summary-panel .ud-pop-explain{color:#55486f}
+    .ud-summary-panel .ud-pop-type{border-color:#ded9ea}
+    .ud-summary-panel .ud-pop-head{background:var(--ud-pop-accent,#6d28d9)}
+    .ud-summary-panel .ud-pop-body{background:#fcfbff}
+    .ud-summary-panel .ud-pop-count{background:linear-gradient(150deg,var(--ud-pop-accent-soft,#f5f3ff),#fff);border-color:#e5def7}
+    .ud-summary-panel .ud-pop-count .ud-count-label,.ud-summary-panel .ud-pop-count .ud-count-number{color:#29145b}
+    .ud-summary-panel .ud-pop-count .ud-count-suffix{color:#5b21b6}
+    .ud-summary-panel .ud-pop-table-wrap{border-color:#e4dff2}
+    .ud-summary-panel .ud-pop-table th{background:#f2edfc;color:#38206d;border-color:#e3d9f6}
+    .ud-summary-panel .ud-pop-table td{border-color:#eee9f5}
+    .ud-summary-panel .ud-pop-vendor-total b{color:#4c1d95}
+    .ud-summary-panel .ud-pop-vendor-name{color:#38206d}
+    .ud-pop-source{display:inline-flex;align-items:center;gap:7px;border:1px solid #ddd1f8;background:#fff;color:#5b21b6;border-radius:9px;padding:9px 12px;font:inherit;font-size:12px;font-weight:750;cursor:pointer;white-space:nowrap}
+    .ud-pop-source:hover,.ud-pop-source:focus-visible{background:#ede9fe;outline:2px solid transparent}
+    @media(max-width:600px){.ud-summary-panel .ud-pop-hero{align-items:flex-start}.ud-pop-source{white-space:normal}}
+
     .ud-meta{min-width:0;flex:1}.ud-meta strong{display:block;font-size:15px;word-break:break-word}.ud-meta small{display:block;color:#64748b;margin-top:4px;line-height:1.5}
     .ud-tag{display:inline-block;padding:3px 8px;border-radius:999px;background:#f1f5f9;color:#475569;font-size:11px;font-weight:700;margin-top:8px}
     .ud-small{font-size:12px;color:#64748b;line-height:1.5}.ud-form{border-top:1px solid #e5e7eb;margin-top:14px;padding-top:14px}
@@ -234,10 +258,10 @@
   }
   function vendorCard(v,idx) {
     const palettes=[
-      ["#fff9e6","#f2d58d"],
-      ["#fff1f3","#f6c8d0"],
-      ["#eef4ff","#cddcfb"],
-      ["#f5f1ff","#ddd2fc"]
+      ["#f5f0ff","#e1d4fc"],
+      ["#f0f4ff","#d9e3ff"],
+      ["#f7f5ff","#e7dffc"],
+      ["#f3f5fe","#dde4fb"]
     ];
     const palette=/^belum/i.test(v.name)?["#f8fafc","#cbd5e1"]:palettes[idx%palettes.length];
     return '<article class="ud-pop-vendor" style="--ud-vendor-bg:'+palette[0]+';--ud-vendor-line:'+palette[1]+'">'+
@@ -252,9 +276,12 @@
   }
   function unitPopType(g) {
     const total=Math.max(g.planned,g.details.length);
+    const paletteIndex=Math.max(0,(DATA.units||[]).findIndex(u=>normalizeRow(rowName(u.unit,"Jenis belum diisi"))===normalizeRow(g.type)));
+    const accents=["#7C3AED","#2563EB","#0D9488","#D97706","#DB2777","#059669","#4F46E5","#EA580C"];
+    const softAccents=["#f5f3ff","#eff6ff","#f0fdfa","#fffbeb","#fdf2f8","#ecfdf5","#eef2ff","#fff7ed"];
     const missing=Math.max(0,total-g.details.length);
     const vendors=vendorBreakdown(g);
-    return '<section class="ud-pop-type" aria-label="'+html(g.type)+'">'+
+    return '<section class="ud-pop-type" style="--ud-pop-accent:'+accents[paletteIndex%accents.length]+';--ud-pop-accent-soft:'+softAccents[paletteIndex%softAccents.length]+'" aria-label="'+html(g.type)+'">'+
       '<div class="ud-pop-head"><h3>'+html(g.type)+'</h3><div><span class="ud-pop-total-label">Total:</span> <strong>'+total+'</strong><span class="ud-pop-total-label"> unit</span></div></div>'+
       '<div class="ud-pop-body"><div class="ud-pop-count">'+
       '<span class="ud-count-label">Total Unit</span><div class="ud-count-number">'+total+'</div><span class="ud-count-suffix">unit</span>'+
@@ -270,16 +297,20 @@
     const grandTotal=groups.reduce((n,g)=>n+Math.max(g.planned,g.details.length),0);
     return '<div class="card ud-summary-panel">'+
       '<div class="ud-pop-hero"><div><h2>POPULASI UNIT</h2>'+
-      '<p>Jumlah unit berdasarkan jenis, vendor, merek, status operasional, dan kondisi.</p></div>'+
-      '<div class="ud-pop-total"><strong>'+grandTotal+'</strong><span>Total unit</span></div></div>'+
+      '<p>Rekap otomatis berdasarkan jenis, vendor, merek, status operasional, dan kondisi dari sheet Populasi Unit.</p></div>'+
+      '<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap">'+
+      '<div class="ud-pop-total"><strong>'+grandTotal+'</strong><span>Total unit</span></div>'+
+      ((typeof permOf!=="function"||permOf("unit","v"))?'<button type="button" class="ud-pop-source" data-go="unit" title="Lihat sumber data Populasi Unit">Lihat sumber data &rarr;</button>':'')+
+      '</div></div>'+
       '<p class="ud-pop-explain">Tabel dibaca per <strong>Jenis Unit → Vendor → Merek</strong>. Angka pada kolom status dan kondisi adalah jumlah unit dari merek tersebut, bukan tambahan unit baru. Status Operasional dan Kondisi Unit adalah dua informasi yang berbeda.</p>'+
       (groups.length?'<div class="ud-pop-list">'+groups.map(unitPopType).join("")+'</div>':
         '<p class="ud-small">Belum ada populasi unit pada monitoring ini.</p>')+
       '<p class="ud-pop-footer">Keterangan: <strong>Belum Diketahui</strong> berarti status operasional belum dicatat; <strong>Belum Diperiksa</strong> berarti kondisi belum dinilai. Keduanya tidak otomatis berarti unit rusak. Warna kartu vendor hanya membedakan kelompok, bukan menandakan progress.</p></div>';
   }
+  // Replace the original compact Population Unit tiles. The dashboard now
+  // shows exactly one summary, at the original tile position, from DATA.units.
   if (typeof window.unitBlock === "function") {
-    const previousUnitBlock = window.unitBlock;
-    window.unitBlock=function(D){return previousUnitBlock(D)+dashboardUnitBreakdown();};
+    window.unitBlock=function(D){return dashboardUnitBreakdown();};
   }
   // Read-only full MPP audit. Preserves the existing operational MPP table.
   if (typeof window.pageMPP === "function") {
