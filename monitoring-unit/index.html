@@ -1132,6 +1132,29 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 #donut .dleg>p{margin:7px 2px 0;color:#6D6980;font-size:11px;line-height:1.45}
 @media(max-width:600px){#donut .dleg{min-width:0;width:100%}#donut .dwrap{gap:14px}}
 @media print{#donut .dleg>.mu-status-legend{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+
+/* Status chart: SVG ring colors match statuses exactly, with clickable arcs. */
+#donut .mu-donut-viz{position:relative;width:190px;height:190px;flex:0 0 190px}
+#donut .mu-donut-svg{width:100%;height:100%;display:block;overflow:visible}
+#donut .mu-donut-slice{cursor:pointer;transition:stroke-width .15s ease,filter .15s ease}
+#donut .mu-donut-slice:hover,#donut .mu-donut-slice:focus-visible{stroke-width:43;filter:drop-shadow(0 1px 2px rgba(33,22,78,.25));outline:none}
+#donut .mu-donut-center{position:absolute;inset:26%;background:#fff;border:0;border-radius:50%;cursor:pointer;
+display:flex;flex-direction:column;align-items:center;justify-content:center;color:#292449;font:inherit;box-shadow:0 0 0 1px #F2EFFA}
+#donut .mu-donut-center b{font-size:29px;font-weight:850;line-height:1}
+#donut .mu-donut-center small{font-size:10px;margin-top:5px;color:#71698A}
+#donut .mu-donut-center em{font-style:normal;font-size:9px;color:#6D28D9;font-weight:800;margin-top:4px}
+#donut .mu-donut-center:focus-visible{outline:2px solid #6D28D9;outline-offset:4px}
+#donut .dleg>.mu-status-legend{width:100%;display:grid;grid-template-columns:12px minmax(0,1fr) auto 45px 12px;
+padding:7px 9px;gap:9px;align-items:center;text-align:left;cursor:pointer;font:inherit;font-size:12px;
+border:1px solid transparent;background:var(--unit-soft);border-radius:7px;color:#332F4E}
+#donut .dleg>.mu-status-legend:hover{border-color:var(--unit-color);filter:brightness(.99)}
+#donut .dleg>.mu-status-legend:focus-visible{outline:2px solid var(--unit-color);outline-offset:1px}
+#donut .mu-chart-open{font-weight:850;color:var(--unit-color);text-align:center;font-size:12px}
+#donut .mu-chart-hint{font-size:10px;color:#746B8C;padding:1px 3px}
+@media(max-width:520px){#donut .mu-donut-viz{width:166px;height:166px;flex-basis:166px}}
+@media(prefers-reduced-motion:reduce){#donut .mu-donut-slice{transition:none}}
+@media print{#donut .mu-donut-slice{stroke-linecap:butt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+#donut .mu-chart-open,#donut .mu-chart-hint,#donut .mu-donut-center em{display:none!important}}
 </style>
 <script src="../remembered-access.js?v=20261020"></script></head>
 <body>
@@ -2164,10 +2187,33 @@ function renderCharts(){
     <div class="lg"><span><i style="background:#C4B5FD"></i>Rencana kirim</span><span><i style="background:#F7871F"></i>Dalam perjalanan</span><span><i style="background:#6D28D9"></i>Unit tiba</span></div>`;
   const us=S.units.filter(arrived), tot=us.length, t=totals(null);
   let acc=0; const segs=UNIT_STATUS.map(x=>{ const n=us.filter(u=>u.status===x.k).length, a0=acc; acc+=n; return {x,n,a0}; });
-  const grad=tot?segs.filter(o=>o.n).map(o=>`${o.x.col} ${o.a0/tot*360}deg ${(o.a0+o.n)/tot*360}deg`).join(","):"#EDEBF5 0deg 360deg";
-  dn.innerHTML=`<div class="dwrap"><div class="ring" style="background:conic-gradient(${grad})"><div><b>${tot}</b><small>unit di lokasi</small></div></div>
-    <div class="dleg">${segs.map(o=>`<div class="mu-status-legend" style="--unit-color:${o.x.col};--unit-soft:${o.x.soft}"><i style="background:${o.x.col}"></i><span>${o.x.k}</span><b>${o.n}</b><small>(${pct(o.n,tot)}%)</small></div>`).join("")}
-    <p>${t.sisa?`${t.sisa} unit lagi belum tiba dari rencana ${t.rencana} unit.`:"Semua unit rencana sudah tiba."}</p></div></div>`;
+  // SVG tiap segmen mempunyai warna yang pasti sama dengan legend/KPI.
+  // Lingkaran dibuat dari unit yang berstatus tiba/standby/mobilisasi/
+  // beroperasi/breakdown, bukan dari rencana kirim.
+  const radius=79,circ=2*Math.PI*radius;
+  const slices=segs.filter(o=>o.n>0).map(o=>{
+    const len=circ*o.n/Math.max(1,tot),start=-circ*o.a0/Math.max(1,tot);
+    return `<circle class="mu-donut-slice" cx="100" cy="100" r="${radius}" fill="none" stroke="${o.x.col}" stroke-width="36"
+      stroke-dasharray="${len.toFixed(5)} ${(circ-len).toFixed(5)}" stroke-dashoffset="${start.toFixed(5)}"
+      transform="rotate(-90 100 100)" data-chart-status="${esc(o.x.k)}" tabindex="0" role="link"
+      aria-label="${esc(o.x.k)}: ${o.n} unit. Buka rincian Populasi Unit"><title>${esc(o.x.k)}: ${o.n} unit — klik untuk melihat rinciannya</title></circle>`;
+  }).join("");
+  dn.innerHTML=`<div class="dwrap">
+    <div class="mu-donut-viz">
+      <svg class="mu-donut-svg" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="group" aria-label="Status unit di lokasi. Pilih warna untuk melihat detail unit.">
+        <circle cx="100" cy="100" r="${radius}" fill="none" stroke="#EDEBF5" stroke-width="36" />
+        ${slices}
+      </svg>
+      <button type="button" class="mu-donut-center" data-chart-status="Semua" title="Lihat seluruh Populasi Unit">
+        <b>${tot}</b><small>unit di lokasi</small><em>Lihat semua →</em>
+      </button>
+    </div>
+    <div class="dleg">${segs.map(o=>`<button type="button" class="mu-status-legend" style="--unit-color:${o.x.col};--unit-soft:${o.x.soft}"
+      data-chart-status="${esc(o.x.k)}" title="Lihat unit berstatus ${esc(o.x.k)}">
+      <i style="background:${o.x.col}"></i><span>${o.x.k}</span><b>${o.n}</b><small>(${pct(o.n,tot)}%)</small><span class="mu-chart-open" aria-hidden="true">↗</span>
+    </button>`).join("")}
+    <p>${t.sisa?`${t.sisa} unit lagi belum tiba dari rencana ${t.rencana} unit.`:"Semua unit rencana sudah tiba."}</p>
+    <span class="mu-chart-hint">Klik warna atau status untuk melihat unitnya.</span></div></div>`;
 }
 function renderPFilter(){
   const el=$("#pfilter"); el.hidden=true;
@@ -2724,6 +2770,18 @@ function renderMob(){
 }
 
 /* ---------- event ---------- */
+// Direct link to unit population filtered by the selected donut status.
+function muOpenStatusUnit(status){
+  if(status!=="Semua"&&!UNIT_STATUS.some(x=>x.k===status))return;
+  S.view="all";S.fProj="all";S.fUnit=status;S.unitGroup="all";S.q="";
+  const globalSearch=$("#gSearch"),unitSearch=$("#qUnit");
+  if(globalSearch)globalSearch.value="";
+  if(unitSearch)unitSearch.value="";
+  try{history.replaceState(null,"","#unit-status="+encodeURIComponent(status));}catch(e){}
+  setTab("unit");render();
+  const target=$("#muPopDetails");
+  if(target)try{target.scrollIntoView({block:"start",behavior:"smooth"});}catch(e){}
+}
 function setTab(t){ S.tab=t; document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===t)));
   ["ringkasan","unit","mobilisasi","pengiriman","dokumentasi"].forEach(x=>$("#p-"+x).hidden=x!==t); renderPFilter();
   try{ localStorage.setItem("mu_tab",t); }catch(e){} const ts=$("#fTabSel"); if(ts) ts.value=t;
@@ -2731,6 +2789,8 @@ function setTab(t){ S.tab=t; document.querySelectorAll("#tabs button").forEach(b
   if(window.__muReady && (was||t!=="ringkasan")) try{ window.scrollTo({top:0,behavior:"smooth"}); }catch(e){ window.scrollTo(0,0); } }
 $("#tabs").addEventListener("click",e=>{ const b=e.target.closest("button[data-tab]"); if(b) setTab(b.dataset.tab); });
 document.addEventListener("click",e=>{
+  const chart=e.target.closest("[data-chart-status]");
+  if(chart){muOpenStatusUnit(chart.dataset.chartStatus);return;}
   const all=e.target.closest("[data-dash-all]");
   if(all){
     if(all.dataset.dashAll==="show")muDashboardRestoreAll();
@@ -2800,10 +2860,35 @@ document.addEventListener("change",e=>{
   const m=S.mobs.find(x=>x.id===s.dataset.id); if(!m) return;
   const st=s.value; store.update(COL.mobs,m.id,{status:st}).then(()=>{ toast(`${m.unitKode}: ${st}`); efekStatus({...m,status:st}); }).catch(()=>{});
 });
-document.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ")&&e.target.matches&&e.target.matches(".tcard[data-proj]")){ e.preventDefault(); openProject(e.target.dataset.proj); } });
-function fromHash(){ let h=""; try{ h=decodeURIComponent(location.hash.slice(1)); }catch(e){} if(/^[\w.~-]{6,80}$/.test(h) && !["dashboard","unit","mobilisasi","pengiriman","dokumentasi"].includes(h)){ S.view=h; S.fProj=h; } }
-fromHash();
-window.addEventListener("hashchange",()=>{ const before=S.view; fromHash(); if(!location.hash&&before!=="all"){ S.view="all"; S.fProj="all"; } render(); });
+document.addEventListener("keydown",e=>{
+  const chart=e.target.closest&&e.target.closest(".mu-donut-slice[data-chart-status]");
+  if(chart&&(e.key==="Enter"||e.key===" ")){e.preventDefault();muOpenStatusUnit(chart.dataset.chartStatus);return;}
+  if((e.key==="Enter"||e.key===" ")&&e.target.matches&&e.target.matches(".tcard[data-proj]")){
+    e.preventDefault();openProject(e.target.dataset.proj);
+  }
+});
+function fromHash(){
+  let h="";try{h=decodeURIComponent(location.hash.slice(1));}catch(e){}
+  if(h.startsWith("unit-status=")){
+    const status=h.slice("unit-status=".length);
+    if(status==="Semua"||UNIT_STATUS.some(x=>x.k===status)){
+      S.view="all";S.fProj="all";S.fUnit=status;S.unitGroup="all";S.q="";S.tab="unit";
+      return true;
+    }
+    return false;
+  }
+  if(/^[\w.~-]{6,80}$/.test(h)&&!["dashboard","unit","mobilisasi","pengiriman","dokumentasi"].includes(h)){
+    S.view=h;S.fProj=h;
+  }
+  return false;
+}
+const MU_HASH_STATUS=fromHash();
+window.addEventListener("hashchange",()=>{
+  const before=S.view,isStatus=fromHash();
+  if(!location.hash&&before!=="all"){S.view="all";S.fProj="all";}
+  if(isStatus)setTab("unit");
+  render();
+});
 $("#qUnit").addEventListener("input",e=>{ S.q=e.target.value; const g=$("#gSearch"); if(g) g.value=S.q; renderUnit(); });
 setTimeout(()=>{ window.__muReady=true; },0);
 $("#gSearch").addEventListener("input",e=>{ S.q=e.target.value; $("#qUnit").value=S.q; if(S.q&&S.tab!=="unit"){ S.fUnit="Semua"; setTab("unit"); } renderUnit(); });
@@ -2823,7 +2908,8 @@ $("#addProj").onclick=()=>formProject(null);
 
 function tick(){ const d=new Date(); $("#time").textContent=pad(d.getHours())+"."+pad(d.getMinutes()); $("#today").textContent=d.toLocaleDateString("id-ID",{weekday:"long",day:"numeric",month:"short",year:"numeric"}); }
 tick(); setInterval(tick,30000);
-try{ const t=localStorage.getItem("mu_tab"); if(t && $("#p-"+t)) setTab(t); }catch(e){}
+try{const t=localStorage.getItem("mu_tab");if(!MU_HASH_STATUS&&t&&$("#p-"+t))setTab(t);}catch(e){}
+if(MU_HASH_STATUS)setTab("unit");
 render();
 
 /* ---------- login & peran (sama seperti portal MPP) ---------- */
