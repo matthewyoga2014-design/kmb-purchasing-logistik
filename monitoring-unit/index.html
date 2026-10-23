@@ -904,6 +904,66 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 @media print{.mu-pop-dashboard,.mu-pop-card{break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 .mu-pop-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 .mu-pop-source{display:none!important}}
+
+
+/* Compact dashboard 2026-10-23: perbaiki lebar global table min 760px.
+   Seluruh unit dan hitungan sumber asli tetap sama. */
+.mu-pop-dashboard{padding:12px;margin-bottom:12px;border-color:#e7e2f2;border-radius:13px}
+.mu-pop-titlebar{gap:8px;margin-bottom:7px;align-items:center}
+.mu-pop-eyebrow{font-size:11px;color:#6D28D9}
+.mu-pop-mainheading p{font-size:10px;margin:1px 0 0}
+.mu-pop-head-actions{gap:6px}
+.mu-pop-total{padding:5px 9px;font-size:12px;background:#F2ECFF;color:#5B21B6}
+.mu-pop-total small{font-size:9px}
+.mu-pop-source{padding:6px 9px!important;font-size:10px!important}
+.mu-pop-guide{padding:6px 9px;margin-bottom:9px;font-size:9.5px;background:#f8f7fe;border-color:#eae6f6}
+.mu-pop-grid{display:block;columns:2;column-gap:10px}
+.mu-pop-card{display:inline-block;vertical-align:top;width:100%;margin:0 0 10px;break-inside:avoid-column;border-radius:10px;border:1px solid #e3def0;border-left:3px solid var(--mu-accent,#6D28D9);box-shadow:0 2px 10px rgba(63,35,125,.025)}
+.mu-pop-card-head{padding:7px 9px;min-height:32px;background:var(--mu-head,#EDE9FE);border-bottom:1px solid #e9e3f7;color:#292047;gap:6px}
+.mu-pop-card-head h3{font-size:11px;line-height:1.2;letter-spacing:0}
+.mu-pop-card-count{font-size:10px;color:#4C1D95}
+.mu-pop-truck{flex:0 0 16px}
+.mu-pop-truck svg{height:16px;width:16px}
+.mu-pop-card-content{display:block;padding:7px 9px}
+.mu-pop-totals{display:none}
+.mu-pop-vendors{display:flex;flex-direction:column;gap:7px;min-width:0;padding:0}
+.mu-pop-vendor{min-width:0;width:100%}
+.mu-pop-vendor-head{margin:0 0 4px;gap:5px;font-size:9.5px;color:#5B21B6}
+.mu-pop-vendor-head strong{font-size:9.5px}
+.mu-pop-table-scroller{width:100%;max-width:100%;min-width:0;overflow:hidden;border-radius:6px;border-color:#e7e2f1}
+.mu-pop-table{width:100%!important;min-width:0!important;max-width:100%;table-layout:fixed;border-collapse:collapse}
+.mu-pop-table th{padding:5px 4px;font-size:8.5px;line-height:1.2;background:#F5F3FA;color:#4D3F75;letter-spacing:0;text-transform:none}
+.mu-pop-table th:nth-child(1){width:20%}
+.mu-pop-table th:nth-child(2){width:9%}
+.mu-pop-table th:nth-child(3){width:35.5%}
+.mu-pop-table th:nth-child(4){width:35.5%}
+.mu-pop-table td{padding:4px 5px;font-size:9px;line-height:1.28;vertical-align:middle;overflow-wrap:anywhere}
+.mu-pop-brand{color:#2A214B}
+.mu-pop-badges{display:flex;flex-direction:row;flex-wrap:wrap;align-items:flex-start;gap:3px}
+.mu-pbadge{display:inline-flex;gap:3px;max-width:100%;width:auto;align-items:baseline;min-height:0;padding:2px 5px;border-radius:4px;font-size:8.5px;line-height:1.2;overflow-wrap:anywhere}
+.mu-pbadge strong{font-weight:800;white-space:nowrap}
+.mu-pbadge span{min-width:0;overflow-wrap:anywhere}
+.mu-pop-card-foot{margin:0 7px 7px;padding:5px 7px;font-size:9px;border-radius:5px;background:#F8F6FD}
+.mu-pop-legend{font-size:9px;line-height:1.4;margin:7px 1px 0}
+@media (max-width:990px){
+ .mu-pop-grid{columns:1}
+}
+@media(max-width:600px){
+ .mu-pop-dashboard{padding:9px}
+ .mu-pop-titlebar{flex-direction:column;align-items:stretch}
+ .mu-pop-head-actions{width:100%;justify-content:space-between}
+ .mu-pop-card-content{display:block;padding:6px}
+ .mu-pop-vendors{padding:0}
+ .mu-pop-table-scroller{overflow-x:auto}
+ .mu-pop-table{min-width:480px!important}
+}
+@media print{
+ .mu-pop-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ .mu-pop-card{display:block;margin:0;break-inside:avoid}
+ .mu-pop-table{min-width:0!important}
+ .mu-pop-table-scroller{overflow:visible}
+}
+
 </style>
 <script src="../remembered-access.js?v=20261020"></script></head>
 <body>
@@ -1869,13 +1929,14 @@ function renderPopDash(){
     v.brands.get(bkey).items.push(rec);
     v.count++;
   });
+  // Warna senada dengan dashboard utama: variasi ungu/indigo lembut.
   const colors=[
-    {edge:"#23bdbc",head:"#6fd6d2",wash:"#f0fbfa"},
-    {edge:"#f29c54",head:"#ffba8a",wash:"#fff8f0"},
-    {edge:"#7c67e8",head:"#bab2fa",wash:"#f7f4ff"},
-    {edge:"#438bdf",head:"#add0fc",wash:"#f2f8ff"},
-    {edge:"#e486aa",head:"#ffd0e2",wash:"#fff5fa"},
-    {edge:"#4fa36a",head:"#b4eac2",wash:"#f3fff7"}
+    {edge:"#6D28D9",head:"#EDE9FE",wash:"#F8F6FF"},
+    {edge:"#4F46E5",head:"#E9ECFF",wash:"#F7F8FF"},
+    {edge:"#7C3AED",head:"#F1E9FF",wash:"#FAF7FF"},
+    {edge:"#6366F1",head:"#E8EAFE",wash:"#F7F8FF"},
+    {edge:"#9333EA",head:"#F4E9FF",wash:"#FBF7FF"},
+    {edge:"#5B21B6",head:"#ECE7FC",wash:"#F8F6FF"}
   ];
   const types=[...grouped.entries()].sort((x,y)=>muPopSort(x[0],y[0]));
   const content=types.map(([type,vs],i)=>{
@@ -1899,14 +1960,9 @@ function renderPopDash(){
     }).join("");
     return '<article class="mu-pop-card" style="--mu-head:'+color.head+';--mu-accent:'+color.edge+';--mu-wash:'+color.wash+'">'+
       '<div class="mu-pop-card-head"><span class="mu-pop-truck">'+MU_UNIT_ICON+'</span>'+
-        '<h3>'+esc(title)+'</h3><span class="mu-pop-card-count">Total: <strong>'+count+'</strong> unit</span></div>'+
-      '<div class="mu-pop-card-content"><div class="mu-pop-totals">'+
-          '<span>Total Unit</span><div class="mu-pop-big">'+count+'<small> unit</small></div>'+
-          '<p>'+count+' identitas terdata</p>'+
-        '</div><div class="mu-pop-vendors">'+vendorHTML+'</div></div>'+
-      '<div class="mu-pop-card-foot">'+(incomplete?
-        '<span>! '+incomplete+' unit masih memakai nomor sementara / belum lengkap.</span>':
-        '<span>✓ Seluruh identitas '+count+' unit telah dicatat.</span>')+'</div>'+
+        '<h3>'+esc(title)+'</h3><span class="mu-pop-card-count"><strong>'+count+'</strong> unit</span></div>'+
+      '<div class="mu-pop-card-content"><div class="mu-pop-vendors">'+vendorHTML+'</div></div>'+
+      (incomplete?'<div class="mu-pop-card-foot"><span>⚠ '+incomplete+' unit masih menggunakan nomor sementara / identitas belum lengkap.</span></div>':'')+
       '</article>';
   }).join("");
   el.innerHTML='<section class="mu-pop-dashboard" aria-label="Rekap populasi unit aktual">'+
@@ -1916,7 +1972,7 @@ function renderPopDash(){
       (P?' — '+esc(P.kode):'')+'.</p></div>'+
       '<div class="mu-pop-head-actions"><span class="mu-pop-total">'+us.length+' <small>Total unit</small></span>'+
         '<button type="button" class="btn small mu-pop-source" data-goto="unit">Lihat sumber data →</button></div></div>'+
-    '<div class="mu-pop-guide">ⓘ Tabel dibaca per <b>Jenis Unit → Vendor → Merek</b>. Angka status dan kondisi adalah jumlah unit dari merek tersebut, bukan tambahan unit.</div>'+
+    '<div class="mu-pop-guide">ⓘ <b>Jenis Unit → Vendor → Merek</b> · Jumlah status dan kondisi adalah rincian unit, bukan tambahan populasi.</div>'+
     (types.length?'<div class="mu-pop-grid">'+content+'</div>':
       '<div class="mu-pop-no-data">Belum ada unit yang tercatat di lokasi. '+(canWrite?'Input melalui sheet Populasi Unit.':'')+'</div>')+
     '<p class="mu-pop-legend"><b>Belum Diketahui</b> = status operasional belum dicatat (termasuk status hanya “Tiba”). '+
