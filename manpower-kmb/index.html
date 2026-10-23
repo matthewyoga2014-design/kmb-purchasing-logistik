@@ -1115,7 +1115,7 @@ function pageMPP(D) {
   const all = D.allCands, c = (s) => all.filter((x) => x.st === s).length;
   const pq = ui.pq.toLowerCase();
   const prow = all.filter((x) => (ui.pf === 'semua' || x.st === ui.pf) && (!pq || `${x.name} ${x.p.jabatan} ${x.note}`.toLowerCase().includes(pq))).sort((a, b) => (isOpen(b.p) - isOpen(a.p)) || (a.p.no - b.p.no));
-  return `${header('Monitoring', 'MPP KMB', 'Planning manpower dan monitoring PTK/rekrutmen.')}
+  return `${header('Monitoring', esc(MPP_SHEET_TITLE), 'Planning manpower dan monitoring PTK/rekrutmen.')}<button type="button" class="btn btn-g" id="mppRenameBtn" style="margin-bottom:10px" ${IS_OWNER?'':'hidden'}>✎ Edit Nama Sheet</button>
   <div class="card" style="margin-bottom:18px">
     <div class="toolbar">
       <div class="seg" role="group" aria-label="Filter status">${[['semua', 'Semua Status'], ['open', `Open (${cnt('open')})`], ['continue', `Continue (${cnt('continue')})`], ['close', `Close (${cnt('close')})`]].map(([k, l]) => `<button type="button" data-mf="${k}" aria-pressed="${ui.mf === k}">${l}</button>`).join('')}</div>
@@ -3647,6 +3647,21 @@ if (!PROJ.sites && PROJ.cfg) PARSE_CFG = PROJ.cfg;
 const cacheKey = () => WEB_ID === 'main' ? 'kta-web-cache' : 'kta-web-cache:' + WEB_ID;
 const WEB = { sb: null, user: null, role: 'viewer', ver: null, editors: null, edErr: null, ready: false, offline: false, empty: false, grant: null, grants: null, gch: null };
 const WEB_PRINT = 'kta_print_grants';
+let MPP_SHEET_TITLE="MPP KMB";
+async function loadMppSheetTitle(){
+ if(!WEB.sb)return;
+ const {data,error}=await WEB.sb.from('portal_display_settings').select('mpp_title').eq('app_key',"kmb").maybeSingle();
+ if(!error&&data?.mpp_title){MPP_SHEET_TITLE=data.mpp_title;PAGES.find(p=>p.id==='mpp').label=MPP_SHEET_TITLE;if(WEB.ready)render();}
+}
+document.addEventListener('click',async e=>{
+ if(!e.target.closest('#mppRenameBtn')||!IS_OWNER)return;
+ const name=prompt('Edit nama sheet MPP (label tampilan):',MPP_SHEET_TITLE);
+ if(name===null)return;const title=name.trim();
+ if(title.length<2||title.length>100){toast('Nama harus 2–100 karakter.',true);return;}
+ const {data,error}=await WEB.sb.from('portal_display_settings').update({mpp_title:title,updated_at:new Date().toISOString()}).eq('app_key',"kmb").select('mpp_title');
+ if(error||!data?.length){toast('Nama sheet gagal disimpan.',true);return;}
+ MPP_SHEET_TITLE=data[0].mpp_title;PAGES.find(p=>p.id==='mpp').label=MPP_SHEET_TITLE;render();toast('Nama sheet berhasil disinkronkan.');
+});
 // Link anonim ?k= sudah tidak dipakai: semua orang wajib masuk dengan email yang diundang (Pusat Monitoring).
 
 const HUB = '../';
@@ -3932,7 +3947,7 @@ async function webInit() {
     return;
   }
   await applyRole();
-  WEB.ready = true; render();
+  WEB.ready = true; render(); loadMppSheetTitle();
   if (WEB.noAccess && !CAN_EDIT) lockWeb();
   setInterval(() => { if (!CAN_EDIT && !document.hidden && WEB.sb) { webLoad().catch(() => {}); if (PROJ.sites) loadAllSites(); } }, 60000);
   if (CAN_EDIT && WEB.empty && !WEB.noAccess) await commit(() => {}, 'Data awal tersimpan di server.');
