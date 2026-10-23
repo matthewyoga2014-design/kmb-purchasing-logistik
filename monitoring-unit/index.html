@@ -1190,6 +1190,7 @@ border:1px solid transparent;background:var(--unit-soft);border-radius:7px;color
 @media print{#muPhotoDlg{display:none!important}}
 .mu-photo-form-note{border:1px solid #e1d3fa;background:#f7f3ff;color:#655480;border-radius:9px;padding:10px;font-size:11px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .mu-photo-btn{color:#6D28D9!important;border-color:#d9c9fa!important}
+.mu-project-rename{color:#6d28d9!important;background:#fff!important;border-color:#ded2f8!important;font-size:10px!important;white-space:nowrap}
 </style>
 <script src="../remembered-access.js?v=20261020"></script></head>
 <body>
@@ -1244,7 +1245,7 @@ border:1px solid transparent;background:var(--unit-soft);border-radius:7px;color
   <div class="hero">
     <div class="crumbs" id="crumbs" hidden><button type="button" class="back" data-act="backAll">← Semua project</button><span>/</span><span id="crumbName"></span></div>
     <span class="eyebrow" id="heroEyebrow">Integrated Monitoring</span>
-    <h1 id="heroTitle">Monitoring Unit All Project</h1>
+    <h1 id="heroTitle">Monitoring Unit All Project</h1><button type="button" class="btn small mu-project-rename" id="muHeroRename" data-act="editProj" hidden>✎ Edit Nama Project</button>
     <p class="sub" id="heroDesc"></p>
     <div class="tag" aria-hidden="true">Monitoring<br>Unit</div>
     <div class="hero-actions" id="heroActions"><button class="btn" data-act="addProj" type="button">+ Project</button></div>
@@ -2168,6 +2169,7 @@ function renderBanner(){
 function emptyState(title,text,btn){ return `<div class="empty"><b>${esc(title)}</b><span>${esc(text)}</span>${btn||""}</div>`; }
 function renderHero(){
   const p=curProj();
+  const heroEdit=$("#muHeroRename");if(heroEdit){heroEdit.hidden=!p||role!=="owner";heroEdit.dataset.id=p?p.id:"";}
   $("#crumbs").hidden=!p;
   if(p){ $("#crumbName").textContent=p.kode; $("#heroEyebrow").textContent="Dashboard project"; $("#heroTitle").textContent="Monitoring Unit "+p.kode;
     $("#heroDesc").textContent=[p.nama,p.lokasi].filter(Boolean).join(" · ")||"Rencana kirim, unit di lokasi, dan mobilisasi project ini."; }
@@ -2499,7 +2501,7 @@ function renderRingkasan(){
       // Ringkasan project: hanya jenis dan jumlah rencana.
       const rows=s.items.filter(itemOk).map(k=>`<div class="row mu-plan-summary"><span class="nm"><b title="${esc(k.tipe)}">${esc(k.tipe)}</b></span><span class="ct">${Number(k.rencana)||0} unit</span></div>`).join("");
       return `<div class="card tcard ${c}" data-proj="${p.id}" tabindex="0" role="link" aria-label="Buka dashboard ${esc(p.kode)}">
-        <div class="tcard-head"><span class="tile-ic">${ic(projIcon(p.id))}</span><div class="tcard-title"><h3>${esc(p.kode)}</h3><span>${esc(sub||"—")}</span></div><button class="btn open small" data-act="openProj" data-id="${p.id}" type="button">Buka →</button></div>
+        <div class="tcard-head"><span class="tile-ic">${ic(projIcon(p.id))}</span><div class="tcard-title"><h3>${esc(p.kode)}</h3><span>${esc(sub||"—")}</span></div>${role==="owner"?`<button class="btn small mu-project-rename" data-act="editProj" data-id="${p.id}" type="button">✎ Edit</button>`:""}<button class="btn open small" data-act="openProj" data-id="${p.id}" type="button">Buka →</button></div>
         <div class="stats">
           <div class="stat">${ic("box","c-purple")}<span><b>${s.rencana}</b><small>Rencana</small></span></div>
           <div class="stat">${ic("pin","c-blue")}<span><b>${s.unitCount}</b><small>Di lokasi</small></span></div>
@@ -2959,7 +2961,7 @@ document.addEventListener("click",e=>{
   if(act==="backAll"){ e.preventDefault(); backAll(); }
   if(act==="akses") showAccount();
   if(act==="addProj") formProject(null);
-  if(act==="editProj"&&P) formProject(P);
+  if(act==="editProj"&&P){if(role!=="owner"){toast("Nama project hanya bisa diubah Pemilik.");return;}formProject(P);}
   if(act==="delProj"&&P){
     const nUnits=S.units.filter(u=>u.projectId===P.id).length, nPlan=S.kirim.filter(k=>k.projectId===P.id).length;
     if(nUnits||nPlan){toast("Project tidak bisa dihapus: masih ada "+nUnits+" unit dan "+nPlan+" item rencana. Gunakan pengaturan lain untuk menyembunyikan.");}
