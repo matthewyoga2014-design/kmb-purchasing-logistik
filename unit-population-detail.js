@@ -99,17 +99,17 @@
     return [...grouped.values()].sort((a,b) =>
       b.planned-a.planned || a.type.localeCompare(b.type,"id"));
   }
-  function countByField(group,field) {
+  function countByField(group,field,blankLabel="Belum diisi") {
     const bucket = new Map();
     const add=(raw,n=1)=>{
-      const name=String(raw||"").trim() || "Belum diisi";
+      const name=String(raw||"").trim() || blankLabel;
       const key=name.toLocaleLowerCase("id-ID");
       const prev=bucket.get(key);
       if(prev)prev.count+=n;else bucket.set(key,{name,count:n});
     };
     group.details.forEach(d=>add(d[field]));
     const absent=Math.max(0,group.planned-group.details.length);
-    if(absent)add("Belum diisi",absent);
+    if(absent)add(blankLabel,absent);
     return [...bucket.values()].sort((a,b)=>b.count-a.count ||
       a.name.localeCompare(b.name,"id"));
   }
@@ -117,9 +117,9 @@
     if (!Array.isArray(DATA.units)) return "";
     const groups=groupUnitTypes();
     const grandTotal=groups.reduce((n,g)=>n+Math.max(g.planned,g.details.length),0);
-    const graph=(g,key,label)=>'<section class="ud-sum-box" aria-label="'+html(label)+' untuk '+html(g.type)+'">'+
+    const graph=(g,key,label,blankLabel="Belum diisi")=>'<section class="ud-sum-box" aria-label="'+html(label)+' untuk '+html(g.type)+'">'+
       '<h4>'+html(label)+'</h4>'+
-      (countByField(g,key).map(item=>{
+      (countByField(g,key,blankLabel).map(item=>{
         const total=Math.max(g.planned,g.details.length,1);
         const pct=Math.min(100,Math.round(item.count/total*100));
         return '<div class="ud-sum-row"><div class="ud-sum-line"><span>'+html(item.name)+'</span><b>'+item.count+' unit</b></div>'+
@@ -127,16 +127,16 @@
       }).join("") || '<p class="ud-small">Belum ada unit.</p>')+'</section>';
     return '<div class="card ud-summary-panel"><div class="ch"><div>'+
       '<div class="eyebrow">Populasi Unit</div><h2>Komposisi Unit per Jenis</h2>'+
-      '<p>Rincian vendor dan merek dikelompokkan menurut jenis unit agar mudah dibandingkan.</p>'+
+      '<p>Rincian vendor, merek, status operasional, dan kondisi dikelompokkan menurut jenis unit agar mudah dibandingkan.</p>'+
       '</div><span class="pill">'+grandTotal+' unit</span></div>'+
       (groups.length?'<div class="ud-type-list">'+groups.map(g=>
         '<section class="ud-type-group"><div class="ud-type-head"><div>'+
           '<span class="ud-type-kicker">JENIS UNIT</span><h3>'+html(g.type)+'</h3>'+
           '<span class="ud-small">'+Math.min(g.details.length,g.planned)+' identitas terdata</span></div>'+
           '<span class="pill">'+g.planned+' unit</span></div>'+
-          '<div class="ud-summary-grid">'+graph(g,"vendor","Vendor / Pemilik Unit")+graph(g,"merk","Merek Unit")+'</div></section>'
+          '<div class="ud-summary-grid">'+graph(g,"vendor","Vendor / Pemilik Unit")+graph(g,"merk","Merek Unit")+graph(g,"status","Status Operasional","Belum Diketahui")+graph(g,"kondisi","Kondisi Unit","Belum Diperiksa")+'</div></section>'
       ).join("")+'</div>':'<p class="ud-small">Belum ada populasi unit di jobsite ini.</p>')+
-      '<p class="ud-small" style="margin-top:12px">“Belum diisi” berarti identitas, vendor, atau merek belum dilengkapi pada Register Per Unit.</p></div>';
+      '<p class="ud-small" style="margin-top:12px">“Belum diisi” berarti vendor atau merek belum tercatat. “Belum Diketahui” dan “Belum Diperiksa” berarti status atau kondisi belum tercatat, termasuk unit yang identitasnya belum didaftarkan.</p></div>';
   }
   if (typeof window.unitBlock === "function") {
     const previousUnitBlock = window.unitBlock;
