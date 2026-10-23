@@ -2762,7 +2762,9 @@ function renderUnit(){
   $("#tUnit").innerHTML=detailRows.length?detailRows.map((u,i)=>{
     const mob=S.mobs.find(m=>(m.unitId===u.id||m.unitKode===u.kode)&&isAktif(m));
     const m=muDetails(u),catatan=String(m.catatan||"").trim();
-    const ops=canWrite?`${!mob?`<button class="btn small" data-act="planUnit" data-id="${esc(u.id)}" type="button">Kirim</button>`:""}<button class="btn small edit" data-act="editUnit" data-id="${esc(u.id)}" type="button">Edit</button>${SRC==="sheet"?`<button class="btn small ghost" data-act="dokUnit" data-id="${esc(u.id)}" type="button">Bukti</button>`:""}<button class="btn small ghost danger" data-act="delUnit" data-id="${esc(u.id)}" type="button">Hapus</button>`:"";
+    const nFoto=muPhotoRecords(u).length;
+    const photoBtn='<button type="button" class="btn small mu-photo-btn" data-unit-photo="'+esc(u.id)+'">📷 Foto'+(nFoto?' ('+nFoto+')':'')+'</button>';
+    const ops=photoBtn+(canWrite?`${!mob?`<button class="btn small" data-act="planUnit" data-id="${esc(u.id)}" type="button">Kirim</button>`:""}<button class="btn small edit" data-act="editUnit" data-id="${esc(u.id)}" type="button">Edit</button>${SRC==="sheet"&&u.kirimId?`<button class="btn small ghost" data-act="dokUnit" data-id="${esc(u.id)}" type="button">Bukti</button>`:""}<button class="btn small ghost danger" data-act="delUnit" data-id="${esc(u.id)}" type="button">Hapus</button>`:"");
     return `<tr>
       <td class="mu-mpp-num">${i+1}</td>
       <td><span class="plate">${esc(u.kode)}</span>${isExistingUnit(u)?`<span class="sub" style="font-size:9px;color:#6d28d9">Existing</span>`:""}${u.kodeSementara?`<span class="sub" style="color:var(--warn);font-size:9px">Nomor sementara</span>`:""}</td>
@@ -2857,7 +2859,8 @@ function showUnitInfo(u){
   if(!u)return;
   const m=muDetails(u);
   const item=(name,value)=>`<div class="mu-info-line"><span>${esc(name)}</span><b>${esc(value||"—")}</b></div>`;
-  const photo=/^https:\/\//i.test(m.foto)?`<a href="${esc(m.foto)}" target="_blank" rel="noopener noreferrer" style="color:#6d28d9;font-weight:700">Buka foto unit →</a>`:"Belum ada foto";
+  const photo='<button type="button" class="btn small primary" data-unit-photo="'+esc(u.id)+'">📷 Lihat / Unggah Foto ('+muPhotoRecords(u).length+')</button>'+
+  (/^https:\/\//i.test(m.foto)?'<a target="_blank" rel="noopener noreferrer" href="'+esc(m.foto)+'"> Tautan foto lama →</a>':"");
   openForm({title:"Detail Populasi Unit · "+u.kode,
     desc:"Data ini terhubung dengan sheet Populasi Unit. Pemilik dan Editor dapat mengubahnya melalui tombol Edit.",
     fields:[{key:"detail",type:"html",html:`<div class="mu-info">
