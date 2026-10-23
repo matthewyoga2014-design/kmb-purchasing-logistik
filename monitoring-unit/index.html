@@ -1255,7 +1255,8 @@ async function handleErr(e){
   const code=e&&e.code;
   if(code==="forbidden") toast(meEmail?"Akun Anda belum terdaftar sebagai Editor. Hubungi Pemilik.":"Masuk dulu sebagai Pemilik atau Editor untuk mengubah data.");
   else if(code==="conflict") toast("Data sedang diubah orang lain. Coba simpan lagi.");
-  else toast("Gagal menyimpan. Periksa koneksi lalu coba lagi.");
+  else if(code==="verify_failed") toast("Data belum terverifikasi tersimpan. "+(e.message||"Coba ulangi penyimpanan."));
+  else toast("Gagal menyimpan. "+(e&&e.message?String(e.message):"Periksa koneksi lalu coba lagi."));
   throw e;
 }
 const EMPTY=()=>({rev:0,projects:[],pengiriman:[],units:[],mobilisasi:[],revisi:[],dokumentasi:[]});
@@ -1298,12 +1299,14 @@ async function fetchState(){
   if(SRC==="sheet") return fetchSheetWithRefresh();
   return ensureCols(await fetchSb()); }
 let PENDING=[];
+let WRITE_REV=0; // perubahan selama request refresh: cegah respon lama menimpa hasil edit
 function applyOpsLocal(st,ops){ ops.forEach(o=>{ if(!st[o.col]) st[o.col]=[];
   if(o.action==="add") { if(!st[o.col].some(x=>x.id===o.id)) st[o.col].push({...o.data,id:o.id}); }
   else if(o.action==="update"){ const r=st[o.col].find(x=>x.id===o.id); if(r) Object.assign(r,o.data); }
   else if(o.action==="remove") st[o.col]=st[o.col].filter(x=>x.id!==o.id); }); return st; }
 async function sheetOp(op){
   if(!canWrite) throw {code:"forbidden"};
+  ++WRITE_REV;
   const ops=Array.isArray(op)?op:[op], local=ops.every(o=>o.action!=="upload");
   if(local && STATE){ PENDING.push(ops); try{ applyState(applyOpsLocal(JSON.parse(JSON.stringify(STATE)),ops)); }catch(e){} setSync("busy"); }
   const done=()=>{ const i=PENDING.indexOf(ops); if(i>=0) PENDING.splice(i,1); };
@@ -1311,10 +1314,23 @@ async function sheetOp(op){
     const {data}=await sb.auth.getSession(); const token=data&&data.session&&data.session.access_token;
     const r=await fetch(SHEET_API,{method:"POST",body:JSON.stringify({token,share:GUEST_SHARE,ops:Array.isArray(op)?op:[op]})});
     const j=await r.json().catch(()=>null);
-    if(!j||!j.ok){ const e=j&&j.error; throw {code:(e==="forbidden"||e==="not_signed_in")?"forbidden":e==="busy"?"conflict":"failed"}; }
+    if(!j||!j.ok||!j.state){ const e=j&&j.error; throw {code:(e==="forbidden"||e==="not_signed_in")?"forbidden":e==="busy"?"conflict":"failed",message:j&&j.message}; }
+    // Jangan mengaku tersimpan jika Apps Script mengembalikan nilai berbeda.
+    for(const o of ops){
+      if(o.col!=="units" || !["update","add"].includes(o.action))continue;
+      const rec=(j.state.units||[]).find(x=>x.id===o.id);
+      if(!rec)throw {code:"verify_failed",message:"Unit tidak ditemukan setelah Simpan."};
+      const expected=muDetails(o.data||{}),actual=muDetails(rec);
+      if(o.data&&o.data.kondisi&&actual.kondisi.trim().toLowerCase()!==String(o.data.kondisi).trim().toLowerCase())
+        throw {code:"verify_failed",message:"Kondisi unit belum cocok dengan data tersimpan."};
+      if(o.data&&o.data.status&&rec.status!==o.data.status)
+        throw {code:"verify_failed",message:"Status operasional belum cocok dengan data tersimpan."};
+      if(o.data&&o.data.kode&&rec.kode!==o.data.kode)
+        throw {code:"verify_failed",message:"Nomor lambung belum cocok dengan data tersimpan."};
+    }
     done(); let st=j.state; if(PENDING.length){ st=JSON.parse(JSON.stringify(st)); PENDING.forEach(p=>applyOpsLocal(st,p)); }
     applyState(st); if(!PENDING.length) setSync("ok"); });
-  job.catch(async()=>{ done(); if(local){ try{ const st=await fetchState(); applyState(st); }catch(e){} } setSync("err"); });
+  job.catch(async()=>{ done(); if(local){ try{ const st=await fetchState(); if(!PENDING.length) applyState(st); }catch(e){} } setSync("err"); });
   saving=job.catch(()=>{}); return job; }
 function mutate(fn){ const job=saving.then(()=>doMutate(fn)); saving=job.catch(()=>{}); return job; }
 async function doMutate(fn){
@@ -1368,7 +1384,8 @@ function openForm({title,desc="",fields,values={},ok="Simpan",onSubmit,live,dang
       if(f.req && (v===""||v==null||(f.type==="number"&&isNaN(v)))){ el.focus(); toast(`Isi kolom "${f.label}".`); return false; }
       if(f.type==="number" && v!=="" && f.min!=null && v<f.min){ el.focus(); toast(`"${f.label}" minimal ${f.min}.`); return false; }
       data[f.key]=v; }
-    return onSubmit(data)!==false;
+    const result=onSubmit(data);
+    return result&&typeof result.then==="function" ? result : result!==false;
   };
   dlgLive=live||null;
   if(dlgLive) dlgLive(readForm(fields),null);
@@ -1378,7 +1395,19 @@ function openForm({title,desc="",fields,values={},ok="Simpan",onSubmit,live,dang
 }
 function readForm(fields){ const o={}; fields.forEach(f=>{ if(f.type==="html") return; const el=document.getElementById("f_"+f.key); if(el) o[f.key]=el.value; }); return o; }
 function confirmBox(title,desc,ok,fn){ openForm({title,desc,fields:[],ok,danger:true,onSubmit:()=>{fn();}}); }
-$("#dlgForm").addEventListener("submit",e=>{ e.preventDefault(); if(dlgSubmit && dlgSubmit()) $("#dlg").close(); });
+let DIALOG_BUSY=false;
+$("#dlgForm").addEventListener("submit",async e=>{
+  e.preventDefault(); if(DIALOG_BUSY||!dlgSubmit)return;
+  const submit=dlgSubmit,btn=$("#dlgOk");
+  try{
+    const result=submit();
+    if(result&&typeof result.then==="function"){
+      DIALOG_BUSY=true; btn.disabled=true; btn.textContent="Menyimpan…";
+      const ok=await result;if(ok!==false)$("#dlg").close();
+    }else if(result!==false)$("#dlg").close();
+  }catch(err){console.error("Save dialog",err);toast("Simpan belum berhasil. Periksa data dan coba kembali.");}
+  finally{DIALOG_BUSY=false;btn.disabled=false;if($("#dlg").open)btn.textContent="Simpan perubahan";}
+});
 $("#dlgCancel").addEventListener("click",()=>$("#dlg").close());
 
 /* ---------- form ---------- */
@@ -1476,20 +1505,42 @@ const MU_DETAIL_TAG="\n\n--- DETAIL POPULASI UNIT ---\n";
 const MU_DETAIL_NAMES={vendor:"Vendor",merk:"Merek",model:"Model/Tipe",tahun:"Tahun",serial:"Serial/Chassis",kondisi:"Kondisi",foto:"Foto Unit (URL)"};
 function muDetails(u){
   const raw=String((u&&u.catatan)||"");
-  const i=raw.lastIndexOf(MU_DETAIL_TAG);
-  const tail=i<0?"":raw.slice(i+MU_DETAIL_TAG.length), meta={};
-  if(i>=0) tail.split("\n").forEach(line=>{
-    const sep=line.indexOf(": ");if(sep<0)return;
-    const name=line.slice(0,sep), k=Object.keys(MU_DETAIL_NAMES).find(x=>MU_DETAIL_NAMES[x]===name);
-    if(k)meta[k]=line.slice(sep+2);
+  // Sumber lama kadang memiliki beberapa blok DETAIL, bahkan tanpa baris kosong.
+  // Ambil semua blok, lalu utamakan kondisi yang benar-benar dinilai atas
+  // placeholder "Belum diverifikasi" yang tersisip saat form lama disimpan.
+  const segments=raw.split(/(?:\r?\n)*---\s*DETAIL POPULASI UNIT\s*---[ \t]*(?:\r?\n|$)/gi);
+  const notes=segments.shift()||"";
+  const entries={};
+  segments.forEach(block=>{
+    String(block).split(/\r?\n/).forEach(line=>{
+      const colon=line.indexOf(":");if(colon<0)return;
+      const label=line.slice(0,colon).trim().toLowerCase();
+      const key=Object.keys(MU_DETAIL_NAMES).find(k=>MU_DETAIL_NAMES[k].toLowerCase()===label);
+      if(!key)return;
+      const value=line.slice(colon+1).trim();
+      if(!value)return;
+      if(!entries[key])entries[key]=[];
+      entries[key].push(value);
+    });
   });
-  const v={catatan:i>=0?raw.slice(0,i):raw};
-  for(const key of Object.keys(MU_DETAIL_NAMES))v[key]=String((u&&u[key])||meta[key]||"");
-  return v;
+  const placeholders=/^(?:belum diverifikasi|belum diperiksa|belum diketahui|tidak diketahui|-)$/i;
+  const result={catatan:notes.trim()};
+  for(const key of Object.keys(MU_DETAIL_NAMES)){
+    const arr=entries[key]||[];
+    const explicit=String((u&&u[key])||"").trim();
+    // Kolom struktur terbaru, jika tersedia, adalah sumber utama.
+    const picked=explicit&&!placeholders.test(explicit)?explicit:
+      arr.slice().reverse().find(v=>!placeholders.test(v))||explicit||arr[arr.length-1]||"";
+    result[key]=picked;
+  }
+  return result;
 }
 function muPrepareUnitData(d){
-  const clean=String(d.catatan||"").trim();
-  const lines=Object.entries(MU_DETAIL_NAMES).filter(([key])=>String(d[key]||"").trim()).map(([key,label])=>label+": "+String(d[key]).trim().replace(/\r?\n/g," "));
+  // Simpan satu blok kanonis saja, jangan menumpuk tag tiap kali edit.
+  const clean=muDetails({catatan:d.catatan}).catatan;
+  const lines=Object.entries(MU_DETAIL_NAMES)
+    .filter(([key])=>String(d[key]||"").trim())
+    .map(([key,label])=>label+": "+String(d[key]).trim().replace(/\r?\n/g," "));
   d.catatan=clean+(lines.length?MU_DETAIL_TAG+lines.join("\n"):"");
   return d;
 }
@@ -1563,7 +1614,9 @@ function formExistingUnit(presetProject){
         updatedAt:nowIso(),via:"Populasi awal",rencanaKirim:"",tglKirim:"",kodeSementara:!list.length});
       delete base.kode;delete base.jumlah;
       const ops=codes.map(kode=>({col:COL.units,action:"add",id:"u-"+uid(),data:{...base,kode}}));
-      store.batch(ops).then(()=>toast(`${codes.length} unit existing tersimpan di ${projKode(d.projectId)}.`)).catch(()=>{});
+      return store.batch(ops)
+        .then(()=>{toast(`${codes.length} unit existing tersimpan dan diverifikasi di ${projKode(d.projectId)}.`);return true;})
+        .catch(()=>false);
     }
   });
 }
@@ -1661,7 +1714,9 @@ function formUnit(u,presetItem){
       const data=muPrepareUnitData({...d,kode:code,updatedAt:nowIso(),hm:d.hm===""?0:d.hm,
         kodeSementara:code!==u.kode?false:!!u.kodeSementara,
         ...(existing?{kirimId:"",via:"Populasi awal"}:{})});
-      store.update(COL.units,u.id,data).then(()=>toast("Populasi unit "+code+" diperbarui.")).catch(()=>{});
+      return store.update(COL.units,u.id,data)
+        .then(()=>{toast("Populasi unit "+code+" telah tersimpan dan diverifikasi.");return true;})
+        .catch(()=>false);
     }
   });
 }
@@ -2363,7 +2418,7 @@ document.addEventListener("change",e=>{
   const st=s.value; store.update(COL.mobs,m.id,{status:st}).then(()=>{ toast(`${m.unitKode}: ${st}`); efekStatus({...m,status:st}); }).catch(()=>{});
 });
 document.addEventListener("keydown",e=>{ if((e.key==="Enter"||e.key===" ")&&e.target.matches&&e.target.matches(".tcard[data-proj]")){ e.preventDefault(); openProject(e.target.dataset.proj); } });
-function fromHash(){ let h=""; try{ h=decodeURIComponent(location.hash.slice(1)); }catch(e){} if(/^p-[\w.~-]+$/.test(h)){ S.view=h; S.fProj=h; } }
+function fromHash(){ let h=""; try{ h=decodeURIComponent(location.hash.slice(1)); }catch(e){} if(/^[\w.~-]{6,80}$/.test(h) && !["dashboard","unit","mobilisasi","pengiriman","dokumentasi"].includes(h)){ S.view=h; S.fProj=h; } }
 fromHash();
 window.addEventListener("hashchange",()=>{ const before=S.view; fromHash(); if(!location.hash&&before!=="all"){ S.view="all"; S.fProj="all"; } render(); });
 $("#qUnit").addEventListener("input",e=>{ S.q=e.target.value; const g=$("#gSearch"); if(g) g.value=S.q; renderUnit(); });
@@ -2694,7 +2749,11 @@ async function startData(){
   setSync("busy");
   try{ await fetchSb(); const st=SRC==="sheet"?await fetchSheetWithRefresh():SBDATA; mode="ok"; if(JSON.stringify(ensureCols(st))!==lastJson) applyState(st); else render(); setSync("ok"); }
   catch(e){ setSync("err"); if(!cached){ mode="error"; S.ready=true; render(); } }
-  const refresh=async()=>{ if(document.hidden||PENDING.length) return; try{ const st=await fetchState(); if(JSON.stringify(st)!==lastJson) applyState(st); if(mode==="error"){ mode="ok"; render(); } setSync("ok"); }catch(e){ setSync("err"); } };
+  const refresh=async()=>{ if(document.hidden||PENDING.length) return; const rev=WRITE_REV;
+    try{ const st=await fetchState(); if(rev!==WRITE_REV||PENDING.length)return;
+      if(JSON.stringify(st)!==lastJson) applyState(st);
+      if(mode==="error"){ mode="ok"; render(); } setSync("ok");
+    }catch(e){ if(rev===WRITE_REV&&!PENDING.length)setSync("err"); } };
   setInterval(refresh,20000);
   document.addEventListener("visibilitychange",refresh); window.addEventListener("focus",refresh);
 }
