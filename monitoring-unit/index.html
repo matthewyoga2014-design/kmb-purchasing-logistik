@@ -1037,6 +1037,18 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .mu-notice-dismiss{border:0;background:transparent;color:inherit;cursor:pointer;font-size:18px;padding:2px 7px;line-height:1.1}
 @media print{.mu-save-notice{display:none!important}}
 @media(prefers-reduced-motion:reduce){.mu-save-spinner{animation:none}}
+
+.mu-trash-panel{position:fixed;z-index:2500;top:73px;right:18px;width:min(480px,calc(100vw - 28px));max-height:calc(100vh - 94px);overflow:auto;
+ background:#fff;border:1px solid #ded6f4;border-radius:13px;padding:12px;box-shadow:0 16px 45px rgba(37,25,75,.22)}
+.mu-trash-panel[hidden]{display:none!important}
+.mu-trash-top{display:flex;align-items:start;justify-content:space-between;gap:10px;margin-bottom:10px}
+.mu-trash-top b{display:block;color:#5525ab;font-size:15px}.mu-trash-top small{display:block;color:#6e6687;font-size:10px;margin-top:4px;line-height:1.5}
+.mu-trash-list{display:flex;flex-direction:column;gap:5px}
+.mu-trash-item{display:flex;align-items:center;justify-content:space-between;gap:8px;background:#faf9fe;border:1px solid #eeebf6;border-radius:8px;padding:8px}
+.mu-trash-item>span{min-width:0;overflow-wrap:anywhere}.mu-trash-item b{display:block;font-size:11px;color:#272040}
+.mu-trash-item small{display:block;font-size:10px;color:#716d82;padding-top:4px}
+.mu-trash-empty{font-size:11px;color:#77718a;padding:14px 4px}
+@media print{#muTrashPanel,#btnTrash{display:none!important}}
 </style>
 <script src="../remembered-access.js?v=20261020"></script></head>
 <body>
@@ -1077,6 +1089,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
   <div class="search"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input type="search" id="gSearch" placeholder="Cari no. lambung, unit, project…" aria-label="Cari unit" autocomplete="off"></div>
   <span class="sync" id="sync" hidden></span>
   <button class="btn tb" id="btnPrint" type="button" hidden><svg class="i"><use href="#i-print"/></svg><span class="hide-sm">Print</span></button>
+  <button class="btn tb" id="btnTrash" type="button" hidden title="Data yang dihapus dan dapat dipulihkan">♻ Sampah <span id="muTrashNum"></span></button>
   <button class="btn tb dl" id="btnDownload" type="button" hidden><svg class="i"><use href="#i-download"/></svg><span class="hide-sm">Excel</span></button>
   <button class="btn tb pri" id="topNew" type="button" data-act="addUnitBtn" hidden><b style="font-size:17px;line-height:1">+</b><span class="hide-sm">Catat Unit Tiba</span></button>
   <button class="btn tb pri" id="btnLogin" type="button" hidden>Masuk</button>
@@ -1100,6 +1113,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
   <div class="kpis" id="kpis"></div>
 
   <div class="mu-save-notice" id="muSaveNotice" role="status" aria-live="polite" hidden></div>
+  <div id="muTrashPanel" class="mu-trash-panel" hidden aria-label="Sampah Monitoring Unit"></div>
   <div class="banner" id="banner" hidden></div>
 
   <div class="tabs-wrap" id="sheetTabs" hidden>
@@ -1429,6 +1443,68 @@ const store = {
   batch:(ops)=>(SRC==="sheet"?sheetOp(ops):mutate(st=>{ ops.forEach(o=>{ if(o.action==="add") st[o.col].push({id:o.id,...o.data}); else if(o.action==="update"){ const r=st[o.col].find(x=>x.id===o.id); if(r) Object.assign(r,o.data); } else if(o.action==="remove") st[o.col]=st[o.col].filter(x=>x.id!==o.id); }); })).catch(handleErr),
   remove:(col,id)=>(SRC==="sheet"?sheetOp({col,action:"remove",id}):mutate(st=>{ st[col]=st[col].filter(x=>x.id!==id); })).catch(handleErr)
 };
+/* Backup penghapusan terakhir pada browser ini.
+   Data server tetap sumber utama: salinan lokal hanya untuk pemulihan,
+   bukan catatan penghapusan lintas perangkat. */
+const MU_TRASH_KEY="mu_trash_unit_monitoring_v1";
+function muTrashItems(){
+  try{const v=JSON.parse(localStorage.getItem(MU_TRASH_KEY)||"[]");return Array.isArray(v)?v:[];}catch(e){return [];}
+}
+function muTrashWrite(items){
+  try{localStorage.setItem(MU_TRASH_KEY,JSON.stringify(items.slice(0,50)));}catch(e){
+    toast("Penyimpanan Sampah di browser penuh; jangan hapus data lagi sebelum mencadangkannya.");
+  }
+  muTrashButton();
+}
+function muTrashButton(){
+  const b=$("#btnTrash"),c=$("#muTrashNum");if(!b)return;
+  b.hidden=!canWrite;if(c)c.textContent=muTrashItems().length?"("+muTrashItems().length+")":"";
+}
+function muTrashLabel(col,r){
+  return ({projects:r.kode||r.nama,units:r.kode||r.tipe,pengiriman:r.tipe,mobilisasi:r.unitKode,
+    dokumentasi:r.nama||r.name,revisi:r.keterangan})[col]||r.id||"Data";
+}
+function muTrashRemove(col,id){
+  const current=STATE&&Array.isArray(STATE[col])?STATE[col].find(x=>x.id===id):null;
+  if(!current){toast("Data tidak ditemukan. Perbarui halaman.");return Promise.resolve(false);}
+  const snapshot=JSON.parse(JSON.stringify(current));
+  return store.remove(col,id).then(()=>{
+    const items=muTrashItems();
+    items.unshift({col,rec:snapshot,label:muTrashLabel(col,snapshot),time:new Date().toISOString()});
+    muTrashWrite(items);toast("Dipindahkan ke Sampah. Bisa dipulihkan di browser ini.");return true;
+  }).catch(()=>false);
+}
+async function muTrashRestore(index){
+  if(!canWrite){toast("Hanya Pemilik / Editor bisa memulihkan data.");return;}
+  const items=muTrashItems(),entry=items[index];if(!entry)return;
+  if(STATE&&Array.isArray(STATE[entry.col])&&STATE[entry.col].some(x=>x.id===entry.rec.id)){
+    toast("Data dengan ID yang sama sudah ada. Pemulihan dibatalkan.");return;
+  }
+  try{
+    await store.add(entry.col,{...entry.rec});
+    items.splice(index,1);muTrashWrite(items);muTrashOpen();
+    toast(entry.label+" berhasil dipulihkan.");
+  }catch(err){toast("Pemulihan gagal. Data masih tersedia di Sampah.");}
+}
+function muTrashOpen(){
+  const el=$("#muTrashPanel");if(!el)return;
+  if(!canWrite){el.hidden=true;return;}
+  const items=muTrashItems();
+  el.hidden=false;
+  el.innerHTML='<div class="mu-trash-top"><div><b>♻ Sampah — Monitoring Unit</b>'+
+    '<small>Salinan penghapusan mulai sekarang, disimpan di browser ini. Pemulihan memperbarui data server.</small></div>'+
+    '<button type="button" class="btn small" data-trash-close>✕ Tutup</button></div>'+
+    (items.length?'<div class="mu-trash-list">'+items.map((x,i)=>'<div class="mu-trash-item"><span><b>'+
+      esc(x.label)+'</b><small>'+esc(({projects:"Project",units:"Unit",pengiriman:"Rencana Kirim",mobilisasi:"Mobilisasi",dokumentasi:"Dokumentasi"})[x.col]||x.col)+' · '+esc(x.time.slice(0,16).replace("T"," "))+'</small></span>'+
+      '<button type="button" class="btn small primary" data-trash-restore="'+i+'">Pulihkan</button></div>').join("")+'</div>':
+      '<p class="mu-trash-empty">Belum ada data yang dihapus sejak fitur Sampah diaktifkan.</p>');
+}
+document.addEventListener("click",e=>{
+  const restore=e.target.closest("[data-trash-restore]");
+  if(restore){muTrashRestore(Number(restore.dataset.trashRestore));return;}
+  if(e.target.closest("[data-trash-close]")){$("#muTrashPanel").hidden=true;return;}
+});
+
 
 /* ---------- dialog ---------- */
 let dlgSubmit=null, dlgLive=null, dlgLastConfig=null;
@@ -1540,6 +1616,7 @@ $("#dlgForm").addEventListener("submit",async e=>{
   finally{DIALOG_BUSY=false;btn.disabled=false;}
 });
 $("#dlgCancel").addEventListener("click",()=>$("#dlg").close());
+$("#btnTrash").addEventListener("click",()=>{if($("#muTrashPanel").hidden)muTrashOpen();else $("#muTrashPanel").hidden=true;});
 
 /* ---------- form ---------- */
 const projOpts = () => projects().map(p=>({v:p.id,l:p.kode}));
@@ -2378,7 +2455,7 @@ function formSlot(k,u,no){
     ],
     ok:u?"Simpan update":"Simpan",
     onSubmit:d=>{
-      if(d.status==="__hapus"){ setTimeout(()=>confirmBox(`Kosongkan baris #${no}?`,`Data unit ${u.kode} dihapus dan baris kembali "Belum dijadwalkan".`,"Hapus",()=>store.remove(COL.units,u.id).then(()=>toast("Baris dikosongkan.")).catch(()=>{})),0); return; }
+      if(d.status==="__hapus"){ setTimeout(()=>confirmBox(`Kosongkan baris #${no}?`,`Data unit ${u.kode} dihapus dan baris kembali "Belum dijadwalkan".`,"Hapus",()=>muTrashRemove(COL.units,u.id)),0); return; }
       let kode=String(d.kode||"").trim().toUpperCase(), sem=false;
       if(!kode){ if(u&&u.kodeSementara) kode=u.kode; else if(u){ toast("Isi nomor lambung."); return false; } else kode=tmpKode(k,no); sem=true; }
       if(S.units.some(x=>x.kode===kode && (!u||x.id!==u.id))){ toast(`Nomor lambung ${kode} sudah terdaftar.`); return false; }
@@ -2598,7 +2675,11 @@ document.addEventListener("click",e=>{
   if(act==="akses") showAccount();
   if(act==="addProj") formProject(null);
   if(act==="editProj"&&P) formProject(P);
-  if(act==="delProj"&&P) confirmBox(`Hapus project ${P.kode}?`,"Project tanpa item unit akan dihapus.","Hapus",()=>store.remove(COL.proj,P.id).then(()=>{ if(S.fProj===P.id) S.fProj="all"; toast("Project dihapus."); }).catch(()=>{}));
+  if(act==="delProj"&&P){
+    const nUnits=S.units.filter(u=>u.projectId===P.id).length, nPlan=S.kirim.filter(k=>k.projectId===P.id).length;
+    if(nUnits||nPlan){toast("Project tidak bisa dihapus: masih ada "+nUnits+" unit dan "+nPlan+" item rencana. Gunakan pengaturan lain untuk menyembunyikan.");}
+    else confirmBox(`Hapus project ${P.kode}?`,"Project dipindahkan ke Sampah browser ini dan dapat dipulihkan.","Hapus",()=>muTrashRemove(COL.proj,P.id).then(ok=>{if(ok&&S.fProj===P.id)S.fProj="all";}));
+  }
   if(act==="addItem"&&P) formKirim(null,P.id);
   if(act==="unitInfo"&&U) showUnitInfo(U);
   if(act==="addExistingUnit") formExistingUnit(P?P.id:null);
@@ -2606,12 +2687,12 @@ document.addEventListener("click",e=>{
   if(act==="tibaItem"&&K) formUnit(null,K);
   if(act==="editUnit"&&U) formUnit(U);
   if(act==="planUnit"&&U) formMob(null,U);
-  if(act==="delUnit"&&U) confirmBox(`Hapus ${U.kode}?`,isExistingUnit(U)?"Unit existing dihapus dari populasi lokasi. Data rencana kirim tidak berubah. Rencana mobilisasi tetap tersimpan.":"Unit dihapus dari daftar di lokasi dan hitungan tiba dari rencana berkurang. Rencana mobilisasinya tetap tersimpan.","Hapus",()=>store.remove(COL.units,U.id).then(()=>toast(`${U.kode} dihapus.`)).catch(()=>{}));
+  if(act==="delUnit"&&U) confirmBox(`Hapus ${U.kode}?`,isExistingUnit(U)?"Unit existing dihapus dari populasi lokasi. Data rencana kirim tidak berubah. Rencana mobilisasi tetap tersimpan.":"Unit dihapus dari daftar di lokasi dan hitungan tiba dari rencana berkurang. Rencana mobilisasinya tetap tersimpan.","Hapus",()=>muTrashRemove(COL.units,U.id));
   if(act==="editMob"&&M) formMob(M);
-  if(act==="delMob"&&M) confirmBox(`Hapus rencana ${M.unitKode}?`,`${M.dari} → ${M.ke}, ${fmtDate(M.tanggal)}.`,"Hapus",()=>store.remove(COL.mobs,M.id).then(()=>toast("Rencana dihapus.")).catch(()=>{}));
+  if(act==="delMob"&&M) confirmBox(`Hapus rencana ${M.unitKode}?`,`${M.dari} → ${M.ke}, ${fmtDate(M.tanggal)}.`,"Hapus",()=>muTrashRemove(COL.mobs,M.id));
   if(act==="jumlah"&&K) formUbahJumlah(K);
   if(act==="editKirim"&&K) formKirim(K);
-  if(act==="delKirim"&&K) confirmBox(`Hapus item ${K.tipe}?`,`Item dihapus dari rencana kirim ${projKode(K.projectId)}. Riwayat perubahannya tetap tersimpan.`,"Hapus",()=>store.remove(COL.kirim,K.id).then(()=>toast("Item dihapus.")).catch(()=>{}));
+  if(act==="delKirim"&&K) confirmBox(`Hapus item ${K.tipe}?`,`Item dihapus dari rencana kirim ${projKode(K.projectId)}. Riwayat perubahannya tetap tersimpan.`,"Hapus",()=>muTrashRemove(COL.kirim,K.id));
 });
 document.addEventListener("change",e=>{
   const s=e.target.closest('select[data-act="mobStatus"]'); if(!s) return;
@@ -2689,7 +2770,7 @@ function renderWho(){
   $("#whoAv").textContent=(meEmail||"?").charAt(0).toUpperCase();
   $("#whoRole").textContent=ROLE_TXT[role]||"";
   const priv=role==="owner"||role==="editor";
-  $("#btnDownload").hidden=!priv; $("#btnPrint").hidden=!(priv || (GUEST_SHARE && role==="viewer"));
+  $("#btnDownload").hidden=!priv; $("#btnPrint").hidden=!(priv || (GUEST_SHARE && role==="viewer"));muTrashButton();
 }
 function showLogin(){
   openForm({title:"Masuk",desc:"Pakai akun yang sama dengan Portal Monitoring Manpower. Pemilik dan Editor bisa mengubah data, mengunduh Excel, dan print.",ok:"Masuk",
@@ -2932,7 +3013,7 @@ document.addEventListener("click",e=>{
   if(act==="dokUp"){ openUpload({kirimId:a.dataset.id}); }
   if(act==="dokUnit"){ const u=S.units.find(x=>x.id===a.dataset.id); if(u){ const m=S.mobs.find(x=>(x.unitId===u.id||x.unitKode===u.kode)&&isAktif(x)); openUpload({kirimId:u.kirimId,unitKode:u.kode,tahap:u.status==="Mobilisasi"?"Mobilisasi berangkat":m?"Tiba di lokasi":u.status==="Tiba"?"Tiba di lokasi":"Sampai area kerja",lokasi:u.lokasi}); } }
   if(act==="dokMob"){ const m=S.mobs.find(x=>x.id===a.dataset.id); const u=m&&unitOfMob(m); if(m){ openUpload({kirimId:u?u.kirimId:"",unitKode:m.unitKode,tahap:m.status==="Selesai"?"Sampai area kerja":"Mobilisasi berangkat",lokasi:m.status==="Selesai"?m.ke:m.dari}); } }
-  if(act==="dokDel"){ const d=(S.dok||[]).find(x=>x.id===a.dataset.id); if(d){ $("#dlg").close(); setTimeout(()=>confirmBox("Hapus bukti ini?",`${d.tahap} · ${d.fileName||""}. File ikut dipindahkan ke Trash Google Drive.`,"Hapus",()=>store.remove("dokumentasi",d.id).then(()=>toast("Bukti dihapus.")).catch(()=>{})),0); } }
+  if(act==="dokDel"){ const d=(S.dok||[]).find(x=>x.id===a.dataset.id); if(d){ $("#dlg").close(); setTimeout(()=>confirmBox("Hapus bukti ini?",`${d.tahap} · ${d.fileName||""}. File ikut dipindahkan ke Trash Google Drive.`,"Hapus",()=>muTrashRemove("dokumentasi",d.id)),0); } }
 });
 
 /* ---------- mulai ---------- */
