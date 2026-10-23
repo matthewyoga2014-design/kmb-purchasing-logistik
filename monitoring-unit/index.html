@@ -1155,6 +1155,39 @@ border:1px solid transparent;background:var(--unit-soft);border-radius:7px;color
 @media(prefers-reduced-motion:reduce){#donut .mu-donut-slice{transition:none}}
 @media print{#donut .mu-donut-slice{stroke-linecap:butt;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 #donut .mu-chart-open,#donut .mu-chart-hint,#donut .mu-donut-center em{display:none!important}}
+
+#muPhotoDlg{border:0;padding:0;border-radius:18px;width:min(650px,calc(100vw - 24px));max-height:calc(100dvh - 24px);background:#edf1fa;color:#211c3a;box-shadow:0 24px 60px #17132d60;overflow:hidden}
+#muPhotoDlg::backdrop{background:#1b193c90}
+.mu-photo-head{display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fff;padding:19px 22px;border-bottom:1px solid #e5e2f1}
+.mu-photo-head h3{font-size:19px;margin:4px 0}.mu-photo-head p{font-size:11px;color:#77708a;margin:3px 0}
+.mu-photo-head small{font-size:10px;letter-spacing:.07em;color:#7231ef;font-weight:800}
+.mu-photo-head button{border:0;background:#f0eff8;color:#514a6e;border-radius:50%;width:38px;height:38px;font-size:24px;cursor:pointer}
+.mu-photo-body{padding:15px 18px 20px;max-height:calc(100dvh - 118px);overflow:auto}
+.mu-photo-info{background:#fff;border-radius:14px;padding:13px 16px;font-size:12px;color:#554d73;margin-bottom:12px;line-height:1.45}
+.mu-photo-drop{min-height:242px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;border:2px dashed #9ea7c3;border-radius:18px;cursor:pointer;padding:13px}
+.mu-photo-drop.dragging,.mu-photo-drop:focus-visible{border-color:#6d28d9;background:#e6e6fc;outline:none}
+.mu-photo-browse{background:#1c5ae8;color:#fff;border:0;border-radius:28px;padding:11px 38px;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 5px 16px #1d5de440}
+.mu-photo-drop span{font-size:12px;color:#4d4767}
+.mu-photo-actions{display:flex;align-items:center;justify-content:space-between;gap:9px;margin:10px 0 16px}
+#muPhotoProgress{font-size:11px;color:#655c80}
+.mu-photo-picked{display:inline-flex;align-items:center;gap:5px;background:white;border:1px solid #dedbeb;border-radius:8px;padding:4px;margin:5px 5px 0 0;max-width:100%}
+.mu-photo-picked img{width:35px;height:35px;object-fit:cover;border-radius:5px}
+.mu-photo-picked b{font-size:10px;max-width:155px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mu-photo-picked button{cursor:pointer;border:0;border-radius:5px;background:#f3efff;color:#6d28d9}
+.mu-photo-listtitle{display:flex;justify-content:space-between;font-size:12px;margin:13px 0 8px}.mu-photo-listtitle span{color:#716b82}
+.mu-photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(151px,1fr));gap:9px}
+.mu-photo-card{background:#fff;border:1px solid #dfdbea;border-radius:10px;overflow:hidden;min-width:0}
+.mu-photo-card>button{width:100%;border:0;padding:0;cursor:pointer;background:#e9e8f1}
+.mu-photo-card>button img{width:100%;height:110px;object-fit:cover;display:block}
+.mu-photo-card small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:10px;padding:6px}
+.mu-photo-card nav{display:flex;justify-content:space-around;gap:4px;padding:0 5px 8px}
+.mu-photo-card nav>*{font-size:10.5px;font-weight:750;border:1px solid #e0d6f8;background:#faf7ff;color:#6723c8;border-radius:6px;padding:5px 10px;text-decoration:none;cursor:pointer}
+.mu-photo-empty{background:#fff;border-radius:9px;padding:14px;text-align:center;color:#777087;font-size:11px}
+#muPhotoPreview{text-align:center}#muPhotoPreview img{display:block;width:100%;max-height:55vh;object-fit:contain;background:#fff;border-radius:9px;margin:8px 0}
+#muPhotoPreview a{display:inline-block;text-decoration:none}.mu-photo-back{border:0;background:#fff;color:#6223c9;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:750}
+#muPhotoDlg [hidden]{display:none!important}
+@media(max-width:580px){.mu-photo-head{padding:13px}.mu-photo-body{padding:11px}.mu-photo-drop{min-height:210px}.mu-photo-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media print{#muPhotoDlg{display:none!important}}
 </style>
 <script src="../remembered-access.js?v=20261020"></script></head>
 <body>
@@ -1318,6 +1351,18 @@ border:1px solid transparent;background:var(--unit-soft);border-radius:7px;color
 </div>
 </main>
 
+<dialog id="muPhotoDlg" aria-labelledby="muPhotoTitle">
+ <header class="mu-photo-head"><div><small>FOTO UNIT</small><h3 id="muPhotoTitle">Foto Dokumentasi</h3><p id="muPhotoSub"></p></div><button type="button" data-muph-close aria-label="Tutup">×</button></header>
+ <div class="mu-photo-body">
+  <div class="mu-photo-info" id="muPhotoInfo">ⓘ Bisa beberapa foto sekaligus: JPG atau PNG.</div>
+  <section id="muPhotoUploader" hidden><div class="mu-photo-drop" id="muPhotoDrop" role="button" tabindex="0" aria-label="Pilih foto unit">
+   <svg width="125" height="100" viewBox="0 0 125 100" aria-hidden="true"><path d="M31 78h64a26 26 0 0 0-4-52 31 31 0 0 0-59-6 30 30 0 0 0-1 58" fill="#84dfbc" stroke="#24254a" stroke-width="2.3"/><path d="M62 68V30M45 47l17-17 17 17" fill="none" stroke="#24254a" stroke-width="2.5" stroke-linecap="round"/></svg>
+   <button type="button" class="mu-photo-browse" id="muPhotoBrowse">Jelajah</button><span>atau tarik file ke sini</span>
+   <input type="file" id="muPhotoInput" accept="image/jpeg,image/png,image/webp" multiple hidden>
+  </div><div id="muPhotoSelected"></div><div class="mu-photo-actions"><span id="muPhotoProgress" aria-live="polite"></span><button type="button" class="btn primary" id="muPhotoUpload" disabled>Unggah foto</button></div></section>
+  <div id="muPhotoGallery"></div><div id="muPhotoPreview" hidden></div>
+ </div>
+</dialog>
 <dialog id="dlg"><form id="dlgForm" method="dialog" novalidate>
   <div class="dlg-head"><h3 id="dlgTitle"></h3><p id="dlgDesc"></p></div>
   <div class="dlg-body" id="dlgBody"></div>
@@ -2732,6 +2777,80 @@ function renderUnit(){
     </tr>`;
   }).join(""):`<tr><td colspan="12">${emptyState(S.ready?"Belum ada unit untuk filter ini":"Memuat data…",S.ready?"Pilih filter lain atau tambahkan unit existing dan unit tiba.":"",canWrite&&S.ready?`<button class="btn small" data-act="addExistingUnit" type="button">+ Input unit existing</button> ${S.kirim.length?`<button class="btn primary small" data-act="addUnitBtn" type="button">+ Catat unit tiba</button>`:""}`:"")}</td></tr>`;
 }
+
+/* Foto per unit: gunakan layanan upload dokumentasi Drive yang sudah ada,
+   dengan projectId + unitKode, juga untuk populasi existing tanpa kirimId. */
+const MU_PHOTO={unitId:"",selected:[],busy:false,view:""};
+function muPhotoRecords(u){return (S.dok||[]).filter(d=>u&&d.unitKode===u.kode&&(!d.projectId||d.projectId===u.projectId)
+ &&d.fileId&&(/^image\/(jpeg|png|webp|gif)/i.test(String(d.mime||""))||/\.(png|jpe?g|webp)$/i.test(String(d.fileName||""))))
+ .sort((a,b)=>String(b.waktu||"").localeCompare(String(a.waktu||"")));}
+function muPhotoImg(d,n){return /^[\w-]{12,}$/.test(String(d.fileId||""))?"https://drive.google.com/thumbnail?id="+encodeURIComponent(d.fileId)+"&sz=w"+n:"";}
+function muPhotoDownload(d){return /^[\w-]{12,}$/.test(String(d.fileId||""))?"https://drive.google.com/uc?export=download&id="+encodeURIComponent(d.fileId):String(d.fileUrl||"");}
+function muPhotoUnit(){return S.units.find(u=>u.id===MU_PHOTO.unitId);}
+function muPhotoClear(){for(const p of MU_PHOTO.selected)URL.revokeObjectURL(p.src);MU_PHOTO.selected=[];}
+function muPhotoOpen(id){
+ const u=S.units.find(x=>x.id===id);if(!u)return toast("Unit tidak ditemukan.");
+ muPhotoClear();Object.assign(MU_PHOTO,{unitId:id,busy:false,view:""});
+ muPhotoRender();$("#muPhotoDlg").showModal();
+}
+function muPhotoRender(){
+ const u=muPhotoUnit();if(!u)return;
+ const photos=muPhotoRecords(u),write=canWrite&&SRC==="sheet";
+ $("#muPhotoTitle").textContent="Foto Dokumentasi · "+u.kode;
+ $("#muPhotoSub").textContent=projKode(u.projectId)+" · "+u.tipe;
+ $("#muPhotoInfo").textContent=write?"ⓘ Bisa pilih banyak file JPG atau PNG, lalu unggah ke Google Drive.":canWrite?"ⓘ Hubungkan Google Sheets agar foto dapat diunggah.":"ⓘ Pelihat bisa membuka dan mengunduh foto tersimpan.";
+ $("#muPhotoUploader").hidden=!write||!!MU_PHOTO.view;
+ const chosen=$("#muPhotoSelected");
+ chosen.innerHTML=MU_PHOTO.selected.map((p,i)=>'<span class="mu-photo-picked"><img src="'+esc(p.src)+'" alt=""><b title="'+esc(p.file.name)+'">'+esc(p.file.name)+'</b><button type="button" data-muph-remove="'+i+'"'+(MU_PHOTO.busy?" disabled":"")+'>×</button></span>').join("");
+ $("#muPhotoUpload").disabled=!MU_PHOTO.selected.length||MU_PHOTO.busy;
+ $("#muPhotoUpload").textContent=MU_PHOTO.busy?"Mengunggah…":"Unggah "+MU_PHOTO.selected.length+" foto";
+ if(!MU_PHOTO.busy)$("#muPhotoProgress").textContent=MU_PHOTO.selected.length?MU_PHOTO.selected.length+" foto dipilih":"";
+ const legacy=muDetails(u).foto;
+ const g=$("#muPhotoGallery");g.hidden=!!MU_PHOTO.view;
+ g.innerHTML='<div class="mu-photo-listtitle"><b>Foto tersimpan</b><span>'+photos.length+' foto</span></div>'+
+  (photos.length?'<div class="mu-photo-grid">'+photos.map(d=>'<article class="mu-photo-card"><button type="button" data-muph-view="'+esc(d.id)+'"><img loading="lazy" src="'+esc(muPhotoImg(d,520))+'" alt="'+esc(d.fileName||"Foto Unit")+'"></button><small title="'+esc(d.fileName||"")+'">'+esc(d.fileName||"Foto unit")+'</small><nav><button type="button" data-muph-view="'+esc(d.id)+'">Lihat</button><a href="'+esc(muPhotoDownload(d))+'" target="_blank" rel="noopener noreferrer" download="'+esc(d.fileName||"foto.jpg")+'">Unduh ↓</a></nav></article>').join("")+'</div>':'<p class="mu-photo-empty">Belum ada foto untuk unit ini.</p>')+
+  (/^https:\/\//i.test(legacy)?'<small>Foto lama: <a href="'+esc(legacy)+'" target="_blank" rel="noopener noreferrer">Buka tautan lama →</a></small>':"");
+ const preview=$("#muPhotoPreview"),selected=photos.find(d=>d.id===MU_PHOTO.view);
+ preview.hidden=!selected;
+ if(selected)preview.innerHTML='<button class="mu-photo-back" data-muph-back>← Kembali</button><img src="'+esc(muPhotoImg(selected,1600))+'" alt="'+esc(selected.fileName||"Foto")+'"><a class="btn primary" href="'+esc(muPhotoDownload(selected))+'" target="_blank" rel="noopener noreferrer" download="'+esc(selected.fileName||"foto.jpg")+'">Unduh Foto ↓</a>';
+}
+function muPhotoChoose(fs){
+ const files=[...fs];if(!files.length||MU_PHOTO.busy)return;
+ if(MU_PHOTO.selected.length+files.length>12)return toast("Maksimal 12 foto setiap unggahan.");
+ for(const f of files)if(!["image/jpeg","image/png","image/webp"].includes(f.type)||f.size>15*1024*1024)return toast("Hanya JPG/PNG/WEBP hingga 15 MB: "+f.name);
+ files.forEach(file=>MU_PHOTO.selected.push({file,src:URL.createObjectURL(file)}));muPhotoRender();
+}
+async function muPhotoSend(){
+ const u=muPhotoUnit();if(!u||MU_PHOTO.busy||!MU_PHOTO.selected.length||!canWrite||SRC!=="sheet")return;
+ MU_PHOTO.busy=true;muPhotoRender();let done=0,files=[...MU_PHOTO.selected];
+ for(const p of files){
+  try{
+   $("#muPhotoProgress").textContent="Mengunggah "+(done+1)+" dari "+files.length+"…";
+   const file=await prepFile(p.file);
+   await sheetOp({col:"dokumentasi",action:"upload",id:uid(),file,data:{projectId:u.projectId,kirimId:u.kirimId||"",tipe:u.tipe,unitKode:u.kode,tahap:"Foto Unit",tanggal:todayStr(),lokasi:u.lokasi,catatan:"Foto unit "+u.kode}});
+   URL.revokeObjectURL(p.src);MU_PHOTO.selected.splice(MU_PHOTO.selected.indexOf(p),1);done++;
+  }catch(err){toast("Unggah terhenti. "+done+" foto berhasil; sisa foto bisa dicoba lagi.");console.error("Foto unit upload",err);break;}
+ }
+ MU_PHOTO.busy=false;muPhotoRender();if(done)toast(done+" foto tersimpan di Google Drive.");
+}
+document.addEventListener("click",e=>{
+ const b=e.target.closest("[data-unit-photo]");if(b){e.preventDefault();muPhotoOpen(b.dataset.unitPhoto);return;}
+ if(e.target.closest("[data-muph-close]")){if(MU_PHOTO.busy)return toast("Foto masih diunggah.");$("#muPhotoDlg").close();muPhotoClear();return;}
+ const rm=e.target.closest("[data-muph-remove]");if(rm&&!MU_PHOTO.busy){const i=Number(rm.dataset.muphRemove);URL.revokeObjectURL(MU_PHOTO.selected[i].src);MU_PHOTO.selected.splice(i,1);muPhotoRender();return;}
+ const v=e.target.closest("[data-muph-view]");if(v){MU_PHOTO.view=v.dataset.muphView;muPhotoRender();return;}
+ if(e.target.closest("[data-muph-back]")){MU_PHOTO.view="";muPhotoRender();}
+});
+$("#muPhotoDlg").addEventListener("cancel",e=>{if(MU_PHOTO.busy){e.preventDefault();toast("Unggahan masih berjalan.");}else muPhotoClear();});
+$("#muPhotoBrowse").addEventListener("click",e=>{e.stopPropagation();$("#muPhotoInput").click();});
+$("#muPhotoDrop").addEventListener("click",e=>{if(!e.target.closest("button,input"))$("#muPhotoInput").click();});
+$("#muPhotoDrop").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();$("#muPhotoInput").click();}});
+$("#muPhotoInput").addEventListener("change",e=>{muPhotoChoose(e.target.files);e.target.value="";});
+["dragover","dragenter","dragleave","drop"].forEach(type=>$("#muPhotoDrop").addEventListener(type,e=>{
+ e.preventDefault();e.stopPropagation();$("#muPhotoDrop").classList.toggle("dragging",type==="dragenter"||type==="dragover");
+ if(type==="drop")muPhotoChoose(e.dataTransfer.files);
+}));
+$("#muPhotoUpload").addEventListener("click",muPhotoSend);
+
 function showUnitInfo(u){
   if(!u)return;
   const m=muDetails(u);
