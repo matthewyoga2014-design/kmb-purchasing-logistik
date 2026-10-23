@@ -224,6 +224,7 @@ a.hb { text-decoration: none; }
     <h1>Monitoring MPP Achievement All Jobsite</h1>
     <p class="sub">Pencapaian pemenuhan manpower (MPP vs MPA) dan progres rekrutmen di seluruh jobsite: KTA-TRA, BUPR Ampah, MBJ, dan KMB. Angka diperbarui otomatis dari setiap web proyek.</p>
     
+    <div class="mpp-project-actions"><button type="button" class="btn btn-p" id="mppAddProject" hidden>+ Project</button></div>
   </section>
   <section id="setPage" hidden>
     <div class="sethead"><div><div class="eb">Sistem</div><h1 class="h1s">Pengaturan</h1><p class="sub">Akses unduhan, siapa saja yang terdaftar, dan unduh data semua portal.</p></div><button type="button" class="btn btn-g" id="setBack">← Kembali ke portal</button></div>
@@ -260,6 +261,7 @@ a.hb { text-decoration: none; }
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+<dialog id="mppProjectDlg" class="portal-rename-dialog"><form id="mppProjectForm"><h3 id="mppProjectTitle">Tambah Project</h3><p>Tambahkan kartu monitoring yang mengambil angka otomatis dari sumber manpower terhubung.</p><input type="hidden" id="mppProjectKey"><label>Nama project<input id="mppProjectName" maxlength="70" required placeholder="Nama project"></label><label>Deskripsi<input id="mppProjectDesc" maxlength="180" placeholder="Lokasi / keterangan"></label><label>Sumber data manpower<select id="mppProjectSource" required><option value="kta-tra">KTA - TRA</option><option value="bupr-ampah">BUPR Ampah</option><option value="mbj">MBJ</option><option value="kmb">KMB</option></select></label><label>Jobsite sumber<select id="mppProjectSite"><option value="">Semua jobsite sumber</option></select></label><label>Alamat web sumber<input id="mppProjectHref" maxlength="500" placeholder="https://..."></label><label>Warna kartu<select id="mppProjectTheme"><option value="kta">Ungu</option><option value="bupr">Biru</option><option value="mbj">Merah</option><option value="kmb">Oranye</option></select></label><small id="mppProjectStatus"></small><footer><button type="button" id="mppProjectDelete" hidden>Hapus Project</button><button type="button" id="mppProjectCancel">Batal</button><button type="submit" id="mppProjectSave">Simpan</button></footer></form></dialog>
 <dialog id="portalRenameDlg" class="portal-rename-dialog"><form id="portalRenameForm"><h3>Edit Nama Portal</h3><p>Hanya nama dan deskripsi tampilan. Link dan data MPP tidak berubah.</p><input type="hidden" id="portalRenameKey"><label>Nama portal<input id="portalRenameName" maxlength="70" required></label><label>Deskripsi<textarea id="portalRenameDesc" maxlength="180"></textarea></label><small id="portalRenameStatus"></small><footer><button type="button" id="portalRenameCancel">Batal</button><button type="submit" id="portalRenameSave">Simpan</button></footer></form></dialog>
 <script>
 const CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
@@ -287,6 +289,86 @@ const PROJECTS = [
   { key: 'kmb', name: 'KMB', desc: '4 jobsite: C4, SLR, Workshop', href: '../manpower-kmb/', icon: 'home',
     sites: [['kmb-c4', 'C4'], ['kmb-slr-maintenance', 'SLR - Maintenance'], ['kmb-slr-rekondisi', 'SLR - Rekondisi'], ['kmb-workshop', 'Workshop Legok']] },
 ];
+
+const DEFAULT_SOURCES = {
+ 'kta-tra': {href:'../manpower-kta-tra/',ids:[['main','KTA - TRA']],theme:'kta'},
+ 'bupr-ampah': {href:'../manpower-bupr/',ids:[['bupr','BUPR Ampah']],theme:'bupr'},
+ 'mbj': {href:'../manpower-mbj/',ids:[['mbj','MBJ']],theme:'mbj'},
+ 'kmb': {href:'../manpower-kmb/',ids:[['kmb-c4','C4'],['kmb-slr-maintenance','SLR Maintenance'],['kmb-slr-rekondisi','SLR Rekondisi'],['kmb-workshop','Workshop Legok']],theme:'kmb'}
+};
+const PROJECTS_BASE = PROJECTS.slice();
+let EXTRA_PROJECT_ROWS = [];
+function allPortalIds(){ return [...new Set(PROJECTS.flatMap(p=>p.sites?p.sites.map(x=>x[0]):(p.ids||[])))]; }
+function projectFromRecord(r){
+ const src=DEFAULT_SOURCES[r.app_id]||DEFAULT_SOURCES.kmb;
+ const ids=(r.source_ids||[]).filter(id=>src.ids.some(x=>x[0]===id));
+ const keys=ids.length?ids:src.ids.map(x=>x[0]);
+ return {key:r.project_key,name:r.name,desc:r.description||'',href:r.href||src.href,
+  ids:keys,icon:({kta:'mount',bupr:'exc',mbj:'sun',kmb:'home'})[r.theme]||'home',
+  theme:r.theme||src.theme,extra:true};
+}
+async function loadExtraProjects(){
+ if(!SB)return;
+ const {data,error}=await SB.from('mpp_portal_projects').select('*').order('created_at');
+ if(error){console.warn('Daftar project tambahan belum terbaca',error);return;}
+ EXTRA_PROJECT_ROWS=data||[];
+ PROJECTS.splice(0,PROJECTS.length,...PROJECTS_BASE,...EXTRA_PROJECT_ROWS.map(projectFromRecord));
+ EXTRA_PROJECT_ROWS.forEach(r=>APP_OF[r.project_key]=r.app_id);
+ if(ROWS.length)render(ROWS);else skeleton();
+}
+function projectSiteOptions(){
+ const src=DEFAULT_SOURCES[document.getElementById('mppProjectSource').value];
+ const el=document.getElementById('mppProjectSite');
+ el.innerHTML='<option value="">Semua jobsite sumber</option>'+src.ids.map(([id,n])=>'<option value="'+esc(id)+'">'+esc(n)+'</option>').join('');
+}
+function openProjectForm(key){
+ if(!IS_OWNER)return;
+ const r=EXTRA_PROJECT_ROWS.find(x=>x.project_key===key);
+ const dlg=document.getElementById('mppProjectDlg');
+ document.getElementById('mppProjectTitle').textContent=r?'Edit Project':'Tambah Project';
+ document.getElementById('mppProjectKey').value=r?r.project_key:'';
+ document.getElementById('mppProjectName').value=r?r.name:'';
+ document.getElementById('mppProjectDesc').value=r?r.description:'';
+ document.getElementById('mppProjectSource').value=r?r.app_id:'kmb';
+ projectSiteOptions();
+ document.getElementById('mppProjectSite').value=r&&r.source_ids&&r.source_ids.length===1?r.source_ids[0]:'';
+ document.getElementById('mppProjectHref').value=r?r.href:'';
+ document.getElementById('mppProjectTheme').value=r?r.theme:'kmb';
+ document.getElementById('mppProjectDelete').hidden=!r;
+ document.getElementById('mppProjectStatus').textContent='';
+ dlg.showModal();
+}
+document.getElementById('mppProjectSource').addEventListener('change',projectSiteOptions);
+document.getElementById('mppAddProject').addEventListener('click',()=>openProjectForm(''));
+document.addEventListener('click',e=>{const el=e.target.closest('[data-project-edit]');if(el){e.preventDefault();openProjectForm(el.dataset.projectEdit);}});
+document.getElementById('mppProjectCancel').addEventListener('click',()=>document.getElementById('mppProjectDlg').close());
+document.getElementById('mppProjectForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(!IS_OWNER||!SB)return;
+ const get=id=>document.getElementById(id),key=get('mppProjectKey').value,
+  name=get('mppProjectName').value.trim(),description=get('mppProjectDesc').value.trim(),
+  app_id=get('mppProjectSource').value,source=get('mppProjectSite').value,
+  src=DEFAULT_SOURCES[app_id],theme=get('mppProjectTheme').value,href=get('mppProjectHref').value.trim();
+ const label=get('mppProjectStatus'),btn=get('mppProjectSave');
+ if(!name||name.length>70||!src){label.textContent='Nama project dan sumber data wajib diisi.';return;}
+ if(href && !/^https:\/\//i.test(href) && !/^\.\.\//.test(href)){label.textContent='Alamat web harus dimulai https://';return;}
+ const payload={name,description,href:href||src.href,app_id,source_ids:source?[source]:src.ids.map(x=>x[0]),theme,updated_at:new Date().toISOString()};
+ btn.disabled=true;label.textContent='Menyimpan...';
+ const result=key
+   ? await SB.from('mpp_portal_projects').update(payload).eq('project_key',key).select('project_key')
+   : await SB.from('mpp_portal_projects').insert({...payload,project_key:'custom-'+crypto.randomUUID().slice(0,18)}).select('project_key');
+ btn.disabled=false;
+ if(result.error||!result.data?.length){label.textContent='Gagal menyimpan: '+(result.error?.message||'Hak akses ditolak');return;}
+ get('mppProjectDlg').close();await loadExtraProjects();await window.__portalLoad?.();toast('Project tersimpan dan terhubung ke sumber manpower.');
+});
+document.getElementById('mppProjectDelete').addEventListener('click',async ()=>{
+ if(!IS_OWNER||!SB)return;
+ const key=document.getElementById('mppProjectKey').value;
+ if(!key||!confirm('Hapus kartu project ini? Data manpower sumber tidak dihapus.'))return;
+ const {error}=await SB.from('mpp_portal_projects').delete().eq('project_key',key);
+ if(error){document.getElementById('mppProjectStatus').textContent='Gagal menghapus: '+error.message;return;}
+ document.getElementById('mppProjectDlg').close();await loadExtraProjects();await window.__portalLoad?.();toast('Kartu project dihapus; data sumber tetap aman.');
+});
+
 async function portalLoadTitles(){
  if(!SB)return;
  const {data,error}=await SB.from('portal_display_settings').select('app_key,name,description');
@@ -330,14 +412,14 @@ function totHtml(list) {
   const cls = { kta: 't1', bupr: 't2', mbj: 't3', kmb: 't4' };
   return visP().map((p) => {
     const s = list && list[p.key];
-    return `<a class="t ${cls[p.key]}" href="${hrefOf(p)}" title="Buka ${esc(p.name)}"><span class="ti">${I[p.icon]}</span><div class="tx"><small>Persentase MPP Actual</small><b>${s ? s.pct + '%' : '<span class="sk">00</span>'}</b><em>${esc(p.name)}</em><span class="tb"><i style="width:${s ? s.pct : 0}%"></i></span></div><span class="tg">${I.pie('#fff', 40)}</span></a>`;
+    return `<a class="t ${cls[p.theme||p.key]||'t4'}" href="${hrefOf(p)}" title="Buka ${esc(p.name)}"><span class="ti">${I[p.icon]}</span><div class="tx"><small>Persentase MPP Actual</small><b>${s ? s.pct + '%' : '<span class="sk">00</span>'}</b><em>${esc(p.name)}</em><span class="tb"><i style="width:${s ? s.pct : 0}%"></i></span></div><span class="tg">${I.pie('#fff', 40)}</span></a>`;
   }).join('');
 }
 function cardHtml(p, s, per, last) {
   const v = (x) => s ? x : '<span class="sk">00</span>';
   const sites = p.sites ? `<div class="sites">${p.sites.map(([id, nm], i) => { const x = per ? per[i].s : null; return `<a href="${hrefOf(p)}" data-site="${id}"><span class="n">${esc(nm)}</span><span class="x">${x ? `${x.act}/${x.mpp} MPP` : ''}</span><span class="x pc">${x ? x.pct + '%' : ''}</span><span class="x ${x && x.vac ? 'v' : ''}">${x ? (x.vac ? x.vac + ' vacant' : 'Lengkap') : ''}</span><span class="ch2">${I.chev}</span></a>`; }).join('')}</div>` : '';
-  return `<article class="card k-${p.key}" style="--art:url('${ART[p.key]}')">
-    <div class="ch"><span class="ic">${I[p.icon]}</span><div><h2>${esc(p.name)}</h2><p>${esc(p.desc)}</p></div>${IS_OWNER?'<button type="button" class="portal-rename-btn" data-portal-rename="'+esc(p.key)+'">✎ Edit</button>':''}<a class="go" href="${hrefOf(p)}">Buka →</a></div>
+  return `<article class="card k-${p.theme||p.key}" style="--art:url('${ART[p.key]}')">
+    <div class="ch"><span class="ic">${I[p.icon]}</span><div><h2>${esc(p.name)}</h2><p>${esc(p.desc)}</p></div>${IS_OWNER?(p.extra?'<button type="button" class="portal-rename-btn" data-project-edit="'+esc(p.key)+'">✎ Edit</button>':'<button type="button" class="portal-rename-btn" data-portal-rename="'+esc(p.key)+'">✎ Edit</button>'):''}<a class="go" href="${hrefOf(p)}">Buka →</a></div>
     <div class="cb">
       <div class="st"><div>${I.people('#7C3AED')}<span><b>${v(s && s.mpp)}</b><span>MPP</span></span></div><div>${I.helmet('#2563EB')}<span><b>${v(s && s.act)}</b><span>Actual</span></span></div><div class="v">${I.vac('#E11D48')}<span><b>${v(s && s.vac)}</b><span>Vacant</span></span></div><div class="o">${I.doc('#F59E0B')}<span><b>${v(s && s.open)}</b><span>PTK open</span></span></div></div>
       <div class="bar" title="${s ? s.pct : 0}% terisi"><i style="width:${s ? s.pct : 0}%"></i></div>
@@ -352,7 +434,7 @@ function render(rows) {
   ROWS = rows;
   const by = Object.fromEntries(rows.map((r) => [r.id, r]));
   let all = { mpp: 0, act: 0, vac: 0, open: 0 }; const per1 = {};
-  VIS = PROJECTS.filter((p) => (p.sites ? p.sites.map((x) => x[0]) : p.ids).some((id) => by[id])).map((p) => p.key);
+  VIS = PROJECTS.filter((p) => (p.sites ? p.sites.map((x) => x[0]) : p.ids).some((id) => by[id]) || (p.extra && IS_OWNER)).map((p) => p.key);
   document.body.classList.toggle('locked', false);
   const cards = visP().map((p) => {
     const ids = p.sites ? p.sites.map((s) => s[0]) : p.ids;
@@ -441,6 +523,7 @@ async function loadPerm() {
     try { const g = await SB.from('kta_print_grants').select('status').eq('email', em).eq('status', 'approved'); if ((g.data || []).length) CAN = true; } catch (e) {}
   }
   guard(); setRender();
+  document.getElementById('mppAddProject').hidden=!IS_OWNER;
   if (ROWS && ROWS.length) render(ROWS);
 }
 // ---------- bagikan link per site ----------
@@ -646,6 +729,7 @@ skeleton(); whoUI(); guard();
   whoUI();
   if(!HUB_SHARE)loadPerm();
   await portalLoadTitles();
+  await loadExtraProjects();
   SB.auth.onAuthStateChange((ev, s) => { if(HUB_SHARE)return; const nu = (s && s.user) || null; if ((nu && nu.email) === (USER && USER.email)) return; USER = nu; whoUI(); loadPerm(); if (window.__portalLoad) window.__portalLoad(); });
   const load = async () => {
     if(HUB_SHARE){
@@ -661,7 +745,7 @@ skeleton(); whoUI(); guard();
       return;
     }
     if (!USER) { lockPortal(false); return; }
-    const { data, error } = await SB.rpc('kta_web_read', { p_ids: ['main', 'bupr', 'mbj', 'kmb-c4', 'kmb-slr-maintenance', 'kmb-slr-rekondisi', 'kmb-workshop'], p_key: null });
+    const { data, error } = await SB.rpc('kta_web_read', { p_ids: allPortalIds(), p_key: null });
     if (error) { const e = document.getElementById('err'); e.textContent = 'Data belum bisa dimuat: ' + error.message; e.hidden = false; return; }
     document.getElementById('err').hidden = true;
     if (!(data || []).length) { lockPortal(true); return; }
