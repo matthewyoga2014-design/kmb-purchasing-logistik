@@ -173,6 +173,7 @@
   `;
   const style=document.createElement("style"); style.textContent=styles; document.head.appendChild(style);
   const styleOct=document.createElement("style"); styleOct.textContent="\n/* Compact 2-column Population Unit dashboard (2026-10-23) */\n.ud-summary-panel{padding:16px!important}.ud-summary-panel .ud-pop-hero{padding:0;margin:0 0 10px;background:transparent;border:0;border-radius:0}.ud-summary-panel .ud-pop-hero:before{display:none}\n.ud-summary-panel .ud-pop-hero h2{font-size:14px!important;margin:0 0 3px;color:#6d28d9}.ud-summary-panel .ud-pop-hero p{font-size:12px;line-height:1.5}\n.ud-summary-panel .ud-pop-total{padding:7px 10px;background:#f1ebff;border:0}.ud-summary-panel .ud-pop-total strong{font-size:15px}\n.ud-summary-panel .ud-pop-explain{font-size:11px;margin:0 0 12px;padding:8px 10px;background:#f3f6fc;border:1px solid #e3e8f2;border-radius:9px}\n.ud-summary-panel .ud-pop-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}\n.ud-summary-panel .ud-pop-type{min-width:0;border-radius:11px;break-inside:avoid}\n.ud-summary-panel .ud-pop-head{padding:9px 12px;min-height:39px;background:linear-gradient(105deg,var(--u-a),var(--u-b));color:#102148}\n.ud-summary-panel .ud-pop-head h3{font-size:13px!important;color:#102148;display:flex;align-items:center;gap:8px;min-width:0;overflow-wrap:anywhere}\n.ud-summary-panel .ud-pop-head h3 svg{width:23px;height:23px;flex:0 0 23px}.ud-summary-panel .ud-pop-head strong{font-size:12px;color:#102148}\n.ud-summary-panel .ud-pop-head .ud-pop-total-label{font-size:11px;color:#102148;font-weight:700}\n.ud-summary-panel .ud-pop-body{display:grid;grid-template-columns:118px minmax(0,1fr);gap:5px;background:#fff;padding:7px}\n.ud-summary-panel .ud-pop-count{padding:10px 8px;border:0;background:linear-gradient(140deg,#eff3fb,#fff);border-radius:7px}\n.ud-summary-panel .ud-pop-count .ud-count-label{font-size:10px}.ud-summary-panel .ud-pop-count .ud-count-number{display:inline-block;font-size:27px;line-height:1;margin:6px 0 0}\n.ud-summary-panel .ud-pop-count .ud-count-suffix{font-size:11px;margin-left:4px}.ud-summary-panel .ud-pop-count .ud-count-note{font-size:10px;margin:9px 0 0;line-height:1.45}\n.ud-summary-panel .ud-pop-vendors{display:block;min-width:0}.ud-summary-panel .ud-pop-vendor{padding:0;background:transparent;border:0;border-radius:0}\n.ud-summary-panel .ud-pop-vendor+.ud-pop-vendor{margin-top:8px}.ud-summary-panel .ud-pop-vendor-head{min-height:0;padding:2px 4px 5px}\n.ud-summary-panel .ud-pop-vendor-name,.ud-summary-panel .ud-pop-vendor-total span{font-size:10px}.ud-summary-panel .ud-pop-vendor-total b{font-size:11px}\n.ud-summary-panel .ud-pop-vendor.unknown .ud-pop-vendor-head{display:none}\n.ud-summary-panel .ud-pop-table-wrap{border-radius:5px;overflow-x:auto}.ud-summary-panel .ud-pop-table{width:100%;min-width:320px;font-size:10px}\n.ud-summary-panel .ud-pop-table th{padding:7px 4px;text-align:center;font-size:9px;background:#f0f3f9}\n.ud-summary-panel .ud-pop-table td{padding:7px 4px;font-size:10px;vertical-align:middle;text-align:center}\n.ud-summary-panel .ud-pop-table td:first-child{text-align:left}.ud-summary-panel .ud-pop-pill{padding:1px 4px;font-size:9px;border-radius:4px}\n.ud-summary-panel .ud-pop-remark{border:0;margin:0 7px 7px;background:#f1f4fa;border-radius:7px;padding:7px 9px;font-size:10px}\n.ud-summary-panel .ud-pop-footer{margin:10px 2px 0;font-size:11px}\n@media(max-width:1050px){.ud-summary-panel .ud-pop-list{grid-template-columns:minmax(0,1fr)}}\n@media(max-width:540px){.ud-summary-panel{padding:12px!important}.ud-summary-panel .ud-pop-body{grid-template-columns:1fr}.ud-summary-panel .ud-pop-count{display:flex;align-items:center;gap:7px}.ud-summary-panel .ud-pop-count .ud-count-number{font-size:23px;margin:0}.ud-summary-panel .ud-pop-count .ud-count-note{margin:0 0 0 auto}.ud-summary-panel .ud-pop-table{min-width:320px}}\n@media print{.ud-summary-panel .ud-pop-list{grid-template-columns:repeat(2,minmax(0,1fr))}}\n"; document.head.appendChild(styleOct);
+  const browserStyle=document.createElement("style"); browserStyle.textContent="\n/* Populasi Unit Explorer: editable data with 8 switchable layouts */\n.ub-bar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}\n.ub-left,.ub-right{display:flex;gap:8px;align-items:center;flex-wrap:wrap}\n.ub-search{font:inherit;font-size:12px;width:min(240px,100%);min-width:160px;padding:9px 10px;border:1px solid #ddd7ee;border-radius:9px;background:#fff;color:var(--ink)}\n.ub-sort{font:inherit;font-size:12px;border:1px solid #ddd7ee;border-radius:9px;padding:8px 9px;background:#fff;color:var(--ink)}\n.ub-picker{position:relative}.ub-picker>summary{cursor:pointer;list-style:none;display:flex;gap:8px;align-items:center;border:1px solid #ddd7ee;border-radius:9px;padding:8px 12px;color:#5b21b6;font-weight:800;font-size:12px;background:#fff}\n.ub-picker>summary::-webkit-details-marker{display:none}.ub-picker[open]>summary{background:#f5f3ff}\n.ub-menu{position:absolute;top:calc(100% + 5px);left:0;z-index:25;width:245px;background:#fff;border:1px solid #e4ddef;border-radius:12px;box-shadow:0 15px 35px rgba(17,24,39,.16);padding:6px;display:grid;gap:2px}\n.ub-menu button{display:flex;align-items:center;gap:10px;text-align:left;font:inherit;font-size:12px;color:#334155;padding:9px 10px;border:0;border-radius:7px;cursor:pointer;background:#fff}\n.ub-menu button:hover,.ub-menu button[aria-pressed=true]{background:#f2eeff;color:#5b21b6}\n.ub-marker{display:inline-block;width:17px;flex:0 0 17px;text-align:center;color:#6d28d9;font-weight:900}\n.ub-menu hr{margin:4px 0;border:0;border-top:1px solid #e9e5ef}\n.ub-layout{display:grid;grid-template-columns:1fr;gap:12px;align-items:start}\n.ub-layout.has-pane{grid-template-columns:minmax(0,1fr) 245px}\n.ub-main{min-width:0}.ub-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}\n.ub-item{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #e4e4f0;border-radius:10px;background:#fff;min-height:72px;min-width:0;cursor:pointer}\n.ub-item:hover,.ub-item[aria-pressed=true],.ub-table tr[aria-pressed=true]{border-color:#a88af7;background:#f9f6ff;outline:1px solid #e0d4fc}\n.ub-icon{background:var(--ub-bg,#f0eafe);color:var(--ub-col,#6d28d9);width:46px;height:46px;border-radius:10px;flex:0 0 46px;display:grid;place-items:center}\n.ub-icon svg{max-width:78%;max-height:78%}\n.ub-label{min-width:0;flex:1}.ub-label strong{display:block;line-height:1.4;font-size:13px;overflow-wrap:anywhere}\n.ub-label small{display:block;margin-top:3px;line-height:1.45;font-size:11px;color:#667085;overflow-wrap:anywhere}\n.ub-action{border:1px solid #d9cbfa;background:#fff;color:#5b21b6;border-radius:7px;padding:5px 8px;font-size:11px;font-weight:800;cursor:pointer}\n.ub-items.extralarge{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}\n.ub-items.extralarge .ub-item,.ub-items.large .ub-item{flex-direction:column;justify-content:center;text-align:center;align-items:center}\n.ub-items.extralarge .ub-item{min-height:170px}\n.ub-items.extralarge .ub-icon{width:80px;height:80px;flex-basis:80px}\n.ub-items.large{grid-template-columns:repeat(auto-fill,minmax(195px,1fr))}\n.ub-items.large .ub-item{min-height:145px}\n.ub-items.large .ub-icon{width:62px;height:62px;flex-basis:62px}\n.ub-items.medium{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}\n.ub-items.medium .ub-item{padding:9px;gap:8px}\n.ub-items.medium .ub-icon{width:39px;height:39px;flex-basis:39px}\n.ub-items.small{grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:5px}\n.ub-items.small .ub-item{padding:6px;gap:7px;min-height:40px}\n.ub-items.small .ub-icon{width:25px;height:25px;flex-basis:25px;border-radius:6px}\n.ub-items.small .ub-label small,.ub-items.small .ub-action{display:none}\n.ub-items.list{grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:4px}\n.ub-items.list .ub-item{min-height:41px;padding:6px 9px;gap:8px}\n.ub-items.list .ub-icon{width:26px;height:26px;flex-basis:26px;border-radius:6px}\n.ub-items.list .ub-label small,.ub-items.list .ub-action{display:none}\n.ub-items.content{grid-template-columns:1fr}.ub-items.content .ub-item{min-height:100px}\n.ub-items.content .ub-icon{width:65px;height:65px;flex-basis:65px}\n.ub-tablewrap{max-width:100%;overflow-x:auto;border:1px solid #e5e7eb;border-radius:10px}\n.ub-table{width:100%;min-width:690px;border-collapse:collapse;font-size:12px}\n.ub-table th{padding:10px;background:#f2f4fa;color:#47416a;font-weight:850;text-align:left;border-bottom:1px solid #e2e5ef}\n.ub-table td{padding:9px 10px;border-bottom:1px solid #eef0f5;color:#344055}\n.ub-table tr[data-ub-select]{cursor:pointer}.ub-table .ub-name{font-weight:800}\n.ub-side{background:#faf9ff;border:1px solid #e5dff3;border-radius:12px;padding:14px;min-width:0}\n.ub-side h3{font-size:13px;margin:0 0 10px;color:#33205c}\n.ub-side dl{margin:0}.ub-side dt{font-weight:800;font-size:11px;color:#4c3c70;margin-top:10px}\n.ub-side dd,.ub-side p{font-size:11px;line-height:1.5;color:#475569;margin:3px 0 0;overflow-wrap:anywhere}\n.ub-side img{width:100%;max-height:185px;object-fit:contain;border-radius:9px;background:#f1f3f8}\n.ub-hint{font-size:11px;color:#64748b;margin:10px 0 0}\n.ub-register{margin-top:16px}.ub-register>summary{cursor:pointer;border:1px solid #e6dff3;background:#f6f2ff;color:#5b21b6;font-size:12px;font-weight:750;border-radius:9px;padding:11px}\n@media(max-width:1040px){.ub-layout.has-pane{grid-template-columns:minmax(0,1fr)}}\n@media(max-width:560px){.ub-items,.ub-items.extralarge,.ub-items.large,.ub-items.medium,.ub-items.small{grid-template-columns:repeat(2,minmax(0,1fr))}.ub-items.content{grid-template-columns:1fr}.ub-item{padding:8px}.ub-items.extralarge .ub-item{min-height:135px}.ub-items.extralarge .ub-icon{width:60px;height:60px;flex-basis:60px}.ub-items.large .ub-item{min-height:125px}.ub-items.large .ub-icon{width:50px;height:50px;flex-basis:50px}}\n@media print{.ub-picker,.ub-search,.ub-sort,.ub-action{display:none!important}.ub-layout.has-pane{grid-template-columns:1fr}}\n"; document.head.appendChild(browserStyle);
   const recordsOf=u=>Array.isArray(u?.details)?u.details:[];
   const registeredTotal=()=>DATA.units.reduce((sum,u)=>sum+recordsOf(u).length,0);
   const picture=(src,label,cl)=>cleanPhoto(src)?'<img class="'+cl+'" src="'+html(src)+'" alt="'+html(label||"Foto unit")+'" loading="lazy">':'<div class="ud-photo-empty">Belum ada foto</div>';
@@ -330,7 +331,109 @@
         '</tbody></table></div></details>';
     };
   }
-  window.pageUnit=function(D){return oldPageUnit(D)+detailPanel();};
+
+  /* The viewer's chosen layout is local to the browser, never a duplicate source. */
+  const UB_MODES=[
+    ["extralarge","Extra large icons","▣"],
+    ["large","Large icons","▣"],
+    ["medium","Medium icons","▤"],
+    ["small","Small icons","▦"],
+    ["list","List","☷"],
+    ["details","Details","☰"],
+    ["tiles","Tiles","▧"],
+    ["content","Content","≡"]
+  ];
+  const ub={view:"details",sort:"qty",search:"",select:0,details:false,preview:false,scope:""};
+  function ubScope(){return location.pathname+"|"+(typeof WEB_ID==="undefined"?"main":WEB_ID);}
+  function ubLoad(){
+    const scope=ubScope();if(scope===ub.scope)return;
+    ub.scope=scope;ub.view="details";ub.sort="qty";ub.search="";ub.select=0;ub.details=false;ub.preview=false;
+    try{const v=JSON.parse(localStorage.getItem("kmb-unit-view:"+scope)||"{}");
+      if(UB_MODES.some(m=>m[0]===v.view))ub.view=v.view;
+      if(["qty","name","least"].includes(v.sort))ub.sort=v.sort;
+      ub.details=!!v.details;ub.preview=!!v.preview;
+    }catch(e){}
+  }
+  function ubSave(){
+    try{localStorage.setItem("kmb-unit-view:"+ub.scope,JSON.stringify({view:ub.view,sort:ub.sort,details:ub.details,preview:ub.preview}));}catch(e){}
+  }
+  const ubCount=u=>Math.max(Number(u.jumlah)||0,recordsOf(u).length);
+  function ubRows(){
+    const a=(DATA.units||[]).map((u,i)=>{
+      const details=recordsOf(u),vendors=[...new Set(details.map(d=>rowName(d.vendor,"Belum diisi")))];
+      return {u,i,name:rowName(u.unit,"Jenis belum diisi"),count:ubCount(u),details,vendors};
+    }).filter(r=>!ub.search||[r.name,...r.vendors,...r.details.flatMap(d=>[d.lambung,d.merk,d.model,d.status,d.kondisi])].join(" ").toLowerCase().includes(ub.search.toLowerCase()));
+    if(ub.sort==="name")a.sort((x,y)=>x.name.localeCompare(y.name,"id"));
+    else if(ub.sort==="least")a.sort((x,y)=>x.count-y.count||x.name.localeCompare(y.name,"id"));
+    else a.sort((x,y)=>y.count-x.count||x.name.localeCompare(y.name,"id"));
+    return a;
+  }
+  const ubIcon=u=>typeof unitIcon==="function"?unitIcon(u,36):"▣";
+  function ubItem(r,ix){
+    const sel=ub.select===r.i?"true":"false";
+    const color=["#7c3aed","#2563eb","#0d9488","#ea580c","#db2777","#059669"][r.i%6];
+    const text=r.details.length+" identitas · "+r.vendors.join(", ");
+    const extra=ub.view==="content"?"<br>"+html(r.details.map(d=>d.lambung||d.merk||"").filter(Boolean).slice(0,6).join(" · ")||"Detail identitas belum tersedia"):"";
+    return '<div class="ub-item" role="button" tabindex="0" aria-pressed="'+sel+'" data-ub-select="'+r.i+'" style="--ub-col:'+color+';--ub-bg:'+color+'17">'+
+      '<span class="ub-icon">'+ubIcon(r.name)+'</span><div class="ub-label"><strong>'+html(r.name)+'</strong>'+
+      '<small>'+r.count+' unit'+((ub.view==="tiles"||ub.view==="content")?" · "+html(text):"")+extra+'</small></div>'+
+      (CAN_EDIT&&ub.view!=="small"&&ub.view!=="list"?'<button type="button" class="ub-action" data-eunit="'+r.i+'" title="Ubah jenis dan identitas unit">Edit</button>':"")+'</div>';
+  }
+  function ubTable(rows){
+    return '<div class="ub-tablewrap"><table class="ub-table"><thead><tr><th>Jenis Unit</th><th>Jumlah</th><th>Terdata</th><th>Vendor</th><th>Status Operasional</th><th>Kondisi</th>'+(CAN_EDIT?'<th>Aksi</th>':'')+'</tr></thead><tbody>'+
+    rows.map(r=>{
+      const statuses=[...new Set(r.details.map(d=>rowName(d.status,"Belum Diketahui")))];
+      const conditions=[...new Set(r.details.map(d=>rowName(d.kondisi,"Belum Diperiksa")))];
+      return '<tr tabindex="0" data-ub-select="'+r.i+'" aria-pressed="'+(ub.select===r.i)+'"><td class="ub-name">'+html(r.name)+'</td>'+
+        '<td>'+r.count+'</td><td>'+r.details.length+'/'+r.count+'</td><td>'+html(r.vendors.join(", ")||"Belum diisi")+'</td>'+
+        '<td>'+html(statuses.join(", ")||(r.count?"Belum Diketahui":"–"))+'</td>'+
+        '<td>'+html(conditions.join(", ")||(r.count?"Belum Diperiksa":"–"))+'</td>'+
+        (CAN_EDIT?'<td><button type="button" class="ub-action" data-eunit="'+r.i+'">Edit</button></td>':'')+'</tr>';
+    }).join("")+'</tbody></table></div>';
+  }
+  function ubSide(label,row){
+    if(!row)return '<aside class="ub-side"><h3>'+label+'</h3><p>Pilih jenis unit di sebelah kiri untuk melihat informasi.</p></aside>';
+    const first=row.details.find(d=>cleanPhoto(d.foto));
+    const preview=label==="Preview pane";
+    const photo=first?'<button type="button" style="padding:0;border:0;background:none;cursor:zoom-in;width:100%" data-ud-photo="'+row.i+':'+row.details.indexOf(first)+'"><img src="'+html(first.foto)+'" alt="Foto '+html(row.name)+'"></button>':'<p>Belum ada foto unit.</p>';
+    return '<aside class="ub-side"><h3>'+label+'</h3>'+(preview?photo:'<h2 style="font-size:16px">'+html(row.name)+'</h2>')+
+      '<dl><dt>Jumlah populasi</dt><dd>'+row.count+' unit</dd><dt>Identitas tercatat</dt><dd>'+row.details.length+' unit</dd>'+
+      '<dt>Vendor</dt><dd>'+html(row.vendors.join(", ")||"Belum diisi")+'</dd>'+
+      '<dt>Nomor Lambung</dt><dd>'+html(row.details.map(d=>d.lambung).filter(Boolean).join(", ")||"Belum diisi")+'</dd>'+
+      '<dt>Status / Kondisi</dt><dd>'+html([...new Set(row.details.map(d=>rowName(d.status,"Belum Diketahui")+" / "+rowName(d.kondisi,"Belum Diperiksa")))].join("; ")||"Belum dicatat")+'</dd></dl>'+
+      (CAN_EDIT?'<button type="button" class="ub-action" style="margin-top:12px" data-eunit="'+row.i+'">Edit Data</button>':'')+'</aside>';
+  }
+  function ubMenu(){
+    return '<details class="ub-picker"><summary aria-label="Pilih tampilan sheet Populasi Unit">☷ View · '+html((UB_MODES.find(m=>m[0]===ub.view)||UB_MODES[5])[1])+' ▾</summary><div class="ub-menu" role="group" aria-label="Pilihan bentuk tampilan">'+
+      UB_MODES.map(m=>'<button type="button" data-ub-mode="'+m[0]+'" aria-pressed="'+(ub.view===m[0])+'"><span class="ub-marker">'+(ub.view===m[0]?'●':m[2])+'</span>'+m[1]+'</button>').join("")+
+      '<hr><button type="button" data-ub-pane="details" aria-pressed="'+ub.details+'"><span class="ub-marker">'+(ub.details?'●':'▤')+'</span>Details pane</button>'+
+      '<button type="button" data-ub-pane="preview" aria-pressed="'+ub.preview+'"><span class="ub-marker">'+(ub.preview?'●':'▯')+'</span>Preview pane</button></div></details>';
+  }
+  window.pageUnit=function(D){
+    ubLoad();
+    const rows=ubRows(),current=(DATA.units||[])[ub.select]?DATA.units[ub.select]:null;
+    const selected=rows.find(r=>r.i===ub.select)||null;
+    const p={u:current,details:recordsOf(current)};
+    const count=(DATA.units||[]).reduce((n,u)=>n+ubCount(u),0);
+    return header("Database","Populasi Unit","Database unit operasional. Pilih View untuk mengubah bentuk tampilan tanpa mengubah data.")+
+      '<div class="card"><div class="ch"><div><div class="eyebrow">Populasi Unit</div><h2>Data Unit</h2><p>Semua mode View mengambil data yang sama dan tetap dapat diedit oleh Editor/Pemilik.</p></div>'+
+      '<div class="ub-right"><span class="pill live">'+count+' total unit</span>'+
+      (CAN_EDIT?'<button type="button" class="btn btn-p" id="addUnit">+ Tambah Jenis Unit</button>':'')+
+      (DL?'<button type="button" class="btn btn-g" data-csv="unit">Export CSV</button>':'')+'</div></div>'+
+      '<div class="ub-bar"><div class="ub-left">'+ubMenu()+
+      '<select id="ub-sort" class="ub-sort" aria-label="Urutkan populasi"><option value="qty" '+(ub.sort==="qty"?"selected":"")+'>Sort: Jumlah terbanyak</option>'+
+      '<option value="name" '+(ub.sort==="name"?"selected":"")+'>Sort: Nama A–Z</option>'+
+      '<option value="least" '+(ub.sort==="least"?"selected":"")+'>Sort: Jumlah terkecil</option></select></div>'+
+      '<div class="ub-right"><input type="search" class="ub-search" id="ub-search" placeholder="Cari jenis, vendor, lambung..." value="'+html(ub.search)+'" aria-label="Cari Populasi Unit">'+
+      '<span class="pill">'+rows.length+' jenis ditampilkan</span></div></div>'+
+      '<div class="ub-layout '+(ub.details||ub.preview?'has-pane':'')+'"><div class="ub-main">'+
+      (ub.view==="details"?ubTable(rows):'<div class="ub-items '+ub.view+'">'+rows.map(ubItem).join("")+'</div>')+
+      (rows.length?'':'<p class="empty">Tidak ada data yang sesuai pencarian.</p>')+
+      '</div>'+(ub.details?ubSide("Details pane",selected):'')+(ub.preview?ubSide("Preview pane",selected):'')+'</div>'+
+      '<p class="ub-hint">View dapat diganti kapan saja. Pilihan tampilan tersimpan di browser ini; jumlah, vendor, status, kondisi, dan foto tetap mengacu pada data Populasi Unit.</p></div>'+
+      '<details class="ub-register"><summary>▸ Buka Register Identitas & Foto Unit ('+registeredTotal()+' terdata)</summary>'+detailPanel()+'</details>';
+  };
+
   function rowTemplate(it,j){
     const thumb=cleanPhoto(it.foto)?'<img class="ud-thumb" src="'+html(it.foto)+'" alt="Pratinjau foto unit">':'<div class="ud-photo-empty">Belum ada foto</div>';
     const val=(key)=>html(it[key]||"");
@@ -445,6 +548,39 @@
     paint();
     if(u)FORM.dangerFn=()=>confirmBox("Hapus seluruh jenis unit "+u.unit+"?","Termasuk "+entries.length+" identitas dan foto unit. Tindakan ini akan mengurangi total populasi.",()=>commit(S=>{S.units.splice(idx,1);},"Jenis unit dihapus."));
   };
+
+  /* Explorer selections and layout toggles. Standard Edit actions stay untouched. */
+  document.addEventListener("click",function(ev){
+    const t=ev.target,mode=t.closest("[data-ub-mode]"),pane=t.closest("[data-ub-pane]");
+    if(mode||pane){
+      ev.preventDefault();ev.stopImmediatePropagation();ubLoad();
+      if(mode)ub.view=mode.dataset.ubMode;
+      if(pane)ub[pane.dataset.ubPane]=!ub[pane.dataset.ubPane];
+      ubSave();render();return;
+    }
+    if(t.closest("[data-eunit],[data-ud-edit],[data-ud-photo]"))return;
+    const pick=t.closest("[data-ub-select]");
+    if(pick&&ui.page==="unit"){
+      const idx=Number(pick.dataset.ubSelect);
+      if(Number.isInteger(idx)&&idx!==ub.select){ub.select=idx;render();}
+    }
+  },true);
+  document.addEventListener("keydown",function(ev){
+    if((ev.key==="Enter"||ev.key===" ")&&ev.target.matches("[data-ub-select]")){
+      ev.preventDefault();ev.target.click();
+    }
+  });
+  document.addEventListener("change",function(ev){
+    if(ev.target.id==="ub-sort"){ub.sort=ev.target.value;ubSave();render();}
+  });
+  document.addEventListener("input",function(ev){
+    if(ev.target.id!=="ub-search")return;
+    const pos=ev.target.selectionStart;ub.search=ev.target.value;
+    render();
+    const input=document.getElementById("ub-search");
+    if(input){input.focus();try{input.setSelectionRange(pos,pos);}catch(e){}}
+  });
+
   document.addEventListener("click",e=>{
     const edit=e.target.closest("[data-ud-edit]");
     if(edit){e.preventDefault();e.stopImmediatePropagation();if(!CAN_EDIT)return;const parts=edit.dataset.udEdit.split(":").map(Number);window.unitForm(parts[0],parts[1]);return;}
