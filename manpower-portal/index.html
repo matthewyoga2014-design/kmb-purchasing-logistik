@@ -208,6 +208,7 @@ a.hb { text-decoration: none; }
 .shl { display: flex; gap: 8px; margin-top: 12px; } .shl input { margin: 0 !important; }
 .dlg .row.l { justify-content: flex-start; margin-top: 8px; flex-wrap: wrap; } .dlg .row.l .btn { text-decoration: none; font-size: 13px; }
 .dlg .row { margin-top: 12px; }
+.portal-rename-btn{border:1px solid #dfd5fb;background:#fff;color:#6d28d9;border-radius:9px;padding:7px 9px;font-size:11px;font-weight:800;cursor:pointer;white-space:nowrap}.portal-rename-dialog{border:0;border-radius:17px;max-width:520px;width:calc(100% - 24px);padding:22px;color:#25203f;box-shadow:0 22px 75px #17123b50}.portal-rename-dialog::backdrop{background:#16133188}.portal-rename-dialog form{display:grid;gap:12px}.portal-rename-dialog h3{margin:0;font-size:18px}.portal-rename-dialog p{margin:0;color:#726a86;font-size:12px}.portal-rename-dialog label{display:grid;gap:5px;font-weight:700;font-size:12px}.portal-rename-dialog input,.portal-rename-dialog textarea{border:1px solid #ded7ee;border-radius:9px;padding:10px;font:inherit;min-width:0}.portal-rename-dialog textarea{min-height:75px}.portal-rename-dialog footer{display:flex;justify-content:flex-end;gap:9px}.portal-rename-dialog footer button{border:1px solid #dcd5ee;border-radius:8px;background:#fff;padding:9px 16px;cursor:pointer}.portal-rename-dialog footer button[type=submit]{background:#6d28d9;color:white}.portal-rename-dialog small{color:#af3434}
 </style></head>
 <body>
 <div class="side-l" aria-hidden="true"></div><div class="side-r" aria-hidden="true"></div><div class="scene" aria-hidden="true"></div><div class="bscene" aria-hidden="true"></div><div class="helmet" aria-hidden="true"></div>
@@ -285,6 +286,31 @@ const PROJECTS = [
   { key: 'kmb', name: 'KMB', desc: '4 jobsite: C4, SLR, Workshop', href: '../manpower-kmb/', icon: 'home',
     sites: [['kmb-c4', 'C4'], ['kmb-slr-maintenance', 'SLR - Maintenance'], ['kmb-slr-rekondisi', 'SLR - Rekondisi'], ['kmb-workshop', 'Workshop Legok']] },
 ];
+async function portalLoadTitles(){
+ if(!SB)return;
+ const {data,error}=await SB.from('portal_display_settings').select('app_key,name,description');
+ if(error){console.warn('Nama portal belum dapat dibaca',error);return;}
+ for(const row of data||[]){const p=PROJECTS.find(x=>x.key===row.app_key);if(p){p.name=row.name;p.desc=row.description||'';}}
+ if(ROWS.length)render(ROWS);else skeleton();
+}
+document.addEventListener('click',e=>{
+ const b=e.target.closest('[data-portal-rename]');if(!b||!IS_OWNER)return;
+ e.preventDefault();e.stopPropagation();const p=PROJECTS.find(x=>x.key===b.dataset.portalRename);if(!p)return;
+ document.getElementById('portalRenameKey').value=p.key;document.getElementById('portalRenameName').value=p.name;
+ document.getElementById('portalRenameDesc').value=p.desc;document.getElementById('portalRenameStatus').textContent='';
+ document.getElementById('portalRenameDlg').showModal();
+});
+document.getElementById('portalRenameCancel').addEventListener('click',()=>document.getElementById('portalRenameDlg').close());
+document.getElementById('portalRenameForm').addEventListener('submit',async e=>{
+ e.preventDefault();if(!IS_OWNER||!SB)return;const key=document.getElementById('portalRenameKey').value;
+ const name=document.getElementById('portalRenameName').value.trim(),description=document.getElementById('portalRenameDesc').value.trim();
+ const label=document.getElementById('portalRenameStatus'),btn=document.getElementById('portalRenameSave');
+ if(name.length<2||name.length>70||description.length>180){label.textContent='Nama 2–70 karakter; deskripsi maksimal 180 karakter.';return;}
+ btn.disabled=true;label.textContent='Menyimpan…';
+ const {data,error}=await SB.from('portal_display_settings').update({name,description,updated_at:new Date().toISOString()}).eq('app_key',key).select('app_key');
+ btn.disabled=false;if(error||!data?.length){label.textContent='Gagal menyimpan. Periksa hak akses.';return;}
+ document.getElementById('portalRenameDlg').close();await portalLoadTitles();toast('Nama portal diperbarui.');
+});
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const isVac = (p) => !p.nama || /^vacant$/i.test(String(p.nama).trim());
 function stats(d) {
@@ -310,7 +336,7 @@ function cardHtml(p, s, per, last) {
   const v = (x) => s ? x : '<span class="sk">00</span>';
   const sites = p.sites ? `<div class="sites">${p.sites.map(([id, nm], i) => { const x = per ? per[i].s : null; return `<a href="${hrefOf(p)}" data-site="${id}"><span class="n">${esc(nm)}</span><span class="x">${x ? `${x.act}/${x.mpp} MPP` : ''}</span><span class="x pc">${x ? x.pct + '%' : ''}</span><span class="x ${x && x.vac ? 'v' : ''}">${x ? (x.vac ? x.vac + ' vacant' : 'Lengkap') : ''}</span><span class="ch2">${I.chev}</span></a>`; }).join('')}</div>` : '';
   return `<article class="card k-${p.key}" style="--art:url('${ART[p.key]}')">
-    <div class="ch"><span class="ic">${I[p.icon]}</span><div><h2>${esc(p.name)}</h2><p>${esc(p.desc)}</p></div><a class="go" href="${hrefOf(p)}">Buka →</a></div>
+    <div class="ch"><span class="ic">${I[p.icon]}</span><div><h2>${esc(p.name)}</h2><p>${esc(p.desc)}</p></div>${IS_OWNER?'<button type="button" class="portal-rename-btn" data-portal-rename="'+esc(p.key)+'">✎ Edit</button>':''}<a class="go" href="${hrefOf(p)}">Buka →</a></div>
     <div class="cb">
       <div class="st"><div>${I.people('#7C3AED')}<span><b>${v(s && s.mpp)}</b><span>MPP</span></span></div><div>${I.helmet('#2563EB')}<span><b>${v(s && s.act)}</b><span>Actual</span></span></div><div class="v">${I.vac('#E11D48')}<span><b>${v(s && s.vac)}</b><span>Vacant</span></span></div><div class="o">${I.doc('#F59E0B')}<span><b>${v(s && s.open)}</b><span>PTK open</span></span></div></div>
       <div class="bar" title="${s ? s.pct : 0}% terisi"><i style="width:${s ? s.pct : 0}%"></i></div>
@@ -618,6 +644,7 @@ skeleton(); whoUI(); guard();
   if (HUB_SHARE) await loadGuestApps();
   whoUI();
   if(!HUB_SHARE)loadPerm();
+  await portalLoadTitles();
   SB.auth.onAuthStateChange((ev, s) => { if(HUB_SHARE)return; const nu = (s && s.user) || null; if ((nu && nu.email) === (USER && USER.email)) return; USER = nu; whoUI(); loadPerm(); if (window.__portalLoad) window.__portalLoad(); });
   const load = async () => {
     if(HUB_SHARE){
@@ -645,4 +672,4 @@ skeleton(); whoUI(); guard();
   document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
 })();
 </script>
-</body></html>
+<dialog id="portalRenameDlg" class="portal-rename-dialog"><form id="portalRenameForm"><h3>Edit Nama Portal</h3><p>Hanya nama dan deskripsi tampilan. Link dan data MPP tidak berubah.</p><input type="hidden" id="portalRenameKey"><label>Nama portal<input id="portalRenameName" maxlength="70" required></label><label>Deskripsi<textarea id="portalRenameDesc" maxlength="180"></textarea></label><small id="portalRenameStatus"></small><footer><button type="button" id="portalRenameCancel">Batal</button><button type="submit" id="portalRenameSave">Simpan</button></footer></form></dialog></body></html>
