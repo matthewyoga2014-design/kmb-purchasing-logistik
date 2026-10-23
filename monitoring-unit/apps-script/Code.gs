@@ -378,3 +378,79 @@ function onEdit(e) {
     // edit tetap tersimpan meski pencatatan otomatis gagal
   }
 }
+
+
+/* ---------------- Backup otomatis nama portal (Supabase → Google Sheets) ----------------
+ * Backup independen dari sesi browser: dijalankan trigger Apps Script setiap 5 menit.
+ * Catatan aktivasi sekali (Pemilik):
+ * 1) Deploy versi baru Apps Script ini (versi aktif tidak otomatis ikut perubahan GitHub).
+ * 2) Jalankan setupPortalNameBackup() sekali, izinkan akses UrlFetch/Spreadsheet/Triggers.
+ * 3) Lihat hasil pada spreadsheet sumber > tab "Backup Nama Portal".
+ * Data operasional/manpower Supabase memerlukan alur backup terpisah; fungsi ini
+ * hanya mencadangkan nama dan deskripsi kartu portal.
+ */
+const PORTAL_NAME_BACKUP_TAB = 'Backup Nama Portal';
+
+function backupPortalNamesToDrive() {
+  const lock=LockService.getScriptLock();
+  if (!lock.tryLock(20000)) throw new Error('Backup portal: sedang ada operasi penulisan lain.');
+  try {
+    // Nama/deskripsi portal bersifat konfigurasi tampilan publik. Supabase
+    // policy SELECT anon tersedia; tidak menggunakan service_role atau JWT user.
+    const url=SB_URL+'/rest/v1/portal_display_settings?select=app_key,name,description,updated_at&order=app_key.asc';
+    const resp=UrlFetchApp.fetch(url,{
+      method:'get',
+      headers:{'apikey':SB_KEY,'Accept':'application/json'},
+      muteHttpExceptions:true
+    });
+    if (resp.getResponseCode()!==200)
+      throw new Error('Backup portal: Supabase mengembalikan HTTP '+resp.getResponseCode());
+    const rows=JSON.parse(resp.getContentText()||'[]');
+    if (!Array.isArray(rows)) throw new Error('Backup portal: format respons tidak dikenal.');
+    const spreadsheet=book_();
+    let sheet=spreadsheet.getSheetByName(PORTAL_NAME_BACKUP_TAB);
+    if (!sheet) {
+      sheet=spreadsheet.insertSheet(PORTAL_NAME_BACKUP_TAB);
+      sheet.getRange(1,1,1,5).setValues([['Diperbarui di Supabase','Kode Portal','Nama Tampilan','Deskripsi Portal','Waktu Backup']]);
+      sheet.setFrozenRows(1);
+    }
+    // Bandingkan nama+deskripsi, bukan timestamp, untuk menghindari
+    // snapshot ganda akibat perubahan format timestamp ISO.
+    const lastRow=sheet.getLastRow(), latest={};
+    if (lastRow>1) {
+      const history=sheet.getRange(2,1,lastRow-1,4).getDisplayValues();
+      history.forEach(function(r) {
+        if (r[1]) latest[String(r[1]).toLowerCase()]={name:String(r[2]),description:String(r[3])};
+      });
+    }
+    const timestamp=Utilities.formatDate(new Date(),'Asia/Jakarta','yyyy-MM-dd HH:mm:ss');
+    const inserts=[];
+    rows.forEach(function(r) {
+      const k=String(r.app_key||'').trim().toLowerCase();
+      if (['kta','bupr','mbj','kmb'].indexOf(k)<0) return;
+      const name=String(r.name||''),description=String(r.description||'');
+      const prev=latest[k];
+      if (!prev||prev.name!==name||prev.description!==description) {
+        inserts.push([String(r.updated_at||''),k,name,description,timestamp]);
+      }
+    });
+    if (inserts.length) sheet.getRange(lastRow+1,1,inserts.length,5).setValues(inserts);
+    return {ok:true,rowsSeen:rows.length,backedUp:inserts.length,sheet:PORTAL_NAME_BACKUP_TAB};
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+// Instal sekali untuk sinkronisasi berkala. Dipanggil manual dari editor
+// Apps Script, bukan otomatis saat membuka dashboard.
+function setupPortalNameBackup() {
+  const handler='backupPortalNamesToDrive';
+  ScriptApp.getProjectTriggers().forEach(function(trigger) {
+    if (trigger.getHandlerFunction()===handler) ScriptApp.deleteTrigger(trigger);
+  });
+  // Jalankan backup awal untuk memastikan otorisasi dan endpoint berhasil.
+  const result=backupPortalNamesToDrive();
+  ScriptApp.newTrigger(handler).timeBased().everyMinutes(5).create();
+  Logger.log(JSON.stringify(result));
+  return result;
+}
