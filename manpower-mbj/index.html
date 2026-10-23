@@ -358,6 +358,28 @@ td .cc-files { margin-top: 0; min-width: 150px; }
 #sumCard > * { position: relative; z-index: 1; }
 #sumCard .tw table.t th { background: transparent; }
 .units2 .uic { width: 40px; height: 40px; border-radius: 11px; } .units2 .uic svg { width: 26px; height: 26px; }
+
+/* Compact unit population on each dashboard: preserve data, reduce visual footprint. */
+.unit-compact { padding: 14px 16px; }
+.unit-compact .ch { margin-bottom: 10px; align-items: center; }
+.unit-compact .ch h2 { font-size: 14px; }
+.unit-compact .ch p { font-size: 11px; }
+.unit-compact .pill { font-size: 10px; padding: 3px 8px; }
+.unit-compact .units2 { grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 7px; }
+.unit-compact .units2 > div { min-height: 44px; gap: 7px; padding: 7px 9px; border-left-width: 3px; border-radius: 9px; }
+.unit-compact .units2 .uic { width: 25px; height: 25px; border-radius: 7px; }
+.unit-compact .units2 .uic svg { width: 16px; height: 16px; }
+.unit-compact .units2 .un { font-size: 11px; line-height: 1.25; overflow-wrap: anywhere; }
+.unit-compact .units2 b { font-size: 16px; }
+@media (max-width: 520px) {
+  .unit-compact { padding: 12px; }
+  .unit-compact .units2 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .unit-compact .units2 > div { min-height: 42px; padding: 6px 8px; }
+}
+@media print {
+  .unit-compact .units2 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+}
+
 .vac-card { display: flex; flex-direction: column; }
 .vac-card .hbars { flex: 1; align-content: space-evenly; gap: 14px; }
 .vac-card .hb .tr { height: 22px; }
@@ -2348,7 +2370,7 @@ function unitKind(n) {
 }
 const unitIcon = (n, s = 20) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${UI_PATHS[unitKind(n)]}</svg>`;
 function unitBlock(D) {
-  return `<div class="card" style="margin-bottom:18px"><div class="ch"><div><div class="eyebrow">Populasi Unit</div><h2>Populasi Unit MBJ</h2><p>Jumlah unit operasional sesuai tabel Jenis Unit di sheet Dashboard.</p></div><span class="pill live">${D.unitTot} unit</span></div>
+  return `<div class="card unit-compact" style="margin-bottom:14px"><div class="ch"><div><div class="eyebrow">Populasi Unit</div><h2>Populasi Unit MBJ</h2><p>Jumlah unit operasional sesuai tabel Jenis Unit di sheet Dashboard.</p></div><span class="pill live">${D.unitTot} unit</span></div>
     <div class="units2">${DATA.units.map((u, i) => { const c = UNIT_COLORS[i % UNIT_COLORS.length]; return `<div style="--uc:${c};--ubg:${tint(c, .07)};--ubd:${tint(c, .22)}"><span class="uic">${unitIcon(u.unit)}</span><span class="un">${esc(u.unit)}</span><b>${u.jumlah}</b></div>`; }).join('') || '<div class="empty">Tabel unit tidak ditemukan.</div>'}</div></div>`;
 }
 
