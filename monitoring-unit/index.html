@@ -1191,6 +1191,18 @@ border:1px solid transparent;background:var(--unit-soft);border-radius:7px;color
 .mu-photo-form-note{border:1px solid #e1d3fa;background:#f7f3ff;color:#655480;border-radius:9px;padding:10px;font-size:11px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .mu-photo-btn{color:#6D28D9!important;border-color:#d9c9fa!important}
 .mu-project-rename{color:#6d28d9!important;background:#fff!important;border-color:#ded2f8!important;font-size:10px!important;white-space:nowrap}
+/* Hanya dashboard sesuai filter yang boleh terlihat dan ikut dicetak.
+   Aturan khusus ini harus lebih kuat daripada #projCards.masonry{display:block!important}. */
+#p-ringkasan #projDash[hidden],
+#p-ringkasan #homeTop[hidden],
+#p-ringkasan #projCards[hidden],
+#p-ringkasan #ovBottom[hidden]{display:none!important}
+@media print{
+  #p-ringkasan #projDash[hidden],
+  #p-ringkasan #homeTop[hidden],
+  #p-ringkasan #projCards[hidden],
+  #p-ringkasan #ovBottom[hidden]{display:none!important}
+}
 /* Identitas vendor: konsisten berdasarkan nama di sheet Populasi Unit. */
 .mu-vendor-tag{display:inline-flex;align-items:center;max-width:100%;box-sizing:border-box;padding:3px 8px;border-radius:6px;border:1px solid var(--mu-vendor-bd,#CBD5E1);background:var(--mu-vendor-bg,#F1F5F9);color:var(--mu-vendor-fg,#334155);font-size:10px;font-weight:800;line-height:1.4;letter-spacing:.01em;white-space:normal;overflow-wrap:anywhere;text-align:center}
 .mu-pop-vendor-head .mu-vendor-tag{font-size:9px;padding:2px 6px;vertical-align:middle}
@@ -2522,7 +2534,10 @@ function renderRingkasan(){
   const L=!S.ready, ps=projects(), P=curProj();
   $("#projDash").hidden=!P; $("#projCards").hidden=!!P; $("#homeTop").hidden=!!P; $("#ovBottom").hidden=!!P;
   if(P) renderProjDash(P);
-  if(!ps.length){
+  if(P){
+    // Filter project aktif: kartu lintas project tidak boleh tertinggal di DOM atau ikut tercetak.
+    $("#projCards").replaceChildren();
+  } else if(!ps.length){
     $("#projCards").innerHTML=`<div class="card">${emptyState(L?"Memuat data…":"Belum ada project",L?"":"Tambahkan project dan item unit yang direncanakan dikirim.",canWrite&&!L?`<button class="btn primary small" data-act="addProj" type="button">+ Project</button>`:"")}</div>`;
   } else {
     const cardsHtml=ps.map(p=>{
