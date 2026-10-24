@@ -27,6 +27,8 @@ header .sp{flex:1}
 .tag .bub{max-width:170px;padding:5px 9px;border-radius:10px;font-size:12px;font-weight:600;line-height:1.3;text-align:center;box-shadow:0 4px 14px rgba(20,10,50,.15);border:1px solid rgba(0,0,0,.05)}
 .tag .nm{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--card);color:var(--ink);border:1px solid var(--line);white-space:nowrap}
 .tag.sel .nm{background:var(--p);color:#fff;border-color:var(--p)}
+.tag .nm i{display:none;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}
+.tag .nm i.ok{background:var(--good)}.tag .nm i.warn{background:#F59E0B}.tag .nm i.crit{background:var(--crit)}.tag .nm i.idle{background:var(--idle)}
 .tag.hot .bub{animation:pulse 1.4s ease-in-out infinite}
 @keyframes pulse{50%{transform:scale(1.06)}}
 aside{border-left:1px solid var(--line);background:var(--card);overflow:auto;padding:16px;z-index:2}
@@ -48,13 +50,31 @@ aside .team button span:nth-child(2){flex:1}
 .gate .card{max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;text-align:center}
 .gate h2{margin:0 0 6px}.gate p{color:var(--ink-2);margin:0 0 14px}
 .demo{position:absolute;left:12px;bottom:12px;z-index:2}
+.sec{margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em}
+.ask textarea{width:100%;min-height:84px;resize:vertical;font:inherit;font-size:14px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.ask textarea:focus{outline:2px solid var(--p);border-color:transparent}
+.ask .row{display:flex;gap:8px;align-items:center;margin-top:6px}.ask .row .muted{flex:1}
+.btn.pri{background:var(--p);border-color:var(--p);color:#fff;font-weight:600}
+.btn:disabled{opacity:.55;cursor:default}
+.rq{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin:8px 0;font-size:14px}
+.rq .top{display:flex;gap:8px;align-items:flex-start}.rq .top p{margin:0;flex:1;white-space:pre-wrap}
+.rq .meta{font-size:12px;color:var(--muted);margin-top:4px}
+.chip{font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;white-space:nowrap}
+.job{border-top:1px dashed var(--line);margin-top:8px;padding-top:8px}
+.job .jt{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.job .jt b{font-size:13px}
+.job .who{font-size:12px;color:var(--muted)}
+.job .prop{background:var(--warn-soft);border-radius:8px;padding:8px 10px;margin:6px 0;font-size:13px}
+.job details{margin-top:4px}.job summary{cursor:pointer;color:var(--p);font-size:13px}
+.job .res{font-size:13px;background:var(--bg);border-radius:8px;padding:6px 10px;margin-top:4px;overflow-wrap:anywhere}
+.acts{display:flex;gap:6px;margin-top:6px}
 @media (max-width:820px){
   #app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto}
   header{gap:8px;padding:8px 12px}header h1{font-size:16px}header .lg{width:30px;height:30px}
   .pill{font-size:12px;padding:4px 8px}.btn .tx{display:none}
   aside{border-left:0;border-top:1px solid var(--line);max-height:44vh;padding:14px 16px}
   header .sub{display:none}
-  .tag .bub{max-width:110px;font-size:11px;padding:4px 7px}.tag .nm{font-size:10px}
+  .tag .bub{max-width:150px;font-size:11px;padding:4px 7px}.tag .nm{font-size:10px}
+  .tag:not(.sel) .bub{display:none}.tag .nm i{display:inline-block}.tag.sel{z-index:2}
 }
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
@@ -88,13 +108,18 @@ const mask = (e) => { const [u, d] = String(e || '').split('@'); return d ? u.sl
 
 /* ---------- tim ---------- */
 const TEAM = [
-  { id: 'satpam', name: 'Satpam', role: 'Keamanan', shirt: 0x1e3a8a, pos: [-7, 0, -3.5], rug: 0xdbeafe, prop: 'gate' },
-  { id: 'teknisi', name: 'Teknisi', role: 'Kesehatan web', shirt: 0x0f766e, pos: [0, 0, -3.5], rug: 0xccfbf1, prop: 'rack' },
-  { id: 'pencatat', name: 'Pencatat', role: 'Aktivitas Editor', shirt: 0xb45309, pos: [7, 0, -3.5], rug: 0xfef3c7, prop: 'shelf' },
-  { id: 'resepsionis', name: 'Resepsionis', role: 'Akses & link', shirt: 0xbe185d, pos: [-4, 0, 3.5], rug: 0xfce7f3, prop: 'plant' },
-  { id: 'sekretaris', name: 'Sekretaris', role: 'Laporan pagi', shirt: 0x6d28d9, pos: [4, 0, 3.5], rug: 0xede9fe, prop: 'board' },
+  { id: 'satpam', name: 'Satpam', role: 'Keamanan', shirt: 0x1e3a8a, pos: [-9, 0, -4], rug: 0xdbeafe, prop: 'gate' },
+  { id: 'teknisi', name: 'Teknisi', role: 'Kesehatan web', shirt: 0x0f766e, pos: [-3, 0, -4], rug: 0xccfbf1, prop: 'rack' },
+  { id: 'pencatat', name: 'Pencatat', role: 'Aktivitas Editor', shirt: 0xb45309, pos: [3, 0, -4], rug: 0xfef3c7, prop: 'shelf' },
+  { id: 'marketing', name: 'Marketing', role: 'Penjualan Monitoring', shirt: 0xea580c, pos: [9, 0, -4], rug: 0xffedd5, prop: 'promo' },
+  { id: 'resepsionis', name: 'Resepsionis', role: 'Akses & link', shirt: 0xbe185d, pos: [-7.5, 0, 3.8], rug: 0xfce7f3, prop: 'plant' },
+  { id: 'manager', name: 'Manager Operasional', role: 'Terima permintaan & bagi tugas', shirt: 0x1f2937, pos: [0, 0, 3.8], rug: 0xe0e7ff, prop: 'tasks' },
+  { id: 'sekretaris', name: 'Sekretaris', role: 'Laporan pagi', shirt: 0x6d28d9, pos: [7.5, 0, 3.8], rug: 0xede9fe, prop: 'board' },
 ];
-let DATA = null, STATE = {}, SEL = 'sekretaris';
+const DIV = Object.fromEntries(TEAM.map((t) => [t.id, t.name]));
+const JS = { antre: ['Antre', 'idle'], dikerjakan: ['Dikerjakan', 'ok'], butuh_persetujuan: ['Butuh persetujuan', 'warn'], disetujui: ['Disetujui', 'ok'], ditolak: ['Ditolak', 'idle'], selesai: ['Selesai', 'ok'], gagal: ['Gagal', 'crit'] };
+const RS = { baru: ['Baru', 'warn'], direncanakan: ['Direncanakan', 'ok'], dikerjakan: ['Dikerjakan', 'ok'], butuh_persetujuan: ['Butuh persetujuan', 'warn'], selesai: ['Selesai', 'ok'], dibatalkan: ['Dibatalkan', 'idle'] };
+let DATA = null, STATE = {}, SEL = 'manager', SB = null, RELOAD = () => {};
 
 function derive(d) {
   const rep = d.last_report, chk = (rep && rep.checks) || {};
@@ -102,14 +127,28 @@ function derive(d) {
   const pend = d.pending_requests || [], la = d.links_active || {};
   const fromCheck = (c, idleText) => c ? { level: c.level || 'ok', bubble: c.summary || LV[c.level || 'ok'], items: c.items || [] } : { level: 'idle', bubble: idleText, items: [] };
   const s = {};
-  s.satpam = fromCheck(chk.security, 'Menunggu ronda 08.00');
-  s.teknisi = fromCheck(chk.web, 'Menunggu cek 08.00');
+  s.satpam = fromCheck(chk.security, 'Menunggu ronda pagi');
+  s.teknisi = fromCheck(chk.web, 'Menunggu cek pagi');
   const n = d.activity_24h || 0, del = d.deletes_24h || 0;
   s.pencatat = { level: del >= 20 ? 'crit' : del >= 5 ? 'warn' : 'ok', bubble: del >= 5 ? `${del} penghapusan!` : n ? `${n} aktivitas hari ini` : 'Sepi, belum ada aktivitas', busy: n > 0 };
   s.resepsionis = { level: pend.length ? 'warn' : 'ok', bubble: pend.length ? `${pend.length} tamu menunggu izin` : 'Tidak ada antrean', busy: (d.links_expiring_3d || 0) > 0 };
   if (!rep) s.sekretaris = { level: 'idle', bubble: 'Laporan pertama 08.00' };
   else if (ageH > 26) s.sekretaris = { level: 'warn', bubble: 'Laporan terlambat' };
   else s.sekretaris = { level: rep.level, bubble: rep.level === 'ok' ? 'Laporan pagi siap' : 'Ada temuan di laporan' };
+  // tugas dari Manager
+  const reqs = (d.requests || []).filter((q) => q.status !== 'dibatalkan');
+  const jobs = reqs.flatMap((q) => q.jobs || []);
+  s.marketing = { level: 'idle', bubble: 'Siap promosi Monitoring' };
+  for (const t of TEAM) {
+    if (t.id === 'manager') continue;
+    const mine = jobs.filter((j) => j.division === t.id), need = mine.filter((j) => j.status === 'butuh_persetujuan'), act = mine.filter((j) => ['antre', 'dikerjakan', 'disetujui'].includes(j.status));
+    if (need.length) s[t.id] = { level: s[t.id].level === 'crit' ? 'crit' : 'warn', bubble: 'Butuh persetujuan Anda', busy: true };
+    else if (act.length) s[t.id] = { level: s[t.id].level === 'idle' ? 'ok' : s[t.id].level, bubble: '✍️ ' + act[0].title.slice(0, 34), busy: true };
+  }
+  const baru = reqs.filter((q) => q.status === 'baru').length, need = jobs.filter((j) => j.status === 'butuh_persetujuan').length, act = jobs.filter((j) => ['antre', 'dikerjakan', 'disetujui'].includes(j.status)).length;
+  s.manager = baru ? { level: 'ok', bubble: `${baru} permintaan baru, segera dibagi`, busy: true }
+    : need ? { level: 'warn', bubble: `${need} tugas menunggu persetujuan` }
+    : act ? { level: 'ok', bubble: `Mengawasi ${act} tugas`, busy: true } : { level: 'idle', bubble: 'Siap menerima permintaan' };
   return s;
 }
 function overallOf(s) { const L = Object.values(s).map((x) => x.level); return L.includes('crit') ? 'crit' : L.includes('warn') ? 'warn' : L.every((x) => x === 'idle') ? 'idle' : 'ok'; }
@@ -127,8 +166,23 @@ function md(t) {
   if (list) out.push('</ul>');
   return out.join('');
 }
+function jobHtml(j, showWho) {
+  const [lab, cls] = JS[j.status] || [j.status, 'idle'];
+  return `<div class="job"><div class="jt"><span class="chip ${cls}">${lab}</span><b>${esc(j.title)}</b>${showWho ? `<span class="who">· ${esc(DIV[j.division] || j.division)}</span>` : ''}</div>
+    ${j.status === 'butuh_persetujuan' ? `${j.proposal ? `<div class="prop">${md(j.proposal)}</div>` : ''}<div class="acts"><button type="button" class="btn pri" data-dec="${j.id}|1">Setujui</button><button type="button" class="btn" data-dec="${j.id}|0">Tolak</button></div>` : ''}
+    ${j.result ? `<details${j.status === 'selesai' && !showWho ? ' open' : ''}><summary>Hasil kerja</summary><div class="res">${md(j.result)}</div></details>` : ''}</div>`;
+}
+function reqHtml(q) {
+  const [lab, cls] = RS[q.status] || [q.status, 'idle'];
+  return `<div class="rq"><div class="top"><p>${esc(q.text)}</p><span class="chip ${cls}">${lab}</span></div>
+    <div class="meta">Dikirim ${wib(q.created_at)} WIB${q.manager_note ? ' · Manager: ' + esc(q.manager_note) : ''}</div>
+    ${(q.jobs || []).map((j) => jobHtml(j, true)).join('') || (q.status === 'baru' ? '<div class="meta">Menunggu Manager membagi tugas (dicek tiap jam, 07.00–22.00 WIB).</div>' : '')}
+    ${['baru', 'direncanakan', 'dikerjakan', 'butuh_persetujuan'].includes(q.status) ? `<div class="acts"><button type="button" class="btn" data-cancel="${q.id}">Batalkan</button></div>` : ''}</div>`;
+}
 function panel() {
   const d = DATA, w = TEAM.find((t) => t.id === SEL), st = STATE[SEL] || { level: 'idle', bubble: '' };
+  const reqs = d.requests || [];
+  const myJobs = reqs.filter((q) => q.status !== 'dibatalkan').flatMap((q) => q.jobs || []).filter((j) => j.division === SEL);
   let body = '';
   if (SEL === 'satpam' || SEL === 'teknisi') {
     const c = d.last_report && d.last_report.checks && d.last_report.checks[SEL === 'satpam' ? 'security' : 'web'];
@@ -145,14 +199,46 @@ function panel() {
       + (pend.length ? '<b>Menunggu izin</b><ul>' + pend.map((p) => `<li>${esc(mask(p.email))} → ${esc(APPS[p.app_id] || p.app_id)}</li>`).join('') + '</ul>' : '')
       + ((la.editor || 0) ? '<p class="muted">Saran: cabut link Editor tanpa login; Editor sebaiknya masuk dengan kode email.</p>' : '')
       + '<a class="btn" href="../#akses">Kelola akses →</a>';
+  } else if (SEL === 'manager') {
+    body = `<form class="ask" id="askForm"><div class="sec">Permintaan baru</div><textarea id="askText" maxlength="4000" placeholder="Contoh: Siapkan bahan untuk menawarkan Monitoring ke kontraktor tambang lain: brosur, harga, dan pesan WhatsApp."></textarea>
+      <div class="row"><span class="muted">Manager membaginya ke tim dalam ±1 jam.</span><button type="submit" class="btn pri">Kirim</button></div></form>
+      <div class="sec">Permintaan Anda</div>${reqs.length ? reqs.map(reqHtml).join('') : '<p class="muted">Belum ada permintaan.</p>'}`;
+  } else if (SEL === 'marketing') {
+    body = `<p class="muted">Marketing menyiapkan bahan untuk menjual Monitoring: profil produk, daftar harga, brosur, pesan WhatsApp/email penawaran, dan riset calon pembeli. Kirim permintaan lewat Manager Operasional. Apa pun yang dikirim ke orang luar selalu menunggu persetujuan Anda.</p>`;
   } else {
     const r = d.last_report;
     body = r ? `<p class="muted">Laporan ${wib(r.created_at)} WIB</p><div class="rep">${md(r.body || r.summary)}</div>` : '<p class="muted">Sekretaris menyusun laporan setiap pagi pukul 08.00 WIB dan mengirimnya ke HP serta email Anda. Laporan pertama muncul besok pagi.</p>';
   }
+  if (SEL !== 'manager') body += myJobs.length ? '<div class="sec">Tugas dari Manager</div>' + myJobs.map((j) => jobHtml(j, false)).join('') : (SEL === 'marketing' ? '<p class="muted">Belum ada tugas.</p>' : '');
   $('panel').innerHTML = `<div class="role">${esc(w.role)}</div><h2>${esc(w.name)}</h2><div class="big ${st.level}"><b>${LV[st.level]}</b> · ${esc(st.bubble)}</div>${body}
     <div class="team">${TEAM.map((t) => `<button type="button" data-w="${t.id}" class="${t.id === SEL ? 'on' : ''}"><span class="pill ${STATE[t.id].level}" style="padding:3px 6px"><i></i></span><span>${t.name}</span><span class="muted">${esc(t.role)}</span></button>`).join('')}</div>`;
 }
-$('panel').addEventListener('click', (e) => { const b = e.target.closest('[data-w]'); if (b) select(b.dataset.w); });
+$('panel').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-w]'); if (b) { select(b.dataset.w); return; }
+  const dec = e.target.closest('[data-dec]'), can = e.target.closest('[data-cancel]');
+  if (!dec && !can) return;
+  if (can && !confirm('Batalkan permintaan ini?')) return;
+  e.target.disabled = true;
+  if (DEMO) {
+    const jobs = DATA.requests.flatMap((q) => q.jobs);
+    if (dec) { const [id, ok] = dec.dataset.dec.split('|'); const j = jobs.find((x) => String(x.id) === id); if (j) j.status = ok === '1' ? 'disetujui' : 'ditolak'; }
+    if (can) { const q = DATA.requests.find((x) => String(x.id) === can.dataset.cancel); if (q) q.status = 'dibatalkan'; }
+    apply(DATA); return;
+  }
+  const r = dec ? await SB.rpc('office_job_decide', { p_id: +dec.dataset.dec.split('|')[0], p_ok: dec.dataset.dec.endsWith('|1') })
+                : await SB.rpc('office_request_cancel', { p_id: +can.dataset.cancel });
+  if (r.error) { alert('Gagal: ' + r.error.message); e.target.disabled = false; return; }
+  RELOAD();
+});
+$('panel').addEventListener('submit', async (e) => {
+  if (e.target.id !== 'askForm') return; e.preventDefault();
+  const t = $('askText').value.trim(); if (t.length < 3) { $('askText').focus(); return; }
+  const btn = e.target.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = 'Mengirim…';
+  if (DEMO) { DATA.requests.unshift({ id: Date.now(), created_at: new Date().toISOString(), text: t, status: 'baru', jobs: [] }); apply(DATA); return; }
+  const { error } = await SB.rpc('office_request_create', { p_text: t });
+  if (error) { alert('Gagal mengirim: ' + error.message); btn.disabled = false; btn.textContent = 'Kirim'; return; }
+  RELOAD();
+});
 
 /* ---------- 3D ---------- */
 const stage = $('stage'), labels = $('labels');
@@ -164,7 +250,7 @@ const scene = new THREE.Scene();
 const cam = new THREE.PerspectiveCamera(35, 1, 0.1, 200);
 const ctl = new OrbitControls(cam, renderer.domElement);
 ctl.target.set(0, 0.5, 0); ctl.enableDamping = true; ctl.enablePan = false;
-ctl.minPolarAngle = 0.5; ctl.maxPolarAngle = 1.2; ctl.minDistance = 14; ctl.maxDistance = 75;
+ctl.minPolarAngle = 0.5; ctl.maxPolarAngle = 1.2; ctl.minDistance = 14; ctl.maxDistance = 82;
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0xb9b3d6, 1.6));
 const sun = new THREE.DirectionalLight(0xffffff, 1.6);
@@ -175,19 +261,19 @@ const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0
 function box(w, h, d, c, x, y, z, parent = scene, o) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M(c, o)); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m; }
 
 // lantai, dinding, jendela
-box(22, 0.3, 15, 0xf3efe6, 0, -0.15, 0);
-box(22, 4, 0.3, 0xe7e3f3, 0, 2, -7.6); box(0.3, 4, 15, 0xdcd7ee, -11.1, 2, 0);
-for (const x of [-7, 0, 7]) { box(3.2, 1.8, 0.1, 0xbfe3ff, x, 2.4, -7.42, scene, { emissive: 0x9bd1ff, emissiveIntensity: 0.25 }); box(3.4, 0.12, 0.2, 0xffffff, x, 1.45, -7.4); }
-box(0.1, 1.8, 3, 0xbfe3ff, -10.92, 2.4, 2, scene, { emissive: 0x9bd1ff, emissiveIntensity: 0.25 });
+box(26, 0.3, 16.5, 0xf3efe6, 0, -0.15, 0);
+box(26, 4, 0.3, 0xe7e3f3, 0, 2, -8.35); box(0.3, 4, 16.5, 0xdcd7ee, -13.1, 2, 0);
+for (const x of [-9, -3, 3, 9]) { box(3.2, 1.8, 0.1, 0xbfe3ff, x, 2.6, -8.17, scene, { emissive: 0x9bd1ff, emissiveIntensity: 0.25 }); box(3.4, 0.12, 0.2, 0xffffff, x, 1.65, -8.15); }
+box(0.1, 1.8, 3, 0xbfe3ff, -12.92, 2.4, 2, scene, { emissive: 0x9bd1ff, emissiveIntensity: 0.25 });
 // papan nama
-const sign = (() => { const c = document.createElement('canvas'); c.width = 512; c.height = 96; const g = c.getContext('2d'); g.fillStyle = '#6D28D9'; g.fillRect(0, 0, 512, 96); g.fillStyle = '#fff'; g.font = 'bold 44px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('KANTOR AI · KMB', 256, 50); return new THREE.CanvasTexture(c); })();
-const signM = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.95), new THREE.MeshBasicMaterial({ map: sign })); signM.position.set(0, 3.55, -7.43); scene.add(signM);
+const sign = (() => { const c = document.createElement('canvas'); c.width = 720; c.height = 96; const g = c.getContext('2d'); g.fillStyle = '#6D28D9'; g.fillRect(0, 0, 720, 96); g.fillStyle = '#fff'; g.font = 'bold 46px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('KANTOR AI · MONITORING', 360, 50); return new THREE.CanvasTexture(c); })();
+const signM = new THREE.Mesh(new THREE.PlaneGeometry(6.8, 0.9), new THREE.MeshBasicMaterial({ map: sign })); signM.position.set(0, 3.7, -8.18); scene.add(signM);
 
 function plant(x, z, s = 1) { box(0.6 * s, 0.6 * s, 0.6 * s, 0xd6cfc4, x, 0.3 * s, z); const l = new THREE.Mesh(new THREE.IcosahedronGeometry(0.62 * s, 0), M(0x4ade80, { flatShading: true })); l.position.set(x, 1.05 * s, z); l.castShadow = true; scene.add(l); }
-plant(-10.2, -6.6); plant(10.2, -6.6); plant(10.2, 6.6, 0.9);
+plant(-12.2, -7.4); plant(12.2, -7.4); plant(12.2, 7.4, 0.9); plant(-12.2, 7.4, 0.9);
 
 const W = {};
-const skin = 0xf2c7a5, hairC = [0x2b2118, 0x1f1b16, 0x5a3a22, 0x111111, 0x3b2a20];
+const skin = 0xf2c7a5, hairC = [0x2b2118, 0x1f1b16, 0x5a3a22, 0x111111, 0x3b2a20, 0x6b4423, 0x1c1917];
 TEAM.forEach((t, i) => {
   const g = new THREE.Group(); g.position.set(...t.pos); scene.add(g);
   const rug = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.04, 4.6), M(t.rug)); rug.position.y = 0.02; rug.receiveShadow = true; g.add(rug);
@@ -202,6 +288,11 @@ TEAM.forEach((t, i) => {
   if (t.prop === 'shelf') { box(1.8, 2, 0.5, 0xc8a27a, -1.9, 1, -1.8, g); [0x60a5fa, 0xf87171, 0xfbbf24, 0x34d399, 0xa78bfa].forEach((c, j) => box(0.22, 0.5, 0.35, c, -2.6 + j * 0.3, 1.5, -1.75, g)); }
   if (t.prop === 'gate') { box(0.25, 2, 0.25, 0x94a3b8, -2.3, 1, -1.6, g); box(0.25, 2, 0.25, 0x94a3b8, -2.3, 1, 0.2, g); box(0.2, 0.2, 2, 0x94a3b8, -2.3, 2, -0.7, g); }
   if (t.prop === 'plant') { box(2.4, 1.1, 0.5, 0xf9a8d4, 0, 0.55, -2.0, g); plant(t.pos[0] - 2.2, t.pos[2] - 1.8, 0.8); }
+  if (t.prop === 'promo') { box(1.6, 2.1, 0.08, 0xfb923c, 1.7, 1.25, -1.9, g); box(1.3, 0.5, 0.09, 0xffffff, 1.7, 1.8, -1.88, g); box(1.3, 0.12, 0.09, 0xffffff, 1.7, 1.2, -1.88, g); box(0.9, 0.12, 0.09, 0xffffff, 1.55, 0.95, -1.88, g);
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.5, 16, 1, true), M(0xf97316, { side: THREE.DoubleSide })); cone.rotation.z = Math.PI / 2; cone.position.set(-0.8, 1.2, -0.6); g.add(cone); }
+  if (t.prop === 'tasks') { box(2.8, 1.6, 0.08, 0xffffff, 0, 2.0, -2.1, g); box(0.08, 2.0, 0.08, 0x9ca3af, -1.3, 1.0, -2.1, g); box(0.08, 2.0, 0.08, 0x9ca3af, 1.3, 1.0, -2.1, g);
+    [[-0.9, 2.4, 0xfde047], [-0.3, 2.4, 0xf9a8d4], [0.3, 2.4, 0x86efac], [0.9, 2.4, 0x93c5fd], [-0.6, 1.8, 0xfdba74], [0.1, 1.8, 0xfde047], [0.8, 1.8, 0xc4b5fd]].forEach(([x, y, c]) => box(0.42, 0.42, 0.04, c, x, y, -2.04, g));
+    box(3.0, 0.12, 1.3, 0xffffff, 0, 1.0, -0.6, g); }
   if (t.prop === 'board') { box(2.2, 1.4, 0.08, 0xffffff, -1.6, 1.8, -1.9, g); box(0.08, 1.8, 0.08, 0x9ca3af, -1.6, 0.9, -1.88, g); }
   // orang
   const p = new THREE.Group(); p.position.set(0, 0, 0.45); g.add(p);
@@ -212,11 +303,12 @@ TEAM.forEach((t, i) => {
   box(0.08, 0.08, 0.02, 0x111111, -0.12, 0.03, -0.26, head); box(0.08, 0.08, 0.02, 0x111111, 0.12, 0.03, -0.26, head);
   if (t.id === 'satpam') box(0.62, 0.14, 0.62, 0x1e3a8a, 0, 0.36, -0.02, head);
   if (t.id === 'teknisi') box(0.64, 0.08, 0.1, 0x111827, 0, 0.2, 0, head);
+  if (t.id === 'manager') box(0.12, 0.5, 0.02, 0xdc2626, 0, 0.98, -0.22, p);
   const armL = new THREE.Group(), armR = new THREE.Group(); armL.position.set(-0.46, 1.3, 0); armR.position.set(0.46, 1.3, 0); p.add(armL, armR);
   box(0.2, 0.62, 0.2, t.shirt, 0, -0.3, 0, armL); box(0.2, 0.62, 0.2, t.shirt, 0, -0.3, 0, armR);
   p.rotation.y = Math.PI; // menghadap meja
-  const tag = document.createElement('div'); tag.className = 'tag'; tag.innerHTML = '<div class="bub"></div><div class="nm"></div>';
-  tag.querySelector('.nm').textContent = t.name; tag.onclick = () => select(t.id); labels.appendChild(tag);
+  const tag = document.createElement('div'); tag.className = 'tag'; tag.innerHTML = '<div class="bub"></div><div class="nm"><i></i><span></span></div>';
+  tag.querySelector('.nm span').textContent = t.name; tag.onclick = () => select(t.id); labels.appendChild(tag);
   W[t.id] = { g, p, body, head, armL, armR, legL, legR, lamp, scr, tag, phase: i * 1.3 };
 });
 
@@ -235,7 +327,7 @@ function select(id) { SEL = id; Object.entries(W).forEach(([k, w]) => w.tag.clas
 function fit() {
   const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
   const half = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * cam.aspect; // lebar pandang
-  const dist = Math.min(72, Math.max(25, 12.5 / half));
+  const dist = Math.min(80, Math.max(27, 14.5 / half));
   const dir = new THREE.Vector3(0.55, 0.85, 1).normalize(); cam.position.copy(ctl.target).addScaledVector(dir, dist);
 }
 new ResizeObserver(fit).observe(stage); fit();
@@ -268,7 +360,7 @@ loop();
 
 function apply(d) {
   DATA = d; STATE = derive(d);
-  for (const [id, w] of Object.entries(W)) { const s = STATE[id], b = w.tag.querySelector('.bub'); b.className = 'bub ' + s.level; b.textContent = s.bubble; w.tag.classList.toggle('hot', s.level === 'warn' || s.level === 'crit'); }
+  for (const [id, w] of Object.entries(W)) { const s = STATE[id], b = w.tag.querySelector('.bub'); b.className = 'bub ' + s.level; b.textContent = s.bubble; w.tag.querySelector('.nm i').className = s.level; w.tag.classList.toggle('hot', s.level === 'warn' || s.level === 'crit'); }
   const o = overallOf(STATE); $('overall').className = 'pill ' + o; $('overall').innerHTML = '<i></i>' + (o === 'ok' ? 'Semua aman' : o === 'warn' ? 'Ada yang perlu dicek' : o === 'crit' ? 'Ada masalah!' : 'Menunggu laporan pertama');
   $('upd').textContent = wib(d.now || Date.now()); select(SEL);
 }
@@ -281,14 +373,20 @@ const demoData = () => ({ now: new Date().toISOString(), activity_24h: 23, actor
   links_active: { viewer: 106, editor: 3 }, links_expiring_3d: 5, signins_24h: 4, members: 3,
   last_report: { created_at: new Date(Date.now() - 3 * 36e5).toISOString(), level: 'warn', summary: 'Aman, ada 2 permintaan akses menunggu.',
     body: '### Ringkasan\nSemua normal, cukup setujui **2 permintaan akses**.\n### Keamanan\n- Tidak ada celah baru di Supabase\n### Aktivitas kemarin\n- Manpower KMB: 14 perubahan (site C4)\n- APD: 6 data baru\n### Perlu tindakan\n- 2 permintaan akses menunggu\n- 5 link Pelihat kedaluwarsa dalam 3 hari',
-    checks: { security: { level: 'ok', summary: 'Tidak ada celah baru', items: ['Security Advisor: 0 temuan baru', 'Tidak ada login mencurigakan'] }, web: { level: 'ok', summary: '9/9 halaman hidup', items: ['Semua halaman merespons', 'Tidak ada error di log'] } } } });
+    checks: { security: { level: 'ok', summary: 'Tidak ada celah baru', items: ['Security Advisor: 0 temuan baru', 'Tidak ada login mencurigakan'] }, web: { level: 'ok', summary: '9/9 halaman hidup', items: ['Semua halaman merespons', 'Tidak ada error di log'] } } },
+  requests: [{ id: 2, created_at: new Date(Date.now() - 5 * 36e5).toISOString(), text: 'Siapkan bahan untuk menawarkan Monitoring ke kontraktor tambang lain.', status: 'butuh_persetujuan', manager_note: 'Dibagi ke Marketing (3 tugas).',
+    jobs: [{ id: 21, division: 'marketing', title: 'Profil produk & daftar fitur', status: 'selesai', result: '### Monitoring\n- MPP, APD, unit alat berat, notulensi dalam satu web\n- Akses Editor/Pelihat per jobsite' },
+      { id: 22, division: 'marketing', title: 'Usulan harga paket', status: 'butuh_persetujuan', proposal: 'Paket **Basic** Rp1,5 jt/bln (1 jobsite), **Pro** Rp4 jt/bln (5 jobsite). Setujui sebagai harga resmi?' },
+      { id: 23, division: 'marketing', title: 'Riset 10 calon pembeli', status: 'dikerjakan' }] },
+    { id: 1, created_at: new Date(Date.now() - 30 * 36e5).toISOString(), text: 'Cabut semua link Editor tanpa login.', status: 'selesai', manager_note: 'Selesai setelah disetujui.',
+      jobs: [{ id: 11, division: 'resepsionis', title: 'Cabut 3 link Editor', status: 'selesai', result: '3 link Editor (BUPR, KTA-TRA, MBJ) sudah dicabut.' }] }] });
 
 async function start() {
   if (DEMO) { const b = document.createElement('span'); b.className = 'pill warn demo'; b.innerHTML = '<i></i>Mode contoh, bukan data asli'; stage.appendChild(b); apply(demoData()); return; }
   await new Promise((ok, no) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js'; s.onload = ok; s.onerror = no; document.head.appendChild(s); })
     .catch(() => gate('Gagal memuat', 'Periksa koneksi internet lalu muat ulang halaman.'));
   if (!window.supabase) return;
-  const sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'kta-web-auth' } });
+  const sb = SB = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'kta-web-auth' } });
   const { data: { session } } = await sb.auth.getSession();
   if (!session) { gate('Khusus Pemilik', 'Masuk dulu di halaman Monitoring, lalu buka Kantor AI lagi.', '<a class="btn" href="../">Masuk di Monitoring →</a> <a class="btn" href="?demo">Lihat contoh</a>'); return; }
   const load = async () => {
@@ -296,7 +394,7 @@ async function start() {
     if (error) { /Pemilik/.test(error.message) ? gate('Khusus Pemilik', 'Kantor AI hanya bisa dibuka oleh Pemilik web Monitoring.', '<a class="btn" href="../">← Kembali</a>') : ($('overall').textContent = 'Gagal memuat: ' + error.message); return; }
     $('gate').hidden = true; apply(data);
   };
-  await load(); setInterval(load, 60000);
+  RELOAD = load; await load(); setInterval(() => { if (!document.activeElement || document.activeElement.id !== 'askText') load(); }, 60000);
   document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
 }
 start();

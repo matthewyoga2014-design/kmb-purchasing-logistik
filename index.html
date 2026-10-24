@@ -64,8 +64,7 @@ a.t { text-decoration: none; transition: transform .15s ease; } a.t:hover { tran
 .t .tx em { display: block; font-style: normal; font-size: 13px; font-weight: 800; opacity: .95; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .t .tb { display: block; height: 5px; border-radius: 3px; background: rgba(255,255,255,.3); margin-top: 7px; max-width: 170px; overflow: hidden; }
 .t .tb i { display: block; height: 100%; background: #fff; border-radius: 3px; }
-.t1 { background: linear-gradient(115deg, #7C3AED, #A78BFA); } .t2 { background: linear-gradient(115deg, #2563EB, #60A5FA); } .t3 { background: linear-gradient(115deg, #EF4F5F, #FB9A9A); } .t4 { background: linear-gradient(115deg, #F7871F, #FDBE74); }
-@media (max-width: 520px) { .t { padding: 14px; gap: 10px; min-height: 76px; } .t .ti { width: 40px; height: 40px; } .t b { font-size: 24px; } .t .tg { display: none; } }
+.t1 { background: linear-gradient(115deg, #7C3AED, #A78BFA); } .t2 { background: linear-gradient(115deg, #2563EB, #60A5FA); } .t3 { background: linear-gradient(115deg, #EF4F5F, #FB9A9A); } .t4 { background: linear-gradient(115deg, #F7871F, #FDBE74); }@media (max-width: 520px) { .t { padding: 14px; gap: 10px; min-height: 76px; } .t .ti { width: 40px; height: 40px; } .t b { font-size: 24px; } .t .tg { display: none; } }
 
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 22px; align-items: start; }
 @media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
@@ -304,6 +303,7 @@ const I = {
   vest: '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 11.5a7 7 0 0 1 14 0"/><path d="M3.5 12h17v2.2h-17z"/><path d="M12 4.5v3"/><path d="M7 17.5h10l-1 3.5H8z"/><path d="M9.5 17.5V16M14.5 17.5V16"/></svg>',
   hat: '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 15a8 8 0 0 1 16 0" stroke="#fff" stroke-width="2"/><path d="M2.5 16h19v2.5h-19zM12 5v4" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>',
   truck: '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 16h13l3-5h3v5h-1M4 16V9h7l3 3" stroke="#fff" stroke-width="1.9" stroke-linejoin="round"/><circle cx="7" cy="17.5" r="1.8" stroke="#fff" stroke-width="1.8"/><circle cx="17" cy="17.5" r="1.8" stroke="#fff" stroke-width="1.8"/></svg>',
+  ai: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="4" y="7" width="16" height="12" rx="3" stroke="#fff" stroke-width="2"/><path d="M12 3v4M9 12h.01M15 12h.01M9.5 15.5h5" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>',
   note: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7" stroke="#fff" stroke-width="1.9" stroke-linejoin="round"/></svg>',
 };
 // sub-portal MPP (satu kartu per jobsite) + APD + tahap 2
@@ -325,6 +325,7 @@ const WEBS = [
   { key: 'apd', title: 'Monitoring APD', url: 'monitoring-apd-kmb/', icon: 'vest', tile: 't2', show: () => !!roleOf('apd') },
   { key: 'unit', title: 'Monitoring Unit & Mobilisasi', url: 'monitoring-unit/', icon: 'truck', tile: 't3', show: () => !!roleOf('unit-monitoring') },
   { key: 'notulensi', title: 'Notulensi Meeting', url: 'notulensi/', icon: 'note', tile: 't4', show: () => !!roleOf('notulensi') },
+  { key: 'kantor', title: 'Kantor AI', url: 'kantor-ai/', icon: 'ai', tile: 't5', show: () => isOwner() },
 ];
 const SUBS = [...MPP.map((s) => ({ ...s, portal: 'Monitoring MPP' })), { ...APD, portal: 'Monitoring APD' },
   { app: 'unit-monitoring', key: 'unit', name: 'Monitoring Unit', url: 'monitoring-unit/', portal: 'Monitoring Unit' },
