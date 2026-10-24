@@ -30,8 +30,13 @@ Setelah mengubah `Code.gs`, pakai **Deploy → Manage deployments → Edit → N
 Masuk sebagai Pemilik → **Unit & File** → **Upload Folder** → pilih folder `Monitoring Notulensi` dari laptop. Folder bertanggal yang berisi notulensi Word/Excel menjadi *Meeting ke-n*, dan file lain menjadi lampirannya.
 
 ## Kategori & persentase
-- **Kategori notulensi**: Persiapan, Permasalahan, Lainnya (bisa ditambah). Dipilih dengan klik saat unduh template, Meeting Baru, form live, form update Word/Excel, upload, dan koreksi dari file. Notulensi lama tidak diubah; kategorinya bisa diisi lewat menu ⋮ › *Ubah jenis notulensi*.
-- **Template**: format lama (No, Bab, Topik, Hasil Pembahasan, Tindak Lanjut, PIC, Due Date, Status) + baris *Jenis Notulensi*. Untuk Persiapan/Permasalahan ditambah kolom **Sumber Data, Plan, Aktual, Hasil (%)** di kanan Status. Kolom *Bagian* di file lama tetap terbaca sebagai Bab.
-- **Sheet Sumber Data**: di template Excel (Persiapan/Permasalahan) setiap baris punya tautan *Isi sumber data › SD n* di kolom Sumber Data yang membuka sheet SD n (No, Persiapan, Jumlah, Aktual, Persentase). Plan/Aktual/Hasil di sheet utama terisi otomatis dari sheet itu, dan isi sheet SD ikut terbaca saat upload. Di web: klik kolom *Sumber Data* pada tindak lanjut → sheet isian (bisa tempel dari Excel). Form update dan ekspor Excel juga menyertakan sheet SD per tindak lanjut.
-- **Bobot**: Total 100% dibagi rata ke setiap Bab → setiap Topik (atau Sub Bab bernomor 1.1) → setiap tindak lanjut. Hasil tindak lanjut = rata-rata Aktual ÷ Plan per item (maks. 100%); tanpa sumber data: Close = 100%, Open/Continue = 0%. Nilai = Progres × Bobot; Total = jumlah Nilai Bab.
-- **Koreksi dari file**: menu ⋮ › *Koreksi Meeting ke-n dari file Word/Excel revisi* mengganti isi meeting itu tanpa membuat meeting baru.
+- **Kategori notulensi**: Persiapan, Permasalahan, Lainnya (bisa ditambah). Dipilih dengan klik saat unduh template, Meeting Baru, form live, form update Word/Excel, upload, dan koreksi dari file.
+- **Unduh Template Notulensi**: pilih kategori lalu **Unduh Excel** atau **Unduh Word**.
+- **Template Excel (Persiapan/Permasalahan)**: kolom No, Bab, Topik, Hasil Pembahasan, Tindak Lanjut, PIC, Due Date, Status + **Sumber Data, Hasil (%), Nilai Sub Bab, Nilai Bab**. Total kesiapan di kanan atas.
+  - Link *Isi sumber data › SD n* ada di kanan atas. Salin ke kolom Sumber Data pada baris yang punya sumber; klik untuk membuka sheet SD n (No, Persiapan, Jumlah, Aktual, Persentase).
+  - Hasil (%) per tindak lanjut: dari sheet SD bila ditautkan, kalau tidak dari Status (Close/Continue = 100%, Open = 0%).
+  - Nilai Sub Bab (Topik) = rata-rata Hasil tindak lanjutnya; Nilai Bab = rata-rata Nilai Sub Bab; Total = rata-rata Nilai Bab. Semua dihitung otomatis di Excel dan sama dengan di web.
+  - Sheet SD yang tidak ditautkan diabaikan. Saat upload, isi sheet SD ikut terbaca ke tindak lanjut yang menautkannya.
+- **Template Word**: kolom Sumber Data diisi teks, mis. "Plan 6 / Aktual 2".
+- **Di web**: klik kolom *Sumber Data* pada tindak lanjut → sheet isian (bisa tempel dari Excel), plus upload rincian/bukti.
+- **Koreksi dari file**: menu ⋮ › *Koreksi Meeting ke-n dari file Word/Excel revisi*.
