@@ -31,6 +31,6 @@ Masuk sebagai Pemilik → **Unit & File** → **Upload Folder** → pilih folder
 
 ## Kategori & persentase
 - **Kategori notulensi**: Persiapan, Permasalahan, Lainnya (bisa ditambah). Dipilih dengan klik saat unduh template, Meeting Baru, form live, form update Word/Excel, dan saat upload. Notulensi lama tidak diubah; kategorinya bisa diisi lewat menu ⋮ › *Ubah jenis notulensi*.
-- **Template**: format lama tetap (No, Bagian, Topik, Hasil Pembahasan, Tindak Lanjut, PIC, Due Date, Status), ditambah baris *Jenis Notulensi* di atas header.
-- **Persentase** (Persiapan & Permasalahan): tiap tindak lanjut Close = 100%, Open/Continue = 0%. Per Bagian = rata-rata tindak lanjutnya; Total = rata-rata Bagian. Bila file memakai Bab/Sub Bab (`Bab I – …`, `1.1 …`), hitungannya Sub Bab → Bab → Total.
+- **Template**: format lama tetap (No, Bab, Topik, Hasil Pembahasan, Tindak Lanjut, PIC, Due Date, Status), ditambah baris *Jenis Notulensi* di atas header.
+- **Persentase** (Persiapan & Permasalahan): tiap tindak lanjut Close = 100%, Open/Continue = 0%. Per Bab = rata-rata tindak lanjutnya; Total = rata-rata Bab. Kolom *Bagian* di file lama tetap terbaca sebagai Bab. Bila file memakai Bab/Sub Bab (`Bab I – …`, `1.1 …`), hitungannya Sub Bab → Bab → Total.
 - **Rincian Plan–Actual** (opsional): klik persentase/Sumber › *Unduh Template Rincian* › isi › *Upload Sumber*. Nilai = rata-rata MIN(Actual/Plan, 100%). Versi lama tersimpan sebagai riwayat; file di Google Drive.

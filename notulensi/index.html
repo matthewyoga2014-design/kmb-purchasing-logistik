@@ -1132,7 +1132,7 @@ const stackBar=c=>`<div class="stack" title="Open ${c.open} · Continue ${c.cont
 const dueLabel=r=>r.due?fmtD(r.due):(r.dueText||"—");
 
 /* ---------- diff ---------- */
-const FIELDS=[["bab","Bab"],["sec","Bagian"],["topik","Topik"],["bahas","Hasil Pembahasan"],["tl","Tindak Lanjut"],["pic","PIC"],["due","Due Date"],["st","Status"],["ket","Keterangan"]];
+const FIELDS=[["bab","Bab"],["sec","Bab"],["topik","Topik"],["bahas","Hasil Pembahasan"],["tl","Tindak Lanjut"],["pic","PIC"],["due","Due Date"],["st","Status"],["ket","Keterangan"]];
 const norm=s=>clean(s).toLowerCase();
 const secN=s=>norm(s).replace(/^([a-z]|[ivx]{1,4})[\.\)]\s+/,"");
 function rowDiff(r,p){const ch={};if(!p)return null;
@@ -1488,7 +1488,7 @@ function renderEdit(){
   const tdF=(r,i,f,inner,cls)=>{const ch=edChanged(r,f);return `<td class="${cls}${ch?" chg":""}" data-cell="${i}:${f}">${inner}<div class="was">semula: ${esc(edOld(r,f))}</div></td>`;};
   const ta=(i,f,v,ph)=>`<textarea data-i="${i}" data-f="${f}" rows="1" placeholder="${ph||""}" aria-label="${ph||f}">${esc(v)}</textarea>`;
   const cols=E.cols;
-  const body=groups.map((g,gi)=>(hasBab&&g.bab!==lastB?(lastB=g.bab,bi++,`<tr class="babrow"><td colspan="${9+cols.length}"><div class="rowx"><input type="text" data-bab="${bi}" value="${esc(g.bab)}" placeholder="Bab, mis. Bab I – Persiapan Logistik" aria-label="Nama Bab"><button class="btn sm" type="button" data-addsub="${bi}">+ Sub Bab</button></div></td></tr>`):"")+`<tr class="secrow"><td colspan="${9+cols.length}"><div class="rowx"><input type="text" data-sec="${gi}" value="${esc(g.sec)}" placeholder="${hasBab?"Sub Bab, mis. 1.1 Pemenuhan Sparepart":"Bagian / project (opsional), mis. A. FMC Project SKA"}" aria-label="${hasBab?"Nama Sub Bab":"Nama bagian"}"><button class="btn sm" type="button" data-addtop="${g.idx[g.idx.length-1]}">+ Topik di ${hasBab?"Sub Bab":"bagian"} ini</button></div></td></tr>`+
+  const body=groups.map((g,gi)=>(hasBab&&g.bab!==lastB?(lastB=g.bab,bi++,`<tr class="babrow"><td colspan="${9+cols.length}"><div class="rowx"><input type="text" data-bab="${bi}" value="${esc(g.bab)}" placeholder="Bab, mis. Bab I – Persiapan Logistik" aria-label="Nama Bab"><button class="btn sm" type="button" data-addsub="${bi}">+ Sub Bab</button></div></td></tr>`):"")+`<tr class="secrow"><td colspan="${9+cols.length}"><div class="rowx"><input type="text" data-sec="${gi}" value="${esc(g.sec)}" placeholder="${hasBab?"Sub Bab, mis. 1.1 Pemenuhan Sparepart":"Bab (opsional), mis. Bab I – Persiapan Logistik"}" aria-label="${hasBab?"Nama Sub Bab":"Nama Bab"}"><button class="btn sm" type="button" data-addtop="${g.idx[g.idx.length-1]}">+ Topik di ${hasBab?"Sub Bab":"Bab"} ini</button></div></td></tr>`+
     g.idx.map(i=>{const r=E.rows[i];const same=lastTop&&norm(lastTop.topik)===norm(r.topik)&&r.topik&&lastTop.sec===r.sec;if(!same)no++;lastTop=r;const isNew=E.mode!=="new"&&!E.base.some(b=>b.k===r.k);
       return `<tr class="r-${r.st||"open"} ${isNew?"isnew":""}" data-row="${i}"><td class="c-no">${same?"":no}${isNew?`<div class="pill upd" style="font-size:10px;padding:2px 5px;margin-top:4px">Baru</div>`:""}</td>
         ${tdF(r,i,"topik",ta(i,"topik",r.topik,"Topik"),"c-tp")}${tdF(r,i,"bahas",ta(i,"bahas",r.bahas,"Hasil pembahasan"),"c-bh")}${tdF(r,i,"tl",ta(i,"tl",r.tl,"Tindak lanjut"),"c-tl")}
@@ -1517,7 +1517,7 @@ function renderEdit(){
    <div class="card" style="overflow:hidden">
      <div class="rowx" style="padding:12px 16px;border-bottom:1px solid var(--line)"><b style="margin-right:auto">Pokok Pembahasan &amp; Tindak Lanjut</b>
        <span class="legend2"><span><i style="background:var(--r-close)"></i>Close</span><span><i style="background:var(--r-cont)"></i>Continue</span>${E.mode!=="new"?`<span><i style="background:#fff;box-shadow:0 0 0 1px var(--upd)"></i>Diubah</span>`:""}</span>
-       <button class="btn sm" type="button" id="addCol" title="Tambah kolom di luar kolom standar">+ Kolom</button><button class="btn sm" type="button" id="addSec">${E.rows.some(r=>r.bab)?"+ Sub Bab baru":"+ Bagian baru"}</button></div>
+       <button class="btn sm" type="button" id="addCol" title="Tambah kolom di luar kolom standar">+ Kolom</button><button class="btn sm" type="button" id="addSec">${E.rows.some(r=>r.bab)?"+ Sub Bab baru":"+ Bab baru"}</button></div>
      <div class="tbl-wrap" style="max-height:70vh;overflow:auto;border-radius:0"><table class="etbl" style="min-width:${1040+cols.length*170}px"><thead><tr><th>No</th><th>Topik</th><th>Hasil Pembahasan</th><th>Tindak Lanjut</th><th>PIC</th><th>Due Date</th><th>Status</th>${cols.map((c,ci)=>`<th class="colh"><div class="rowx" style="gap:4px;flex-wrap:nowrap"><input type="text" data-colname="${ci}" value="${esc(c.name)}" aria-label="Nama kolom"><button class="ib" type="button" data-coldel="${ci}" aria-label="Hapus kolom ${esc(c.name)}" title="Hapus kolom" style="color:var(--red-fg);width:24px;height:24px">${IC.x}</button></div></th>`).join("")}<th></th></tr></thead><tbody>${body}</tbody></table></div>
      ${removed.length?`<div class="removed" style="margin:12px 16px"><b>Akan dihapus dari meeting ini</b> <button class="lnk" type="button" id="undoRm">Kembalikan semua</button><ul style="margin:6px 0 0;padding-left:18px">${removed.map(r=>`<li>${esc(r.tl||r.topik)}</li>`).join("")}</ul></div>`:""}
    </div>
@@ -1603,7 +1603,7 @@ async function downloadForm(sid,fmt,jenis){
     else{const X=await loadXlsx();const cols=fv.cols||[];
       const aoa=[["FORM UPDATE MEETING"],[`Lanjutan dari Meeting ke-${lv.no} (${fmtD(lv.date)}). Ubah Status, perbarui isi, tambah baris baru dengan Kode kosong. Jangan ubah kolom Kode.`],[],
         ["Judul Notulensi",s.title],["Meeting ke-",fv.no],["Tanggal",""],["Jam",""],["Agenda",lv.agenda||""],["Lokasi",lv.place||""],["Pimpinan Rapat",lv.lead||""],["Peserta",lv.people||""],["Next Meeting",""],["Jenis Notulensi",jenis],
-        ["No","Bagian","Topik","Hasil Pembahasan","Tindak Lanjut","PIC","Due Date","Status",...cols.map(c=>c.name),"Kode"]];
+        ["No","Bab","Topik","Hasil Pembahasan","Tindak Lanjut","PIC","Due Date","Status",...cols.map(c=>c.name),"Kode"]];
       let no=0,lt=null,lb="";fv.rows.forEach(r=>{if(r.bab&&r.bab!==lb){lb=r.bab;aoa.push([r.bab]);}const same=lt&&lt.sec===r.sec&&norm(lt.topik)===norm(r.topik)&&r.topik;if(!same)no++;lt=r;
         aoa.push([no,r.sec||"",r.topik,r.bahas,r.tl,r.pic,r.due?fmtD(r.due):(r.dueText||""),ST[r.st||"open"],...cols.map(c=>(r.x||{})[c.id]||""),r.k]);});
       for(let i=0;i<15;i++)aoa.push(Array(9+cols.length).fill(""));
@@ -1650,7 +1650,7 @@ function newMeetingFlow(){
     <div class="choice">
       <label><input type="radio" name="nmk" value="next" ${run.length?"checked":"disabled"}><span><b>Lanjutan dari notulensi yang sudah berjalan</b><small>Meeting berikutnya untuk topik yang sama. Isi meeting terakhir disalin, tinggal diupdate.</small>
         <select id="nmS" style="margin-top:8px;width:100%" ${run.length?"":"disabled"}>${run.map(x=>`<option value="${x.s.id}">${esc(x.s.title)} — terakhir Meeting ke-${x.v.no}, ${fmtD(x.v.date)} (${esc(fPathName(x.s.folderId))})</option>`).join("")||"<option>Belum ada notulensi berjalan</option>"}</select></span></label>
-      <label><input type="radio" name="nmk" value="web" ${run.length?"":"checked"}><span><b>Notulensi baru — isi di web</b><small>Pakai format standar: Bagian, Topik, Hasil Pembahasan, Tindak Lanjut, PIC, Due Date, Status, Keterangan.</small></span></label>
+      <label><input type="radio" name="nmk" value="web" ${run.length?"":"checked"}><span><b>Notulensi baru — isi di web</b><small>Pakai format standar: Bab, Topik, Hasil Pembahasan, Tindak Lanjut, PIC, Due Date, Status, Keterangan.</small></span></label>
       <label><input type="radio" name="nmk" value="upload"><span><b>Notulensi baru — upload file Word / Excel</b><small>File dibaca otomatis menjadi Meeting ke-1. Bisa pakai template Excel standar di bawah.</small></span></label>
     </div>
     <div id="nmLocWrap">${locPicker(here,"nm")}<div style="margin-top:10px">${jenisPick("","nj")}</div></div>
@@ -1911,7 +1911,7 @@ function buildDocx(v,title,photos,opt={}){const FM=!!opt.form;
   const groups=groupRows(v.rows||[]);let no=0,letter=0,lbab="";
   groups.forEach(g=>{
     if(g.bab&&g.bab!==lbab){lbab=g.bab;body.push(wP(wRun(g.bab,{b:true,sz:22}),{bf:200,af:60,keep:true}));}
-    if(g.sec){const h=SECRE.test(g.sec)||subCode(g.sec)?g.sec:String.fromCharCode(65+letter)+". "+g.sec;letter++;body.push(wP(wRun(h,{b:true,color:"1D5C45",sz:20}),{bf:160,af:60,keep:true}));}
+    if(g.sec){const h=SECRE.test(g.sec)||subCode(g.sec)||BABRE.test(clean(g.sec))?g.sec:String.fromCharCode(65+letter)+". "+g.sec;letter++;body.push(wP(wRun(h,{b:true,color:"1D5C45",sz:20}),{bf:160,af:60,keep:true}));}
     const rows=[hdrRow];
     g.topics.forEach(t=>{no++;const gst=t.rows.every(r=>(r.st||"open")===(t.rows[0].st||"open"))?(t.rows[0].st||"open"):"open";const gf=FILL[gst];
       const bset=new Set(t.rows.map(r=>clean(r.bahas))),bsame=bset.size<=1,bahas=[...bset].filter(Boolean).join("\n");
@@ -2096,7 +2096,7 @@ function parseDoc(html){
       if(tl>-1&&h.some((x,i)=>i!==tl&&/topik|topic|pic|penanggung|pembahasan|agenda|pokok|issue/.test(x))){hi=r;
         const f=re=>h.findIndex((x,i)=>i!==tl&&re.test(x));
         c={tl,topik:f(/^(topik|topic|agenda|pokok|item|permasalahan|masalah|issue|isu)/),bahas:f(/pembahasan|kesepakatan|hasil|diskusi|discussion|uraian|penjelasan|^progres/),pic:f(/^pic|penanggung|\bpj\b|person\s*in\s*charge|pelaksana|^oleh/),
-          due:f(/due|tenggat|deadline|target|batas|jadwal|waktu\s*penyelesaian/),st:f(/^status/),ket:-1,sec:f(/^(bagian|section|project|kategori|kelompok)$/),key:f(/^(kode|id|ref)\b/)};
+          due:f(/due|tenggat|deadline|target|batas|jadwal|waktu\s*penyelesaian/),st:f(/^status/),ket:-1,sec:f(/^(bagian|bab|section|project|kategori|kelompok)$/),key:f(/^(kode|id|ref)\b/)};
         const used=new Set(Object.values(c).filter(i=>i>-1));c.extra=g[r].map((x,i)=>({i,name:clean(x)})).filter(e=>!used.has(e.i)&&e.name&&!/^(no\.?|nomor|perubahan)$/i.test(e.name));
         meta.cols=[...new Set([...(meta.cols||[]),...c.extra.map(e=>e.name)])];break;}}
     if(!c){g.forEach(r=>{const cc=r.filter(x=>x&&x!==":");for(let i=0;i+1<cc.length;i+=2)setMeta(cc[i],cc[i+1]);});lines.push(...g.map(r=>r.filter(Boolean).join(" | ")));return;}
@@ -2259,7 +2259,7 @@ async function exportXlsx(v){
   if(!v)return;if(!S.downloads)return toast("Unduhan tidak tersedia di tampilan ini");
   try{toast("Membuat file Excel…",true);const X=await loadXlsx();const s=sById(v.seriesId);const d=vDiff(v);
     const aoa=[["NOTULENSI MEETING"],[s?.title||""],[],["Meeting ke-",v.no],["Tanggal",fmtD(v.date)],["Jam",v.time||""],["Agenda",v.agenda||""],["Lokasi",v.place||""],["Pimpinan",v.lead||""],["Peserta",v.people||""],["Next Meeting",v.next?fmtD(v.next):""],[],
-      ["No","Bagian","Topik","Hasil Pembahasan","Tindak Lanjut","PIC","Due Date","Status",...(v.cols||[]).map(c=>c.name),"Perubahan"]];const lbl=f=>f.startsWith("x:")?((v.cols||[]).find(c=>c.id===f.slice(2))?.name||"Kolom"):FIELDS.find(x=>x[0]===f)[1];
+      ["No","Bab","Topik","Hasil Pembahasan","Tindak Lanjut","PIC","Due Date","Status",...(v.cols||[]).map(c=>c.name),"Perubahan"]];const lbl=f=>f.startsWith("x:")?((v.cols||[]).find(c=>c.id===f.slice(2))?.name||"Kolom"):FIELDS.find(x=>x[0]===f)[1];
     let no=0,lt=null,lb="";(v.rows||[]).forEach(r=>{if(r.bab&&r.bab!==lb){lb=r.bab;aoa.push([r.bab]);}const same=lt&&lt.sec===r.sec&&norm(lt.topik)===norm(r.topik)&&r.topik;if(!same)no++;lt=r;const dr=d&&d.rows[r.k];
       const chg=dr?(dr.isNew?"Baru":Object.entries(dr.ch).map(([f,o])=>`${lbl(f)}: ${f==="st"?ST[o]:o} → ${f==="due"?dueLabel(r):f==="st"?ST[r.st]:xv(r,f)}`).join("; ")):"";
       aoa.push([same?"":no,r.sec||"",same?"":r.topik,same?"":r.bahas,r.tl,r.pic,dueLabel(r),ST[r.st||"open"],...(v.cols||[]).map(c=>(r.x||{})[c.id]||""),chg]);});
@@ -2397,8 +2397,8 @@ function kesiapan(sid){
     rows.forEach(r=>{const c=subCode(r.sec);if(!c){legacy++;return;}const bn=babNo(r.bab)||+c.split(".")[0];getSub(getBab(bn,r.bab),c,clean(r.sec)).rows.push(r);});
     rf.filter(f=>subCode(f.sub)).forEach(f=>{const c=f.sub;const x=getSub(getBab(babNo(f.bab)||+c.split(".")[0],f.bab),c);if(!x.title)x.title=f.subTitle||c;});
   }else{
-    const getG=(k,title)=>{if(!babs.has(k))babs.set(k,{no:babs.size+1,title:title||"Tanpa bagian",subs:new Map()});const b=babs.get(k);getSub(b,k,b.title);return b;};
-    rows.forEach(r=>{const k=bgKey(r.sec);getG(k,clean(r.sec)).subs.get(k).rows.push(r);});
+    const getG=(k,title)=>{if(!babs.has(k))babs.set(k,{no:babs.size+1,title:title||"Tanpa Bab",subs:new Map()});const b=babs.get(k);getSub(b,k,b.title);return b;};
+    rows.forEach(r=>{const g=r.sec||r.bab||"";const k=bgKey(g);getG(k,clean(g)).subs.get(k).rows.push(r);});
     rf.filter(f=>/^bg:/.test(f.sub)).forEach(f=>getG(f.sub,f.subTitle));
   }
   const out=[...babs.values()].sort((a,b)=>a.no-b.no).map(b=>{
@@ -2417,7 +2417,7 @@ function kesiapan(sid){
     c:cnt(out.flatMap(b=>b.subs.flatMap(x=>x.rows))),nSrc:out.reduce((n,b)=>n+b.subs.reduce((m,x)=>m+x.docs.length+x.hist.length,0),0)};}
 const methodTxt=x=>x.method==="rincian"?`Rincian Plan–Actual · ${x.rin.rinc.valid} item`:x.method==="status"?`${x.c.close} dari ${x.c.total} tindak lanjut Close`:"Belum ada tindak lanjut / rincian";
 function ksSubOf(KS,code){for(const b of KS.babs)for(const x of b.subs)if(x.code===code)return{b,x};return null;}
-function ksBabTag(KS,babTitle,sid){if(KS.mode!=="bab")return"";const b=KS.babs.find(b=>b.no===babNo(babTitle));return b?`<button type="button" class="kstag" data-act="ksCalc" data-id="${sid}" data-b="${b.no}" title="Lihat perhitungan Bab">${fmtPct(b.pct)}</button>`:"";}
+function ksBabTag(KS,babTitle,sid){if(KS.mode!=="bab")return ksSubTag(KS,babTitle,sid);const b=KS.babs.find(b=>b.no===babNo(babTitle));return b?`<button type="button" class="kstag" data-act="ksCalc" data-id="${sid}" data-b="${b.no}" title="Lihat perhitungan Bab">${fmtPct(b.pct)}</button>`:"";}
 function ksSubTag(KS,sec,sid){const c=KS.mode==="bab"?subCode(sec):bgKey(sec);if(!c)return"";const o=ksSubOf(KS,c);if(!o)return"";const x=o.x,n=x.docs.length+x.hist.length;
   return `<button type="button" class="kstag" data-act="ksSub" data-id="${sid}" data-c="${esc(c)}" title="Persentase & sumber">${fmtPct(x.pct)}${x.warn.length?' <b class="kw">!</b>':""}<small>${n?n+" sumber":"Sumber"}</small></button>`;}
 
@@ -2433,10 +2433,10 @@ function ksCard(sid){const s=sById(sid),K=kesiapan(sid),B=K.mode==="bab";
     <div class="kstop"><button type="button" class="ksbig ks-${pctCls(K.pct)}" data-act="ksCalc" data-id="${sid}" title="Lihat perhitungan total"><small>${ksTot(s)}</small><b>${fmtPct(K.pct)}</b></button>
       ${K.babs.length>1||B?`<div class="ksbabs">${chips}</div>`:`<div class="kssum stamp">${esc(methodTxt(K.babs[0]?.subs[0]||{method:"none"}))}</div>`}</div>
     ${K.warn?`<div class="note" style="margin-top:10px">${K.warn} peringatan perlu diverifikasi (baris bertanda ⚠).</div>`:""}
-    ${K.babs.length?`<div class="tbl-wrap" style="margin-top:12px"><table class="kstbl"><thead><tr><th>${B?"Bab / Sub Bab":"Bagian"}</th><th>Persentase</th><th>Dasar perhitungan</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
+    ${K.babs.length?`<div class="tbl-wrap" style="margin-top:12px"><table class="kstbl"><thead><tr><th>${B?"Bab / Sub Bab":"Bab"}</th><th>Persentase</th><th>Dasar perhitungan</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>`
       :`<div class="empty" style="margin-top:10px"><b>Belum ada tindak lanjut</b>Persentase muncul setelah notulensi berisi tindak lanjut.</div>`}
     ${K.legacy?`<p class="stamp" style="margin-top:8px">${K.legacy} tindak lanjut tidak berada di Sub Bab bernomor (mis. 1.1), sehingga tidak ikut dihitung.</p>`:""}
-    <p class="stamp" style="margin-top:6px">${B?"Sub Bab":"Setiap Bagian"} = rata-rata tindak lanjutnya (Close = 100%, Open/Continue = 0%), atau rata-rata MIN(Actual/Plan, 100%) bila ada rincian Plan–Actual. ${B?"Bab = rata-rata Sub Bab; total = rata-rata Bab.":"Total = rata-rata Bagian."} Yang belum punya data tidak ikut dirata-rata.</p></div>`;}
+    <p class="stamp" style="margin-top:6px">${B?"Sub Bab":"Setiap Bab"} = rata-rata tindak lanjutnya (Close = 100%, Open/Continue = 0%), atau rata-rata MIN(Actual/Plan, 100%) bila ada rincian Plan–Actual. ${B?"Bab = rata-rata Sub Bab; total = rata-rata Bab.":"Total = rata-rata Bab."} Yang belum punya data tidak ikut dirata-rata.</p></div>`;}
 
 /* ---------- perhitungan (klik angka) ---------- */
 function openCalc(sid,bno){const s=sById(sid);if(!s)return;const K=kesiapan(sid),B=K.mode==="bab";
@@ -2445,8 +2445,8 @@ function openCalc(sid,bno){const s=sById(sid);if(!s)return;const K=kesiapan(sid)
   const val=parts.filter(p=>p.pct!=null),res=b?b.pct:K.pct;
   openModal(mHead(b?`Perhitungan ${b.title}`:`Perhitungan ${ksTot(s).toLowerCase()}`)+`<div class="mb"><div class="stamp"><b>${esc(s.title)}</b> · ${esc(s.jenis||"")}</div>
     <div class="ksform">${val.length?`(${val.map(p=>fmtPct(p.pct)).join(" + ")}) ÷ ${val.length} = <b>${fmtPct(res)}</b>`:"Belum Ada Data"}</div>
-    <div class="tbl-wrap"><table class="kstbl"><thead><tr><th>${b?"Sub Bab":B?"Bab":"Bagian"}</th><th>Nilai</th><th>Dasar</th></tr></thead><tbody>${parts.map(p=>`<tr${p.pct==null?' class="muted"':""}><td>${p.c?`<button type="button" class="lnk" data-act="ksSub" data-id="${sid}" data-c="${esc(p.c)}">${esc(p.lab)}</button>`:`<button type="button" class="lnk" data-act="ksCalc" data-id="${sid}" data-b="${p.b}">${esc(p.lab)}</button>`}</td><td><b>${fmtPct(p.pct)}</b></td><td class="stamp">${esc(p.how)}${p.pct==null?" · tidak ikut dirata-rata":""}</td></tr>`).join("")}</tbody></table></div>
-    <p class="stamp" style="margin-top:8px">Setiap tindak lanjut: Close = 100%, Open/Continue = 0%. ${B?"Setiap Sub Bab dihitung satu kali, berapa pun jumlah meeting-nya.":"Setiap Bagian dihitung satu kali dengan bobot sama."} Yang “Belum Ada Data” tidak masuk penyebut.</p></div>
+    <div class="tbl-wrap"><table class="kstbl"><thead><tr><th>${b?"Sub Bab":"Bab"}</th><th>Nilai</th><th>Dasar</th></tr></thead><tbody>${parts.map(p=>`<tr${p.pct==null?' class="muted"':""}><td>${p.c?`<button type="button" class="lnk" data-act="ksSub" data-id="${sid}" data-c="${esc(p.c)}">${esc(p.lab)}</button>`:`<button type="button" class="lnk" data-act="ksCalc" data-id="${sid}" data-b="${p.b}">${esc(p.lab)}</button>`}</td><td><b>${fmtPct(p.pct)}</b></td><td class="stamp">${esc(p.how)}${p.pct==null?" · tidak ikut dirata-rata":""}</td></tr>`).join("")}</tbody></table></div>
+    <p class="stamp" style="margin-top:8px">Setiap tindak lanjut: Close = 100%, Open/Continue = 0%. ${B?"Setiap Sub Bab dihitung satu kali, berapa pun jumlah meeting-nya.":"Setiap Bab dihitung satu kali dengan bobot sama."} Yang “Belum Ada Data” tidak masuk penyebut.</p></div>
     <div class="mf">${b?`<button class="btn" type="button" data-act="ksCalc" data-id="${sid}">Lihat total</button>`:""}<span style="flex:1"></span><button class="btn pri" type="button" data-x>Tutup</button></div>`,box=>{box.style.maxWidth="760px";});}
 
 /* ---------- halaman Sub Bab ---------- */
@@ -2454,7 +2454,7 @@ function openSub(sid,code){const s=sById(sid);if(!s)return;const K=kesiapan(sid)
   const x=o?o.x:{code,label:code,title:code,rows:[],c:cnt([]),pct:null,method:"none",rin:null,warn:[],docs:docsOf(sid,code),hist:rincOf(sid,code)},b=o?o.b:{title:""};
   const R=x.rin&&x.rin.rinc;const fl=f=>`<div class="fl">${fileIcon(f.name)}<a href="#" data-ksf="${f.id}">${esc(f.name)}</a><span class="stamp">${fmtSize(f.size)} · ${fmtTs(f.at)}</span></div>`;
   openModal(mHead(x.label||code)+`<div class="mb">
-    <div class="ksub"><div class="ksbig ks-${pctCls(x.pct)}"><small>${K.mode==="bab"?"Sub Bab":"Bagian"}</small><b>${fmtPct(x.pct)}</b></div>
+    <div class="ksub"><div class="ksbig ks-${pctCls(x.pct)}"><small>${K.mode==="bab"?"Sub Bab":"Bab"}</small><b>${fmtPct(x.pct)}</b></div>
       <div><div class="stamp">${K.mode==="bab"?esc(b.title||"")+" · ":""}${esc(s.title)} · ${esc(s.jenis||"")}</div><div style="margin-top:4px"><b>Dasar:</b> ${esc(methodTxt(x))}</div>
         <div class="stamp" style="margin-top:4px">${x.c.total?`${x.c.open} Open · ${x.c.continue} Continue · ${x.c.close} Close`:"Belum ada baris pembahasan"}</div></div></div>
     ${x.warn.map(w=>`<div class="note" style="margin-top:8px">⚠ ${esc(w)}</div>`).join("")}
@@ -2465,7 +2465,7 @@ function openSub(sid,code){const s=sById(sid);if(!s)return;const K=kesiapan(sid)
       <div class="tbl-wrap" style="max-height:340px;overflow:auto;margin-top:6px"><table class="kstbl"><thead><tr><th>No</th><th>Nama item</th><th style="text-align:right">Plan</th><th style="text-align:right">Actual</th><th style="text-align:right">Progres</th></tr></thead><tbody>
         ${R.items.map((it,i)=>{const ok=it.p>0&&it.a!=null&&it.a>=0;const p=ok?Math.min(it.a/it.p,1)*100:null;return `<tr class="${ok?"":"muted"}${ok&&it.a>it.p?" kswarn":""}"><td>${i+1}</td><td>${esc(it.n||"—")}</td><td class="num" style="text-align:right">${it.p??"—"}</td><td class="num" style="text-align:right">${it.a??"—"}</td><td class="num" style="text-align:right">${ok?fmtPct(p):"tidak dihitung"}${ok&&it.a>it.p?" ⚠":""}</td></tr>`;}).join("")}
         </tbody><tfoot><tr><td colspan="2"><b>${R.valid} item valid</b>${R.items.length>R.valid?` · ${R.items.length-R.valid} tidak dihitung`:""}</td><td class="num" style="text-align:right">${R.sumP}</td><td class="num" style="text-align:right">${R.sumA}</td><td class="num" style="text-align:right"><b>${fmtPct(R.pct)}</b></td></tr></tfoot></table></div>`
-      :`<div class="stamp">Belum ada rincian. ${x.c.total?"Persentase mengikuti status tindak lanjut (Close = 100%, Open/Continue = 0%).":""} Bila bagian ini punya data terukur (mis. jumlah sparepart), unduh template rincian, isi Plan dan Actual, lalu upload.</div>`}
+      :`<div class="stamp">Belum ada rincian. ${x.c.total?"Persentase mengikuti status tindak lanjut (Close = 100%, Open/Continue = 0%).":""} Bila Bab ini punya data terukur (mis. jumlah sparepart), unduh template rincian, isi Plan dan Actual, lalu upload.</div>`}
     <h3 class="ksh">Pembahasan</h3>
     ${x.rows.length?`<div class="tbl-wrap"><table class="kstbl"><thead><tr><th>Topik</th><th>Tindak Lanjut</th><th>PIC</th><th>Due</th><th>Status</th></tr></thead><tbody>${x.rows.map(r=>`<tr class="r-${r.st||"open"}"><td>${esc(r.topik||"—")}</td><td style="white-space:pre-line">${esc(r.tl||"—")}</td><td>${esc(r.pic||"—")}</td><td style="white-space:nowrap">${esc(dueLabel(r))}</td><td>${pill(r.st||"open")}</td></tr>`).join("")}</tbody></table></div>`:`<div class="stamp">Belum ada tindak lanjut.</div>`}
     <h3 class="ksh">Sumber &amp; dokumen pendukung</h3>
@@ -2555,14 +2555,14 @@ function downloadNotuTpl(pre){if(!S.downloads)return toast("Unduhan tidak tersed
 async function oldTemplate(jenis){
   try{const X=await loadXlsx();
     const aoa=[["NOTULENSI MEETING"],[],["Judul Notulensi",""],["Tanggal",""],["Jam",""],["Agenda",""],["Lokasi",""],["Pimpinan Rapat",""],["Peserta",""],["Next Meeting",""],["Jenis Notulensi",jenis||""],
-      ["No","Bagian","Topik","Hasil Pembahasan","Tindak Lanjut","PIC","Due Date","Status"]];
+      ["No","Bab","Topik","Hasil Pembahasan","Tindak Lanjut","PIC","Due Date","Status"]];
     for(let i=0;i<30;i++)aoa.push(["","","","","","","",""]);
     const ws=X.utils.aoa_to_sheet(aoa);ws["!cols"]=[{wch:5},{wch:26},{wch:24},{wch:46},{wch:46},{wch:18},{wch:14},{wch:11}];ws["!merges"]=[{s:{r:0,c:0},e:{r:0,c:7}}];
     const help=X.utils.aoa_to_sheet([["PETUNJUK PENGISIAN"],[],["Header","Isi baris Judul Notulensi sampai Next Meeting. Tanggal ditulis seperti 7 Oktober 2026 atau 07/10/2026."],
       ["Jenis Notulensi","Persiapan, Permasalahan, atau Lainnya. Persiapan dan Permasalahan menampilkan persentase: Close = 100%, Open/Continue = 0%."],
-      ["Bagian","Nama kelompok / project, mis. A. FMC Project SKA – Jobsite BUPR Ampah. Boleh kosong. Persentase dihitung per Bagian."],["Topik","Pokok bahasan. Untuk beberapa tindak lanjut pada topik yang sama, tulis topik yang sama di setiap baris."],
+      ["Bab","Nama Bab / kelompok pembahasan, mis. Bab I – Persiapan Logistik. Tulis di setiap baris, atau sekali di baris tersendiri sebagai judul. Persentase dihitung per Bab."],["Topik","Pokok bahasan. Untuk beberapa tindak lanjut pada topik yang sama, tulis topik yang sama di setiap baris."],
       ["Hasil Pembahasan","Ringkasan pembahasan / kesepakatan."],["Tindak Lanjut","Satu baris untuk satu tindak lanjut."],["PIC","Penanggung jawab."],["Due Date","Tanggal target, mis. 20 Oktober 2026. Teks seperti Minggu ke-1 November juga boleh."],
-      ["Status","Open, Continue, atau Close. Jika kosong otomatis Open."],["Kolom tambahan","Boleh menambah kolom sendiri di kanan Status (mis. Unit). Kolom itu ikut terbaca di web."],[],["Contoh","1 | A. Project SKA | Manpower | Pengawas dari KMB | Siapkan 8 unit vessel | Pak Dwi | 20 Oktober 2026 | Open |"],
+      ["Status","Open, Continue, atau Close. Jika kosong otomatis Open."],["Kolom tambahan","Boleh menambah kolom sendiri di kanan Status (mis. Unit). Kolom itu ikut terbaca di web."],[],["Contoh","1 | Bab I – Persiapan Manpower | Manpower | Pengawas dari KMB | Siapkan 8 unit vessel | Pak Dwi | 20 Oktober 2026 | Open |"],
       [],["Upload","Di web: + Meeting Baru → upload file, atau Notulensi → Upload Notulensi."]]);help["!cols"]=[{wch:18},{wch:110}];
     const wb=X.utils.book_new();X.utils.book_append_sheet(wb,ws,"Notulensi");X.utils.book_append_sheet(wb,help,"Petunjuk");
     await S.downloads.save({filename:`Template Notulensi Meeting${jenis?" - "+fnSafe(jenis):""}.xlsx`,data:new Blob([X.write(wb,{type:"array",bookType:"xlsx"})],{type:XMIME})});toast("Template siap");
@@ -2581,7 +2581,7 @@ function renderKsDash(fid){const box=$("ksDash");if(!box)return;const set=folder
   const list=S.series.filter(s=>hasPct(s)&&(!set||set.has(s.folderId))).map(s=>({s,K:kesiapan(s.id)})).sort((a,b)=>(a.s.jenis||"").localeCompare(b.s.jenis||"")||(a.K.pct??-1)-(b.K.pct??-1));
   box.hidden=!list.length;if(!list.length){box.innerHTML="";return;}
   box.innerHTML=`<div class="ch"><h2>Persentase Penyelesaian</h2><span class="stamp">Kategori Persiapan &amp; Permasalahan · Close = 100%, Open/Continue = 0% · klik angka untuk melihat perhitungan</span></div>
-   <div class="tbl-wrap"><table class="kstbl ksdash"><thead><tr><th>Notulensi</th><th>Kategori</th><th>Total</th><th>Per Bab / Bagian</th><th>Status</th><th></th></tr></thead><tbody>${list.map(({s,K})=>`<tr>
+   <div class="tbl-wrap"><table class="kstbl ksdash"><thead><tr><th>Notulensi</th><th>Kategori</th><th>Total</th><th>Per Bab</th><th>Status</th><th></th></tr></thead><tbody>${list.map(({s,K})=>`<tr>
      <td style="min-width:200px"><button class="fn" type="button" data-act="openS" data-id="${s.id}">${IC.series}<span>${esc(s.title)}</span></button><div class="stamp" style="margin-left:36px">${esc(fPathName(s.folderId))}</div></td><td><span class="jchip${s.jenis==="Persiapan"?" jp":""}" style="cursor:default">${esc(s.jenis)}</span></td>
      <td style="min-width:150px"><button type="button" class="kspct big" data-act="ksCalc" data-id="${s.id}">${fmtPct(K.pct)}</button>${ksBar(K.pct)}${K.warn?`<div class="kwt">⚠ ${K.warn} perlu verifikasi</div>`:""}</td>
      <td><div class="ksbabs sm">${K.babs.slice(0,8).map(b=>K.mode==="bab"?`<button type="button" data-act="ksCalc" data-id="${s.id}" data-b="${b.no}" title="${esc(b.title)}"><span>${esc(b.title.replace(/\s*[–-].*$/,""))}</span><b>${fmtPct(b.pct)}</b></button>`:`<button type="button" data-act="ksSub" data-id="${s.id}" data-c="${esc(b.subs[0].code)}" title="${esc(b.title)}"><span>${esc(b.title.length>22?b.title.slice(0,21)+"…":b.title)}</span><b>${fmtPct(b.pct)}</b></button>`).join("")||`<span class="stamp">Belum ada tindak lanjut</span>`}${K.babs.length>8?`<span class="stamp">+${K.babs.length-8} lagi</span>`:""}</div></td>
