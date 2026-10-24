@@ -1030,7 +1030,7 @@ function resumeVacant(D) {
   const entries = Object.entries(D.vacJab).sort((a, b) => b[1].length - a[1].length);
   return `<div class="rgrid">${entries.map(([j, ps]) => {
     const cs = ps.flatMap((p) => candidates(p)); const act = cs.filter((c) => c.st === 'pr' || c.st === 'hd');
-    const hi = Math.max(0, ...ps.filter(isOpen).map(stageIdx));
+    const hi = Math.max(0, ...ps.filter(isOpen).map((x) => progIdx(x)));
     const byStage = {}; ps.forEach((p) => { const k = STAGE_UP[stageIdx(p)]; byStage[k] = (byStage[k] || 0) + 1; });
     return `<div class="rcard"><div class="hd"><span class="nb">${ps.length}</span>${esc(j)}</div>
       <div class="l1">${act.length} pelamar untuk ${ps.length} vacant</div>
@@ -1043,7 +1043,7 @@ function resumeVacant(D) {
 function summaryTable(D, rows) {
   return `<div class="tw"><table class="t"><thead><tr><th>Jabatan</th><th>Tanggal Pengajuan</th><th>Due Date</th><th>Hari Tersisa</th><th>Status</th><th>Progress Terakhir</th><th>Progress</th><th>Kandidat</th><th>Keterangan</th></tr></thead><tbody>
   ${rows.map((p) => {
-    const r = diff(p.due, TODAY), si = stageIdx(p), cs = candidates(p);
+    const r = diff(p.due, TODAY), si = progIdx(p), cs = candidates(p);
     const dcls = r === null ? 'mute' : r <= 0 ? 'crit' : r <= 7 ? 'warn' : 'good';
     return `<tr><td class="b">${esc(p.jabatan)}<div class="small" style="font-weight:500">No. ${p.no} · ${esc(p.group || p.section || '')}</div></td>
       <td class="nw">${fmt(p.aju)}</td><td class="nw">${fmt(p.due)}</td><td><span class="dd ${dcls}">${r === null ? '–' : r}</span></td>
@@ -1643,7 +1643,7 @@ function openDetail(jab) {
   FORM = null;
   const ps = D.vacJab[jab] || [];
   document.getElementById('dialog').innerHTML = `<button type="button" class="x" id="mClose" aria-label="Tutup">×</button><div class="eyebrow">Vacant detail</div><h2 id="mTitle" style="font-size:19px">${esc(jab)}</h2><p class="small" style="margin:2px 0 0">${ps.length} vacant</p>
-  ${ps.map((p) => { const si = stageIdx(p), r = diff(p.due, TODAY), cs = candidates(p);
+  ${ps.map((p) => { const si = progIdx(p), r = diff(p.due, TODAY), cs = candidates(p);
     return `<div class="pos"><h4>No. ${p.no} · ${esc(p.group || p.section || '')}</h4><div class="small">${esc(p.ptk || 'Belum ada PTK')} · Pengajuan ${fmt(p.aju)} · Due ${fmt(p.due)} ${r !== null ? `<span class="dd ${r <= 0 ? 'crit' : r <= 7 ? 'warn' : 'good'}">${r <= 0 ? 'Lewat ' + -r + ' hari' : r + ' hari lagi'}</span>` : ''}</div>
     <div class="pg" style="margin:10px 0"><span class="tr"><i style="width:${STAGE_PCT[si]}%"></i></span><b>${STAGE_UP[si]} ${STAGE_PCT[si]}%</b></div>
     ${cs.length ? `<div class="kl">${cs.map((c) => `<div><span class="nm ${c.st === 'no' ? 'off' : ''}">${esc(c.name)}</span><span class="st ${c.st}">${candStatusText(c, p)}</span></div>`).join('')}</div>` : '<div class="small">Belum ada pelamar.</div>'}
@@ -1763,6 +1763,8 @@ function candStatusText(c, p) {
   return `${c.st === 'hd' ? 'Hold' : 'Aktif'} • ${STAGE_UP[s]} ${STAGE_PCT[s]}%`;
 }
 const inFlight = (c) => c.st === 'pr' || c.st === 'hd' || c.status === 'No Response';
+// Progress posisi = tahap terakhir yang sudah diisi, baik di data posisi maupun di pelamar yang masih aktif / diterima (walau berkas belum diupload)
+function progIdx(p) { let k = stageIdx(p); try { candidates(p).forEach((c) => { if (c.st !== 'no' && !c.fromHist) k = Math.max(k, Math.min(7, Number(c.stage) || 0)); }); } catch (e) {} return k; }
 function topStage(p) { const a = candidates(p).filter((c) => c.st === 'pr' || c.st === 'hd'); return a.length ? Math.max(...a.map((c) => c.stage)) : stageIdx(p); }
 
 function derive() {
@@ -1820,7 +1822,7 @@ function pageMPP(D) {
   <div class="card" style="padding:6px 0;margin-bottom:18px"><div class="tw"><table class="t mt">
     <thead><tr><th>No</th><th>Nama</th><th>Jabatan</th><th>Pelamar</th><th>Keterangan</th><th>PTK</th><th>Status</th><th>Progress</th><th>Due Date</th><th>Ket. PTK</th><th>Aksi</th></tr></thead>
     <tbody>${rows.map(([p, i]) => {
-      const cs = candidates(p), fl = cs.filter(inFlight), si = stageIdx(p), k = ketPTK(p);
+      const cs = candidates(p), fl = cs.filter(inFlight), si = progIdx(p), k = ketPTK(p);
       return `<tr>
         <td>${p.no}</td>
         <td class="${isVacant(p) ? 'vacn' : 'b'}">${esc(p.nama)}</td>
