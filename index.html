@@ -559,7 +559,7 @@ function inviteBox() {
 }
 function loginHtml() {
   return `<div class="lock lgc"><span class="lg">M</span><h2>Masuk</h2><p>Gunakan email yang diundang atau didaftarkan Pemilik.</p>${inviteToken() ? '<div class="nb warn"><b>Ini link undangan email lama.</b> Link ini masih meminta login. Agar penerima langsung masuk tanpa password seperti Google Sheets, minta Pemilik membuat ulang melalui <b>Bagikan → Link tanpa login</b> dan kirim link baru.</div>' : ''}${inviteBox()}
-    <form id="lgForm" class="lf" novalidate><label for="lg_e">Email</label><input id="lg_e" type="email" autocomplete="email" required placeholder="nama@email.com"><label for="lg_p">Password (opsional)</label><input id="lg_p" type="password" autocomplete="current-password" placeholder="Kosongkan untuk menerima link masuk lewat email"><button type="submit" class="btn btn-p">Masuk</button></form>
+    <form id="lgForm" class="lf" novalidate><label for="lg_e">Email</label><input id="lg_e" type="email" autocomplete="email" required placeholder="nama@email.com"><label for="lg_p">Password (opsional)</label><input id="lg_p" type="password" autocomplete="current-password" placeholder="Kosongkan untuk menerima kode masuk lewat email"><button type="submit" class="btn btn-p">Masuk</button></form>
     <div class="invite"><h3>Link email membuka halaman yang salah?</h3><p>Di Gmail, klik kanan tombol/link masuk dan pilih <b>Salin alamat link</b> (jangan klik link). Tempel di bawah agar verifikasi selesai langsung di portal ini.</p>
       <form id="mailLinkForm" class="lf" novalidate><label for="mailLinkInput">Alamat link dari email Supabase</label><input id="mailLinkInput" type="text" autocomplete="off" placeholder="Tempel link verifikasi dari Gmail" required><button type="submit" class="btn btn-g">Verifikasi & masuk</button></form>
       <p class="small">Link bersifat rahasia dan sekali pakai. Jangan bagikan kepada siapa pun.</p></div>
@@ -573,8 +573,8 @@ async function doLogin(e) {
   const pendingInvite = inviteToken();
   if (pendingInvite) redirectUrl.searchParams.set('i', pendingInvite);
   const r = pw ? await S.sb.auth.signInWithPassword({ email: em, password: pw }) : await S.sb.auth.signInWithOtp({ email: em, options: { emailRedirectTo: redirectUrl.href, shouldCreateUser: true } });
-  if (r.error) { toast(/invalid login/i.test(r.error.message) ? 'Email atau password salah.' : /rate|seconds/i.test(r.error.message) ? 'Terlalu sering meminta link. Tunggu beberapa menit.' : 'Gagal masuk: ' + r.error.message, true); return; }
-  toast(pw ? 'Berhasil masuk.' : `Link masuk dikirim ke ${em}. Buka email lalu klik linknya.`);
+  if (r.error) { toast(/invalid login/i.test(r.error.message) ? 'Email atau password salah.' : /rate|seconds/i.test(r.error.message) ? 'Terlalu sering meminta kode. Tunggu beberapa menit.' : 'Gagal masuk: ' + r.error.message, true); return; }
+  if (pw) toast('Berhasil masuk.'); else { toast(`Kode masuk dikirim ke ${em}.`); window.KMBOtp && KMBOtp.prompt(S.sb, em, { emailRedirectTo: redirectUrl.href, shouldCreateUser: true }); }
 }
 // Verifikasi Magic Link langsung di portal: menghindari email lama yang masih mengarah ke localhost.
 async function redeemMailLink(e) {
@@ -887,4 +887,4 @@ async function init() {
 }
 init();
 </script>
-<script src="activity-page.js?v=20261024"></script></body></html>
+<script src="activity-page.js?v=20261024b"></script><script src="otp-login.js?v=20261024"></script></body></html>

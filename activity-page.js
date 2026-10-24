@@ -65,7 +65,7 @@
     _who.apply(this, arguments);
     if (!owner() || document.querySelector('#menu [data-page="act"]')) return;
     const g = document.querySelector('#menu [data-page="guide"]');
-    if (g) g.insertAdjacentHTML('beforebegin', '<button type="button" data-page="act" role="menuitem">Aktivitas</button>');
+    if (g) g.insertAdjacentHTML('beforebegin', '<button type="button" data-page="act" role="menuitem">Aktivitas</button><button type="button" role="menuitem" onclick="location.href=\'kantor-ai/\'">Kantor AI</button>');
   };
   const _go = goPage;
   goPage = function (p) {

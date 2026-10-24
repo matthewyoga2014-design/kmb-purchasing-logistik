@@ -236,7 +236,7 @@ body.locked #prBtn, body.locked #dlBtn { display: none !important; }
   <div class="grid" id="grid"></div>
 </main>
 <div class="foot"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Login cukup sekali: setelah masuk di salah satu web, Anda otomatis dikenali di web proyek lainnya. Editor hanya bisa mengubah proyek yang didaftarkan Pemilik.</div>
-<div class="modal" id="lgModal" hidden><form class="dlg" id="lgForm" novalidate><h3>Masuk</h3><p>Masukkan email Anda. Isi password jika akun sudah punya password; kosongkan untuk menerima link masuk lewat email.</p>
+<div class="modal" id="lgModal" hidden><form class="dlg" id="lgForm" novalidate><h3>Masuk</h3><p>Masukkan email Anda. Isi password jika akun sudah punya password; kosongkan untuk menerima kode masuk lewat email.</p>
   <input type="email" id="lgEm" placeholder="nama@email.com" autocomplete="email" required><input type="password" id="lgPw" placeholder="Password (opsional)" autocomplete="current-password">
   <div class="row"><button type="button" class="btn btn-g" id="lgX">Batal</button><button type="submit" class="btn btn-p">Masuk</button></div></form></div>
 <div id="wm" aria-hidden="true"></div>
@@ -345,7 +345,7 @@ document.getElementById('lgForm').addEventListener('submit', async (e) => {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Format email belum benar.'); return; }
   const r = pw ? await SB.auth.signInWithPassword({ email, password: pw }) : await SB.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname } });
   if (r.error) { toast(/invalid login/i.test(r.error.message) ? 'Email atau password salah.' : 'Gagal masuk: ' + r.error.message); return; }
-  document.getElementById('lgModal').hidden = true; toast(pw ? 'Berhasil masuk.' : `Link masuk dikirim ke ${email}.`);
+  document.getElementById('lgModal').hidden = true; if (pw) toast('Berhasil masuk.'); else { toast(`Kode masuk dikirim ke ${email}.`); window.KMBOtp && KMBOtp.prompt(SB, email, { emailRedirectTo: location.origin + location.pathname }); }
 });
 
 // ================= hak cetak & unduh: hanya akun terdaftar (Pemilik, Editor, atau yang disetujui) =================

@@ -161,7 +161,7 @@ async function commit(mutate, okMsg) {
 // ---------- login ----------
 function openLogin() {
   openForm({ eyebrow: 'Masuk', title: 'Masuk', submit: 'Masuk',
-    intro: 'Editor: masukkan email yang sudah didaftarkan Pemilik. Pelihat: masuk dengan email Anda untuk meminta izin cetak. Isi password jika akun Anda sudah punya password; kosongkan untuk menerima <b>link masuk</b> lewat email.',
+    intro: 'Editor: masukkan email yang sudah didaftarkan Pemilik. Pelihat: masuk dengan email Anda untuk meminta izin cetak. Isi password jika akun Anda sudah punya password; kosongkan untuk menerima <b>kode masuk</b> lewat email.',
     values: {}, fields: [{ k: 'em', label: 'Email', req: true, full: true, ph: 'nama@email.com' }, { k: 'pw', label: 'Password (opsional)', full: true }],
     onSave: async (v) => {
       const email = String(v.em || '').trim().toLowerCase();
@@ -174,7 +174,7 @@ function openLogin() {
         } else {
           const { error } = await WEB.sb.auth.signInWithOtp({ email, options: { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: true } });
           if (error) throw error;
-          toast(`Link masuk dikirim ke ${email}. Buka email lalu klik linknya.`);
+          toast(`Kode masuk dikirim ke ${email}.`); window.KMBOtp && KMBOtp.prompt(WEB.sb, email, { emailRedirectTo: location.origin + location.pathname, shouldCreateUser: true });
         }
         return true;
       } catch (e) {
