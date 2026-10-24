@@ -29,9 +29,8 @@ Setelah mengubah `Code.gs`, pakai **Deploy → Manage deployments → Edit → N
 ## Mengisi data pertama kali
 Masuk sebagai Pemilik → **Unit & File** → **Upload Folder** → pilih folder `Monitoring Notulensi` dari laptop. Folder bertanggal yang berisi notulensi Word/Excel menjadi *Meeting ke-n*, dan file lain menjadi lampirannya.
 
-## Kesiapan Project (jenis Persiapan)
-- **Jenis notulensi**: Persiapan, Permasalahan, Lainnya (bisa ditambah). Dibaca dari sel *Jenis Notulensi* (B11) atau diatur lewat menu ⋮ › *Ubah jenis notulensi*. Persentase kesiapan hanya untuk jenis Persiapan.
-- **Template Notulensi** (halaman Notulensi › *Unduh Template Notulensi*): Bab di kolom A (`Bab I – …`), Sub Bab di kolom B (`1.1 …`), baris pembahasan di bawahnya. Template lama tanpa Bab tetap terbaca.
-- **Rincian Plan–Actual** (klik persentase/Sumber pada Sub Bab › *Unduh Template Rincian* › isi › *Upload Sumber*): sheet *Rincian*, data mulai baris 10 (B Nama, C Plan, D Actual).
-- **Perhitungan**: item = MIN(Actual/Plan, 100%); Sub Bab = rata-rata item valid; tanpa rincian: Close 100%, Open/Continue 0%; Bab = rata-rata Sub Bab; Total = rata-rata Bab. Bab tanpa data = *Belum Ada Data* dan tidak ikut dirata-rata.
-- Upload rincian baru menggantikan nilai, versi lama tetap tersimpan sebagai riwayat. File sumber disimpan di Google Drive.
+## Kategori & persentase
+- **Kategori notulensi**: Persiapan, Permasalahan, Lainnya (bisa ditambah). Dipilih dengan klik saat unduh template, Meeting Baru, form live, form update Word/Excel, dan saat upload. Notulensi lama tidak diubah; kategorinya bisa diisi lewat menu ⋮ › *Ubah jenis notulensi*.
+- **Template**: format lama tetap (No, Bagian, Topik, Hasil Pembahasan, Tindak Lanjut, PIC, Due Date, Status), ditambah baris *Jenis Notulensi* di atas header.
+- **Persentase** (Persiapan & Permasalahan): tiap tindak lanjut Close = 100%, Open/Continue = 0%. Per Bagian = rata-rata tindak lanjutnya; Total = rata-rata Bagian. Bila file memakai Bab/Sub Bab (`Bab I – …`, `1.1 …`), hitungannya Sub Bab → Bab → Total.
+- **Rincian Plan–Actual** (opsional): klik persentase/Sumber › *Unduh Template Rincian* › isi › *Upload Sumber*. Nilai = rata-rata MIN(Actual/Plan, 100%). Versi lama tersimpan sebagai riwayat; file di Google Drive.
