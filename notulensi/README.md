@@ -28,3 +28,10 @@ Setelah mengubah `Code.gs`, pakai **Deploy → Manage deployments → Edit → N
 
 ## Mengisi data pertama kali
 Masuk sebagai Pemilik → **Unit & File** → **Upload Folder** → pilih folder `Monitoring Notulensi` dari laptop. Folder bertanggal yang berisi notulensi Word/Excel menjadi *Meeting ke-n*, dan file lain menjadi lampirannya.
+
+## Kesiapan Project (jenis Persiapan)
+- **Jenis notulensi**: Persiapan, Permasalahan, Lainnya (bisa ditambah). Dibaca dari sel *Jenis Notulensi* (B11) atau diatur lewat menu ⋮ › *Ubah jenis notulensi*. Persentase kesiapan hanya untuk jenis Persiapan.
+- **Template Notulensi** (halaman Notulensi › *Unduh Template Notulensi*): Bab di kolom A (`Bab I – …`), Sub Bab di kolom B (`1.1 …`), baris pembahasan di bawahnya. Template lama tanpa Bab tetap terbaca.
+- **Rincian Plan–Actual** (klik persentase/Sumber pada Sub Bab › *Unduh Template Rincian* › isi › *Upload Sumber*): sheet *Rincian*, data mulai baris 10 (B Nama, C Plan, D Actual).
+- **Perhitungan**: item = MIN(Actual/Plan, 100%); Sub Bab = rata-rata item valid; tanpa rincian: Close 100%, Open/Continue 0%; Bab = rata-rata Sub Bab; Total = rata-rata Bab. Bab tanpa data = *Belum Ada Data* dan tidak ikut dirata-rata.
+- Upload rincian baru menggantikan nilai, versi lama tetap tersimpan sebagai riwayat. File sumber disimpan di Google Drive.
