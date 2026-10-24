@@ -1215,6 +1215,14 @@ border:1px solid transparent;background:var(--unit-soft);border-radius:7px;color
 /* Identitas vendor: konsisten berdasarkan nama di sheet Populasi Unit. */
 .mu-vendor-tag{display:inline-flex;align-items:center;max-width:100%;box-sizing:border-box;padding:3px 8px;border-radius:6px;border:1px solid var(--mu-vendor-bd,#CBD5E1);background:var(--mu-vendor-bg,#F1F5F9);color:var(--mu-vendor-fg,#334155);font-size:10px;font-weight:800;line-height:1.4;letter-spacing:.01em;white-space:normal;overflow-wrap:anywhere;text-align:center}
 .mu-pop-vendor-head .mu-vendor-tag{font-size:9px;padding:2px 6px;vertical-align:middle}
+/* Filter per kolom di kepala tabel Detail Unit */
+.mu-mpp-detail-table tr.mu-colf th{background:#fff;padding:5px 6px!important;border-bottom:2px solid #E4DCFB!important;text-transform:none;vertical-align:middle}
+.mu-colf select,.mu-colf input{width:100%;min-width:72px;box-sizing:border-box;height:28px;border:1px solid #DCD9EC;border-radius:7px;padding:0 6px;font:inherit;font-size:10px!important;font-weight:600;color:#3b3558;background:#fff;text-transform:none}
+.mu-colf input{min-width:90px}
+.mu-colf select.on,.mu-colf input:not(:placeholder-shown){border-color:#7C3AED;background:#F5F0FF;color:#5B21B6}
+.mu-colf select:focus,.mu-colf input:focus{outline:2px solid #DDD0FC;border-color:#7C3AED}
+.mu-colf-x{width:26px;height:26px;border-radius:7px;border:1px solid #FECDD3;background:#FFF1F2;color:#BE123C;font-weight:800;cursor:pointer}
+@media print{.mu-mpp-detail-table tr.mu-colf{display:none}}
 /* Merek unit: pil berwarna dengan titik, beda bentuk dari tag vendor. */
 .mu-brand-tag{display:inline-flex;align-items:center;gap:5px;max-width:100%;box-sizing:border-box;padding:3px 9px 3px 7px;border-radius:999px;background:var(--mu-brand-bg,#F1F5F9);color:var(--mu-brand-fg,#334155);border:1px solid color-mix(in srgb,var(--mu-brand-dot,#94A3B8) 35%,white);font-size:10px;font-weight:800;line-height:1.4;white-space:nowrap;overflow-wrap:normal}
 .mu-brand-tag::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--mu-brand-dot,#94A3B8)}
@@ -1354,7 +1362,8 @@ border:1px solid transparent;background:var(--unit-soft);border-radius:7px;color
     <section class="mu-mpp-details" id="muPopDetails" aria-label="Detail unit per jenis">
       <div class="mu-mpp-detail-head"><div><span class="mu-mpp-eyebrow">DETAIL UNIT</span><h3 id="muPopDetailTitle">Seluruh unit di lokasi</h3><p id="muPopDetailSub">Pilih jenis unit pada kartu atau tabel rekap untuk menyaring daftar.</p></div><button type="button" class="btn small" data-unit-all hidden id="muPopReset">Lihat semua</button></div>
       <div class="mu-mpp-detail-wrap"><table class="mu-mpp-detail-table">
-      <thead><tr><th>No</th><th>Nomor lambung</th><th>Jenis Unit</th><th>Vendor</th><th>Merek</th><th>Project</th><th>Posisi</th><th>Status Operasional</th><th>Kondisi</th><th class="n">HM</th><th>Tanggal tiba</th><th>Keterangan</th><th class="mu-mpp-actions">Aksi</th></tr></thead>
+      <thead><tr><th>No</th><th>Nomor lambung</th><th>Jenis Unit</th><th>Vendor</th><th>Merek</th><th>Project</th><th>Posisi</th><th>Status Operasional</th><th>Kondisi</th><th class="n">HM</th><th>Tanggal tiba</th><th>Keterangan</th><th class="mu-mpp-actions">Aksi</th></tr>
+      <tr class="mu-colf" id="muColFilter"></tr></thead>
       <tbody id="tUnit"></tbody>
       </table></div>
     </section>
@@ -2854,13 +2863,45 @@ function muKondFilter(base){
   el.innerHTML='<span class="mu-kond-l">Kondisi</span>'+list.map(k=>{const n=k==="Semua"?pool.length:pool.filter(u=>muKond(u)===k).length;
     return `<button type="button" class="${k==="Semua"?"":"mu-kb "+muKondCls(k)}" data-fk="${esc(k)}" aria-pressed="${S.fKond===k}">${k==="Semua"?"":'<i></i>'}${esc(k)} <span class="num">${n}</span></button>`;}).join("");
 }
+/* Filter per kolom di kepala tabel Detail Unit (seperti filter Excel). */
+function muColFilter(base,colOk,nv){
+  const row=$("#muColFilter"); if(!row) return;
+  const F=S.fCol, act=document.activeElement, typing=act&&act.id==="muColKode", caret=typing?act.selectionStart:0;
+  const opts=(skip,valOf,labelOf,cur)=>{ const pool=base.filter(u=>colOk(u,skip)), m=new Map();
+    pool.forEach(u=>{ const v=valOf(u); if(!m.has(v)) m.set(v,{l:labelOf(u),n:0}); m.get(v).n++; });
+    if(cur&&cur!=="Semua"&&cur!=="all"&&!m.has(cur)) m.set(cur,{l:cur,n:0});
+    return [...m.entries()].sort((a,b)=>String(a[1].l).localeCompare(String(b[1].l),"id",{numeric:true}))
+      .map(([v,o])=>`<option value="${esc(v)}" ${v===cur?"selected":""}>${esc(o.l)} (${o.n})</option>`).join(""); };
+  const sel=(key,cur,all,html)=>`<select data-colf="${key}" class="${cur&&cur!=="Semua"&&cur!=="all"?"on":""}" aria-label="Filter ${key}"><option value="${all}">Semua</option>${html}</select>`;
+  const typeName=u=>String(u.tipe||"Jenis belum diisi").trim();
+  const active=[F.kode,F.vendor,F.merk,F.project,F.lokasi].some(Boolean)||S.fUnit!=="Semua"||S.fKond!=="Semua"||(S.unitGroup&&S.unitGroup!=="all");
+  row.innerHTML=`<th>${active?`<button type="button" class="mu-colf-x" data-colf-reset title="Hapus semua filter">✕</button>`:""}</th>
+    <th><input id="muColKode" type="search" placeholder="Cari…" value="${esc(F.kode)}" aria-label="Filter nomor lambung"></th>
+    <th>${sel("jenis",S.unitGroup||"all","all",opts("jenis",u=>MU_TYPE_KEY(u.tipe),typeName,S.unitGroup))}</th>
+    <th>${sel("vendor",F.vendor,"",opts("vendor",u=>nv(muDetails(u).vendor||"Belum diisi"),u=>String(muDetails(u).vendor||"Belum diisi").trim(),F.vendor))}</th>
+    <th>${sel("merk",F.merk,"",opts("merk",u=>nv(muDetails(u).merk||"Belum diisi"),u=>String(muDetails(u).merk||"Belum diisi").trim(),F.merk))}</th>
+    <th>${sel("project",F.project,"",opts("project",u=>u.projectId,u=>projKode(u.projectId),F.project))}</th>
+    <th>${sel("lokasi",F.lokasi,"",opts("lokasi",u=>nv(u.lokasi||"—"),u=>String(u.lokasi||"—").trim(),F.lokasi))}</th>
+    <th>${sel("status",S.fUnit,"Semua",opts("status",u=>u.status,u=>u.status,S.fUnit))}</th>
+    <th>${sel("kondisi",S.fKond,"Semua",opts("kondisi",u=>muKond(u),u=>muKond(u),S.fKond))}</th>
+    <th></th><th></th><th></th><th class="mu-mpp-actions"></th>`;
+  if(typing){ const k=$("#muColKode"); k.focus(); try{ k.setSelectionRange(caret,caret); }catch(e){} }
+}
 function renderUnit(){
   const base=S.units.filter(u=>arrived(u)&&inFilter(u.projectId));
   const fs=["Semua",...UNIT_STATUS.map(s=>s.k)];
-  $("#fUnit").innerHTML=fs.map(f=>{const n=f==="Semua"?base.length:base.filter(u=>u.status===f).length; return `<button type="button" data-fu="${esc(f)}" aria-pressed="${S.fUnit===f}">${esc(f)} <span class="num">${n}</span></button>`;}).join("");
+  $("#fUnit").innerHTML=""; $("#fUnit").hidden=true; { const fk=$("#fKond"); if(fk) fk.remove(); }
   const q=String(S.q||"").trim().toLowerCase();
-  muKondFilter(base);
-  const all=base.filter(u=>(S.fUnit==="Semua"||u.status===S.fUnit)&&(S.fKond==="Semua"||muKond(u)===S.fKond)&&(!q||[u.kode,u.tipe,u.lokasi,u.catatan,u.status,projKode(u.projectId),muDetails(u).vendor,muDetails(u).merk,muDetails(u).kondisi].join(" ").toLowerCase().includes(q)));
+  if(!S.fCol) S.fCol={kode:"",vendor:"",merk:"",project:"",lokasi:""};
+  const F=S.fCol, nv=v=>String(v||"").trim().replace(/\s+/g," ").toUpperCase();
+  const colOk=(u,skip)=>{ const m=muDetails(u);
+    return (skip==="status"||S.fUnit==="Semua"||u.status===S.fUnit)&&(skip==="kondisi"||S.fKond==="Semua"||muKond(u)===S.fKond)
+      &&(skip==="vendor"||!F.vendor||nv(m.vendor||"Belum diisi")===F.vendor)&&(skip==="merk"||!F.merk||nv(m.merk||"Belum diisi")===F.merk)
+      &&(skip==="project"||!F.project||u.projectId===F.project)&&(skip==="lokasi"||!F.lokasi||nv(u.lokasi||"—")===F.lokasi)
+      &&(skip==="jenis"||S.unitGroup==="all"||!S.unitGroup||MU_TYPE_KEY(u.tipe)===S.unitGroup)
+      &&(!F.kode||String(u.kode||"").toLowerCase().includes(F.kode.toLowerCase())); };
+  muColFilter(base,colOk,nv);
+  const all=base.filter(u=>colOk(u,"jenis")&&(!q||[u.kode,u.tipe,u.lokasi,u.catatan,u.status,projKode(u.projectId),muDetails(u).vendor,muDetails(u).merk,muDetails(u).kondisi].join(" ").toLowerCase().includes(q)));
   const rows=all.slice().sort((a,b)=>String(a.tipe||"").localeCompare(String(b.tipe||""),"id")||String(a.kode||"").localeCompare(String(b.kode||""),"id",{numeric:true}));
   const kinds=new Map();
   rows.forEach(u=>{const key=MU_TYPE_KEY(u.tipe);if(!kinds.has(key))kinds.set(key,{name:String(u.tipe||"Jenis belum diisi").trim(),key,units:[]});kinds.get(key).units.push(u);});
@@ -3069,6 +3110,7 @@ document.addEventListener("click",e=>{
   const ua=e.target.closest("[data-unit-all]"); if(ua){ S.unitGroup="all"; renderUnit(); return; }
   const fu=e.target.closest("[data-fu]"); if(fu){ S.fUnit=fu.dataset.fu; renderUnit(); return; }
   const fk=e.target.closest("[data-fk]"); if(fk){ S.fKond=fk.dataset.fk; renderUnit(); return; }
+  if(e.target.closest("[data-colf-reset]")){ S.fCol={kode:"",vendor:"",merk:"",project:"",lokasi:""}; S.fUnit="Semua"; S.fKond="Semua"; S.unitGroup="all"; renderUnit(); return; }
   const fm=e.target.closest("[data-fm]"); if(fm){ S.fMob=fm.dataset.fm; renderMob(); return; }
   const a=e.target.closest("button[data-act],a[data-act]");
   if(!a){ const pc=e.target.closest("[data-proj]"); if(pc && projOf(pc.dataset.proj)) openProject(pc.dataset.proj); return; }
@@ -3150,7 +3192,12 @@ document.addEventListener("change",e=>{
   if(t.id==="fItemSel"){ S.fItem=t.value; render(); }
   if(t.id==="fTabSel"){ setTab(t.value); renderFbar(); }
 });
-document.addEventListener("click",e=>{ if(e.target.closest("#fReset")){ S.fItem="all"; S.fKond="Semua"; S.q=""; $("#gSearch").value=""; $("#qUnit").value=""; S.fUnit="Semua"; if(S.view!=="all") backAll(); else { setTab("ringkasan"); render(); } } });
+document.addEventListener("change",e=>{ const c=e.target.closest&&e.target.closest("select[data-colf]"); if(!c) return;
+  const k=c.dataset.colf, v=c.value; if(!S.fCol) S.fCol={kode:"",vendor:"",merk:"",project:"",lokasi:""};
+  if(k==="status") S.fUnit=v; else if(k==="kondisi") S.fKond=v; else if(k==="jenis") S.unitGroup=v; else S.fCol[k]=v;
+  renderUnit(); });
+document.addEventListener("input",e=>{ if(e.target&&e.target.id==="muColKode"){ if(!S.fCol) S.fCol={kode:"",vendor:"",merk:"",project:"",lokasi:""}; S.fCol.kode=e.target.value; renderUnit(); } });
+document.addEventListener("click",e=>{ if(e.target.closest("#fReset")){ S.fItem="all"; S.fKond="Semua"; S.fCol={kode:"",vendor:"",merk:"",project:"",lokasi:""}; S.q=""; $("#gSearch").value=""; $("#qUnit").value=""; S.fUnit="Semua"; if(S.view!=="all") backAll(); else { setTab("ringkasan"); render(); } } });
 $("#addUnit").onclick=()=>S.kirim.length?formUnit(null):formExistingUnit();
 $("#addExisting").onclick=()=>formExistingUnit();
 $("#addMob").onclick=()=>formMob(null);
