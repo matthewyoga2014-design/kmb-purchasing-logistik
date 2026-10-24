@@ -3266,11 +3266,11 @@ function showLogin(){
         $("#dlg").close(); toast("Berhasil masuk."); });
       return false; }});
   const link=document.createElement("div"); link.className="note";
-  link.innerHTML=`Lupa atau belum punya kata sandi? <button type="button" class="linkish" id="otpBtn">Kirim link masuk ke email</button>`;
+  link.innerHTML=`Lupa atau belum punya kata sandi? <button type="button" class="linkish" id="otpBtn">Kirim kode masuk ke email</button>`;
   $("#dlgBody").appendChild(link);
   $("#otpBtn").onclick=async()=>{ const em=$("#f_email").value.trim(); if(!em){ toast("Isi email dulu."); $("#f_email").focus(); return; }
     const {error}=await sb.auth.signInWithOtp({email:em,options:{emailRedirectTo:location.href.split("#")[0]}});
-    toast(error?"Gagal mengirim link: "+error.message:"Link masuk dikirim ke "+em+". Buka email Anda."); };
+    toast(error?"Gagal mengirim kode: "+error.message:"Kode masuk dikirim ke "+em+"."); if(!error&&window.KMBOtp)KMBOtp.prompt(sb,em,{emailRedirectTo:location.href.split("#")[0]}); };
 }
 function showAccount(){
   const r=(k,icon,grad,title,text)=>`<div class="rule${role===k?" me":""}"><span class="tile-ic" style="background:var(--g-${grad})">${ic(icon)}</span><span><b>${title}${role===k?" · Anda":""}</b>${text}</span></div>`;
@@ -3655,5 +3655,5 @@ window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,la
     e.preventDefault(); open(i);
   }, true);
 })();
-</script><!--/uppick--><script src="../activity-log.js?v=20261024" data-kind="unit"></script></body>
+</script><!--/uppick--><script src="../activity-log.js?v=20261024" data-kind="unit"></script><script src="../otp-login.js?v=20261024"></script></body>
 </html>

@@ -226,15 +226,15 @@ function inviteBox() {
 }
 function loginHtml() {
   return `<div class="lock lgc"><span class="lg">M</span><h2>Masuk</h2><p>Gunakan email yang diundang atau didaftarkan Pemilik.</p>${inviteBox()}
-    <form id="lgForm" class="lf" novalidate><label for="lg_e">Email</label><input id="lg_e" type="email" autocomplete="email" required placeholder="nama@email.com"><label for="lg_p">Password (opsional)</label><input id="lg_p" type="password" autocomplete="current-password" placeholder="Kosongkan untuk menerima link masuk lewat email"><button type="submit" class="btn btn-p">Masuk</button></form>
+    <form id="lgForm" class="lf" novalidate><label for="lg_e">Email</label><input id="lg_e" type="email" autocomplete="email" required placeholder="nama@email.com"><label for="lg_p">Password (opsional)</label><input id="lg_p" type="password" autocomplete="current-password" placeholder="Kosongkan untuk menerima kode masuk lewat email"><button type="submit" class="btn btn-p">Masuk</button></form>
     <p class="small">Belum punya akses? Minta Pemilik atau Editor membagikan link undangan ke email Anda.</p></div>`;
 }
 async function doLogin(e) {
   e.preventDefault(); const em = $('lg_e').value.trim().toLowerCase(), pw = $('lg_p').value;
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { toast('Format email belum benar.', true); return; }
   const r = pw ? await S.sb.auth.signInWithPassword({ email: em, password: pw }) : await S.sb.auth.signInWithOtp({ email: em, options: { emailRedirectTo: BASE, shouldCreateUser: true } });
-  if (r.error) { toast(/invalid login/i.test(r.error.message) ? 'Email atau password salah.' : /rate|seconds/i.test(r.error.message) ? 'Terlalu sering meminta link. Tunggu beberapa menit.' : 'Gagal masuk: ' + r.error.message, true); return; }
-  toast(pw ? 'Berhasil masuk.' : `Link masuk dikirim ke ${em}. Buka email lalu klik linknya.`);
+  if (r.error) { toast(/invalid login/i.test(r.error.message) ? 'Email atau password salah.' : /rate|seconds/i.test(r.error.message) ? 'Terlalu sering meminta kode. Tunggu beberapa menit.' : 'Gagal masuk: ' + r.error.message, true); return; }
+  if (pw) toast('Berhasil masuk.'); else { toast(`Kode masuk dikirim ke ${em}.`); window.KMBOtp && KMBOtp.prompt(S.sb, em, { emailRedirectTo: BASE, shouldCreateUser: true }); }
 }
 function resultBox() {
   const L = S.inviteRes; if (!L || !L.length) return '';
