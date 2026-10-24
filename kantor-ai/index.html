@@ -50,7 +50,7 @@ aside .team button span:nth-child(2){flex:1}
 .gate .card{max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;text-align:center}
 .gate h2{margin:0 0 6px}.gate p{color:var(--ink-2);margin:0 0 14px}
 .demo{position:absolute;left:12px;bottom:12px;z-index:2}
-.card3d{position:absolute;transform:translate(-50%,-50%);background:rgba(255,255,255,.97);color:#1e1b3a;border-radius:12px;padding:6px 10px 7px;box-shadow:0 10px 28px rgba(0,0,0,.4);font-size:11px;line-height:1.3;width:168px;pointer-events:auto;cursor:pointer;z-index:1}
+.card3d{position:absolute;transform:translate(-50%,-50%);background:rgba(255,255,255,.97);color:#1e1b3a;border-radius:12px;padding:6px 10px 7px;box-shadow:0 10px 28px rgba(0,0,0,.4);font-size:11px;line-height:1.3;width:192px;pointer-events:auto;cursor:pointer;z-index:1}
 .card3d h5{margin:0 0 3px;font-size:12.5px;display:flex;gap:7px;align-items:center;line-height:1.2}.card3d h5 span:nth-child(2){flex:1}
 .card3d .ic{width:22px;height:22px;flex:0 0 22px;border-radius:50%;display:grid;place-items:center;background:#e0f2fe;font-size:14px}
 .card3d .dot{width:8px;height:8px;border-radius:50%;background:#94a3b8}.card3d .dot.ok{background:#22c55e}.card3d .dot.warn{background:#f59e0b}.card3d .dot.crit{background:#ef4444}
@@ -58,6 +58,8 @@ aside .team button span:nth-child(2){flex:1}
 .nocards .card3d{display:none}
 .badge3d{position:absolute;transform:translate(-50%,-50%);background:rgba(8,15,30,.9);border:2px solid #38bdf8;color:#fff;border-radius:10px;padding:6px 14px;font-weight:800;font-size:17px;line-height:1.2;pointer-events:none;box-shadow:0 0 18px rgba(56,189,248,.35)}.badge3d small{display:block;font-weight:500;font-size:12.5px;color:#bae6fd}
 .legend{position:absolute;right:12px;bottom:12px;z-index:3}
+.mods{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none}.mods .btn{white-space:nowrap}
+.rem{list-style:none;padding:0;margin:6px 0 10px}.rem li{font-size:13px;padding:6px 0;border-bottom:1px dashed var(--line)}.rem li.late .chip{background:var(--crit-soft);color:var(--crit)}
 .now{font-size:13px;color:var(--ink-2);margin:-4px 0 8px;font-weight:600}
 .tag .bub{background:rgba(255,255,255,.95);color:#1e1b3a}.tag .bub.ok{background:#ecfdf5;color:#166534}.tag .bub.warn{background:#fffbeb;color:#92400e}.tag .bub.crit{background:#fff1f2;color:#be123c}.tag .bub.idle{background:#f8fafc;color:#334155}
 .sec{margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em}
@@ -79,7 +81,7 @@ aside .team button span:nth-child(2){flex:1}
 .acts{display:flex;gap:6px;margin-top:6px}
 @media (max-width:820px){
   #app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto}
-  header{gap:8px;padding:8px 12px}header h1{font-size:16px}header .lg{width:30px;height:30px}
+  header{gap:8px;padding:8px 12px;flex-wrap:wrap}.mods{order:9;width:100%}header h1{font-size:16px}header .lg{width:30px;height:30px}
   .pill{font-size:12px;padding:4px 8px}.btn .tx{display:none}
   aside{border-left:0;border-top:1px solid var(--line);max-height:44vh;padding:14px 16px}
   header .sub{display:none}
@@ -96,7 +98,7 @@ aside .team button span:nth-child(2){flex:1}
     <div><h1>Kantor Monitoring</h1><div class="sub">Tim AI yang bekerja live untuk web Monitoring · diperbarui <span id="upd">–</span></div></div>
     <div class="sp"></div>
     <span id="overall" class="pill idle"><i></i>Memuat…</span>
-    <a class="btn" href="../" aria-label="Kembali ke Monitoring">←<span class="tx"> Monitoring</span></a>
+    <nav class="mods"><a class="btn" href="../?beranda">Beranda</a><a class="btn" href="../manpower-portal/">MPP</a><a class="btn" href="../monitoring-apd-kmb/">APD</a><a class="btn" href="../monitoring-unit/">Unit</a><a class="btn" href="../notulensi/">Notulensi</a></nav>
   </header>
   <div id="stage"><div id="labels"></div></div>
   <aside id="panel"><p class="muted">Memuat kantor…</p></aside>
@@ -120,15 +122,15 @@ const short = (t, n = 34) => { t = String(t || ''); return t.length > n ? t.slic
 
 /* ---------- tim ---------- */
 const TEAM = [
-  { id: 'manager', name: 'Manager Operasional', role: 'Lantai 2 · terima permintaan & bagi tugas', acc: 0x2563eb },
-  { id: 'satpam', name: 'Satpam', role: 'Keamanan & ronda', acc: 0x1e3a8a },
-  { id: 'resepsionis', name: 'Resepsionis', role: 'Akses, undangan & link', acc: 0xec4899 },
-  { id: 'teknisi', name: 'Teknisi', role: 'Kesehatan web & deploy', acc: 0x3b82f6 },
-  { id: 'pencatat', name: 'Pencatat', role: 'Aktivitas & perubahan data', acc: 0x0ea5e9 },
-  { id: 'sekretaris', name: 'Sekretaris', role: 'Laporan pagi & dokumen', acc: 0x8b5cf6 },
-  { id: 'admin_db', name: 'Admin Database & Backup', role: 'Database, file & cadangan', acc: 0x1d4ed8 },
-  { id: 'designer', name: 'Designer', role: 'Desain web & visual', acc: 0xf472b6 },
-  { id: 'marketing', name: 'Marketing', role: 'Penjualan Monitoring', acc: 0x14b8a6 },
+  { id: 'manager', name: 'Manager Operasional', role: 'Lantai 2 · pimpin 8 divisi', acc: 0x2563eb },
+  { id: 'satpam', name: 'Satpam', role: 'Keamanan web & akun', acc: 0x1e3a8a },
+  { id: 'resepsionis', name: 'Resepsionis', role: 'Akses Editor/Pelihat & link', acc: 0xec4899 },
+  { id: 'teknisi', name: 'Teknisi', role: '9 halaman web & deploy', acc: 0x3b82f6 },
+  { id: 'pencatat', name: 'Pencatat', role: 'Log aktivitas MPP/APD/Unit', acc: 0x0ea5e9 },
+  { id: 'sekretaris', name: 'Sekretaris', role: 'Pengingat Open/Close & laporan', acc: 0x8b5cf6 },
+  { id: 'admin_db', name: 'Admin Database & Backup', role: 'Supabase, Drive & cadangan', acc: 0x1d4ed8 },
+  { id: 'designer', name: 'Designer', role: 'Tampilan web & dashboard', acc: 0xf472b6 },
+  { id: 'marketing', name: 'Marketing', role: 'Jual Monitoring ke kontraktor', acc: 0x14b8a6 },
 ];
 const DIV = Object.fromEntries(TEAM.map((t) => [t.id, t.name]));
 const JS = { antre: ['Antre', 'idle'], dikerjakan: ['Dikerjakan', 'ok'], butuh_persetujuan: ['Butuh persetujuan', 'warn'], disetujui: ['Disetujui', 'ok'], ditolak: ['Ditolak', 'idle'], selesai: ['Selesai', 'ok'], gagal: ['Gagal', 'crit'] };
@@ -150,6 +152,8 @@ function derive(d) {
   if (!rep) s.sekretaris = { level: 'idle', bubble: 'Laporan pertama besok pagi' };
   else if (ageH > 26) s.sekretaris = { level: 'warn', bubble: 'Laporan terlambat' };
   else s.sekretaris = { level: rep.level, bubble: rep.level === 'ok' ? 'Laporan pagi siap' : 'Ada temuan di laporan' };
+  const rm = d.reminders || { open: [], closed: [] }, old = (rm.open || []).filter((x) => Date.now() - new Date(x.since).getTime() > 2 * 864e5).length;
+  s.sekretaris = { level: s.sekretaris.level === 'crit' ? 'crit' : (old ? 'warn' : (rm.open || []).length ? 'ok' : s.sekretaris.level), bubble: `📌 ${(rm.open || []).length} open · ${(rm.closed || []).length} close` + (old ? ` (${old} lewat 2 hari)` : '') };
   const mb = +db.size_mb || 0;
   s.admin_db = { level: mb > 480 ? 'crit' : mb > 400 ? 'warn' : db.size_mb != null ? 'ok' : 'idle', bubble: db.size_mb != null ? `DB ${mb} MB · ${db.tables} tabel` : 'Menunggu data' };
   s.designer = { level: 'idle', bubble: 'Siap mendesain' };
@@ -196,10 +200,10 @@ function reqHtml(q) {
     ${['baru', 'direncanakan', 'dikerjakan', 'butuh_persetujuan'].includes(q.status) ? `<div class="acts"><button type="button" class="btn" data-cancel="${q.id}">Batalkan</button></div>` : ''}</div>`;
 }
 const INFO = {
-  satpam: 'Berkeliling memeriksa gerbang, parkir, lobi, ruang server, dan lantai 2. Setiap pagi ia memeriksa Security Advisor Supabase, login mencurigakan, dan penghapusan data massal.',
-  teknisi: 'Menjaga 9 halaman web tetap hidup: status deploy GitHub Pages, file halaman, dan error berulang di log.',
-  designer: 'Mendesain ulang tampilan web, dashboard, ikon, dan gambar. Kirim permintaan desain lewat Manager Operasional. Desain baru selalu berupa usulan dan menunggu persetujuan Anda sebelum dipasang.',
-  marketing: 'Menyiapkan bahan untuk menjual Monitoring: profil produk, harga, brosur, pesan penawaran, dan profil calon pembeli. Apa pun yang dikirim ke orang luar selalu menunggu persetujuan Anda.',
+  satpam: 'Menjaga keamanan web dan akun: ronda ruang server & lantai 2, memeriksa Security Advisor Supabase, login/kode OTP yang mencurigakan, dan penghapusan data massal di MPP, APD, dan Unit.',
+  teknisi: 'Menjaga 9 halaman web tetap hidup (Beranda, Portal MPP, 4 Manpower, APD, Unit, Notulensi): status deploy GitHub Pages, login kode OTP, error berulang di log, serta perbaikan bug dan fitur.',
+  designer: 'Mendesain ulang tampilan web Monitoring, dashboard MPP/APD/Unit, ikon, gambar, dan brosur. Kirim permintaan desain lewat Manager Operasional. Desain baru selalu berupa usulan dan menunggu persetujuan Anda sebelum dipasang.',
+  marketing: 'Menyiapkan bahan untuk menjual Monitoring ke kontraktor tambang & alat berat: profil produk, harga, brosur, konten media sosial, pesan penawaran, dan profil calon pembeli. Apa pun yang dikirim ke orang luar selalu menunggu persetujuan Anda.',
 };
 function panel() {
   const d = DATA, w = TEAM.find((t) => t.id === SEL), st = STATE[SEL] || { level: 'idle', bubble: '' };
@@ -231,8 +235,14 @@ function panel() {
       <div class="row"><span class="muted">Manager membaginya ke tim dalam ±1 jam.</span><button type="submit" class="btn pri">Kirim</button></div></form>
       <div class="sec">Permintaan Anda</div>${reqs.length ? reqs.map(reqHtml).join('') : '<p class="muted">Belum ada permintaan.</p>'}`;
   } else if (SEL === 'sekretaris') {
-    const r = d.last_report;
-    body = r ? `<p class="muted">Laporan ${wib(r.created_at)} WIB</p><div class="rep">${md(r.body || r.summary)}</div>` : '<p class="muted">Sekretaris menyusun laporan setiap pagi dan mengirimnya ke HP serta email Anda.</p>';
+    const r = d.last_report, rm = d.reminders || { open: [], closed: [] };
+    const KIND = { permintaan: 'Permintaan', persetujuan: 'Butuh persetujuan', izin_akses: 'Izin akses', link_kedaluwarsa: 'Link hampir kedaluwarsa', link_editor: 'Link Editor', tugas: 'Tugas' };
+    const age = (t) => { const h = (Date.now() - new Date(t).getTime()) / 36e5; return h < 1 ? 'baru saja' : h < 24 ? Math.floor(h) + ' jam' : Math.floor(h / 24) + ' hari'; };
+    const tt = (x) => esc(short(String(x.title).replace(/[^\s@]+@[^\s@]+/g, (m) => mask(m)), 70));
+    body = `<div class="sec">Pengingat · Open (${(rm.open || []).length})</div>` + ((rm.open || []).length ? '<ul class="rem">' + rm.open.map((x) => `<li class="${Date.now() - new Date(x.since).getTime() > 2 * 864e5 ? 'late' : ''}"><span class="chip warn">OPEN</span> <b>${KIND[x.kind] || x.kind}</b> · ${tt(x)} <span class="muted">· ${esc(DIV[x.div] || x.div)} · ${x.kind === 'link_kedaluwarsa' ? 'habis ' + esc(x.detail) : 'terbuka ' + age(x.since)}</span></li>`).join('') + '</ul>' : '<p class="muted">Tidak ada yang terbuka. 🎉</p>')
+      + `<div class="sec">Close · 7 hari (${(rm.closed || []).length})</div>` + ((rm.closed || []).length ? '<ul class="rem">' + rm.closed.map((x) => `<li><span class="chip ok">CLOSE</span> <b>${KIND[x.kind] || x.kind}</b> · ${tt(x)} <span class="muted">· ${esc(x.detail)} · ${age(x.at)} lalu</span></li>`).join('') + '</ul>' : '<p class="muted">Belum ada yang selesai minggu ini.</p>')
+      + '<div class="sec">Laporan pagi</div>';
+    body += r ? `<p class="muted">Laporan ${wib(r.created_at)} WIB</p><div class="rep">${md(r.body || r.summary)}</div>` : '<p class="muted">Sekretaris menyusun laporan setiap pagi dan mengirimnya ke HP serta email Anda.</p>';
   } else body = `<p class="muted">${INFO[SEL]}</p>`;
   if (SEL !== 'manager') body += myJobs.length ? '<div class="sec">Tugas dari Manager</div>' + myJobs.map((j) => jobHtml(j, false)).join('') : (['marketing', 'designer'].includes(SEL) ? '<p class="muted">Belum ada tugas.</p>' : '');
   $('panel').innerHTML = `<div class="role">${esc(w.role)}</div><h2>${esc(w.name)}</h2><div class="big ${st.level}"><b>${LV[st.level]}</b> · ${esc(st.bubble)}</div>
@@ -386,6 +396,15 @@ const ROOMS = {
 };
 const RUG = { teknisi: 0xdbeafe, pencatat: 0xe0f2fe, sekretaris: 0xede9fe, admin_db: 0xdbeafe, designer: 0xfce7f3, marketing: 0xccfbf1 };
 const SPOT = {};
+const remCanvas = document.createElement('canvas'); remCanvas.width = 512; remCanvas.height = 300;
+const remTex = new THREE.CanvasTexture(remCanvas); remTex.colorSpace = THREE.SRGBColorSpace;
+const remBoard = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.94), new THREE.MeshBasicMaterial({ map: remTex }));
+function drawBoard(o, c) { const g = remCanvas.getContext('2d'); g.fillStyle = '#f8fafc'; g.fillRect(0, 0, 512, 300);
+  g.fillStyle = '#0f172a'; g.font = '800 30px system-ui'; g.fillText('PENGINGAT', 20, 40); g.fillStyle = '#e2e8f0'; g.fillRect(256, 56, 3, 230);
+  [['OPEN', o, '#f59e0b', 20], ['CLOSE', c, '#22c55e', 276]].forEach(([t, n, col, x0]) => { g.fillStyle = col; g.font = '800 26px system-ui'; g.fillText(t, x0, 86); g.font = '900 64px system-ui'; g.fillText(String(n), x0 + 120, 92);
+    for (let i = 0; i < Math.min(n, 8); i++) { g.fillStyle = t === 'OPEN' ? ['#fde047', '#fdba74', '#fca5a5'][i % 3] : ['#86efac', '#a7f3d0', '#bbf7d0'][i % 3]; g.fillRect(x0 + (i % 4) * 56, 120 + Math.floor(i / 4) * 80, 48, 64); } });
+  remTex.needsUpdate = true; }
+drawBoard(0, 0);
 for (const [id, r] of Object.entries(ROOMS)) {
   const { x, z, side } = r, inner = x - side * 3.9;
   blk(7.6, 0.03, 5.0, RUG[id], x, 0.0, z);
@@ -400,7 +419,9 @@ for (const [id, r] of Object.entries(ROOMS)) {
   if (id === 'teknisi') screen(1.6, 0.8, x - side * 0.6, 1.9, back + 0.08, 0, 'DEPLOY');
   if (id === 'pencatat' || id === 'sekretaris') { shelf(out - side * 0.4, 0, back + 0.25); SPOT[id + '_shelf'] = [out - side * 0.4, 0, back + 1.0, Math.PI]; }
   if (id === 'pencatat') { blk(1.6, 1.0, 0.04, 0xffffff, x - side * 0.8, 1.0, back + 0.05); for (let j = 0; j < 6; j++) blk(0.32, 0.26, 0.02, [0xfde047, 0xf9a8d4, 0x86efac][j % 3], x - side * 0.8 - 0.55 + (j % 3) * 0.55, 1.6 - Math.floor(j / 3) * 0.4, back + 0.08); }
-  if (id === 'sekretaris') { blk(0.8, 1.3, 0.6, 0x9ca3af, x - side * 0.8, 0, back + 0.2); SPOT.sekretaris_file = [x - side * 0.8, 0, back + 0.95, Math.PI]; }
+  if (id === 'sekretaris') { blk(0.8, 1.3, 0.6, 0x9ca3af, x - side * 0.8, 0, back + 0.2); SPOT.sekretaris_file = [x - side * 0.8, 0, back + 0.95, Math.PI];
+    for (const dx of [-0.75, 0.75]) blk(0.06, 2.3, 0.06, 0x6b7280, x - 0.4 + dx, 0, back + 0.3);
+    remBoard.position.set(x - 0.4, 1.75, back + 0.34); scene.add(remBoard); blk(1.7, 1.0, 0.04, 0x111827, x - 0.4, 1.24, back + 0.3); SPOT.sekretaris_board = [x - 0.4, 0, back + 1.05, Math.PI]; }
   if (id === 'designer') { const e = blk(1.2, 1.0, 0.06, 0xffffff, out - side * 0.2, 0.9, back + 0.6); e.rotation.x = -0.15; blk(0.06, 1.3, 0.06, 0x8b6b4a, out - side * 0.2, 0, back + 0.65);
     const art = canvasTex(256, 200, (g) => { g.fillStyle = '#fff'; g.fillRect(0, 0, 256, 200); ['#f472b6', '#60a5fa', '#fbbf24', '#34d399'].forEach((c, i) => { g.fillStyle = c; g.beginPath(); g.arc(50 + i * 52, 70 + (i % 2) * 50, 34, 0, 7); g.fill(); }); });
     const p = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.9), new THREE.MeshBasicMaterial({ map: art })); p.position.set(out - side * 0.2, 1.42, back + 0.64); p.rotation.x = -0.15; scene.add(p);
@@ -506,15 +527,15 @@ TEAM.forEach((t) => {
   AG[t.id] = { id: t.id, r, tag, home, node: home, q: [], cur: null, say: 'Bersiap kerja…', face: 0, anim: 'idle', ph: Math.random() * 6, n: 0 };
 });
 const CARDS = {
-  manager: ['📊', [13.2, 6.6, -10], ['Menerima permintaan Anda', 'Membagi tugas ke tim', 'Mengatur prioritas', 'Memantau progres', 'Lapor ke Anda']],
-  teknisi: ['🖥️', [-17.4, 1.2, -5.0], ['Cek 9 halaman web', 'Deploy & GitHub', 'Pantau error log', 'Perbaikan & perawatan']],
-  pencatat: ['📋', [-17.4, 1.2, 1.4], ['Aktivitas Editor', 'Perubahan data', 'Penghapusan data', 'Riwayat sistem']],
-  sekretaris: ['✉️', [-17.4, 1.2, 7.9], ['Analisis data', 'Laporan pagi lengkap', 'Ringkasan operasional', 'Dokumentasi']],
-  admin_db: ['🗄️', [17.4, 1.2, -5.0], ['Ukuran & isi database', 'Cek cadangan Supabase', 'Sinkron file Drive', 'Integritas data']],
-  designer: ['🎨', [17.4, 1.2, 1.4], ['Desain web', 'Dashboard & UI/UX', 'Gambar & visual']],
-  marketing: ['📣', [17.4, 1.2, 7.9], ['Profil & materi promosi', 'Strategi pemasaran', 'Konten media sosial', 'Calon pembeli']],
-  resepsionis: ['🔑', [5.6, 1.4, 7.6], ['Permintaan akses', 'Undangan & link', 'Hak akses pengguna', 'Tamu menunggu izin']],
-  satpam: ['🛡️', [5.0, 1.2, 14.2], ['Ronda gerbang & parkir', 'Cek ruang server', 'Login mencurigakan', 'Security Advisor']],
+  manager: ['📊', [13.2, 6.6, -10], ['Terima permintaan Pemilik', 'Bagi tugas ke 8 divisi', 'Atur prioritas & persetujuan', 'Pantau progres tugas', 'Briefing tim di ruang meeting']],
+  teknisi: ['🖥️', [-17.1, 1.2, -5.8], ['Jaga 9 halaman web', 'Deploy GitHub Pages', 'Login kode OTP & email', 'Perbaikan bug & fitur']],
+  pencatat: ['📋', [-17.1, 1.2, 1.4], ['Log aktivitas Editor', 'Perubahan MPP, APD, Unit', 'Penghapusan data', 'Riwayat per jobsite']],
+  sekretaris: ['✉️', [-17.1, 1.2, 8.3], ['Pengingat status Open/Close', 'Laporan pagi ke HP & email', 'Rekap permintaan & tugas', 'Notulensi & dokumen']],
+  admin_db: ['🗄️', [17.1, 1.2, -5.8], ['Database Supabase', 'Cadangan & pemulihan', 'Lampiran di Google Drive', 'Integritas data jobsite']],
+  designer: ['🎨', [17.1, 1.2, 1.4], ['Tampilan web Monitoring', 'Dashboard MPP/APD/Unit', 'Ikon, gambar & brosur']],
+  marketing: ['📣', [17.1, 1.2, 8.3], ['Profil & harga Monitoring', 'Materi promosi & brosur', 'Konten media sosial', 'Calon pembeli tambang']],
+  resepsionis: ['🔑', [5.6, 1.4, 7.6], ['Permintaan izin akses', 'Undangan Editor/Pelihat', 'Link Pelihat & kedaluwarsa', 'Hak akses per web & menu']],
+  satpam: ['🛡️', [5.0, 1.2, 14.2], ['Ronda gerbang & ruang server', 'Security Advisor Supabase', 'Login/OTP mencurigakan', 'Penghapusan data massal']],
 };
 const cardEls = {};
 for (const [id, [ic, at, items]] of Object.entries(CARDS)) {
@@ -564,9 +585,14 @@ function plan(a) {
         : [go('SP_pencatat_shelf'), work('file', 3.5, `Arsip ${d.activity_24h || 0} aktivitas hari ini`, BACK), go(a.home)];
     }
     case 'sekretaris':
-      if (a.n % 3 === 0) return [go('MGR_OUT'), work('give', 3, 'Antar laporan ke Manager 📄', -Math.PI / 2), go(a.home)];
-      return a.n % 3 === 1 ? [work('type', 8, jobSay || (d.last_report ? 'Rapikan laporan pagi…' : 'Siapkan laporan besok pagi…'), FRONT)]
-        : [go('SP_sekretaris_file'), work('file', 3, 'Simpan dokumen ✓', BACK), go(a.home)];
+    {
+      const rm = d.reminders || { open: [], closed: [] }, no = (rm.open || []).length, nc = (rm.closed || []).length, first = (rm.open || [])[0];
+      const k = a.n % 4;
+      if (k === 0) return [go('SP_sekretaris_board'), work('file', 4, `📌 Papan: ${no} open · ${nc} close`, BACK), go(a.home)];
+      if (k === 1) return [work('type', 7, jobSay || (first ? 'Ingat: ' + short(first.title.replace(/[^\s@]+@[^\s@]+/g, (m) => mask(m)), 28) : 'Semua status sudah close ✓'), FRONT)];
+      if (k === 2) return [go('MGR_OUT'), work('give', 3, no ? `Ingatkan Manager: ${no} masih open` : 'Antar laporan ke Manager 📄', -Math.PI / 2), go(a.home)];
+      return [go('SP_sekretaris_file'), work('file', 3, d.last_report ? 'Arsip laporan pagi ✓' : 'Siapkan laporan pagi…', BACK), go(a.home)];
+    }
     case 'resepsionis': {
       const pend = (d.pending_requests || []).length;
       if (pend) return [work('wave', 6, `${pend} tamu menunggu izin Anda`, FRONT)];
@@ -640,7 +666,7 @@ renderer.domElement.addEventListener('pointerup', (e) => {
   const hits = ray.intersectObjects(Object.values(AG).map((a) => a.r.g), true);
   if (hits.length) { const id = Object.keys(AG).find((k) => { let o = hits[0].object; while (o) { if (o === AG[k].r.g) return true; o = o.parent; } return false; }); if (id) select(id); }
 });
-function select(id) { SEL = id; Object.entries(AG).forEach(([k, a]) => a.tag.classList.toggle('sel', k === id)); if (DATA) panel(); }
+function select(id) { const changed = SEL !== id; SEL = id; Object.entries(AG).forEach(([k, a]) => a.tag.classList.toggle('sel', k === id)); if (DATA) panel(); if (changed) $('panel').scrollTop = 0; }
 function fit() {
   const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
   const half = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * cam.aspect;
@@ -671,7 +697,7 @@ function loop() {
 loop();
 
 function apply(d) {
-  DATA = d; STATE = derive(d);
+  DATA = d; STATE = derive(d); drawBoard(((d.reminders || {}).open || []).length, ((d.reminders || {}).closed || []).length);
   for (const [id, a] of Object.entries(AG)) { const s = STATE[id]; a.tag.querySelector('.bub').className = 'bub ' + s.level; a.tag.querySelector('.nm i').className = s.level; a.tag.classList.toggle('hot', s.level === 'warn' || s.level === 'crit'); }
   const o = overallOf(STATE); $('overall').className = 'pill ' + o; $('overall').innerHTML = '<i></i>' + (o === 'ok' ? 'Semua aman' : o === 'warn' ? 'Ada yang perlu dicek' : o === 'crit' ? 'Ada masalah!' : 'Menunggu laporan pertama');
   $('upd').textContent = wib(d.now || Date.now()); select(SEL);
@@ -683,6 +709,8 @@ const demoData = () => ({ now: new Date().toISOString(), activity_24h: 23, actor
   activity_recent: [{ at: new Date(Date.now() - 9e5).toISOString(), app: 'kmb', site: 'C4', actor: 'andi@contoh.com', action: 'Pelamar diperbarui.' }, { at: new Date(Date.now() - 4e6).toISOString(), app: 'apd', site: null, actor: 'rina@contoh.com', action: 'Stok helm masuk 20 pcs' }],
   pending_requests: [{ app_id: 'kmb', email: 'budi@contoh.com', requested_at: new Date().toISOString() }],
   links_active: { viewer: 106, editor: 0 }, links_expiring_3d: 5, signins_24h: 4, members: 3,
+  reminders: { open: [{ kind: 'izin_akses', div: 'resepsionis', title: 'budi@contoh.com → kmb', detail: 'viewer', since: new Date(Date.now() - 3 * 864e5).toISOString() }, { kind: 'persetujuan', div: 'marketing', title: 'Usulan harga paket', detail: 'butuh_persetujuan', since: new Date(Date.now() - 5 * 36e5).toISOString() }, { kind: 'permintaan', div: 'manager', title: 'Desain ulang halaman beranda Monitoring', detail: 'dikerjakan', since: new Date(Date.now() - 2 * 36e5).toISOString() }],
+    closed: [{ kind: 'tugas', div: 'marketing', title: 'Profil produk & daftar fitur', detail: 'selesai', at: new Date(Date.now() - 4 * 36e5).toISOString() }, { kind: 'izin_akses', div: 'resepsionis', title: 'sari@contoh.com → apd', detail: 'approved', at: new Date(Date.now() - 864e5).toISOString() }] },
   db: { size_mb: 14.8, tables: 26, rows: 266, storage_files: 54, top: [{ name: 'monitoring_guest_links', rows: 109 }, { name: 'kta_drive_files', rows: 49 }] },
   last_report: { created_at: new Date(Date.now() - 3 * 36e5).toISOString(), level: 'ok', summary: 'Semua aman.',
     body: '### Ringkasan\nSemua normal.\n### Keamanan\n- Tidak ada celah baru di Supabase\n### Aktivitas kemarin\n- Manpower KMB: 14 perubahan (site C4)\n- APD: 6 data baru',
@@ -700,10 +728,10 @@ async function start() {
   if (!window.supabase) return;
   const sb = SB = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'kta-web-auth' } });
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) { gate('Khusus Pemilik', 'Masuk dulu di halaman Monitoring, lalu buka Kantor AI lagi.', '<a class="btn" href="../">Masuk di Monitoring →</a> <a class="btn" href="?demo">Lihat contoh</a>'); return; }
+  if (!session) { gate('Khusus Pemilik', 'Masuk dulu di halaman Monitoring, lalu buka Kantor AI lagi.', '<a class="btn" href="../?beranda">Masuk di Monitoring →</a> <a class="btn" href="?demo">Lihat contoh</a>'); return; }
   const load = async () => {
     const { data, error } = await sb.rpc('office_status');
-    if (error) { /Pemilik/.test(error.message) ? gate('Khusus Pemilik', 'Kantor AI hanya bisa dibuka oleh Pemilik web Monitoring.', '<a class="btn" href="../">← Kembali</a>') : ($('overall').textContent = 'Gagal memuat: ' + error.message); return; }
+    if (error) { /Pemilik/.test(error.message) ? gate('Khusus Pemilik', 'Kantor AI hanya bisa dibuka oleh Pemilik web Monitoring.', '<a class="btn" href="../?beranda">← Kembali</a>') : ($('overall').textContent = 'Gagal memuat: ' + error.message); return; }
     $('gate').hidden = true; apply(data);
   };
   RELOAD = load; await load(); setInterval(() => { if (!document.activeElement || document.activeElement.id !== 'askText') load(); }, 60000);

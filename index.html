@@ -325,7 +325,7 @@ const WEBS = [
   { key: 'apd', title: 'Monitoring APD', url: 'monitoring-apd-kmb/', icon: 'vest', tile: 't2', show: () => !!roleOf('apd') },
   { key: 'unit', title: 'Monitoring Unit & Mobilisasi', url: 'monitoring-unit/', icon: 'truck', tile: 't3', show: () => !!roleOf('unit-monitoring') },
   { key: 'notulensi', title: 'Notulensi Meeting', url: 'notulensi/', icon: 'note', tile: 't4', show: () => !!roleOf('notulensi') },
-  { key: 'kantor', title: 'Kantor AI', url: 'kantor-ai/', icon: 'ai', tile: 't5', show: () => isOwner() },
+  { key: 'kantor', title: 'Kantor Monitoring', url: 'kantor-ai/', icon: 'ai', tile: 't5', show: () => isOwner() },
 ];
 const SUBS = [...MPP.map((s) => ({ ...s, portal: 'Monitoring MPP' })), { ...APD, portal: 'Monitoring APD' },
   { app: 'unit-monitoring', key: 'unit', name: 'Monitoring Unit', url: 'monitoring-unit/', portal: 'Monitoring Unit' },
@@ -502,6 +502,9 @@ function render() {
   if (!S.loaded) { $('tot').innerHTML = ''; $('grid').innerHTML = '<div class="lock"><span class="lg">M</span><p>Menyiapkan…</p></div>'; $('page').hidden = true; return; }
   if (PORTAL_SHARE) { renderGuestPortal(); return; }
   if (!S.user) { $('tot').innerHTML = ''; $('note').innerHTML = ''; $('page').hidden = true; $('grid').innerHTML = loginHtml(); return; }
+  // Pemilik: Kantor Monitoring adalah halaman utama (beranda tetap bisa dibuka lewat ?beranda).
+  let berandaTab = false; try { if (/[?&]beranda\b/.test(location.search)) sessionStorage.setItem('kmb-beranda', '1'); berandaTab = sessionStorage.getItem('kmb-beranda') === '1'; } catch (e) {}
+  if (ui.page === 'home' && isOwner() && !berandaTab && !S.inviteRes && !location.hash && !/[?&](i|k|share)=/.test(location.search)) { location.replace('kantor-ai/'); return; }
   if (ui.page !== 'home') { $('page').hidden = false; $('page').innerHTML = ui.page === 'guide' ? pageGuide() : pageSet(); return; }
   $('page').hidden = true; $('page').innerHTML = '';
   $('note').innerHTML = resultBox() + (Object.keys(S.apps).length ? '' : '<div class="nb warn">Email ini belum punya akses ke portal mana pun. Minta Pemilik atau Editor mengirim <b>link undangan</b> ke email ini.</div>');
@@ -888,4 +891,4 @@ async function init() {
 }
 init();
 </script>
-<script src="activity-page.js?v=20261024b"></script><script src="otp-login.js?v=20261024"></script></body></html>
+<script src="activity-page.js?v=20261024c"></script><script src="otp-login.js?v=20261024"></script></body></html>
