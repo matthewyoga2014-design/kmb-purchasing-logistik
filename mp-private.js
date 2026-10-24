@@ -182,7 +182,7 @@
       if (!PV.rows[p.site] && PV.loading) await new Promise((res) => setTimeout(res, 1500));
       const now = new Date().toISOString();
       const rows = list.map(([k, o]) => ({ site_id: p.site, pkey: k, data: { ...((PV.rows[p.site] || {})[k] || {}), ...o.data, _nama: o.nama }, updated_at: now, updated_by: WEB.user.email }));
-      try { await upsertRows(rows); toast(`Data disinkronkan dari Excel. Data lengkap ${rows.length} karyawan tersimpan (khusus Pemilik & Editor).`); render(); }
+      try { await upsertRows(rows); if (window.KTALog) KTALog.log(`Simpan data pribadi ${rows.length} karyawan dari Excel`, []); toast(`Data disinkronkan dari Excel. Data lengkap ${rows.length} karyawan tersimpan (khusus Pemilik & Editor).`); render(); }
       catch (e) { toast('Data operasional tersimpan, tetapi data pribadi gagal disimpan: ' + ((e && e.message) || 'periksa koneksi'), true); }
     }
     return r;
@@ -191,33 +191,78 @@
   // ---------- form data lengkap per karyawan ----------
   const AGAMA = [['', '—'], 'Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'];
   const JK = [['', '—'], 'Laki - Laki', 'Perempuan'];
-  function pvForm(site, p) {
-    const cur = getP(p, site) || {};
-    const s0 = siteOf(p) || site || WEB_ID;
+  function privParts(cur) {
     const fld = (f) => ({ k: f[0], label: f[1], type: f[2] === 'date' ? 'date' : f[2] === 'long' ? 'textarea' : (f[2] === 'agama' || f[2] === 'jk') ? 'select' : undefined,
       options: f[2] === 'agama' ? AGAMA.concat(cur[f[0]] && !AGAMA.includes(cur[f[0]]) ? [cur[f[0]]] : []) : f[2] === 'jk' ? JK.concat(cur[f[0]] && !JK.includes(cur[f[0]]) ? [cur[f[0]]] : []) : undefined,
       rows: 2, full: f[2] === 'long', freeText: true, hint: f[0] === 'tglLahir' && umur(cur.tglLahir) ? 'Umur ' + umur(cur.tglLahir) : undefined });
     const sections = Object.keys(SEC).map((s) => ({ title: SEC[s], fields: PF.filter((f) => f[3] === s).map(fld) }));
-    const x = cur._x || {};
-    const xs = Object.keys(x);
+    const x = cur._x || {}, xs = Object.keys(x);
     if (xs.length) sections.push({ title: 'Kolom lain dari Excel', fields: xs.map((h, i) => ({ k: '_x' + i, label: esc(h), freeText: true })) });
-    const vals = { ...cur }; xs.forEach((h, i) => { vals['_x' + i] = x[h]; });
+    const vals = {}; PF.forEach((f) => { if (cur[f[0]] != null) vals[f[0]] = cur[f[0]]; }); xs.forEach((h, i) => { vals['_x' + i] = x[h]; });
+    const collect = (v) => {
+      const data = {};
+      PF.forEach((f) => { const t = v[f[0]]; if (t !== null && t !== undefined && String(t).trim() !== '') data[f[0]] = String(t).trim(); });
+      if (xs.length) { data._x = {}; xs.forEach((h, i) => { const t = v['_x' + i]; if (t != null && String(t).trim() !== '') data._x[h] = String(t).trim(); }); }
+      return data;
+    };
+    return { sections, vals, collect };
+  }
+  // simpan data pribadi; pindahkan baris bila nama karyawan diganti
+  async function savePriv(site, oldName, newName, data, cur) {
+    const clean = (o) => { const c = { ...(o || {}) }; delete c._nama; return c; };
+    const changed = PF.filter((f) => (cur || {})[f[0]] !== data[f[0]] && !((cur || {})[f[0]] == null && data[f[0]] == null)).map((f) => f[1]);
+    const renamed = oldName && key(oldName) !== key(newName);
+    if (!renamed && JSON.stringify(clean(cur)) === JSON.stringify(clean(data))) return false;
+    data._nama = newName;
+    await upsertRows([{ site_id: site, pkey: key(newName), data, updated_at: new Date().toISOString(), updated_by: WEB.user.email }]);
+    if (renamed) {
+      const r = await WEB.sb.from(T).delete().eq('site_id', site).eq('pkey', key(oldName));
+      if (!r.error && PV.rows[site]) delete PV.rows[site][key(oldName)];
+    }
+    if (window.KTALog) KTALog.log(`Ubah data pribadi ${newName}`, (renamed ? [`Nama: ${oldName} → ${newName}`] : []).concat(changed.length ? ['Kolom diubah: ' + changed.join(', ')] : []));
+    return true;
+  }
+  function pvForm(site, p) {
+    const cur = getP(p, site) || {};
+    const s0 = siteOf(p) || site || WEB_ID;
+    const P = privParts(cur);
     openForm({
       eyebrow: 'Data Lengkap · khusus Pemilik & Editor', title: p.nama,
       intro: `${esc(p.jabatan || '')}${p.jabatan ? ' · ' : ''}Data pribadi disimpan terpisah dan tidak terlihat oleh Pelihat atau link tanpa login.`,
-      values: vals, sections, submit: 'Simpan',
+      values: P.vals, sections: P.sections, submit: 'Simpan',
       onSave: async (v) => {
         if (!ok()) { toast('Masuk dengan akun Pemilik/Editor untuk menyimpan.', true); return false; }
-        const data = {};
-        PF.forEach((f) => { const t = v[f[0]]; if (t !== null && t !== undefined && String(t).trim() !== '') data[f[0]] = String(t).trim(); });
-        if (xs.length) { data._x = {}; xs.forEach((h, i) => { const t = v['_x' + i]; if (t != null && String(t).trim() !== '') data._x[h] = String(t).trim(); }); }
-        data._nama = p.nama;
-        try { await upsertRows([{ site_id: s0, pkey: key(p.nama), data, updated_at: new Date().toISOString(), updated_by: WEB.user.email }]); }
+        try { await savePriv(s0, null, p.nama, P.collect(v), cur); }
         catch (e) { toast('Gagal menyimpan data lengkap: ' + ((e && e.message) || 'periksa koneksi'), true); return false; }
         toast('Data lengkap ' + p.nama + ' tersimpan.'); setTimeout(render, 0); return true;
       },
     });
   }
+  // Form Edit / Tambah MP Aktif & MP Out: tambahkan semua kolom data pribadi untuk Pemilik & Editor
+  const _mpForm = mpForm;
+  mpForm = function (kind, idx) {
+    _mpForm.apply(this, arguments);
+    if (!ok() || !FORM) return;
+    const list = kind === 'out' ? DATA.keluar : DATA.aktif, p = idx == null ? null : list[idx];
+    const site = (p && siteOf(p)) || WEB_ID, cur = p ? (getP(p, site) || {}) : {};
+    const F = FORM, dangerFn = F.dangerFn, save = F.onSave, P = privParts(cur);
+    F.sections = (F.sections || [{ fields: F.fields }]).map((g, i) => ({ title: g.title || (i ? '' : 'Data Kepegawaian'), fields: g.fields })).concat(P.sections);
+    F.values = { ...P.vals, ...F.values };
+    F.intro = (F.intro ? F.intro + ' ' : '') + 'Bagian data pribadi hanya terlihat oleh Pemilik & Editor.';
+    F.onSave = async (v) => {
+      const r = await save(v);
+      if (r === false) return false;
+      const nama = v.nama || (p && p.nama);
+      if (nama) {
+        try { await savePriv(site, p ? p.nama : null, nama, P.collect(v), cur); }
+        catch (e) { toast('Data kepegawaian tersimpan, tetapi data pribadi gagal disimpan: ' + ((e && e.message) || 'periksa koneksi'), true); }
+        setTimeout(render, 0);
+      }
+      return r;
+    };
+    openForm(F);
+    if (dangerFn) FORM.dangerFn = dangerFn;
+  };
 
   // ---------- MP Out → MP Aktif ----------
   const jk2 = (j) => (typeof jabKey === 'function' ? jabKey(j) : normName(j));

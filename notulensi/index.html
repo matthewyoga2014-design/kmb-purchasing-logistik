@@ -828,6 +828,7 @@ body{background:radial-gradient(1200px 500px at 85% 0%,#E9E6FB 0%,rgba(233,230,2
 
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="../activity-log.js?v=20261024"></script>
 </head>
 <body>
 <div id="gate" class="gate"><div class="gcard"><div style="margin-bottom:14px"><a href="../" title="Kembali ke halaman utama Monitoring" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:700;font-size:13px;color:#4B4868;background:#fff;border:1px solid #E6E4F2;border-radius:10px;padding:8px 12px;flex-shrink:0">&larr; Kembali</a></div><div class="brand"><span class="logo">N</span><div><div class="eb">Integrated Monitoring</div><h1>Web Notulensi</h1></div></div><div id="gBody"><p class="gmsg">Memeriksa login…</p></div></div></div>
@@ -991,14 +992,14 @@ async function flush(){
 function toastErr(e){try{toast("Gagal menyimpan ke Drive: "+(e.message||e));}catch(_){alert(e.message||e);}}
 window.addEventListener("beforeunload",e=>{if(queue.length||flushing){e.preventDefault();e.returnValue="";}});
 
-function put(c,id,d){STATE[c]=STATE[c]||{};STATE[c][id]=clone(d);emit(c);enqueue({t:"put",col:c,id,data:STATE[c][id]});}
+function put(c,id,d){STATE[c]=STATE[c]||{};const prev=STATE[c][id]?clone(STATE[c][id]):null;STATE[c][id]=clone(d);emit(c);enqueue({t:"put",col:c,id,data:STATE[c][id]});if(window.KTALog)KTALog.doc(c,id,prev,STATE[c][id],STATE);}
 function coll(c){return{
   onSnapshot(cb){(subs[c]=subs[c]||[]).push(cb);setTimeout(()=>emit(c),0);return()=>{};},
   add:async d=>{const id=rid();put(c,id,d);return{id};},
   doc:id=>{id=id||rid();return{id,
     set:async d=>put(c,id,d),
     update:async d=>put(c,id,{...(STATE[c]?.[id]||{}),...clone(d)}),
-    delete:async()=>{if(STATE[c])delete STATE[c][id];emit(c);enqueue({t:"del",col:c,id});}};},
+    delete:async()=>{const prev=STATE[c]?.[id]?clone(STATE[c][id]):null;if(STATE[c])delete STATE[c][id];emit(c);enqueue({t:"del",col:c,id});if(prev&&window.KTALog)KTALog.doc(c,id,prev,null,STATE);}};},
   where:(f,op,v)=>({get:async()=>({docs:Object.entries(STATE[c]||{}).filter(([,d])=>d[f]===v).map(([id,d])=>({id,data:()=>d}))})})};}
 
 const b64of=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]||"");r.onerror=()=>rej(r.error);r.readAsDataURL(f);});
@@ -1037,6 +1038,7 @@ function gate(kind,msg){
 async function start(){
   if(!window.supabase?.createClient){gate("error","Tidak bisa memuat layanan login. Periksa koneksi lalu muat ulang.");return;}
   SB=window.supabase.createClient(SUPA.url,SUPA.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  if(window.KTALog)KTALog.init({app:()=>"notulensi",sb:()=>SB,token:()=>GUEST_SHARE||null});
   SESSION=GUEST_SHARE ? null : (await SB.auth.getSession()).data.session;
   let first=true;SB.auth.onAuthStateChange((ev,s)=>{if(first){first=false;return;}if(ev==="SIGNED_IN"&&!SESSION||ev==="SIGNED_OUT")location.reload();SESSION=s;});
   if(GUEST_SHARE){

@@ -1315,7 +1315,7 @@ async function persist(next, msg, audit) {
 }
 function saving(on) { const b = $('syncBtn'); if (b) b.disabled = on; }
 async function loadAccess() { const { data } = await S.sb.from('app_access_roles').select('email,role').eq('app_id', APP).order('email'); S.access = data || []; if (ui.page === 'setting') render(); }
-async function loadAudit() { const { data } = await S.sb.from('apd_delete_audit').select('kind,record_id,record_data,deleted_by,deleted_at').order('deleted_at', { ascending: false }).limit(500); S.audit = data || []; if (ui.page === 'deleted') render(); }
+async function loadAudit() { const { data } = await S.sb.from('apd_delete_audit').select('id,kind,record_id,record_data,deleted_by,deleted_at').order('deleted_at', { ascending: false }).limit(500); S.audit = data || []; if (ui.page === 'deleted') render(); }
 async function loadShare() { const { data } = await S.sb.from('kta_share_links').select('key').eq('app_id', APP).maybeSingle(); S.share = data || null; if (ui.page === 'setting') render(); }
 async function loadGrants() { const { data } = await S.sb.from('kta_print_grants').select('email,status,requested_at,decided_at').eq('app_id', APP).order('requested_at', { ascending: false }); S.grants = data || []; if (ui.page === 'setting') render(); navCounts(); }
 
@@ -1617,8 +1617,8 @@ function pageGuide() {
 }
 function pageDeleted() {
   const lb = { ga: 'Form GA Request', stock: 'Stok masuk', receipt: 'Penerimaan APD', return: 'Pengembalian APD', adjust: 'Koreksi stok', transfer: 'Mutasi gudang', type: 'Jenis APD', warehouse: 'Gudang' };
-  const rows = (S.audit || []).map((x) => { const d = x.record_data || {}; return `<tr><td class="nw">${new Date(x.deleted_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'short' })} WIB</td><td>${esc(x.deleted_by)}</td><td>${lb[x.kind] || esc(x.kind)}</td><td>${esc(d.type || d.code || d.no || '—')}</td><td>${esc(x.kind === 'receipt' ? personName(d.person) : d.location || d.from || d.name || '—')}</td><td>${esc(d.qty ?? '—')}</td><td class="nw">${fmt(d.date)}</td><td>${esc(d.note || '—')}</td></tr>`; }).join('');
-  return header('Audit khusus Pemilik', 'Riwayat Hapus APD', 'Siapa yang menghapus, kapan, dan data apa yang terhapus.') + `<div class="card"><div class="tw"><table class="t"><thead><tr><th>Waktu hapus</th><th>Oleh</th><th>Jenis</th><th>APD</th><th>Karyawan / Gudang</th><th>Qty</th><th>Tanggal data</th><th>Keterangan</th></tr></thead><tbody>${S.audit === null ? '<tr><td colspan="8" class="empty"><span class="spin sm"></span> Memuat…</td></tr>' : rows || '<tr><td colspan="8" class="empty">Belum ada data yang dihapus.</td></tr>'}</tbody></table></div></div>`;
+  const rows = (S.audit || []).map((x) => { const d = x.record_data || {}; return `<tr><td class="nw">${new Date(x.deleted_at).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', dateStyle: 'medium', timeStyle: 'short' })} WIB</td><td>${esc(x.deleted_by)}</td><td>${lb[x.kind] || esc(x.kind)}</td><td>${esc(d.type || d.code || d.no || '—')}</td><td>${esc(x.kind === 'receipt' ? personName(d.person) : d.location || d.from || d.name || '—')}</td><td>${esc(d.qty ?? '—')}</td><td class="nw">${fmt(d.date)}</td><td>${esc(d.note || '—')}</td>${isOwner() ? `<td><button type="button" class="btn btn-g btn-sm" data-deladt="${esc(x.id)}" title="Hapus catatan ini dari Riwayat Hapus">Hapus</button></td>` : ''}</tr>`; }).join('');
+  return header('Audit khusus Pemilik', 'Riwayat Hapus APD', 'Siapa yang menghapus, kapan, dan data apa yang terhapus. Menghapus catatan di sini tidak mengubah stok atau data APD karyawan.', isOwner() && (S.audit || []).length ? '<button type="button" class="btn btn-g" data-deladt="all">Hapus Semua Riwayat</button>' : '') + `<div class="card"><div class="tw"><table class="t"><thead><tr><th>Waktu hapus</th><th>Oleh</th><th>Jenis</th><th>APD</th><th>Karyawan / Gudang</th><th>Qty</th><th>Tanggal data</th><th>Keterangan</th>${isOwner() ? '<th>Aksi</th>' : ''}</tr></thead><tbody>${S.audit === null ? '<tr><td colspan="9" class="empty"><span class="spin sm"></span> Memuat…</td></tr>' : rows || '<tr><td colspan="9" class="empty">Belum ada data yang dihapus.</td></tr>'}</tbody></table></div></div>`;
 }
 
 // ---------- pengaturan ----------
@@ -1655,6 +1655,19 @@ function closeModal() { $('modal').hidden = true; $('dialog').innerHTML = ''; $(
 const mh = (eyebrow, ttl) => `<div class="cm-h"><div><div class="eyebrow">${eyebrow}</div><h2 id="mTitle">${ttl}</h2></div><button type="button" class="x" data-close aria-label="Tutup">×</button></div>`;
 const actions = (label, danger) => `<div class="factions">${danger || ''}<span style="flex:1"></span><button type="button" class="btn btn-g" data-close>Batal</button><button type="submit" class="btn btn-p">${label}</button></div>`;
 const vSel = (t, v, id) => `<div class="fld"><label for="${id}">${esc((ART[t] || {}).vlabel || 'Ukuran')}</label><select id="${id}" name="variant" ${(VARIANTS[t] || []).length ? 'required' : ''}>${(VARIANTS[t] || []).length ? '<option value="">Pilih</option>' : '<option value="">Tanpa ukuran</option>'}${(VARIANTS[t] || []).map((z) => `<option value="${esc(z)}" ${z === v ? 'selected' : ''}>${esc(vText(t, z))}</option>`).join('')}${v === 'BELUM DIISI' ? '<option value="BELUM DIISI" selected>Belum diisi (data lama)</option>' : ''}</select></div>`;
+// Pemilik: hapus catatan di Riwayat Hapus (tidak mengubah stok / data APD karyawan)
+document.addEventListener('click', (e) => {
+  const b = e.target.closest('[data-deladt]'); if (!b || !isOwner()) return;
+  e.preventDefault(); e.stopPropagation();
+  const all = b.dataset.deladt === 'all', n = all ? (S.audit || []).length : 1;
+  confirmBox(all ? `Hapus semua ${n} catatan Riwayat Hapus?` : 'Hapus catatan ini dari Riwayat Hapus?', 'Hanya catatan riwayatnya yang dihapus. Stok gudang dan data APD karyawan tidak berubah.', async () => {
+    const q = S.sb.from('apd_delete_audit').delete();
+    const { error } = all ? await q.gt('id', 0) : await q.eq('id', Number(b.dataset.deladt));
+    if (error) { toast('Gagal menghapus: ' + error.message, true); return false; }
+    if (window.KTALog) KTALog.log(all ? `Hapus semua Riwayat Hapus APD (${n} catatan)` : 'Hapus 1 catatan Riwayat Hapus APD');
+    await loadAudit(); toast(all ? 'Riwayat Hapus dikosongkan.' : 'Catatan dihapus.');
+  });
+}, true);
 function confirmBox(ttl, sub, fn, label) {
   modal(`${mh('Konfirmasi', esc(ttl))}<p class="small" style="margin:10px 0 0">${sub}</p><form id="cfmForm">${actions(label || 'Ya, hapus')}</form>`);
   $('cfmForm').querySelector('[type=submit]').className = 'btn btn-d';
@@ -2185,4 +2198,4 @@ init();
   }, true);
   try { after(); } catch (e) {}
 })();
-</script><!--/permx--></body></html>
+</script><!--/permx--><script src="../activity-log.js?v=20261024" data-kind="apd"></script></body></html>

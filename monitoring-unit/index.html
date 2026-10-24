@@ -3411,6 +3411,8 @@ async function startData(){
   document.addEventListener("visibilitychange",refresh); window.addEventListener("focus",refresh);
 }
 boot();
+// catatan aktivitas (activity-log.js) memakai jembatan ini karena kode di atas berada di dalam fungsi tertutup
+window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,label:(c,r)=>muTrashLabel(c,r),wrap(name,f){if(name==='sheetOp')sheetOp=f(sheetOp);else if(name==='doMutate')doMutate=f(doMutate);}};
 })();
 </script>
 <!--uppick--><script>/* Panel upload "Sisipkan file" (sama seperti sub portal KTA - TRA) untuk SEMUA input file di halaman.
@@ -3526,5 +3528,5 @@ boot();
     e.preventDefault(); open(i);
   }, true);
 })();
-</script><!--/uppick--></body>
+</script><!--/uppick--><script src="../activity-log.js?v=20261024" data-kind="unit"></script></body>
 </html>
