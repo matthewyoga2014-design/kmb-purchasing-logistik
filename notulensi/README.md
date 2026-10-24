@@ -30,7 +30,8 @@ Setelah mengubah `Code.gs`, pakai **Deploy → Manage deployments → Edit → N
 Masuk sebagai Pemilik → **Unit & File** → **Upload Folder** → pilih folder `Monitoring Notulensi` dari laptop. Folder bertanggal yang berisi notulensi Word/Excel menjadi *Meeting ke-n*, dan file lain menjadi lampirannya.
 
 ## Kategori & persentase
-- **Kategori notulensi**: Persiapan, Permasalahan, Lainnya (bisa ditambah). Dipilih dengan klik saat unduh template, Meeting Baru, form live, form update Word/Excel, dan saat upload. Notulensi lama tidak diubah; kategorinya bisa diisi lewat menu ⋮ › *Ubah jenis notulensi*.
-- **Template**: format lama tetap (No, Bab, Topik, Hasil Pembahasan, Tindak Lanjut, PIC, Due Date, Status), ditambah baris *Jenis Notulensi* di atas header.
-- **Persentase** (Persiapan & Permasalahan): tiap tindak lanjut Close = 100%, Open/Continue = 0%. Per Bab = rata-rata tindak lanjutnya; Total = rata-rata Bab. Kolom *Bagian* di file lama tetap terbaca sebagai Bab. Bila file memakai Bab/Sub Bab (`Bab I – …`, `1.1 …`), hitungannya Sub Bab → Bab → Total.
-- **Rincian Plan–Actual** (opsional): klik persentase/Sumber › *Unduh Template Rincian* › isi › *Upload Sumber*. Nilai = rata-rata MIN(Actual/Plan, 100%). Versi lama tersimpan sebagai riwayat; file di Google Drive.
+- **Kategori notulensi**: Persiapan, Permasalahan, Lainnya (bisa ditambah). Dipilih dengan klik saat unduh template, Meeting Baru, form live, form update Word/Excel, upload, dan koreksi dari file. Notulensi lama tidak diubah; kategorinya bisa diisi lewat menu ⋮ › *Ubah jenis notulensi*.
+- **Template**: format lama (No, Bab, Topik, Hasil Pembahasan, Tindak Lanjut, PIC, Due Date, Status) + baris *Jenis Notulensi*. Untuk Persiapan/Permasalahan ditambah kolom **Sumber Data, Plan, Aktual, Hasil (%)** di kanan Status. Kolom *Bagian* di file lama tetap terbaca sebagai Bab.
+- **Sumber data per tindak lanjut**: kolom *Sumber Data* di tabel notulensi. Isi Plan & Aktual (Hasil = Aktual ÷ Plan, maks. 100%), atau upload rincian Excel untuk daftar panjang (mis. sparepart), plus bukti PDF/foto/PO/Surat Jalan/BAST. Tanpa sumber data: Close = 100%, Open/Continue = 0%.
+- **Rekap**: progres Bab = rata-rata tindak lanjutnya; setiap Bab berbobot sama (4 Bab = 25%); Nilai = Progres × Bobot; Total = jumlah Nilai.
+- **Koreksi dari file**: menu ⋮ › *Koreksi Meeting ke-n dari file Word/Excel revisi* mengganti isi meeting itu tanpa membuat meeting baru.
