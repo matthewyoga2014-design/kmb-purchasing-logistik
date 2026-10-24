@@ -90,22 +90,6 @@ aside .team button span:nth-child(2){flex:1}
 .chat-send{height:40px}
 .chat-note{font-size:11px;color:var(--muted);margin-top:6px;text-align:center}
 .chat.drag .chat-body{outline:3px dashed var(--p);outline-offset:-8px}
-.photo{position:absolute;inset:0;overflow:auto;background:#0b1020;z-index:2;scrollbar-width:thin;display:flex}
-.photo[hidden]{display:none}
-.ph{position:relative;margin:auto;flex:0 0 auto}.ph img{width:100%;height:100%;display:block;user-select:none;-webkit-user-drag:none}
-.ph-l{position:absolute;inset:0}
-.ph-l .tag{z-index:3}
-.pring{position:absolute;width:5.2%;aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;border:3px solid #22c55e;cursor:pointer;box-shadow:0 0 14px rgba(34,197,94,.7);opacity:.85;z-index:2}
-.pring.warn{border-color:#f59e0b;box-shadow:0 0 18px rgba(245,158,11,.9);animation:pr 1.4s ease-in-out infinite}
-.pring.crit{border-color:#ef4444;box-shadow:0 0 22px rgba(239,68,68,1);animation:pr .8s ease-in-out infinite}
-.pring.idle{border-color:#94a3b8;box-shadow:0 0 10px rgba(148,163,184,.6)}
-.pring.away{border-style:dashed;opacity:.45}
-.pring.sel{outline:3px solid #a78bfa;outline-offset:3px}
-@keyframes pr{50%{transform:translate(-50%,-50%) scale(1.15)}}
-.pwalk{position:absolute;width:34px;height:34px;transform:translate(-50%,-50%);border-radius:50%;background:#fff;border:3px solid;display:grid;place-items:center;font-size:17px;box-shadow:0 4px 14px rgba(0,0,0,.5);z-index:4;cursor:pointer;animation:wb .45s ease-in-out infinite alternate}
-.pwalk[hidden]{display:none}
-@keyframes wb{to{margin-top:-4px}}
-.viewbtn{position:absolute;right:12px;top:12px;z-index:6;font-weight:600}
 .now{font-size:13px;color:var(--ink-2);margin:-4px 0 8px;font-weight:600}
 .tag .bub{background:rgba(255,255,255,.95);color:#1e1b3a}.tag .bub.ok{background:#ecfdf5;color:#166534}.tag .bub.warn{background:#fffbeb;color:#92400e}.tag .bub.crit{background:#fff1f2;color:#be123c}.tag .bub.idle{background:#f8fafc;color:#334155}
 .sec{margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em}
@@ -132,7 +116,7 @@ aside .team button span:nth-child(2){flex:1}
   aside{border-left:0;border-top:1px solid var(--line);max-height:44vh;padding:14px 16px}
   header .sub{display:none}
   .tag .bub{max-width:150px;font-size:11px;padding:4px 7px}.tag .nm{font-size:10px}
-  .tag:not(.sel) .bub{display:none}.pwalk{width:26px;height:26px;font-size:13px}.badge3d.b1{display:none}.badge3d{font-size:12px;padding:4px 9px}.badge3d small{font-size:10px}.card3d{width:150px;font-size:10.5px}.tag .nm i{display:inline-block}.tag.sel{z-index:2}
+  .tag:not(.sel) .bub{display:none}.badge3d.b1{display:none}.badge3d{font-size:12px;padding:4px 9px}.badge3d small{font-size:10px}.card3d{width:150px;font-size:10.5px}.tag .nm i{display:inline-block}.tag.sel{z-index:2}
 }
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
@@ -147,7 +131,7 @@ aside .team button span:nth-child(2){flex:1}
     <button type="button" class="btn pri" id="chatOpen">💬 Chat Manager</button>
     <nav class="mods"><a class="btn" href="../?beranda">Beranda</a><a class="btn" href="../manpower-portal/">MPP</a><a class="btn" href="../monitoring-apd-kmb/">APD</a><a class="btn" href="../monitoring-unit/">Unit</a><a class="btn" href="../notulensi/">Notulensi</a></nav>
   </header>
-  <div id="stage"><div id="labels"></div><div id="photo" class="photo" hidden><div class="ph" id="ph"><img id="phImg" alt="Kantor Monitoring" draggable="false"><div class="ph-l" id="phL"></div></div></div><button type="button" class="btn viewbtn" id="viewBtn"></button></div>
+  <div id="stage"><div id="labels"></div></div>
   <aside id="panel"><p class="muted">Memuat kantor…</p></aside>
 </div>
 <div id="gate" class="gate" hidden></div>
@@ -618,67 +602,6 @@ let showCards = !matchMedia('(max-width: 820px)').matches;
 try { const v0 = localStorage.getItem('kantor-cards'); if (v0 !== null) showCards = v0 === '1'; } catch (e) {}
 const setCards = () => { legendBtn.textContent = showCards ? 'Sembunyikan keterangan' : 'Tampilkan keterangan'; labels.classList.toggle('nocards', !showCards); };
 legendBtn.onclick = () => { showCards = !showCards; try { localStorage.setItem('kantor-cards', showCards ? '1' : '0'); } catch (e) {} setCards(); }; setCards();
-/* ---------- tampilan Foto: gambar referensi + lapisan live ---------- */
-const IMG_W = 1536, IMG_H = 1024;
-const PIN = {
-  SEAT_manager: [768, 138], SEAT_teknisi: [330, 392], SEAT_pencatat: [292, 548], SEAT_sekretaris: [300, 690], SEAT_admin_db: [1215, 392], SEAT_designer: [1236, 548], SEAT_marketing: [1240, 690], SEAT_resepsionis: [768, 636], SEAT_satpam: [768, 858],
-  IN_teknisi: [395, 425], IN_pencatat: [365, 580], IN_sekretaris: [370, 718], IN_admin_db: [1145, 425], IN_designer: [1165, 580], IN_marketing: [1170, 718],
-  DOOR_teknisi: [480, 432], DOOR_pencatat: [470, 588], DOOR_sekretaris: [462, 730], DOOR_admin_db: [1060, 432], DOOR_designer: [1068, 588], DOOR_marketing: [1078, 730],
-  CL_S: [488, 520], CR_S: [1050, 520], PLZ_L: [458, 772], PLZ_C: [768, 772], PLZ_R: [1080, 772], REC_OUT: [880, 772], REC_SIDE: [880, 655],
-  STL0: [578, 585], STL1: [548, 250], STR0: [960, 585], STR1: [990, 250], L2L: [560, 226], L2C: [768, 230], L2R: [975, 226], MGR_OUT: [850, 205], MGR_SIDE: [852, 152],
-  LOUNGE: [392, 200], OFFICE2: [1165, 205], BOARD2: [1105, 150],
-  MEET_DOOR: [768, 590], MEET_IN: [768, 548], HEAD: [768, 412], HEADa: [835, 548], HEADb: [835, 412],
-  GATE_IN: [700, 800], GATE_OUT: [640, 860], POST_DOOR: [690, 875], POST_IN: [725, 875],
-  PARK_L: [470, 885], PARK_L2: [300, 930], PARK_R: [1065, 885], PARK_R2: [1235, 930],
-  SP_teknisi_rack: [428, 372], SP_admin_db_rack: [1105, 372], SP_admin_db_backup: [1170, 385], SP_pencatat_shelf: [372, 528], SP_sekretaris_shelf: [372, 672],
-  SP_sekretaris_file: [250, 676], SP_sekretaris_board: [280, 660], SP_designer_easel: [1292, 528], SP_marketing_board: [1300, 690],
-};
-for (const k of Object.keys(N)) if (k.startsWith('CH_')) { const [, sg, z] = k.match(/^CH_(-?1)_([\d.]+)a?$/) || []; const x = sg === '-1' ? 718 : 818, y = 432 + (parseFloat(z) - 0.9) * 42; PIN[k] = k.endsWith('a') ? [x, 548] : [x, y]; }
-const pinOf = (k) => PIN[k] || [768, 512];
-let VIEW = 'photo'; try { VIEW = localStorage.getItem('kantor-view') || 'photo'; } catch (e) {}
-const phL = $('phL'), PH = {};
-$('phImg').src = matchMedia('(max-width: 820px)').matches && devicePixelRatio < 2 ? 'kantor-sm.jpg' : 'kantor.jpg';
-TEAM.forEach((t) => {
-  const ring = document.createElement('div'); ring.className = 'pring'; ring.title = t.name; ring.onclick = () => select(t.id);
-  const [sx, sy] = pinOf('SEAT_' + t.id); ring.style.left = sx / IMG_W * 100 + '%'; ring.style.top = (sy - 8) / IMG_H * 100 + '%';
-  const walk = document.createElement('div'); walk.className = 'pwalk'; walk.hidden = true; walk.style.borderColor = '#' + t.acc.toString(16).padStart(6, '0');
-  walk.textContent = { manager: '👔', satpam: '🛡️', resepsionis: '🔑', teknisi: '🖥️', pencatat: '📋', sekretaris: '✉️', admin_db: '🗄️', designer: '🎨', marketing: '📣' }[t.id]; walk.onclick = () => select(t.id);
-  const tag = document.createElement('div'); tag.className = 'tag'; tag.innerHTML = '<div class="bub"></div><div class="nm"><i></i><span></span></div>'; tag.querySelector('.nm span').textContent = t.name; tag.onclick = () => select(t.id);
-  phL.append(ring, walk, tag); PH[t.id] = { ring, walk, tag };
-});
-function photoPos(a) {
-  const c = a.cur;
-  if (c && c.type === 'walk' && c.pts.length) {
-    const A = N[a.node].p, B = N[c.pts[0]].p, tot = A.distanceTo(B) || 1, f = Math.min(1, Math.max(0, 1 - a.r.g.position.distanceTo(B) / tot));
-    const [x1, y1] = pinOf(a.node), [x2, y2] = pinOf(c.pts[0]); return [x1 + (x2 - x1) * f, y1 + (y2 - y1) * f, true];
-  }
-  const [x, y] = pinOf(a.node); return [x, y, a.node !== a.home];
-}
-function photoFit() {
-  const ph = $('ph'), W = stage.clientWidth, H = stage.clientHeight, small = W < 700;
-  let w = Math.min(W, H * IMG_W / IMG_H); if (small) w = Math.max(W, H * IMG_W / IMG_H);
-  ph.style.width = w + 'px'; ph.style.height = w * IMG_H / IMG_W + 'px';
-  if (small) { const pv = $('photo'); pv.scrollLeft = (w - W) / 2; }
-}
-function photoFrame() {
-  for (const [id, a] of Object.entries(AG)) {
-    const o = PH[id], lv = (STATE[id] || {}).level || 'idle', [x, y, away] = photoPos(a);
-    o.ring.className = 'pring ' + lv + (away ? ' away' : '') + (SEL === id ? ' sel' : '');
-    o.walk.hidden = !away; if (away) { o.walk.style.left = x / IMG_W * 100 + '%'; o.walk.style.top = y / IMG_H * 100 + '%'; }
-    const [bx, by] = away ? [x, y - 18] : [pinOf(a.home)[0], pinOf(a.home)[1] - 40];
-    o.tag.style.left = bx / IMG_W * 100 + '%'; o.tag.style.top = by / IMG_H * 100 + '%';
-    o.tag.classList.toggle('sel', SEL === id); o.tag.classList.toggle('hot', lv === 'warn' || lv === 'crit');
-    const b = o.tag.querySelector('.bub'), sy = globalThis.CHAT_BUSY && id === 'manager' ? '💬 Membalas chat Anda…' : a.say;
-    if (b.textContent !== sy) b.textContent = sy; b.className = 'bub ' + lv; o.tag.querySelector('.nm i').className = lv;
-  }
-}
-function setView(v) {
-  VIEW = v; try { localStorage.setItem('kantor-view', v); } catch (e) {}
-  const photo = v === 'photo'; $('photo').hidden = !photo; renderer.domElement.style.visibility = photo ? 'hidden' : ''; labels.style.display = photo ? 'none' : '';
-  legendBtn.style.display = photo ? 'none' : ''; $('viewBtn').textContent = photo ? '🧊 Tampilan 3D' : '🖼️ Tampilan Foto';
-  if (photo) photoFit(); else fit();
-}
-$('viewBtn').onclick = () => setView(VIEW === 'photo' ? '3d' : 'photo');
 const MEET = { until: 0, divs: [], topic: '' };
 const go = (k) => ({ type: 'go', to: k });
 const work = (anim, dur, say, face) => ({ type: 'work', anim, dur, say, face });
@@ -803,12 +726,11 @@ function fit() {
   const dist = Math.min(100, Math.max(30, 21.5 / half));
   const dir = new THREE.Vector3(0, 1.3, 1).normalize(); cam.position.copy(ctl.target).addScaledVector(dir, dist);
 }
-new ResizeObserver(() => { fit(); if (VIEW === 'photo') photoFit(); }).observe(stage); fit();
+new ResizeObserver(fit).observe(stage); fit();
 const v = new THREE.Vector3(), clock = new THREE.Clock(); let acc = 0;
 function loop() {
   const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime, W0 = stage.clientWidth, H0 = stage.clientHeight;
   NOW = t; if (DATA) for (const a of Object.values(AG)) step(a, dt, t);
-  if (VIEW === 'photo') { photoFrame(); acc += dt; if (acc > 0.25) { acc = 0; const nt = $('nowTxt'); if (nt && AG[SEL]) nt.textContent = globalThis.CHAT_BUSY && SEL === 'manager' ? '💬 Membalas chat Anda…' : AG[SEL].say; } requestAnimationFrame(loop); return; }
   const sat = AG.satpam.r.g.position; const open = Math.abs(sat.x) < 3 && sat.z > 9.6 && sat.z < 12.6 || sat.z > 11.8 && Math.abs(sat.x) > 2;
   barrier.rotation.z += ((open ? 1.25 : 0) - barrier.rotation.z) * 0.08;
   for (const [id, a] of Object.entries(AG)) {
@@ -822,7 +744,7 @@ function loop() {
   }
   for (const b of badges) { v.copy(b.at).project(cam); b.el.style.left = ((v.x + 1) / 2) * W0 + 'px'; b.el.style.top = ((1 - v.y) / 2) * H0 + 'px'; }
   acc += dt;
-  if (acc > 0.25) { acc = 0; for (const a of Object.values(AG)) { const b = a.tag.querySelector('.bub'), sy = globalThis.CHAT_BUSY && a.id === 'manager' ? '💬 Membalas chat Anda…' : a.say; if (b.textContent !== sy) b.textContent = sy; } const nt = $('nowTxt'); if (nt && AG[SEL]) nt.textContent = AG[SEL].say; }
+  if (acc > 0.25) { acc = 0; for (const a of Object.values(AG)) { const b = a.tag.querySelector('.bub'), sy = CHAT.busy && a.id === 'manager' ? '💬 Membalas chat Anda…' : a.say; if (b.textContent !== sy) b.textContent = sy; } const nt = $('nowTxt'); if (nt && AG[SEL]) nt.textContent = AG[SEL].say; }
   ctl.update(); renderer.render(scene, cam); requestAnimationFrame(loop);
 }
 loop();
@@ -942,10 +864,10 @@ Setelah itu kirim pesan lagi di sini.`;
 async function send(text) {
   if (CHAT.busy) return;
   text = (text || '').trim(); if (!text && !CHAT.files.length) return;
-  CHAT.busy = globalThis.CHAT_BUSY = true; $('chatSend').disabled = true;
+  CHAT.busy = true; $('chatSend').disabled = true;
   if (chatBody.querySelector('.chat-empty')) chatBody.innerHTML = '';
   let files = [];
-  try { files = await uploadAll(); } catch (e) { CHAT.busy = globalThis.CHAT_BUSY = false; $('chatSend').disabled = false; alert(e.message); return; }
+  try { files = await uploadAll(); } catch (e) { CHAT.busy = false; $('chatSend').disabled = false; alert(e.message); return; }
   const localSigned = Object.fromEntries(CHAT.files.filter((f) => f.file.type.startsWith('image/')).map((f, i) => [files[CHAT.files.indexOf(f)].path, URL.createObjectURL(f.file)]));
   msgEl('user', text, files, localSigned); CHAT.files = []; renderFiles(); chatText.value = ''; autosize();
   const a = msgEl('assistant', '', []); const tx = a.querySelector('.tx'); tx.innerHTML = '<span class="typing"><i></i><i></i><i></i></span>'; scrollEnd();
@@ -967,7 +889,7 @@ async function send(text) {
       }
     }
   } catch (e) { full += (full ? '\n\n' : '') + '⚠️ Koneksi terputus: ' + e.message; }
-  paint(true); CHAT.busy = globalThis.CHAT_BUSY = false; $('chatSend').disabled = false; chatText.focus();
+  paint(true); CHAT.busy = false; $('chatSend').disabled = false; chatText.focus();
   if (!DEMO) loadThreads();
 }
 function autosize() { chatText.style.height = 'auto'; chatText.style.height = Math.min(160, chatText.scrollHeight) + 'px'; }
@@ -990,7 +912,6 @@ chatBox.addEventListener('dragover', (e) => { e.preventDefault(); chatBox.classL
 chatBox.addEventListener('dragleave', () => chatBox.classList.remove('drag'));
 chatBox.addEventListener('drop', (e) => { e.preventDefault(); chatBox.classList.remove('drag'); addFiles([...e.dataTransfer.files]); });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('chat').hidden) $('chat').hidden = true; });
-setView(VIEW);
 start();
 </script>
 </body>
