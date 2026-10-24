@@ -851,6 +851,15 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .mu-info-line{display:flex;justify-content:space-between;gap:16px;border-bottom:1px solid #f0edf7;padding:7px 0}
 .mu-info-line span{font-size:11px;color:#77718e}.mu-info-line b{font-size:12px;text-align:right;overflow-wrap:anywhere;color:#342e4d}
 .mu-cond{display:inline-block;color:#655a86;background:#f4f1fb;border:1px solid #eee8f8;border-radius:15px;font-size:9px;padding:3px 7px;white-space:nowrap}
+.mu-cond.k-ok{color:#15803d;background:#dcfce7;border-color:#bbf7d0}
+.mu-cond.k-prog{color:#b45309;background:#fef3c7;border-color:#fde68a}
+.mu-cond.k-bad{color:#b91c1c;background:#fee2e2;border-color:#fecaca}
+.mu-cond.k-none{color:#64748b;background:#f1f5f9;border-color:#e2e8f0}
+.mu-cond.k-etc{color:#1d4ed8;background:#dbeafe;border-color:#bfdbfe}
+.mu-kond-f{margin-top:8px;align-items:center}.mu-kond-l{font-size:11px;font-weight:700;color:#7a7394;text-transform:uppercase;letter-spacing:.05em;margin-right:4px}
+.mu-kb i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:middle;background:#94a3b8}
+.mu-kb.k-ok i{background:#16a34a}.mu-kb.k-prog i{background:#f59e0b}.mu-kb.k-bad i{background:#dc2626}.mu-kb.k-etc i{background:#2563eb}
+
 @media(max-width:900px){.mu-dash-stat{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){.mu-dash-head{align-items:flex-start;flex-direction:column}
 .mu-dash-stat{grid-template-columns:repeat(2,minmax(0,1fr))}.mu-dash-types{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -1416,7 +1425,7 @@ const COLORS = ["purple","blue","red","orange","teal","pink"];
 const DOT = {purple:"#7C3AED",blue:"#2563EB",red:"#EF4F5F",orange:"#F97316",teal:"#0D9488",pink:"#DB2777"};
 const COL = {proj:"projects",units:"units",mobs:"mobilisasi",kirim:"pengiriman",revisi:"revisi"};
 
-const S = {projects:[],units:[],mobs:[],kirim:[],revisi:[],view:"all",tab:"ringkasan",fProj:"all",fUnit:"Semua",fMob:"Aktif",q:"",ready:false};
+const S = {projects:[],units:[],mobs:[],kirim:[],revisi:[],view:"all",tab:"ringkasan",fProj:"all",fUnit:"Semua",fKond:"Semua",fMob:"Aktif",q:"",ready:false};
 const SB_URL="https://yoviojbfyvgpllxisjvy.supabase.co", SB_KEY="sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9";
 const GUEST_SHARE = new URLSearchParams(location.search).get('share') || '';
 let GUEST_ROLE = '';
@@ -2777,12 +2786,29 @@ function renderKirim(){
 const MU_UNIT_COLORS=["#7C3AED","#2563EB","#0D9488","#D97706","#DB2777","#059669","#4F46E5","#EA580C"];
 const MU_UNIT_ICON='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" aria-hidden="true"><path d="M3 16V9h9l3 4h5v3H3zM6 19a2 2 0 100-4 2 2 0 000 4zM17 19a2 2 0 100-4 2 2 0 000 4z"/></svg>';
 const MU_TYPE_KEY = value => String(value||"Jenis belum diisi").trim().toLowerCase().replace(/\s+/g," ");
+// Warna & filter Kondisi unit
+const MU_KOND=["Ready Done Rekondisi","Dalam Rekondisi","Belum Rekondisi","Layak operasi","Dalam Perbaikan","Rusak / Breakdown","Belum diverifikasi","Lainnya"];
+const muKond=u=>String(muDetails(u).kondisi||"Belum diverifikasi").trim()||"Belum diverifikasi";
+function muKondCls(k){ const t=String(k||"").toLowerCase();
+  if(/ready|done|layak/.test(t))return "k-ok"; if(/dalam rekondisi|perbaikan|proses/.test(t))return "k-prog";
+  if(/belum rekondisi|rusak|breakdown/.test(t))return "k-bad"; if(/belum diverifikasi|belum diperiksa/.test(t)||!t)return "k-none"; return "k-etc"; }
+function muKondFilter(base){
+  let el=$("#fKond"); const fu=$("#fUnit"); if(!fu)return;
+  if(!el){ fu.insertAdjacentHTML("afterend",'<div class="filters mu-kond-f" id="fKond" aria-label="Filter kondisi"></div>'); el=$("#fKond"); }
+  const pool=base.filter(u=>S.fUnit==="Semua"||u.status===S.fUnit);
+  const seen=[...new Set(pool.map(muKond))];
+  const list=["Semua",...MU_KOND.filter(k=>seen.includes(k)),...seen.filter(k=>!MU_KOND.includes(k)).sort()];
+  if(S.fKond!=="Semua"&&!list.includes(S.fKond))list.push(S.fKond);
+  el.innerHTML='<span class="mu-kond-l">Kondisi</span>'+list.map(k=>{const n=k==="Semua"?pool.length:pool.filter(u=>muKond(u)===k).length;
+    return `<button type="button" class="${k==="Semua"?"":"mu-kb "+muKondCls(k)}" data-fk="${esc(k)}" aria-pressed="${S.fKond===k}">${k==="Semua"?"":'<i></i>'}${esc(k)} <span class="num">${n}</span></button>`;}).join("");
+}
 function renderUnit(){
   const base=S.units.filter(u=>arrived(u)&&inFilter(u.projectId));
   const fs=["Semua",...UNIT_STATUS.map(s=>s.k)];
   $("#fUnit").innerHTML=fs.map(f=>{const n=f==="Semua"?base.length:base.filter(u=>u.status===f).length; return `<button type="button" data-fu="${esc(f)}" aria-pressed="${S.fUnit===f}">${esc(f)} <span class="num">${n}</span></button>`;}).join("");
   const q=String(S.q||"").trim().toLowerCase();
-  const all=base.filter(u=>(S.fUnit==="Semua"||u.status===S.fUnit)&&(!q||[u.kode,u.tipe,u.lokasi,u.catatan,u.status,projKode(u.projectId),muDetails(u).vendor,muDetails(u).merk,muDetails(u).kondisi].join(" ").toLowerCase().includes(q)));
+  muKondFilter(base);
+  const all=base.filter(u=>(S.fUnit==="Semua"||u.status===S.fUnit)&&(S.fKond==="Semua"||muKond(u)===S.fKond)&&(!q||[u.kode,u.tipe,u.lokasi,u.catatan,u.status,projKode(u.projectId),muDetails(u).vendor,muDetails(u).merk,muDetails(u).kondisi].join(" ").toLowerCase().includes(q)));
   const rows=all.slice().sort((a,b)=>String(a.tipe||"").localeCompare(String(b.tipe||""),"id")||String(a.kode||"").localeCompare(String(b.kode||""),"id",{numeric:true}));
   const kinds=new Map();
   rows.forEach(u=>{const key=MU_TYPE_KEY(u.tipe);if(!kinds.has(key))kinds.set(key,{name:String(u.tipe||"Jenis belum diisi").trim(),key,units:[]});kinds.get(key).units.push(u);});
@@ -2820,7 +2846,7 @@ function renderUnit(){
       <td><span class="ptag">${esc(projKode(u.projectId))}</span></td>
       <td><span title="${esc(u.lokasi||"")}">${esc(u.lokasi||"—")}</span>${mob?`<span class="sub" style="font-size:9px">→ ${esc(mob.ke)} (${esc(mob.status)})</span>`:""}</td>
       <td>${chip(UNIT_STATUS,u.status)}</td>
-      <td><span class="mu-cond">${esc(m.kondisi||"Belum diverifikasi")}</span></td>
+      <td><span class="mu-cond ${muKondCls(m.kondisi)}">${esc(m.kondisi||"Belum diverifikasi")}</span></td>
       <td class="n">${Number(u.hm||0).toLocaleString("id-ID")}</td>
       <td>${u.tglTiba?fmtDate(u.tglTiba):"—"}</td>
       <td class="mu-mpp-description">${catatan?`<span class="mu-mpp-ellipsis" title="${esc(catatan)}">${esc(catatan)}</span><button class="mu-mpp-view" data-act="unitInfo" data-id="${esc(u.id)}" type="button">Lihat detail</button>`:`<button class="mu-mpp-view" data-act="unitInfo" data-id="${esc(u.id)}" type="button">Rincian</button>`}</td>
@@ -2989,6 +3015,7 @@ document.addEventListener("click",e=>{
   const ug=e.target.closest("[data-unit-kind]"); if(ug){ try{ S.unitGroup=decodeURIComponent(ug.dataset.unitKind); }catch(err){ S.unitGroup="all"; } renderUnit(); return; }
   const ua=e.target.closest("[data-unit-all]"); if(ua){ S.unitGroup="all"; renderUnit(); return; }
   const fu=e.target.closest("[data-fu]"); if(fu){ S.fUnit=fu.dataset.fu; renderUnit(); return; }
+  const fk=e.target.closest("[data-fk]"); if(fk){ S.fKond=fk.dataset.fk; renderUnit(); return; }
   const fm=e.target.closest("[data-fm]"); if(fm){ S.fMob=fm.dataset.fm; renderMob(); return; }
   const a=e.target.closest("button[data-act],a[data-act]");
   if(!a){ const pc=e.target.closest("[data-proj]"); if(pc && projOf(pc.dataset.proj)) openProject(pc.dataset.proj); return; }
@@ -3070,7 +3097,7 @@ document.addEventListener("change",e=>{
   if(t.id==="fItemSel"){ S.fItem=t.value; render(); }
   if(t.id==="fTabSel"){ setTab(t.value); renderFbar(); }
 });
-document.addEventListener("click",e=>{ if(e.target.closest("#fReset")){ S.fItem="all"; S.q=""; $("#gSearch").value=""; $("#qUnit").value=""; S.fUnit="Semua"; if(S.view!=="all") backAll(); else { setTab("ringkasan"); render(); } } });
+document.addEventListener("click",e=>{ if(e.target.closest("#fReset")){ S.fItem="all"; S.fKond="Semua"; S.q=""; $("#gSearch").value=""; $("#qUnit").value=""; S.fUnit="Semua"; if(S.view!=="all") backAll(); else { setTab("ringkasan"); render(); } } });
 $("#addUnit").onclick=()=>S.kirim.length?formUnit(null):formExistingUnit();
 $("#addExisting").onclick=()=>formExistingUnit();
 $("#addMob").onclick=()=>formMob(null);
