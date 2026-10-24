@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Kantor AI · Monitoring</title>
+<meta name="theme-color" content="#6D28D9">
+<style>
+:root{color-scheme:light;--bg:#EEF0F8;--card:rgba(255,255,255,.96);--ink:#1E1B3A;--ink-2:#4B4868;--muted:#7D7A99;--line:#E6E4F2;--p:#6D28D9;--p-soft:#EFE9FE;--good:#15803D;--good-soft:#DCFCE7;--warn:#B45309;--warn-soft:#FEF3C7;--crit:#E11D48;--crit-soft:#FFE4E6;--idle:#64748B;--idle-soft:#F1F5F9}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#120F1F;--card:rgba(29,24,48,.96);--ink:#F1EDFA;--ink-2:#CFC8E3;--muted:#9E97B8;--line:#2E2847;--p:#A78BFA;--p-soft:#2A2145;--good:#4ADE80;--good-soft:#14301F;--warn:#FBBF24;--warn-soft:#33270B;--crit:#FB7185;--crit-soft:#3A1520;--idle:#94A3B8;--idle-soft:#1E2433}}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+#app{position:fixed;inset:0;display:grid;grid-template-rows:auto minmax(0,1fr);grid-template-columns:minmax(0,1fr) 360px}
+header{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--line);background:var(--card);z-index:3}
+header .lg{width:34px;height:34px;border-radius:10px;background:var(--p);color:#fff;display:grid;place-items:center;font-weight:700}
+header h1{font-size:17px;margin:0;line-height:1.2}
+header .sub{font-size:12px;color:var(--muted)}
+header .sp{flex:1}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:13px;font-weight:600;white-space:nowrap}
+.pill i{width:8px;height:8px;border-radius:50%;background:currentColor}
+.ok{color:var(--good);background:var(--good-soft)}.warn{color:var(--warn);background:var(--warn-soft)}.crit{color:var(--crit);background:var(--crit-soft)}.idle{color:var(--idle);background:var(--idle-soft)}
+.btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:6px 10px;cursor:pointer;text-decoration:none}
+#stage{position:relative;overflow:hidden;min-height:0}
+#stage canvas{display:block;width:100%;height:100%;touch-action:none}
+#labels{position:absolute;inset:0;pointer-events:none}
+.tag{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
+.tag .bub{max-width:170px;padding:5px 9px;border-radius:10px;font-size:12px;font-weight:600;line-height:1.3;text-align:center;box-shadow:0 4px 14px rgba(20,10,50,.15);border:1px solid rgba(0,0,0,.05)}
+.tag .nm{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--card);color:var(--ink);border:1px solid var(--line);white-space:nowrap}
+.tag.sel .nm{background:var(--p);color:#fff;border-color:var(--p)}
+.tag.hot .bub{animation:pulse 1.4s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+aside{border-left:1px solid var(--line);background:var(--card);overflow:auto;padding:16px;z-index:2}
+aside h2{font-size:18px;margin:2px 0 4px}
+aside .role{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700}
+aside .big{font-size:15px;margin:10px 0 12px;padding:10px 12px;border-radius:10px}
+aside ul{margin:6px 0 12px;padding-left:18px}aside li{margin:3px 0}
+aside .kv{display:grid;grid-template-columns:1fr auto;gap:4px 12px;font-size:14px;margin:8px 0 14px}
+aside .kv b{text-align:right}
+aside .rep{font-size:14px;border-top:1px solid var(--line);padding-top:10px;margin-top:6px}
+aside .rep h4{margin:12px 0 4px;font-size:14px}
+aside .muted{color:var(--muted);font-size:13px}
+aside .team{display:grid;gap:6px;margin-top:14px;border-top:1px solid var(--line);padding-top:12px}
+aside .team button{display:flex;align-items:center;gap:8px;text-align:left;font:inherit;font-size:14px;background:none;border:1px solid var(--line);color:var(--ink);border-radius:10px;padding:8px 10px;cursor:pointer}
+aside .team button.on{border-color:var(--p);background:var(--p-soft)}
+aside .team button span:nth-child(2){flex:1}
+.gate{position:absolute;inset:0;display:grid;place-items:center;padding:16px;z-index:5;background:var(--bg)}
+.gate[hidden]{display:none}
+.gate .card{max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;text-align:center}
+.gate h2{margin:0 0 6px}.gate p{color:var(--ink-2);margin:0 0 14px}
+.demo{position:absolute;left:12px;bottom:12px;z-index:2}
+@media (max-width:820px){
+  #app{grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto}
+  header{gap:8px;padding:8px 12px}header h1{font-size:16px}header .lg{width:30px;height:30px}
+  .pill{font-size:12px;padding:4px 8px}.btn .tx{display:none}
+  aside{border-left:0;border-top:1px solid var(--line);max-height:44vh;padding:14px 16px}
+  header .sub{display:none}
+  .tag .bub{max-width:110px;font-size:11px;padding:4px 7px}.tag .nm{font-size:10px}
+}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="lg">AI</div>
+    <div><h1>Kantor AI</h1><div class="sub">Tim pengawas web Monitoring · diperbarui <span id="upd">–</span></div></div>
+    <div class="sp"></div>
+    <span id="overall" class="pill idle"><i></i>Memuat…</span>
+    <a class="btn" href="../" aria-label="Kembali ke Monitoring">←<span class="tx"> Monitoring</span></a>
+  </header>
+  <div id="stage"><div id="labels"></div></div>
+  <aside id="panel"><p class="muted">Memuat kantor…</p></aside>
+</div>
+<div id="gate" class="gate" hidden></div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+const CFG = { url: 'https://yoviojbfyvgpllxisjvy.supabase.co', key: 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9' };
+const DEMO = new URLSearchParams(location.search).has('demo');
+const APPS = { kmb: 'Manpower KMB', mbj: 'Manpower MBJ', 'bupr-ampah': 'Manpower BUPR', 'kta-tra': 'Manpower KTA-TRA', apd: 'APD', notulensi: 'Notulensi', 'unit-monitoring': 'Monitoring Unit' };
+const LV = { ok: 'Aman', warn: 'Perlu dicek', crit: 'Gawat', idle: 'Menunggu' };
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const wib = (t) => new Date(t).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+const mask = (e) => { const [u, d] = String(e || '').split('@'); return d ? u.slice(0, 3) + '…@' + d : (e || 'link tamu'); };
+
+/* ---------- tim ---------- */
+const TEAM = [
+  { id: 'satpam', name: 'Satpam', role: 'Keamanan', shirt: 0x1e3a8a, pos: [-7, 0, -3.5], rug: 0xdbeafe, prop: 'gate' },
+  { id: 'teknisi', name: 'Teknisi', role: 'Kesehatan web', shirt: 0x0f766e, pos: [0, 0, -3.5], rug: 0xccfbf1, prop: 'rack' },
+  { id: 'pencatat', name: 'Pencatat', role: 'Aktivitas Editor', shirt: 0xb45309, pos: [7, 0, -3.5], rug: 0xfef3c7, prop: 'shelf' },
+  { id: 'resepsionis', name: 'Resepsionis', role: 'Akses & link', shirt: 0xbe185d, pos: [-4, 0, 3.5], rug: 0xfce7f3, prop: 'plant' },
+  { id: 'sekretaris', name: 'Sekretaris', role: 'Laporan pagi', shirt: 0x6d28d9, pos: [4, 0, 3.5], rug: 0xede9fe, prop: 'board' },
+];
+let DATA = null, STATE = {}, SEL = 'sekretaris';
+
+function derive(d) {
+  const rep = d.last_report, chk = (rep && rep.checks) || {};
+  const ageH = rep ? (Date.now() - new Date(rep.created_at).getTime()) / 36e5 : null;
+  const pend = d.pending_requests || [], la = d.links_active || {};
+  const fromCheck = (c, idleText) => c ? { level: c.level || 'ok', bubble: c.summary || LV[c.level || 'ok'], items: c.items || [] } : { level: 'idle', bubble: idleText, items: [] };
+  const s = {};
+  s.satpam = fromCheck(chk.security, 'Menunggu ronda 08.00');
+  s.teknisi = fromCheck(chk.web, 'Menunggu cek 08.00');
+  const n = d.activity_24h || 0, del = d.deletes_24h || 0;
+  s.pencatat = { level: del >= 20 ? 'crit' : del >= 5 ? 'warn' : 'ok', bubble: del >= 5 ? `${del} penghapusan!` : n ? `${n} aktivitas hari ini` : 'Sepi, belum ada aktivitas', busy: n > 0 };
+  s.resepsionis = { level: pend.length ? 'warn' : 'ok', bubble: pend.length ? `${pend.length} tamu menunggu izin` : 'Tidak ada antrean', busy: (d.links_expiring_3d || 0) > 0 };
+  if (!rep) s.sekretaris = { level: 'idle', bubble: 'Laporan pertama 08.00' };
+  else if (ageH > 26) s.sekretaris = { level: 'warn', bubble: 'Laporan terlambat' };
+  else s.sekretaris = { level: rep.level, bubble: rep.level === 'ok' ? 'Laporan pagi siap' : 'Ada temuan di laporan' };
+  return s;
+}
+function overallOf(s) { const L = Object.values(s).map((x) => x.level); return L.includes('crit') ? 'crit' : L.includes('warn') ? 'warn' : L.every((x) => x === 'idle') ? 'idle' : 'ok'; }
+
+/* ---------- panel ---------- */
+function md(t) {
+  const out = []; let list = false;
+  for (const raw of String(t || '').split('\n')) {
+    const line = esc(raw.trim()).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>');
+    if (/^[-•*] /.test(raw.trim())) { if (!list) { out.push('<ul>'); list = true; } out.push('<li>' + line.replace(/^[-•*] /, '') + '</li>'); continue; }
+    if (list) { out.push('</ul>'); list = false; }
+    if (!line) continue;
+    out.push(/^#{1,4} /.test(raw.trim()) ? '<h4>' + line.replace(/^#{1,4} /, '') + '</h4>' : '<p>' + line + '</p>');
+  }
+  if (list) out.push('</ul>');
+  return out.join('');
+}
+function panel() {
+  const d = DATA, w = TEAM.find((t) => t.id === SEL), st = STATE[SEL] || { level: 'idle', bubble: '' };
+  let body = '';
+  if (SEL === 'satpam' || SEL === 'teknisi') {
+    const c = d.last_report && d.last_report.checks && d.last_report.checks[SEL === 'satpam' ? 'security' : 'web'];
+    body = c ? `${(c.items || []).length ? '<ul>' + c.items.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>' : ''}<p class="muted">Diperiksa ${wib(d.last_report.created_at)} WIB.</p>`
+      : `<p class="muted">${SEL === 'satpam' ? 'Satpam memeriksa Security Advisor Supabase, login mencurigakan, dan penghapusan massal' : 'Teknisi memeriksa apakah 9 halaman web hidup dan ada error di log'} setiap pagi pukul 08.00 WIB.</p>`;
+  } else if (SEL === 'pencatat') {
+    const by = Object.entries(d.activity_by_app || {});
+    body = `<div class="kv"><span>Aktivitas 24 jam</span><b>${d.activity_24h || 0}</b><span>Orang yang mengubah</span><b>${d.actors_24h || 0}</b><span>Penghapusan 24 jam</span><b>${d.deletes_24h || 0}</b></div>`
+      + (by.length ? '<b>Per web</b><ul>' + by.map(([a, n]) => `<li>${esc(APPS[a] || a)}: ${n}</li>`).join('') + '</ul>' : '')
+      + '<b>Terakhir</b><ul>' + (d.activity_recent || []).map((r) => `<li><span class="muted">${wib(r.at)}</span> · ${esc(APPS[r.app] || r.app)}${r.site ? ' (' + esc(r.site) + ')' : ''}: ${esc(r.action).slice(0, 90)} <span class="muted">— ${esc(mask(r.actor))}</span></li>`).join('') + '</ul>';
+  } else if (SEL === 'resepsionis') {
+    const la = d.links_active || {}, pend = d.pending_requests || [];
+    body = `<div class="kv"><span>Permintaan akses</span><b>${pend.length}</b><span>Link Pelihat aktif</span><b>${la.viewer || 0}</b><span>Link Editor tanpa login</span><b>${la.editor || 0}</b><span>Kedaluwarsa ≤ 3 hari</span><b>${d.links_expiring_3d || 0}</b><span>Login 24 jam</span><b>${d.signins_24h || 0}</b></div>`
+      + (pend.length ? '<b>Menunggu izin</b><ul>' + pend.map((p) => `<li>${esc(mask(p.email))} → ${esc(APPS[p.app_id] || p.app_id)}</li>`).join('') + '</ul>' : '')
+      + ((la.editor || 0) ? '<p class="muted">Saran: cabut link Editor tanpa login; Editor sebaiknya masuk dengan kode email.</p>' : '')
+      + '<a class="btn" href="../#akses">Kelola akses →</a>';
+  } else {
+    const r = d.last_report;
+    body = r ? `<p class="muted">Laporan ${wib(r.created_at)} WIB</p><div class="rep">${md(r.body || r.summary)}</div>` : '<p class="muted">Sekretaris menyusun laporan setiap pagi pukul 08.00 WIB dan mengirimnya ke HP serta email Anda. Laporan pertama muncul besok pagi.</p>';
+  }
+  $('panel').innerHTML = `<div class="role">${esc(w.role)}</div><h2>${esc(w.name)}</h2><div class="big ${st.level}"><b>${LV[st.level]}</b> · ${esc(st.bubble)}</div>${body}
+    <div class="team">${TEAM.map((t) => `<button type="button" data-w="${t.id}" class="${t.id === SEL ? 'on' : ''}"><span class="pill ${STATE[t.id].level}" style="padding:3px 6px"><i></i></span><span>${t.name}</span><span class="muted">${esc(t.role)}</span></button>`).join('')}</div>`;
+}
+$('panel').addEventListener('click', (e) => { const b = e.target.closest('[data-w]'); if (b) select(b.dataset.w); });
+
+/* ---------- 3D ---------- */
+const stage = $('stage'), labels = $('labels');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+stage.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+const cam = new THREE.PerspectiveCamera(35, 1, 0.1, 200);
+const ctl = new OrbitControls(cam, renderer.domElement);
+ctl.target.set(0, 0.5, 0); ctl.enableDamping = true; ctl.enablePan = false;
+ctl.minPolarAngle = 0.5; ctl.maxPolarAngle = 1.2; ctl.minDistance = 14; ctl.maxDistance = 75;
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0xb9b3d6, 1.6));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6);
+sun.position.set(8, 16, 10); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 12, bottom: -12 }); scene.add(sun);
+
+const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, ...o });
+function box(w, h, d, c, x, y, z, parent = scene, o) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M(c, o)); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m; }
+
+// lantai, dinding, jendela
+box(22, 0.3, 15, 0xf3efe6, 0, -0.15, 0);
+box(22, 4, 0.3, 0xe7e3f3, 0, 2, -7.6); box(0.3, 4, 15, 0xdcd7ee, -11.1, 2, 0);
+for (const x of [-7, 0, 7]) { box(3.2, 1.8, 0.1, 0xbfe3ff, x, 2.4, -7.42, scene, { emissive: 0x9bd1ff, emissiveIntensity: 0.25 }); box(3.4, 0.12, 0.2, 0xffffff, x, 1.45, -7.4); }
+box(0.1, 1.8, 3, 0xbfe3ff, -10.92, 2.4, 2, scene, { emissive: 0x9bd1ff, emissiveIntensity: 0.25 });
+// papan nama
+const sign = (() => { const c = document.createElement('canvas'); c.width = 512; c.height = 96; const g = c.getContext('2d'); g.fillStyle = '#6D28D9'; g.fillRect(0, 0, 512, 96); g.fillStyle = '#fff'; g.font = 'bold 44px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('KANTOR AI · KMB', 256, 50); return new THREE.CanvasTexture(c); })();
+const signM = new THREE.Mesh(new THREE.PlaneGeometry(5, 0.95), new THREE.MeshBasicMaterial({ map: sign })); signM.position.set(0, 3.55, -7.43); scene.add(signM);
+
+function plant(x, z, s = 1) { box(0.6 * s, 0.6 * s, 0.6 * s, 0xd6cfc4, x, 0.3 * s, z); const l = new THREE.Mesh(new THREE.IcosahedronGeometry(0.62 * s, 0), M(0x4ade80, { flatShading: true })); l.position.set(x, 1.05 * s, z); l.castShadow = true; scene.add(l); }
+plant(-10.2, -6.6); plant(10.2, -6.6); plant(10.2, 6.6, 0.9);
+
+const W = {};
+const skin = 0xf2c7a5, hairC = [0x2b2118, 0x1f1b16, 0x5a3a22, 0x111111, 0x3b2a20];
+TEAM.forEach((t, i) => {
+  const g = new THREE.Group(); g.position.set(...t.pos); scene.add(g);
+  const rug = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.04, 4.6), M(t.rug)); rug.position.y = 0.02; rug.receiveShadow = true; g.add(rug);
+  // meja + monitor + lampu status
+  box(2.6, 0.12, 1.2, 0xffffff, 0, 1.0, -0.6, g); box(0.1, 1.0, 1.1, 0xe5e7eb, -1.2, 0.5, -0.6, g); box(0.1, 1.0, 1.1, 0xe5e7eb, 1.2, 0.5, -0.6, g);
+  box(1.1, 0.7, 0.08, 0x1f2937, 0, 1.55, -0.95, g); box(0.15, 0.3, 0.15, 0x374151, 0, 1.2, -0.95, g);
+  const scr = box(1.0, 0.6, 0.02, 0x93c5fd, 0, 1.55, -0.9, g, { emissive: 0x60a5fa, emissiveIntensity: 0.6 });
+  const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 12), new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 1 })); lamp.position.set(1.0, 1.25, -0.8); g.add(lamp);
+  box(0.9, 0.08, 0.9, 0x4b5563, 0, 0.6, 0.55, g); box(0.9, 0.8, 0.1, 0x4b5563, 0, 1.0, 1.0, g);
+  // properti
+  if (t.prop === 'rack') { for (let k = 0; k < 2; k++) { box(0.8, 2.2, 0.8, 0x1f2937, 2.2 - k * 0.9 - 0.2, 1.1, -1.7, g); for (let j = 0; j < 5; j++) box(0.6, 0.06, 0.02, j % 2 ? 0x22d3ee : 0x4ade80, 2.2 - k * 0.9 - 0.2, 0.4 + j * 0.38, -1.29, g, { emissive: j % 2 ? 0x22d3ee : 0x4ade80, emissiveIntensity: 0.8 }); } }
+  if (t.prop === 'shelf') { box(1.8, 2, 0.5, 0xc8a27a, -1.9, 1, -1.8, g); [0x60a5fa, 0xf87171, 0xfbbf24, 0x34d399, 0xa78bfa].forEach((c, j) => box(0.22, 0.5, 0.35, c, -2.6 + j * 0.3, 1.5, -1.75, g)); }
+  if (t.prop === 'gate') { box(0.25, 2, 0.25, 0x94a3b8, -2.3, 1, -1.6, g); box(0.25, 2, 0.25, 0x94a3b8, -2.3, 1, 0.2, g); box(0.2, 0.2, 2, 0x94a3b8, -2.3, 2, -0.7, g); }
+  if (t.prop === 'plant') { box(2.4, 1.1, 0.5, 0xf9a8d4, 0, 0.55, -2.0, g); plant(t.pos[0] - 2.2, t.pos[2] - 1.8, 0.8); }
+  if (t.prop === 'board') { box(2.2, 1.4, 0.08, 0xffffff, -1.6, 1.8, -1.9, g); box(0.08, 1.8, 0.08, 0x9ca3af, -1.6, 0.9, -1.88, g); }
+  // orang
+  const p = new THREE.Group(); p.position.set(0, 0, 0.45); g.add(p);
+  const legL = box(0.24, 0.6, 0.24, 0x334155, -0.16, 0.3, 0, p), legR = box(0.24, 0.6, 0.24, 0x334155, 0.16, 0.3, 0, p);
+  const body = box(0.7, 0.75, 0.42, t.shirt, 0, 0.98, 0, p);
+  const head = new THREE.Group(); head.position.set(0, 1.62, 0); p.add(head);
+  box(0.55, 0.55, 0.5, skin, 0, 0, 0, head); box(0.58, 0.18, 0.54, hairC[i], 0, 0.27, 0.02, head);
+  box(0.08, 0.08, 0.02, 0x111111, -0.12, 0.03, -0.26, head); box(0.08, 0.08, 0.02, 0x111111, 0.12, 0.03, -0.26, head);
+  if (t.id === 'satpam') box(0.62, 0.14, 0.62, 0x1e3a8a, 0, 0.36, -0.02, head);
+  if (t.id === 'teknisi') box(0.64, 0.08, 0.1, 0x111827, 0, 0.2, 0, head);
+  const armL = new THREE.Group(), armR = new THREE.Group(); armL.position.set(-0.46, 1.3, 0); armR.position.set(0.46, 1.3, 0); p.add(armL, armR);
+  box(0.2, 0.62, 0.2, t.shirt, 0, -0.3, 0, armL); box(0.2, 0.62, 0.2, t.shirt, 0, -0.3, 0, armR);
+  p.rotation.y = Math.PI; // menghadap meja
+  const tag = document.createElement('div'); tag.className = 'tag'; tag.innerHTML = '<div class="bub"></div><div class="nm"></div>';
+  tag.querySelector('.nm').textContent = t.name; tag.onclick = () => select(t.id); labels.appendChild(tag);
+  W[t.id] = { g, p, body, head, armL, armR, legL, legR, lamp, scr, tag, phase: i * 1.3 };
+});
+
+const COL = { ok: 0x22c55e, warn: 0xf59e0b, crit: 0xef4444, idle: 0x94a3b8 };
+const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(); let down = null;
+renderer.domElement.addEventListener('pointerdown', (e) => { down = [e.clientX, e.clientY]; });
+renderer.domElement.addEventListener('pointerup', (e) => {
+  if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) return;
+  const r = renderer.domElement.getBoundingClientRect(); ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(ptr, cam);
+  for (const h of ray.intersectObjects(scene.children, true)) { const id = Object.keys(W).find((k) => { let o = h.object; while (o) { if (o === W[k].g) return true; o = o.parent; } return false; }); if (id) { select(id); break; } }
+});
+
+function select(id) { SEL = id; Object.entries(W).forEach(([k, w]) => w.tag.classList.toggle('sel', k === id)); if (DATA) panel(); }
+
+function fit() {
+  const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
+  const half = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * cam.aspect; // lebar pandang
+  const dist = Math.min(72, Math.max(25, 12.5 / half));
+  const dir = new THREE.Vector3(0.55, 0.85, 1).normalize(); cam.position.copy(ctl.target).addScaledVector(dir, dist);
+}
+new ResizeObserver(fit).observe(stage); fit();
+
+const v = new THREE.Vector3(), clock = new THREE.Clock();
+function loop() {
+  const t = clock.getElapsedTime(), W0 = stage.clientWidth, H0 = stage.clientHeight;
+  for (const [id, w] of Object.entries(W)) {
+    const s = STATE[id] || { level: 'idle' }, ph = t * 1 + w.phase;
+    w.lamp.material.color.setHex(COL[s.level]); w.lamp.material.emissive.setHex(COL[s.level]);
+    w.lamp.material.emissiveIntensity = s.level === 'crit' ? 0.6 + Math.abs(Math.sin(t * 5)) * 1.6 : s.level === 'warn' ? 0.7 + Math.abs(Math.sin(t * 2.5)) * 0.8 : 1;
+    w.scr.material.emissive.setHex(s.level === 'crit' ? 0xef4444 : s.level === 'warn' ? 0xf59e0b : 0x60a5fa);
+    const alert = s.level === 'warn' || s.level === 'crit';
+    if (alert) { // berdiri, menoleh ke kamera, melambai
+      w.p.position.y = 0.05 + Math.abs(Math.sin(ph * 3)) * 0.06; w.p.rotation.y = Math.PI * 0.15;
+      w.armR.rotation.z = 2.6 + Math.sin(ph * 6) * 0.35; w.armL.rotation.x = 0; w.head.rotation.y = Math.sin(ph) * 0.2;
+    } else if (s.level === 'idle') {
+      w.p.position.y = Math.sin(ph * 1.2) * 0.015; w.p.rotation.y = Math.PI; w.armR.rotation.set(0, 0, 0); w.armL.rotation.set(0, 0, 0); w.head.rotation.y = Math.sin(ph * 0.4) * 0.5;
+    } else { // mengetik
+      const sp = s.busy ? 14 : 7; w.p.position.y = 0; w.p.rotation.y = Math.PI; w.armR.rotation.z = 0;
+      w.armL.rotation.x = -1.1 + Math.sin(ph * sp) * 0.15; w.armR.rotation.x = -1.1 + Math.cos(ph * sp) * 0.15; w.head.rotation.y = Math.sin(ph * 0.7) * 0.15;
+    }
+    v.set(0, alert ? 2.75 : 2.6, 0.45).applyMatrix4(w.g.matrixWorld).project(cam);
+    w.tag.style.left = ((v.x + 1) / 2) * W0 + 'px'; w.tag.style.top = ((1 - v.y) / 2) * H0 + 'px';
+    w.tag.style.display = v.z < 1 ? '' : 'none';
+  }
+  ctl.update(); renderer.render(scene, cam); requestAnimationFrame(loop);
+}
+loop();
+
+function apply(d) {
+  DATA = d; STATE = derive(d);
+  for (const [id, w] of Object.entries(W)) { const s = STATE[id], b = w.tag.querySelector('.bub'); b.className = 'bub ' + s.level; b.textContent = s.bubble; w.tag.classList.toggle('hot', s.level === 'warn' || s.level === 'crit'); }
+  const o = overallOf(STATE); $('overall').className = 'pill ' + o; $('overall').innerHTML = '<i></i>' + (o === 'ok' ? 'Semua aman' : o === 'warn' ? 'Ada yang perlu dicek' : o === 'crit' ? 'Ada masalah!' : 'Menunggu laporan pertama');
+  $('upd').textContent = wib(d.now || Date.now()); select(SEL);
+}
+
+/* ---------- data ---------- */
+function gate(title, text, btn) { const g = $('gate'); g.hidden = false; g.innerHTML = `<div class="card"><h2>${title}</h2><p>${text}</p>${btn || ''}</div>`; }
+const demoData = () => ({ now: new Date().toISOString(), activity_24h: 23, actors_24h: 3, deletes_24h: 1, activity_by_app: { kmb: 14, apd: 6, 'unit-monitoring': 3 },
+  activity_recent: [{ at: new Date(Date.now() - 9e5).toISOString(), app: 'kmb', site: 'C4', actor: 'andi@contoh.com', action: 'Pelamar diperbarui.' }, { at: new Date(Date.now() - 4e6).toISOString(), app: 'apd', site: null, actor: 'rina@contoh.com', action: 'Stok helm masuk 20 pcs' }],
+  pending_requests: [{ app_id: 'kmb', email: 'budi@contoh.com', requested_at: new Date().toISOString() }, { app_id: 'apd', email: 'sari@contoh.com', requested_at: new Date().toISOString() }],
+  links_active: { viewer: 106, editor: 3 }, links_expiring_3d: 5, signins_24h: 4, members: 3,
+  last_report: { created_at: new Date(Date.now() - 3 * 36e5).toISOString(), level: 'warn', summary: 'Aman, ada 2 permintaan akses menunggu.',
+    body: '### Ringkasan\nSemua normal, cukup setujui **2 permintaan akses**.\n### Keamanan\n- Tidak ada celah baru di Supabase\n### Aktivitas kemarin\n- Manpower KMB: 14 perubahan (site C4)\n- APD: 6 data baru\n### Perlu tindakan\n- 2 permintaan akses menunggu\n- 5 link Pelihat kedaluwarsa dalam 3 hari',
+    checks: { security: { level: 'ok', summary: 'Tidak ada celah baru', items: ['Security Advisor: 0 temuan baru', 'Tidak ada login mencurigakan'] }, web: { level: 'ok', summary: '9/9 halaman hidup', items: ['Semua halaman merespons', 'Tidak ada error di log'] } } } });
+
+async function start() {
+  if (DEMO) { const b = document.createElement('span'); b.className = 'pill warn demo'; b.innerHTML = '<i></i>Mode contoh, bukan data asli'; stage.appendChild(b); apply(demoData()); return; }
+  await new Promise((ok, no) => { const s = document.createElement('script'); s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js'; s.onload = ok; s.onerror = no; document.head.appendChild(s); })
+    .catch(() => gate('Gagal memuat', 'Periksa koneksi internet lalu muat ulang halaman.'));
+  if (!window.supabase) return;
+  const sb = window.supabase.createClient(CFG.url, CFG.key, { auth: { persistSession: true, autoRefreshToken: true, storageKey: 'kta-web-auth' } });
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { gate('Khusus Pemilik', 'Masuk dulu di halaman Monitoring, lalu buka Kantor AI lagi.', '<a class="btn" href="../">Masuk di Monitoring →</a> <a class="btn" href="?demo">Lihat contoh</a>'); return; }
+  const load = async () => {
+    const { data, error } = await sb.rpc('office_status');
+    if (error) { /Pemilik/.test(error.message) ? gate('Khusus Pemilik', 'Kantor AI hanya bisa dibuka oleh Pemilik web Monitoring.', '<a class="btn" href="../">← Kembali</a>') : ($('overall').textContent = 'Gagal memuat: ' + error.message); return; }
+    $('gate').hidden = true; apply(data);
+  };
+  await load(); setInterval(load, 60000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
+}
+start();
+</script>
+</body>
+</html>
