@@ -2396,7 +2396,7 @@ const MU_VENDOR_COLORS=[
 const MU_VENDOR_FIXED={KMB:0,PPG:1,NUSATAMA:2,TRINANDA:3};
 function muVendorTag(name){
   const label=String(name||"").trim()||"Belum diisi";
-  const key=label.replace(/\\s+/g," ").toUpperCase();
+  const key=label.replace(/\s+/g," ").toUpperCase();
   let index=MU_VENDOR_FIXED[key];
   if(index===undefined){
     let hash=0;
