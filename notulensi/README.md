@@ -34,7 +34,7 @@ Masuk sebagai Pemilik → **Unit & File** → **Upload Folder** → pilih folder
 - **Unduh Template Notulensi**: pilih kategori lalu **Unduh Excel** atau **Unduh Word**.
 - **Template Excel (Persiapan/Permasalahan)**, tanpa macro: kolom No, Bab, Topik, Hasil Pembahasan, Tindak Lanjut, PIC, Due Date, Status + **Sumber Data** (dropdown kode), **Lihat ›**, **Hasil (%)**, **Nilai Sub Bab**, **Nilai Bab**.
   - Kanan atas: **Total kesiapan**, dropdown **Pilih sumber** + **Buka ›**, dan **+ Tambah sumber**.
-  - Tambah sumber: buka sheet *SD contoh* → klik kanan tab › Move or Copy › Create a copy → ganti nama SD 1, SD 2, … → pilih kode yang sama di kolom Sumber Data. Sheet SD hanya ada untuk sumber yang dipakai.
+  - Sheet SD 1–SD 10 sudah tersedia di template (yang tidak dipakai diabaikan). Lebih dari 10: salin sheet *SD contoh* (klik kanan tab › Move or Copy › Create a copy) dan beri nama SD 11, dst. Bila sheet belum ada, link berubah menjadi *Buat SD n ›* yang membuka SD contoh. Form dari web hanya membuat sheet SD untuk sumber yang sudah ada.
   - Sheet SD: Nama sumber data, lalu No, Persiapan, Jumlah, Aktual, Persentase. Hasil = rata-rata Persentase.
   - Hasil (%) per tindak lanjut dari sheet SD; tanpa sumber: Close/Continue = 100%, Open = 0%. Nilai Sub Bab = rata-rata Hasil per Topik; Nilai Bab = rata-rata Nilai Sub Bab; Total = rata-rata Nilai Bab. Sama dengan perhitungan web.
   - Saat upload, setiap sheet yang namanya sama dengan kode di kolom Sumber Data ikut terbaca. Form dari web hanya membuat sheet SD untuk sumber yang sudah ada.
