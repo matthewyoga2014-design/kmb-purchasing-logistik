@@ -546,6 +546,16 @@ div.ksbig{cursor:default}
 @media (max-width:640px){.srcf{grid-template-columns:1fr 1fr}.srcf .sw{grid-column:1/-1}}
 @media print{.srcb{border:0;padding:0}.srcb small{font-size:9px}}
 .srcf input{width:100%;height:40px;box-sizing:border-box;border:1px solid var(--line-2);border-radius:10px;padding:8px 10px;background:#fff;font:inherit}.srcf input:disabled{background:var(--sunk)}
+.sheet{width:100%;border-collapse:collapse;font-size:13px;min-width:620px}
+.sheet th{font-size:11.5px;color:var(--muted);text-align:left;padding:6px 6px;background:#FAFAFE;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:1}
+.sheet td{padding:3px 4px;border-bottom:1px solid var(--line)}.sheet td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;padding-right:8px}
+.sheet input{width:100%;box-sizing:border-box;height:32px;border:1px solid transparent;border-radius:7px;padding:4px 7px;background:transparent;font:inherit}
+.sheet input:hover{border-color:var(--line-2)}.sheet input:focus{border-color:var(--pri);background:#fff;outline:none}.sheet input:disabled{color:var(--fg)}
+.sheet input.nm{text-align:right;width:84px}.sheet input.un{width:80px}.sheet tfoot td{background:#FAFAFE;font-weight:600;padding:7px 6px}
+.shtop{margin-top:12px}.shtop input{width:100%;max-width:460px;height:38px;box-sizing:border-box;border:1px solid var(--line-2);border-radius:10px;padding:6px 10px;font:inherit}
+.shmore{margin-top:12px;border-top:1px solid var(--line);padding-top:10px}.shmore summary{cursor:pointer;font-weight:700;font-size:13px}
+.kstog{all:unset;cursor:pointer;width:20px;display:inline-block;color:var(--pri-2);font-size:12px;margin-right:6px}
+.kstag.sm{margin:4px 0 0;font-size:11px;padding:1px 7px}.kstag small{margin-left:2px}
 
 /* ===== v3 skin: violet "Integrated Monitoring" look, matching the Monitoring Manpower portal ===== */
 :root{
@@ -1408,7 +1418,7 @@ function renderSeries(){
       const stc=cell(r,"st",`${pill(sst)}`);if(stc.cls){stc.pre="";stc.html=`<div class="stc"><span class="oldv" style="text-decoration:none;display:inherit">${pill(d.rows[r.k].ch.st)}</span><span class="arrow oldv" style="text-decoration:none">▼</span>${pill(sst)}</div>`;}
       if(r.auto){stc.html=`${pill("close")}<div class="stamp" style="margin-top:3px" title="Ditutup otomatis karena tidak ada meeting lanjutan">dari ${ST[r.auto]} · otomatis</div>`;}
       const dl=eDue(r)?daysTo(eDue(r)):null;
-      return `<tr class="r-${sst}">${i===0?`<td class="no grp g-${gst}" rowspan="${n}">${no}</td>${td("tp grp g-"+gst,cell(t.rows[0],"topik",esc(t.topik)||"<span class='muted'>—</span>"),n)}${bsame?td("bh grp g-"+gst,cell(t.rows[0],"bahas",esc(bahas)||"<span class='muted'>—</span>"),n):""}`:""}${bsame?"":td("bh",cell(r,"bahas",esc(r.bahas)||"<span class='muted'>—</span>"))}
+      return `<tr class="r-${sst}">${i===0?`<td class="no grp g-${gst}" rowspan="${n}">${no}</td>${td("tp grp g-"+gst,cell(t.rows[0],"topik",(esc(t.topik)||"<span class='muted'>—</span>")+(KS?ksTopikTag(KS,g,t.topik,s.id):"")),n)}${bsame?td("bh grp g-"+gst,cell(t.rows[0],"bahas",esc(bahas)||"<span class='muted'>—</span>"),n):""}`:""}${bsame?"":td("bh",cell(r,"bahas",esc(r.bahas)||"<span class='muted'>—</span>"))}
         ${td("tlc",cell(r,"tl",(isNew?`<span class="pill upd newtag" style="margin-right:6px">Baru</span>`:"")+esc(r.tl||"—")))}
         ${td("pc",cell(r,"pic",esc(r.pic||"—")))}
         ${td("du",cell(r,"due",`<span class="${isLate(r)?"late":""}">${esc(dueLabel(r))}</span>${isLate(r)?`<div class="late" style="font-size:11.5px">Telat ${-dl} hari</div>`:""}`))}
@@ -1614,15 +1624,15 @@ async function downloadForm(sid,fmt,jenis){
   const base=`Form Update Meeting ke-${fv.no} - ${(s.title||"Notulensi").replace(/[\\/:*?"<>|]+/g,"-").slice(0,80)}`;
   try{toast("Menyiapkan form…",true);let blob,name;
     if(fmt==="word"){blob=buildDocx(fv,s.title,[],{form:true,prevDate:lv.date,jenis});name=base+".docx";}
-    else{const X=await loadXlsx();const cols=fv.cols||[];const SD=hasPct({jenis})||hasPct(s);
+    else{const X=await loadXlsx();const cols=fv.cols||[];const SD=hasPct({jenis})||hasPct(s),sdRows=[];
       const aoa=[["FORM UPDATE MEETING"],[`Lanjutan dari Meeting ke-${lv.no} (${fmtD(lv.date)}). Ubah Status, perbarui isi, tambah baris baru dengan Kode kosong. Jangan ubah kolom Kode.`],[],
         ["Judul Notulensi",s.title],["Meeting ke-",fv.no],["Tanggal",""],["Jam",""],["Agenda",lv.agenda||""],["Lokasi",lv.place||""],["Pimpinan Rapat",lv.lead||""],["Peserta",lv.people||""],["Next Meeting",""],["Jenis Notulensi",jenis],
         ["No","Bab","Topik","Hasil Pembahasan","Tindak Lanjut","PIC","Due Date","Status",...(SD?["Sumber Data","Plan","Aktual","Hasil (%)"]:[]),...cols.map(c=>c.name),"Kode"]];
       let no=0,lt=null,lb="";fv.rows.forEach(r=>{if(r.bab&&r.bab!==lb){lb=r.bab;aoa.push([r.bab]);}const same=lt&&lt.sec===r.sec&&norm(lt.topik)===norm(r.topik)&&r.topik;if(!same)no++;lt=r;
-        aoa.push([no,r.sec||"",r.topik,r.bahas,r.tl,r.pic,r.due?fmtD(r.due):(r.dueText||""),ST[r.st||"open"],...(SD?srcVals(sid,r):[]),...cols.map(c=>(r.x||{})[c.id]||""),r.k]);});
+        aoa.push([no,r.sec||"",r.topik,r.bahas,r.tl,r.pic,r.due?fmtD(r.due):(r.dueText||""),ST[r.st||"open"],...(SD?srcVals(sid,r):[]),...cols.map(c=>(r.x||{})[c.id]||""),r.k]);if(SD)sdRows.push({ri:aoa.length-1,r,P:rowProg(sid,r)});});
       for(let i=0;i<15;i++)aoa.push(Array(9+cols.length+(SD?4:0)).fill(""));
       const ws=X.utils.aoa_to_sheet(aoa);ws["!cols"]=[{wch:5},{wch:26},{wch:22},{wch:44},{wch:44},{wch:18},{wch:16},{wch:11},...cols.map(()=>({wch:16})),{wch:12}];
-      const wb=X.utils.book_new();X.utils.book_append_sheet(wb,ws,"Form Update");
+      const wb=X.utils.book_new();X.utils.book_append_sheet(wb,ws,"Form Update");if(SD)addSdSheets(X,wb,ws,sdRows,8);
       blob=new Blob([X.write(wb,{type:"array",bookType:"xlsx"})],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});name=base+".xlsx";}
     await S.downloads.save({filename:name,data:blob});toast("Form siap diisi. Setelah selesai, upload kembali di sini.");
   }catch(err){if(err&&err.code==="cancelled")return;toast("Gagal membuat form: "+errMsg(err));}
@@ -2149,7 +2159,7 @@ function parseDoc(html){
 async function readNotulensi(file){
   if(/\.docx$/i.test(file.name)){const m=await loadMammoth();const r=await m.convertToHtml({arrayBuffer:await file.arrayBuffer()});return parseDoc(r.value);}
   const X=await loadXlsx();const wb=X.read(await file.arrayBuffer(),{type:"array",cellDates:true});
-  const HELP=/^(petunjuk|panduan|instruksi|cara|help|readme|keterangan)/i,names=wb.SheetNames.filter(n=>!HELP.test(n));
+  const HELP=/^(petunjuk|panduan|instruksi|cara|help|readme|keterangan|sd\s+\d)/i,names=wb.SheetNames.filter(n=>!HELP.test(n));
   const html=(names.length?names:wb.SheetNames).map(n=>{const ws=wb.Sheets[n];Object.keys(ws).forEach(a=>{const c=ws[a];if(a[0]!=="!"&&c&&c.t==="d"&&c.v instanceof Date&&!isNaN(c.v)){const d=c.v;c.w=d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}});if(ws["!ref"]){const r=X.utils.decode_range(ws["!ref"]);if(r.e.r>2000){r.e.r=2000;ws["!ref"]=X.utils.encode_range(r);}}return X.utils.sheet_to_html(ws,{header:"",footer:""});}).join("");
   const p=parseDoc(html);
   // Excel: date cells may come as m/d/yy strings; parse loosely
@@ -2184,7 +2194,7 @@ BARU: ${JSON.stringify(restN.map(i=>({i,topik:neu[i].topik,tindak_lanjut:neu[i].
 }
 async function mergeRows(prev,neu){
   const map=await matchRows(prev,neu),pm=new Map(prev.map(p=>[p.k,p]));const out=[];
-  neu.forEach((r,i)=>{const k=map.get(i);if(k){const p=pm.get(k);out.push({...p,...(r.bab||p.bab?{bab:r.bab||p.bab}:{}),...(r.src||p.src?{src:r.src||p.src}:{}),sec:r.sec||p.sec,topik:r.topik||p.topik,bahas:r.bahas||p.bahas,tl:r.tl||p.tl,pic:r.pic||p.pic,due:r.due||(r.dueText?"":p.due),dueText:r.due?"":(r.dueText||p.dueText||""),st:r.st||p.st||"open",ket:r.ket||p.ket||"",x:{...(p.x||{}),...Object.fromEntries(Object.entries(r.x||{}).filter(([,v])=>clean(v)))},k});}
+  neu.forEach((r,i)=>{const k=map.get(i);if(k){const p=pm.get(k);out.push({...p,...(r.bab||p.bab?{bab:r.bab||p.bab}:{}),...(r.src||p.src?{src:p.src&&srcItems(p.src).length>1?p.src:(r.src||p.src)}:{}),sec:r.sec||p.sec,topik:r.topik||p.topik,bahas:r.bahas||p.bahas,tl:r.tl||p.tl,pic:r.pic||p.pic,due:r.due||(r.dueText?"":p.due),dueText:r.due?"":(r.dueText||p.dueText||""),st:r.st||p.st||"open",ket:r.ket||p.ket||"",x:{...(p.x||{}),...Object.fromEntries(Object.entries(r.x||{}).filter(([,v])=>clean(v)))},k});}
     else out.push({...r,st:r.st||"open"});});
   const got=new Set(out.map(r=>r.k));
   prev.filter(p=>!got.has(p.k)&&p.st!=="close").forEach(p=>{let at=-1;out.forEach((r,i)=>{if(r.sec===p.sec)at=i;});if(at<0)out.push({...p});else out.splice(at+1,0,{...p});});
@@ -2275,11 +2285,11 @@ async function exportXlsx(v){
   try{toast("Membuat file Excel…",true);const X=await loadXlsx();const s=sById(v.seriesId);const d=vDiff(v);
     const aoa=[["NOTULENSI MEETING"],[s?.title||""],[],["Meeting ke-",v.no],["Tanggal",fmtD(v.date)],["Jam",v.time||""],["Agenda",v.agenda||""],["Lokasi",v.place||""],["Pimpinan",v.lead||""],["Peserta",v.people||""],["Next Meeting",v.next?fmtD(v.next):""],[],
       ["No","Bab","Topik","Hasil Pembahasan","Tindak Lanjut","PIC","Due Date","Status",...(hasPct(s)?["Sumber Data","Plan","Aktual","Hasil (%)"]:[]),...(v.cols||[]).map(c=>c.name),"Perubahan"]];const lbl=f=>f.startsWith("x:")?((v.cols||[]).find(c=>c.id===f.slice(2))?.name||"Kolom"):FIELDS.find(x=>x[0]===f)[1];
-    let no=0,lt=null,lb="";(v.rows||[]).forEach(r=>{if(r.bab&&r.bab!==lb){lb=r.bab;aoa.push([r.bab]);}const same=lt&&lt.sec===r.sec&&norm(lt.topik)===norm(r.topik)&&r.topik;if(!same)no++;lt=r;const dr=d&&d.rows[r.k];
+    let no=0,lt=null,lb="";const sdRows=[];(v.rows||[]).forEach(r=>{if(r.bab&&r.bab!==lb){lb=r.bab;aoa.push([r.bab]);}const same=lt&&lt.sec===r.sec&&norm(lt.topik)===norm(r.topik)&&r.topik;if(!same)no++;lt=r;const dr=d&&d.rows[r.k];
       const chg=dr?(dr.isNew?"Baru":Object.entries(dr.ch).map(([f,o])=>`${lbl(f)}: ${f==="st"?ST[o]:o} → ${f==="due"?dueLabel(r):f==="st"?ST[r.st]:xv(r,f)}`).join("; ")):"";
-      aoa.push([same?"":no,r.sec||"",same?"":r.topik,same?"":r.bahas,r.tl,r.pic,dueLabel(r),ST[r.st||"open"],...(hasPct(s)?srcVals(v.seriesId,r):[]),...(v.cols||[]).map(c=>(r.x||{})[c.id]||""),chg]);});
+      aoa.push([same?"":no,r.sec||"",same?"":r.topik,same?"":r.bahas,r.tl,r.pic,dueLabel(r),ST[r.st||"open"],...(hasPct(s)?srcVals(v.seriesId,r):[]),...(v.cols||[]).map(c=>(r.x||{})[c.id]||""),chg]);if(hasPct(s))sdRows.push({ri:aoa.length-1,r,P:rowProg(v.seriesId,r)});});
     const ws=X.utils.aoa_to_sheet(aoa);ws["!cols"]=[{wch:5},{wch:26},{wch:24},{wch:46},{wch:46},{wch:18},{wch:14},{wch:11},{wch:30},{wch:40}];
-    const wb=X.utils.book_new();X.utils.book_append_sheet(wb,ws,"Meeting "+v.no);
+    const wb=X.utils.book_new();X.utils.book_append_sheet(wb,ws,"Meeting "+v.no);if(hasPct(s))addSdSheets(X,wb,ws,sdRows,8);
     if(d&&d.removed.length){const rs=X.utils.aoa_to_sheet([["Dihapus di Meeting ke-"+v.no],["Item","Topik","PIC","Status terakhir"],...d.removed.map(r=>[r.tl,r.topik,r.pic,ST[r.st||"open"]])]);X.utils.book_append_sheet(wb,rs,"Dihapus");}
     const buf=X.write(wb,{type:"array",bookType:"xlsx"});const fname=`${(s?.title||"Notulensi").replace(/[\\/:*?"<>|]+/g,"-").slice(0,90)} - Meeting ${v.no} - ${fmtD(v.date)}.xlsx`;
     await S.downloads.save({filename:fname,data:new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})});toast("File Excel siap");
@@ -2400,20 +2410,29 @@ const bgKey=sec=>"bg:"+(norm(sec)||"-");
 function babTidy(t){t=String(t||"").trim();const L=t.split(/\s*\n\s*/).filter(Boolean);if(L.length>1&&BABRE.test(L[0]))return L[0].replace(/^bab/i,"Bab")+" – "+L.slice(1).join(" ");return L.join(" ");}
 const rowKey=k=>"r:"+k;
 const fmtN=x=>x==null||x===""?"—":Number(x).toLocaleString("id-ID",{maximumFractionDigits:2});
-function rowProg(sid,r){const st=r.st||"open",rk=rowKey(r.k),rin=rincOf(sid,rk)[0]||null,src=r.src||null,warn=[];let pct,m;
+/* sheet sumber data per tindak lanjut: daftar item Plan/Aktual */
+function srcItems(src){if(!src)return[];if(Array.isArray(src.items))return src.items;if(src.plan!=null||src.act!=null)return[{n:src.name||"",p:src.plan??null,a:src.act??null,u:src.unit||""}];return[];}
+const itemOk=it=>it&&it.p>0&&it.a!=null&&it.a>=0;
+function sheetStat(items){const ok=items.filter(itemOk);return{n:items.length,valid:ok.length,pct:ok.length?ok.reduce((s,it)=>s+Math.min(it.a/it.p,1),0)/ok.length*100:null,
+  sumP:Math.round(ok.reduce((s,it)=>s+it.p,0)*1000)/1000,sumA:Math.round(ok.reduce((s,it)=>s+it.a,0)*1000)/1000,over:ok.filter(it=>it.a>it.p).length};}
+function rowProg(sid,r){const st=r.st||"open",rk=rowKey(r.k),rin=rincOf(sid,rk)[0]||null,src=r.src||null,items=srcItems(src),SS=sheetStat(items),warn=[];let pct,m;
   if(rin&&rin.rinc.valid>0){pct=rin.rinc.pct;m="rincian";}
-  else if(src&&src.plan>0&&src.act!=null&&src.act>=0){pct=Math.min(src.act/src.plan,1)*100;m="plan";}
+  else if(SS.valid){pct=SS.pct;m="sheet";}
   else{pct=st==="close"?100:0;m="status";}
   if(m!=="status"){if(st==="close"&&pct<100)warn.push(`Status Close, tetapi sumber data baru ${fmtPct(pct)}. Mohon diverifikasi.`);
     if(st!=="close"&&pct>=100)warn.push("Sumber data sudah 100%, tetapi status belum Close.");
-    if(m==="plan"&&src.act>src.plan)warn.push("Aktual melebihi Plan (dihitung 100%).");
+    if(m==="sheet"&&SS.over)warn.push(`${SS.over} item Aktual melebihi Plan (dihitung 100%).`);
     if(m==="rincian"&&rin.rinc.over)warn.push(`${rin.rinc.over} item Actual melebihi Plan (dihitung 100%).`);}
-  return{pct,m,src,rin,warn,docs:docsOf(sid,rk),hist:rincOf(sid,rk)};}
-const howTxt=P=>P.m==="rincian"?`Rincian ${P.rin.rinc.valid} item · Plan ${fmtN(P.rin.rinc.sumP)} → Aktual ${fmtN(P.rin.rinc.sumA)}`:P.m==="plan"?`Plan ${fmtN(P.src.plan)} → Aktual ${fmtN(P.src.act)}${P.src.unit?" "+esc(P.src.unit):""}${P.src.name?" · "+esc(P.src.name):""}`:`Belum ada sumber data · mengikuti status`;
+  return{pct,m,src,items,SS,rin,warn,docs:docsOf(sid,rk),hist:rincOf(sid,rk)};}
+const one=P=>P.items.length===1&&P.SS.valid===1;
+const howTxt=P=>P.m==="rincian"?`Rincian Excel ${P.rin.rinc.valid} item · Plan ${fmtN(P.rin.rinc.sumP)} → Aktual ${fmtN(P.rin.rinc.sumA)}`
+  :P.m==="sheet"?(one(P)?`Plan ${fmtN(P.items[0].p)} → Aktual ${fmtN(P.items[0].a)}${P.items[0].u?" "+esc(P.items[0].u):""}`:`Sheet ${P.SS.valid} item · rata-rata hasil tiap item`)+(P.src&&P.src.name?" · "+esc(P.src.name):"")
+  :"Belum ada sumber data · mengikuti status";
+const shortTxt=P=>P.m==="status"?(S.canEdit?"Status · klik buat sheet":"Mengikuti status"):P.m==="rincian"?`Rincian ${P.rin.rinc.valid} item`:one(P)?`${fmtN(P.items[0].p)} → ${fmtN(P.items[0].a)}${P.items[0].u?" "+esc(P.items[0].u):""}`:`Sheet ${P.SS.valid} item`;
 function srcCell(sid,r){const P=rowProg(sid,r),n=P.docs.length+P.hist.length;
-  return `<td class="srcc"><button type="button" class="srcb${P.m==="status"?" nos":""}${P.warn.length?" w":""}" data-act="rowSrc" data-id="${sid}" data-k="${esc(r.k)}" title="Lihat / isi sumber data">
-    <b>${fmtPct(P.pct)}</b>${P.warn.length?'<i class="kw">⚠</i>':""}${ksBar(P.pct)}<small>${P.m==="status"?(S.canEdit?"Status · + isi Plan/Aktual":"Mengikuti status"):P.m==="rincian"?`Rincian ${P.rin.rinc.valid} item`:`${fmtN(P.src.plan)} → ${fmtN(P.src.act)}${P.src.unit?" "+esc(P.src.unit):""}`}${n?` · ${n} file`:""}</small></button></td>`;}
-function srcVals(sid,r){const P=rowProg(sid,r),s=r.src||{};return[s.name||"",s.plan??"",s.act??"",P.m==="status"?"":(Math.round(P.pct*10)/10).toLocaleString("id-ID")+"%"];}
+  return `<td class="srcc"><button type="button" class="srcb${P.m==="status"?" nos":""}${P.warn.length?" w":""}" data-act="rowSrc" data-id="${sid}" data-k="${esc(r.k)}" title="Buka sheet sumber data">
+    <b>${fmtPct(P.pct)}</b>${P.warn.length?'<i class="kw">⚠</i>':""}${ksBar(P.pct)}<small>${shortTxt(P)}${n?` · ${n} file`:""}</small></button></td>`;}
+function srcVals(sid,r){const P=rowProg(sid,r);return[(P.src&&P.src.name)||"",P.SS.valid?P.SS.sumP:"",P.SS.valid?P.SS.sumA:"",P.m==="status"?"":(Math.round(P.pct*10)/10).toLocaleString("id-ID")+"%"];}
 function findRow(sid,k){return seriesRows(sid).find(x=>x.k===k)||null;}
 async function saveRowSrc(sid,k,src){const v=versionsOf(sid).slice().reverse().find(v=>(v.rows||[]).some(r=>r.k===k));if(!v)throw new Error("tindak lanjut tidak ditemukan");
   const rows=(v.rows||[]).map(r=>{if(r.k!==k)return r;const o={...r};if(src)o.src=src;else delete o.src;return o;});
@@ -2426,36 +2445,56 @@ function filesHTML(hist,docs){const fl=f=>`<div class="fl">${fileIcon(f.name)}<a
   return (hist.length?`<div class="stamp" style="font-weight:600;margin-bottom:4px">Riwayat rincian</div><div class="kshist">${hist.map((f,i)=>`<div class="fl">${fileIcon(f.name)}<a href="#" data-ksf="${f.id}">${esc(f.name)}</a><span class="stamp">${fmtTs(f.at)}${f.meetingNo?` · Meeting ke-${f.meetingNo}`:""} · ${fmtPct(f.rinc.pct)}</span>${i===0?`<span class="pill st-close">Dipakai</span>`:`<span class="pill st-grey">Versi lama</span>`}</div>`).join("")}</div>`:"")
     +(docs.length?`<div class="stamp" style="font-weight:600;margin:8px 0 4px">Dokumen bukti</div><div class="kshist">${docs.map(fl).join("")}</div>`:"")
     +(!hist.length&&!docs.length?`<div class="stamp">Belum ada file.</div>`:"");}
+function guessItem(r){const t=clean(r.bahas||"");let m=t.match(/^(\d+(?:[.,]\d+)?)\s*x\s+(.{2,80})$/i);if(m)return{n:m[2],p:numOf(m[1]),a:null,u:/mpp|manpower|rekrut|karyawan/i.test(r.topik||"")?"orang":""};
+  const n=numOf(t);if(n!=null&&n>0)return{n:clean(r.topik)||"Item",p:n,a:null,u:"unit"};
+  return{n:clean(r.topik||"").slice(0,80),p:null,a:null,u:""};}
 function openRowSrc(sid,k){const s=sById(sid),r=findRow(sid,k);if(!s||!r)return toast("Tindak lanjut tidak ditemukan");
-  const P=rowProg(sid,r),code=rowKey(k),src=r.src||{},K=kesiapan(sid),gk=K.mode==="bab"?subCode(r.sec):bgKey(r.sec||r.bab),dis=S.canEdit?"":"disabled";
-  openModal(mHead("Sumber Data")+`<div class="mb">
-    <div class="srchead"><div class="stamp">${esc(clean(r.sec||r.bab||""))}${r.topik?" · "+esc(r.topik):""}</div><div class="srctl">${esc(r.tl||r.topik||"—")}</div><div class="stamp">PIC ${esc(r.pic||"—")} · Due ${esc(dueLabel(r))} · ${pill(r.st||"open")}</div></div>
-    <div class="ksub" style="margin-top:12px"><div class="ksbig ks-${pctCls(P.pct)}"><small>Hasil</small><b id="rsPct">${fmtPct(P.pct)}</b></div><div class="stamp" id="rsHow" style="max-width:520px">${howTxt(P)}</div></div>
+  const P=rowProg(sid,r),code=rowKey(k),K=kesiapan(sid),loc=ksRowLoc(K,k),ed=S.canEdit,dis=ed?"":"disabled";
+  let items=P.items.length?P.items.map(it=>({...it})):[guessItem(r)];const guessed=!P.items.length;
+  openModal(mHead("Sheet Sumber Data")+`<div class="mb">
+    <div class="srchead"><div class="stamp">${esc(loc?loc.b.title:clean(r.sec||r.bab||""))}${loc&&K.mode!=="bab"?"":r.topik?" · "+esc(r.topik):""}${loc?` · ${esc(loc.x.label)}`:""}</div><div class="srctl">${esc(r.tl||r.topik||"—")}</div><div class="stamp">PIC ${esc(r.pic||"—")} · Due ${esc(dueLabel(r))} · ${pill(r.st||"open")}${loc&&loc.w!=null?` · bobot ${fmtPct(loc.w)} dari total`:""}</div></div>
+    <div class="ksub" style="margin-top:12px"><div class="ksbig ks-${pctCls(P.pct)}"><small>Hasil</small><b id="rsPct">${fmtPct(P.pct)}</b></div><div class="stamp" id="rsHow" style="max-width:560px">${howTxt(P)}</div></div>
     ${P.warn.map(w=>`<div class="note" style="margin-top:8px">⚠ ${esc(w)}</div>`).join("")}
-    <h3 class="ksh">Plan &amp; Aktual</h3>
-    <div class="srcf"><label class="f sw">Sumber data<input type="text" id="rsN" value="${esc(src.name||"")}" placeholder="mis. MPP Oktober, PO 123, daftar unit" ${dis}></label>
-      <label class="f">Plan<input type="number" id="rsP" min="0" step="any" inputmode="decimal" value="${src.plan??""}" ${dis}></label>
-      <label class="f">Aktual<input type="number" id="rsA" min="0" step="any" inputmode="decimal" value="${src.act??""}" ${dis}></label>
-      <label class="f">Satuan<input type="text" id="rsU" value="${esc(src.unit||"")}" placeholder="orang, pcs, unit" ${dis}></label></div>
-    <div class="rowx" style="margin-top:8px"><button class="btn pri ed-only" type="button" id="rsSave">Simpan</button>${r.src?`<button class="btn ed-only" type="button" id="rsDel">Hapus Plan/Aktual</button>`:""}<span class="stamp">Hasil = Aktual ÷ Plan (maks. 100%). Tanpa data terukur, hasil mengikuti status: Close = 100%, Open/Continue = 0%.</span></div>
-    <h3 class="ksh">Rincian banyak item &amp; bukti</h3>
-    <div class="rowx"><button class="btn" type="button" id="rsTpl">${IC.dl}Unduh Template Rincian</button><button class="btn ed-only" type="button" id="rsUp">Upload Rincian / Bukti</button><span class="stamp">Untuk daftar panjang (mis. sparepart, unit). Bila ada, hasil mengikuti rincian. PDF, foto, PO, Surat Jalan, BAST tersimpan sebagai bukti.</span></div>
-    ${P.rin?`<div style="margin-top:10px">${rincTable(P.rin)}</div>`:""}
-    <div style="margin-top:10px">${filesHTML(P.hist,P.docs)}</div></div>
-    <div class="mf">${gk?`<button class="btn" type="button" data-act="ksSub" data-id="${sid}" data-c="${esc(gk)}">Lihat ${K.mode==="bab"?"Sub Bab":"Bab"}</button>`:""}<span style="flex:1"></span><button class="btn pri" type="button" data-x>Tutup</button></div>`,
-  box=>{box.style.maxWidth="900px";box.style.width="min(900px,100%)";
-    const pv=()=>{const p=numOf(box.querySelector("#rsP").value),a=numOf(box.querySelector("#rsA").value);if(p>0&&a!=null&&a>=0&&!P.rin){box.querySelector("#rsPct").textContent=fmtPct(Math.min(a/p,1)*100);box.querySelector("#rsHow").textContent=`Plan ${fmtN(p)} → Aktual ${fmtN(a)} (belum disimpan)`;}};
-    ["#rsP","#rsA"].forEach(q=>box.querySelector(q).oninput=pv);
-    const sv=box.querySelector("#rsSave");if(sv)sv.onclick=async()=>{const p=numOf(box.querySelector("#rsP").value),a=numOf(box.querySelector("#rsA").value),nm=clean(box.querySelector("#rsN").value),u=clean(box.querySelector("#rsU").value);
-      if(p!=null&&p<=0)return toast("Plan harus lebih dari 0");if(a!=null&&a<0)return toast("Aktual tidak boleh negatif");if(a!=null&&p==null)return toast("Isi Plan dulu");
-      try{await saveRowSrc(sid,k,p==null&&a==null&&!nm?null:{plan:p,act:a,name:nm,unit:u});toast("Sumber data tersimpan");render();openRowSrc(sid,k);}catch(err){toast("Gagal: "+errMsg(err));}};
-    const dl=box.querySelector("#rsDel");if(dl)dl.onclick=async()=>{try{await saveRowSrc(sid,k,null);toast("Plan/Aktual dihapus, hasil kembali mengikuti status");render();openRowSrc(sid,k);}catch(err){toast("Gagal: "+errMsg(err));}};
+    ${P.rin?`<div class="note" style="margin-top:8px">Hasil saat ini mengikuti rincian Excel yang diupload (lihat di bawah). Sheet di bawah dipakai bila rincian itu dihapus.</div>`:""}
+    <div class="shtop"><label class="f">Nama sumber data<input type="text" id="rsN" value="${esc((P.src&&P.src.name)||"")}" placeholder="mis. MPP Oktober, PO 123, daftar unit" ${dis}></label></div>
+    ${guessed&&ed&&(items[0].p!=null||items[0].n)?`<p class="stamp" style="margin:6px 0 0">Baris pertama diisi otomatis dari notulensi. Periksa lalu lengkapi Aktual.</p>`:""}
+    <div class="tbl-wrap" style="margin-top:8px;max-height:46vh;overflow:auto"><table class="sheet"><thead><tr><th>No</th><th>Nama item</th><th>Plan</th><th>Aktual</th><th>Satuan</th><th>Hasil</th><th></th></tr></thead><tbody id="shB"></tbody><tfoot id="shF"></tfoot></table></div>
+    <div class="rowx" style="margin-top:8px">${ed?`<button class="btn sm" type="button" id="shAdd">+ Tambah baris</button><span class="stamp">Bisa tempel (paste) dari Excel: Nama · Plan · Aktual · Satuan.</span>`:""}<span style="flex:1"></span>${ed&&P.items.length?`<button class="btn" type="button" id="rsDel">Hapus sheet</button>`:""}${ed?`<button class="btn pri" type="button" id="rsSave">Simpan sheet</button>`:""}</div>
+    <p class="stamp" style="margin-top:6px">Hasil item = Aktual ÷ Plan (maks. 100%). Hasil tindak lanjut = rata-rata hasil item. Tanpa sheet, hasil mengikuti status: Close = 100%, Open/Continue = 0%.</p>
+    <details class="shmore"${P.rin||P.docs.length||P.hist.length?" open":""}><summary>Upload rincian Excel &amp; bukti (opsional)</summary>
+      <div class="rowx" style="margin-top:8px"><button class="btn" type="button" id="rsTpl">${IC.dl}Unduh Template Rincian</button><button class="btn ed-only" type="button" id="rsUp">Upload Rincian / Bukti</button><span class="stamp">PDF, foto, PO, Surat Jalan, BAST tersimpan sebagai bukti.</span></div>
+      ${P.rin?`<div style="margin-top:10px">${rincTable(P.rin)}</div>`:""}<div style="margin-top:10px">${filesHTML(P.hist,P.docs)}</div></details></div>
+    <div class="mf">${loc?`<button class="btn" type="button" data-act="ksSub" data-id="${sid}" data-c="${esc(loc.x.code)}">Lihat ${K.mode==="bab"?"Sub Bab":"Topik"}</button>`:""}<span style="flex:1"></span><button class="btn" type="button" data-x>Tutup</button></div>`,
+  box=>{box.style.maxWidth="980px";box.style.width="min(980px,100%)";const B=box.querySelector("#shB"),F=box.querySelector("#shF");
+    const res=it=>itemOk(it)?fmtPct(Math.min(it.a/it.p,1)*100)+(it.a>it.p?" ⚠":""):(it.n||it.p!=null||it.a!=null?"—":"");
+    const foot=()=>{const st=sheetStat(items);F.innerHTML=`<tr><td colspan="2"><b>${st.valid} item dihitung</b>${st.n>st.valid?` · ${items.filter(it=>it.n||it.p!=null||it.a!=null).length-st.valid} belum lengkap`:""}</td><td class="num">${fmtN(st.sumP)}</td><td class="num">${fmtN(st.sumA)}</td><td></td><td class="num"><b>${fmtPct(st.pct)}</b></td><td></td></tr>`;
+      if(!P.rin){box.querySelector("#rsPct").textContent=st.valid?fmtPct(st.pct):fmtPct(r.st==="close"?100:0);if(ed)box.querySelector("#rsHow").textContent=st.valid?`Sheet ${st.valid} item · rata-rata hasil tiap item (klik Simpan sheet)`:"Belum ada item lengkap · mengikuti status";}};
+    const draw=()=>{if(!items.length)items.push({n:"",p:null,a:null,u:""});
+      B.innerHTML=items.map((it,i)=>`<tr><td class="num">${i+1}</td><td><input data-i="${i}" data-f="n" value="${esc(it.n||"")}" ${dis} aria-label="Nama item ${i+1}"></td><td><input class="nm" data-i="${i}" data-f="p" inputmode="decimal" value="${it.p??""}" ${dis} aria-label="Plan ${i+1}"></td><td><input class="nm" data-i="${i}" data-f="a" inputmode="decimal" value="${it.a??""}" ${dis} aria-label="Aktual ${i+1}"></td><td><input class="un" data-i="${i}" data-f="u" value="${esc(it.u||"")}" ${dis} aria-label="Satuan ${i+1}"></td><td class="num" data-res="${i}">${res(it)}</td><td>${ed?`<button class="ib" type="button" data-rm="${i}" aria-label="Hapus baris ${i+1}" style="color:var(--red-fg)">${IC.x}</button>`:""}</td></tr>`).join("");foot();
+      B.querySelectorAll("input").forEach(el=>{el.oninput=()=>{const i=+el.dataset.i,f=el.dataset.f;items[i][f]=f==="p"||f==="a"?numOf(el.value):el.value;B.querySelector(`[data-res="${i}"]`).textContent=res(items[i]);foot();};
+        el.onpaste=e=>{const t=(e.clipboardData||window.clipboardData).getData("text");if(!/[\t\n]/.test(t))return;e.preventDefault();const i0=+el.dataset.i,F0=["n","p","a","u"],c0=Math.max(0,F0.indexOf(el.dataset.f));
+          t.replace(/\r/g,"").split("\n").filter(l=>l.trim()).forEach((l,j)=>{const cs=l.split("\t");const it=items[i0+j]||(items[i0+j]={n:"",p:null,a:null,u:""});cs.forEach((v,ci)=>{const f=F0[c0+ci];if(!f)return;it[f]=f==="p"||f==="a"?numOf(v):clean(v);});});draw();toast("Data ditempel");};});
+      B.querySelectorAll("[data-rm]").forEach(b=>b.onclick=()=>{items.splice(+b.dataset.rm,1);draw();});};
+    draw();
+    const ad=box.querySelector("#shAdd");if(ad)ad.onclick=()=>{items.push({n:"",p:null,a:null,u:items[items.length-1]?.u||""});draw();B.querySelector(`[data-i="${items.length-1}"][data-f="n"]`)?.focus();};
+    const sv=box.querySelector("#rsSave");if(sv)sv.onclick=async()=>{const its=items.map(it=>({n:clean(it.n),p:it.p,a:it.a,u:clean(it.u)})).filter(it=>it.n||it.p!=null||it.a!=null);
+      const bad=its.find(it=>(it.p!=null&&it.p<=0)||(it.a!=null&&it.a<0));if(bad)return toast(`Periksa “${bad.n||"item"}”: Plan harus > 0 dan Aktual tidak boleh negatif`);
+      const nm=clean(box.querySelector("#rsN").value);
+      try{await saveRowSrc(sid,k,its.length||nm?{name:nm,items:its}:null);toast("Sheet sumber data tersimpan");render();openRowSrc(sid,k);}catch(err){toast("Gagal: "+errMsg(err));}};
+    const dl=box.querySelector("#rsDel");if(dl)dl.onclick=async()=>{try{await saveRowSrc(sid,k,null);toast("Sheet dihapus, hasil kembali mengikuti status");render();openRowSrc(sid,k);}catch(err){toast("Gagal: "+errMsg(err));}};
     box.querySelector("#rsTpl").onclick=()=>downloadRincianTpl(sid,code);
     box.querySelector("#rsUp").onclick=()=>{if(!S.canEdit)return toast("Mode lihat: hanya editor yang bisa mengubah data");const i=document.createElement("input");i.type="file";i.multiple=true;i.onchange=()=>uploadSumber(sid,code,[...i.files]);i.click();};
     box.querySelectorAll("[data-ksf]").forEach(a=>a.onclick=e=>{e.preventDefault();S.onModalClose=()=>setTimeout(()=>openRowSrc(sid,k),0);openFile(a.dataset.ksf);});});}
 function ctxOf(sid,code){if(/^r:/.test(code)){const k=code.slice(2),r=findRow(sid,k),P=r?rowProg(sid,r):null,lab=r?clean(r.tl||r.topik||"Tindak lanjut").replace(/\n/g," ").slice(0,90):"Tindak lanjut";
     return{label:lab,hint:r?`${r.topik||""} ${r.bahas||""}`:"",bab:r?clean(r.sec||r.bab||""):"",subTitle:lab,pct:P?P.pct:null,closeAll:r&&r.st==="close",reopen:()=>openRowSrc(sid,k)};}
   const K=kesiapan(sid),o=ksSubOf(K,code);return{label:o?o.x.label:code,bab:o?o.b.title:"",subTitle:o?o.x.title:code,pct:o?o.x.pct:null,closeAll:o&&o.x.c.total&&o.x.c.close===o.x.c.total,reopen:()=>openSub(sid,code),B:K.mode==="bab"};}
+
+/* sheet sumber data ikut ke file Excel: satu sheet per tindak lanjut, kolom Sumber Data berisi tautan */
+function addSdSheets(X,wb,ws,list,col){let n=0;list.forEach(o=>{const P=o.P;const items=P.m==="rincian"?P.rin.rinc.items.map(it=>({n:it.n,p:it.p,a:it.a,u:""})):P.items;if(items.length<2&&P.m!=="rincian")return;n++;const name="SD "+n;
+  const a=[["SHEET SUMBER DATA"],["Tindak lanjut",o.r.tl||""],["Bab",clean(o.r.sec||o.r.bab||"")],["Topik",o.r.topik||""],["Sumber data",(P.src&&P.src.name)||(P.rin?P.rin.name:"")],[],["No","Nama item","Plan","Aktual","Satuan","Hasil (%)"],
+    ...items.map((it,j)=>[j+1,it.n||"",it.p??"",it.a??"",it.u||"",itemOk(it)?Math.round(Math.min(it.a/it.p,1)*1000)/10:""]),[],["Hasil tindak lanjut",fmtPct(P.pct)],["Kembali","Form utama: kolom Sumber Data"]];
+  const sh=X.utils.aoa_to_sheet(a);sh["!cols"]=[{wch:16},{wch:44},{wch:10},{wch:10},{wch:10},{wch:10}];X.utils.book_append_sheet(wb,sh,name);
+  const addr=X.utils.encode_cell({r:o.ri,c:col});const c=ws[addr]||(ws[addr]={t:"s",v:""});c.t="s";c.v=(c.v?c.v+" · ":"")+"lihat sheet "+name;c.l={Target:`#'${name}'!A1`,Tooltip:"Buka sheet sumber data"};});}
 
 /* ---------- koreksi meeting dari file revisi ---------- */
 function fixFromFile(sid,vid){if(!S.canEdit)return toast("Mode lihat: hanya editor yang bisa mengubah data");
@@ -2470,7 +2509,7 @@ function fixFromFile(sid,vid){if(!S.canEdit)return toast("Mode lihat: hanya edit
       <div class="mf"><button class="btn" type="button" data-x>Batal</button><button class="btn pri" type="button" id="fjOk">Ganti isi Meeting ke-${v.no}</button></div>`,
     box=>{box.style.maxWidth="680px";wireJenisPick(box,"fj");box.querySelector("#fjOk").onclick=async()=>{const j=readJenisPick(box,"fj");const btn=box.querySelector("#fjOk");btn.disabled=true;toast("Menyimpan koreksi…",true);
       try{const m=p.meta,cols=mkColsFrom(v.cols,m.cols),neu=withXCols(p.rows,cols),old=v.rows||[],map=await matchRows(old,neu),pm=new Map(old.map(r=>[r.k,r]));
-        const rows=neu.map((r,i)=>{const kk=map.get(i),o=kk&&pm.get(kk);return{...r,k:kk||r.k,st:r.st||"open",...(!r.src&&o&&o.src?{src:o.src}:{})};});
+        const rows=neu.map((r,i)=>{const kk=map.get(i),o=kk&&pm.get(kk);return{...r,k:kk||r.k,st:r.st||"open",...(o&&o.src&&(!r.src||srcItems(o.src).length>1)?{src:o.src}:{})};});
         const meta={};["time","place","lead","people","agenda","purpose"].forEach(x=>{if(m[x])meta[x]=m[x];});const nx=parseIndoDate(m.next);if(nx)meta.next=nx;
         await S.db.collection("versions").doc(vid).update({rows,cols,outline:m.outline||[],...meta,source:f.name,fixedAt:Date.now(),...stamp()});
         if(j)await saveJenisIf(sid,j);closeModal();
@@ -2479,97 +2518,91 @@ function fixFromFile(sid,vid){if(!S.canEdit)return toast("Mode lihat: hanya edit
       catch(err){btn.disabled=false;toast("Gagal: "+errMsg(err));}};});};i.click();}
 
 
-/* Hitung persentase. Per tindak lanjut: Close = 100%, Open/Continue = 0%.
-   Kelompok (Sub Bab bila ada, kalau tidak Bagian) = rata-rata tindak lanjutnya, atau rincian Plan–Actual bila diupload.
-   Format Bab: Sub Bab -> Bab -> Total. Format lama: Bagian -> Total. Bobot sama. */
+/* Hitung persentase bertingkat dengan bobot sama:
+   Total 100% dibagi rata ke Bab -> bobot Bab dibagi rata ke Sub Bab (Sub Bab bernomor 1.1, atau Topik) -> dibagi rata ke tindak lanjut.
+   Hasil tindak lanjut: sheet/rincian sumber data (Aktual ÷ Plan, maks. 100%), atau status (Close 100%, Open/Continue 0%). */
 function kesiapan(sid){
   const rows=seriesRows(sid),babs=new Map();let legacy=0;
   const outline=S.versions.filter(v=>v.seriesId===sid).sort((a,b)=>(a.no||0)-(b.no||0)).flatMap(v=>v.outline||[]);
-  const mode=rows.some(r=>subCode(r.sec))||outline.some(o=>subCode(o.sub))?"bab":"bagian";
-  const getSub=(b,code,title)=>{if(!b.subs.has(code))b.subs.set(code,{code,title:"",rows:[]});const x=b.subs.get(code);if(title)x.title=title;return x;};
-  const rf=S.files.filter(f=>f.kind==="rincian"&&f.seriesId===sid&&f.sub);
+  const mode=rows.some(r=>subCode(r.sec))||outline.some(o=>subCode(o.sub))?"bab":"topik";
+  const getBab=(key,no,title)=>{if(!babs.has(key))babs.set(key,{key,no,title:"",subs:new Map()});const b=babs.get(key);if(title&&!b.title)b.title=title;return b;};
+  const getSub=(b,code,title)=>{if(!b.subs.has(code))b.subs.set(code,{code,title:"",rows:[]});const x=b.subs.get(code);if(title&&!x.title)x.title=title;return x;};
   if(mode==="bab"){
-    const getBab=(n,title)=>{if(!babs.has(n))babs.set(n,{no:n,title:"",subs:new Map()});const b=babs.get(n);if(title&&babNo(title)===n)b.title=title;return b;};
-    outline.forEach(o=>{const bn=babNo(o.bab)||(subCode(o.sub)?+subCode(o.sub).split(".")[0]:null);if(!bn)return;const b=getBab(bn,o.bab);const c=subCode(o.sub);if(c)getSub(b,c,clean(o.sub));});
-    rows.forEach(r=>{const c=subCode(r.sec);if(!c){legacy++;return;}const bn=babNo(r.bab)||+c.split(".")[0];getSub(getBab(bn,r.bab),c,clean(r.sec)).rows.push(r);});
-    rf.filter(f=>subCode(f.sub)).forEach(f=>{const c=f.sub;const x=getSub(getBab(babNo(f.bab)||+c.split(".")[0],f.bab),c);if(!x.title)x.title=f.subTitle||c;});
+    const bt=(n,t)=>t&&babNo(t)===n?t:"";
+    outline.forEach(o=>{const bn=babNo(o.bab)||(subCode(o.sub)?+subCode(o.sub).split(".")[0]:null);if(!bn)return;const b=getBab("b"+bn,bn,bt(bn,o.bab));const c=subCode(o.sub);if(c)getSub(b,c,clean(o.sub));});
+    rows.forEach(r=>{const c=subCode(r.sec);if(!c){legacy++;return;}const bn=babNo(r.bab)||+c.split(".")[0];getSub(getBab("b"+bn,bn,bt(bn,r.bab)),c,clean(r.sec)).rows.push(r);});
   }else{
-    const getG=(k,title)=>{if(!babs.has(k))babs.set(k,{no:babs.size+1,title:title||"Tanpa Bab",subs:new Map()});const b=babs.get(k);getSub(b,k,b.title);return b;};
-    rows.forEach(r=>{const g=r.sec||r.bab||"";const k=bgKey(g);getG(k,clean(g)).subs.get(k).rows.push(r);});
-    rf.filter(f=>/^bg:/.test(f.sub)).forEach(f=>getG(f.sub,f.subTitle));
+    rows.forEach(r=>{const t=clean(r.sec||r.bab||"");const b=getBab(bgKey(t),babs.size+1,t||"Tanpa Bab");const tp=clean(r.topik||"");getSub(b,b.key+"|"+(norm(tp)||"-"),tp||"Tanpa topik").rows.push(r);});
   }
   const out=[...babs.values()].sort((a,b)=>a.no-b.no).map(b=>{
     const subs=[...b.subs.values()].sort((x,y)=>mode==="bab"?+x.code.split(".")[1]-+y.code.split(".")[1]:0).map(x=>{
-      const c=cnt(x.rows),allClose=c.total>0&&c.close===c.total,rin=rincOf(sid,x.code)[0]||null,warn=[];let pct=null,method="none";
-      if(rin&&rin.rinc.valid>0){pct=rin.rinc.pct;method="rincian";
-        if(allClose&&pct<100)warn.push(`Status Close, tetapi rincian Plan–Actual baru ${fmtPct(pct)}. Mohon diverifikasi.`);
-        if(rin.rinc.over)warn.push(`${rin.rinc.over} item Actual melebihi Plan (dihitung maksimal 100%).`);}
-      else if(c.total){x.rp=x.rows.map(r=>rowProg(sid,r));pct=x.rp.reduce((n,p)=>n+p.pct,0)/x.rp.length;method="rows";const nw=x.rp.filter(p=>p.warn.length).length;if(nw)warn.push(`${nw} tindak lanjut perlu verifikasi sumber datanya.`);}
-      const label=mode==="bab"?`${x.code} ${subTitle(x.title)}`:(x.title||b.title);
-      const rp=x.rp||[];return{...x,label,c,pct,method,rin,warn,docs:docsOf(sid,x.code),hist:rincOf(sid,x.code),nSrc:rp.filter(p=>p.m!=="status").length,nFiles:rp.reduce((n,p)=>n+p.docs.length+p.hist.length,0)};});
+      const c=cnt(x.rows),rin=rincOf(sid,x.code)[0]||null,warn=[],rp=x.rows.map(r=>rowProg(sid,r));let pct=null,method="none";
+      if(rin&&rin.rinc.valid>0){pct=rin.rinc.pct;method="rincian";if(rin.rinc.over)warn.push(`${rin.rinc.over} item Actual melebihi Plan (dihitung 100%).`);}
+      else if(rp.length){pct=rp.reduce((n,p)=>n+p.pct,0)/rp.length;method="rows";}
+      const nw=rp.filter(p=>p.warn.length).length;if(nw)warn.push(`${nw} tindak lanjut perlu verifikasi sumber datanya.`);
+      return{...x,label:mode==="bab"?`${x.code} ${subTitle(x.title)}`:x.title,c,pct,method,rin,warn,rp,docs:docsOf(sid,x.code),hist:rincOf(sid,x.code),
+        nSrc:rp.filter(p=>p.m!=="status").length,nFiles:rp.reduce((n,p)=>n+p.docs.length+p.hist.length,0)};});
     const val=subs.filter(x=>x.pct!=null);
-    return{...b,title:b.title||("Bab "+toRoman(b.no)),subs,pct:val.length?val.reduce((n,x)=>n+x.pct,0)/val.length:null,nVal:val.length};});
-  const vb=out.filter(b=>b.pct!=null);vb.forEach(b=>{b.w=100/vb.length;b.val=b.pct*b.w/100;});
-  return{sid,mode,babs:out,pct:vb.length?vb.reduce((n,b)=>n+b.pct,0)/vb.length:null,legacy,warn:out.reduce((n,b)=>n+b.subs.reduce((m,x)=>m+x.warn.length,0),0),
+    return{...b,title:b.title||(mode==="bab"?"Bab "+toRoman(b.no):"Bab "+b.no),subs,pct:val.length?val.reduce((n,x)=>n+x.pct,0)/val.length:null,nVal:val.length};});
+  const vb=out.filter(b=>b.pct!=null);
+  vb.forEach(b=>{b.w=100/vb.length;b.val=b.pct*b.w/100;const vs=b.subs.filter(x=>x.pct!=null);vs.forEach(x=>{x.w=b.w/vs.length;x.val=x.pct*x.w/100;x.rw=x.rows.length?x.w/x.rows.length:null;});});
+  return{sid,mode,babs:out,pct:vb.length?vb.reduce((n,b)=>n+b.val,0):null,legacy,warn:out.reduce((n,b)=>n+b.subs.reduce((m,x)=>m+x.warn.length,0),0),
     c:cnt(out.flatMap(b=>b.subs.flatMap(x=>x.rows))),nSrc:out.reduce((n,b)=>n+b.subs.reduce((m,x)=>m+x.docs.length+x.hist.length+x.nFiles,0),0)};}
-const methodTxt=x=>x.method==="rincian"?`Rincian Plan–Actual · ${x.rin.rinc.valid} item`:x.method==="rows"?`Rata-rata ${x.c.total} tindak lanjut · ${x.nSrc} pakai Plan/Aktual, ${x.c.total-x.nSrc} mengikuti status`:"Belum ada tindak lanjut / rincian";
+const subWord=K=>K.mode==="bab"?"Sub Bab":"Topik";
+const methodTxt=x=>x.method==="rincian"?`Rincian Plan–Actual · ${x.rin.rinc.valid} item`:x.method==="rows"?`${x.c.total} tindak lanjut · ${x.nSrc} pakai sumber data`:"Belum ada tindak lanjut";
 function ksSubOf(KS,code){for(const b of KS.babs)for(const x of b.subs)if(x.code===code)return{b,x};return null;}
-function ksBabTag(KS,babTitle,sid){if(KS.mode!=="bab")return ksSubTag(KS,babTitle,sid);const b=KS.babs.find(b=>b.no===babNo(babTitle));return b?`<button type="button" class="kstag" data-act="ksCalc" data-id="${sid}" data-b="${b.no}" title="Lihat perhitungan Bab">${fmtPct(b.pct)}</button>`:"";}
-function ksSubTag(KS,sec,sid){const c=KS.mode==="bab"?subCode(sec):bgKey(sec);if(!c)return"";const o=ksSubOf(KS,c);if(!o)return"";const x=o.x,n=x.docs.length+x.hist.length;
-  return `<button type="button" class="kstag" data-act="ksSub" data-id="${sid}" data-c="${esc(c)}" title="Persentase & sumber">${fmtPct(x.pct)}${x.warn.length?' <b class="kw">!</b>':""}<small>${n?n+" sumber":"Sumber"}</small></button>`;}
+function ksRowLoc(KS,k){for(const b of KS.babs)for(const x of b.subs)if(x.rows.some(r=>r.k===k))return{b,x,w:x.rw};return null;}
+function ksBabTag(KS,babTitle,sid){const b=KS.mode==="bab"?KS.babs.find(b=>b.no===babNo(babTitle)):KS.babs.find(b=>b.key===bgKey(clean(babTitle)));return b?`<button type="button" class="kstag" data-act="ksCalc" data-id="${sid}" data-b="${b.no}" title="Perhitungan Bab">${fmtPct(b.pct)}${b.w!=null?`<small>bobot ${fmtPct(b.w)}</small>`:""}</button>`:"";}
+function ksSubTag(KS,sec,sid){if(KS.mode!=="bab")return ksBabTag(KS,sec,sid);const c=subCode(sec);if(!c)return"";const o=ksSubOf(KS,c);if(!o)return"";const x=o.x;
+  return `<button type="button" class="kstag" data-act="ksSub" data-id="${sid}" data-c="${esc(c)}" title="Persentase & sumber">${fmtPct(x.pct)}${x.warn.length?' <b class="kw">!</b>':""}${x.w!=null?`<small>bobot ${fmtPct(x.w)}</small>`:""}</button>`;}
+function ksTopikTag(KS,g,topik,sid){if(KS.mode==="bab")return"";const o=ksSubOf(KS,bgKey(clean(g.sec||g.bab||""))+"|"+(norm(clean(topik||""))||"-"));if(!o)return"";const x=o.x;
+  return `<button type="button" class="kstag sm" data-act="ksSub" data-id="${sid}" data-c="${esc(x.code)}" title="Progres topik">${fmtPct(x.pct)}${x.warn.length?' <b class="kw">!</b>':""}</button>`;}
 
 /* ---------- kartu persentase di halaman notulensi ---------- */
-function ksCard(sid){const s=sById(sid),K=kesiapan(sid),B=K.mode==="bab";
+function ksCard(sid){const s=sById(sid),K=kesiapan(sid),SW=subWord(K);
   const st=c=>c.total?`<span class="ksst"><i class="d-open"></i>${c.open}<i class="d-continue"></i>${c.continue}<i class="d-close"></i>${c.close}</span>`:`<span class="muted">—</span>`;
-  const srcBtn=x=>{const n=x.docs.length+x.hist.length+(x.nFiles||0);return `<button type="button" class="btn sm" data-act="ksSub" data-id="${sid}" data-c="${esc(x.code)}">Rincian${n?` · ${n} file`:""}</button>`;};
-  const pc=(x,act,attr)=>`<button type="button" class="kspct" data-act="${act}" data-id="${sid}" ${attr}>${fmtPct(x.pct)}</button>${ksBar(x.pct)}`;
-  const rows=K.babs.map(b=>{const g=B?null:b.subs[0];
-    const head=`<tr class="ksb${!B&&g.warn.length?" kswarn":""}"><td><b>${esc(b.title)}</b>${!B?`<div class="stamp">${esc(methodTxt(g))}</div>${g.warn.length?`<div class="kwt">⚠ ${esc(g.warn[0])}</div>`:""}`:""}</td>
-      <td class="num">${b.w!=null?fmtPct(b.w):"—"}</td><td>${B?pc(b,"ksCalc",`data-b="${b.no}"`):pc(b,"ksSub",`data-c="${esc(g.code)}"`)}</td><td class="num"><b>${b.val!=null?fmtPct(b.val):"—"}</b>${b.w!=null?`<div class="stamp">dari ${fmtPct(b.w)}</div>`:""}</td>
-      <td>${st(cnt(b.subs.flatMap(x=>x.rows)))}</td><td>${B?"":srcBtn(g)}</td></tr>`;
-    return head+(B?b.subs.map(x=>`<tr class="kss${x.warn.length?" kswarn":""}"><td><span class="kscode">${esc(x.code)}</span>${esc(subTitle(x.title)||x.title)}<div class="stamp">${esc(methodTxt(x))}</div>${x.warn.length?`<div class="kwt">⚠ ${esc(x.warn[0])}</div>`:""}</td><td></td><td>${pc(x,"ksSub",`data-c="${esc(x.code)}"`)}</td><td></td><td>${st(x.c)}</td><td>${srcBtn(x)}</td></tr>`).join(""):"");}).join("");
-  const chips=K.babs.map(b=>`<button type="button" ${B?`data-act="ksCalc" data-id="${sid}" data-b="${b.no}"`:`data-act="ksSub" data-id="${sid}" data-c="${esc(b.subs[0].code)}"`}><span>${esc(b.title)}</span><b>${fmtPct(b.pct)}</b>${ksBar(b.pct)}<em>${b.w!=null?`Nilai ${fmtPct(b.val)} dari bobot ${fmtPct(b.w)}`:"Belum ada data"}</em></button>`).join("");
-  return `<div class="card cpad ks" id="ksBox"><div class="ch"><h2>${ksName(s)}</h2><span class="stamp">${esc(s.jenis)} · posisi terkini · klik angka untuk melihat sumber datanya</span></div>
+  const rows=K.babs.map((b,bi)=>`<tr class="ksb"><td><button type="button" class="kstog" data-act="ksTog" data-b="${bi}" aria-expanded="false">▸</button><b>${esc(b.title)}</b><div class="stamp" style="margin-left:26px">${b.subs.length} ${SW} · ${cnt(b.subs.flatMap(x=>x.rows)).total} tindak lanjut</div></td>
+      <td class="num">${b.w!=null?fmtPct(b.w):"—"}</td><td><button type="button" class="kspct" data-act="ksCalc" data-id="${sid}" data-b="${b.no}">${fmtPct(b.pct)}</button>${ksBar(b.pct)}</td><td class="num"><b>${b.val!=null?fmtPct(b.val):"—"}</b></td><td>${st(cnt(b.subs.flatMap(x=>x.rows)))}</td></tr>`
+    +b.subs.map(x=>`<tr class="kss${x.warn.length?" kswarn":""}" data-bk="${bi}" hidden><td>${K.mode==="bab"?`<span class="kscode">${esc(x.code)}</span>${esc(subTitle(x.title)||x.title)}`:esc(x.label)}<div class="stamp">${esc(methodTxt(x))}</div>${x.warn.length?`<div class="kwt">⚠ ${esc(x.warn[0])}</div>`:""}</td>
+      <td class="num">${x.w!=null?fmtPct(x.w):"—"}</td><td><button type="button" class="kspct" data-act="ksSub" data-id="${sid}" data-c="${esc(x.code)}">${fmtPct(x.pct)}</button>${ksBar(x.pct)}</td><td class="num">${x.val!=null?fmtPct(x.val):"—"}</td><td>${st(x.c)}</td></tr>`).join("")).join("");
+  const chips=K.babs.map(b=>`<button type="button" data-act="ksCalc" data-id="${sid}" data-b="${b.no}"><span>${esc(b.title)}</span><b>${fmtPct(b.pct)}</b>${ksBar(b.pct)}<em>${b.w!=null?`Nilai ${fmtPct(b.val)} dari bobot ${fmtPct(b.w)}`:"Belum ada data"}</em></button>`).join("");
+  return `<div class="card cpad ks" id="ksBox"><div class="ch"><h2>${ksName(s)}</h2><span class="stamp">${esc(s.jenis)} · posisi terkini · klik angka untuk melihat perhitungannya</span></div>
     <div class="kstop"><button type="button" class="ksbig ks-${pctCls(K.pct)}" data-act="ksCalc" data-id="${sid}" title="Lihat perhitungan total"><small>${ksTot(s)}</small><b>${fmtPct(K.pct)}</b><small>target 100%</small></button>
       <div class="ksbabs">${chips||`<span class="stamp">Belum ada tindak lanjut</span>`}</div></div>
-    ${K.warn?`<div class="note" style="margin-top:10px">${K.warn} peringatan perlu diverifikasi (baris bertanda ⚠).</div>`:""}
-    ${K.babs.length?`<div class="tbl-wrap" style="margin-top:12px"><table class="kstbl"><thead><tr><th>${B?"Bab / Sub Bab":"Bab"}</th><th>Bobot</th><th>Progres</th><th>Nilai</th><th>Status</th><th></th></tr></thead><tbody>${rows}</tbody>
-      <tfoot><tr><td><b>Total</b></td><td class="num">${K.babs.some(b=>b.w!=null)?"100%":"—"}</td><td></td><td class="num"><b>${fmtPct(K.pct)}</b></td><td>${st(K.c)}</td><td></td></tr></tfoot></table></div>`
+    ${K.warn?`<div class="note" style="margin-top:10px">${K.warn} peringatan perlu diverifikasi (bertanda ⚠).</div>`:""}
+    ${K.babs.length?`<div class="tbl-wrap" style="margin-top:12px"><table class="kstbl"><thead><tr><th>Bab / ${SW} <button type="button" class="lnk" data-act="ksTogAll" style="font-size:11.5px;margin-left:6px">buka semua</button></th><th>Bobot</th><th>Progres</th><th>Nilai</th><th>Status</th></tr></thead><tbody>${rows}</tbody>
+      <tfoot><tr><td><b>Total</b></td><td class="num">${K.babs.some(b=>b.w!=null)?"100%":"—"}</td><td></td><td class="num"><b>${fmtPct(K.pct)}</b></td><td>${st(K.c)}</td></tr></tfoot></table></div>`
       :`<div class="empty" style="margin-top:10px"><b>Belum ada tindak lanjut</b>Persentase muncul setelah notulensi berisi tindak lanjut.</div>`}
     ${K.legacy?`<p class="stamp" style="margin-top:8px">${K.legacy} tindak lanjut tidak berada di Sub Bab bernomor (mis. 1.1), sehingga tidak ikut dihitung.</p>`:""}
-    <p class="stamp" style="margin-top:6px">Setiap tindak lanjut: Aktual ÷ Plan dari kolom <b>Sumber Data</b> (maks. 100%); bila belum ada sumber data, Close = 100% dan Open/Continue = 0%. Progres ${B?"Sub Bab dan Bab":"Bab"} = rata-rata tindak lanjutnya. Setiap Bab berbobot sama (${K.babs.filter(b=>b.w!=null).length?fmtPct(100/K.babs.filter(b=>b.w!=null).length):"—"}); Nilai = Progres × Bobot; Total = jumlah Nilai.</p></div>`;}
+    <p class="stamp" style="margin-top:6px">Bobot dibagi rata: Total 100% → setiap Bab → setiap ${SW} di dalamnya → setiap tindak lanjut. Hasil tindak lanjut dari <b>Sheet Sumber Data</b> (Aktual ÷ Plan, maks. 100%); bila belum ada, Close = 100% dan Open/Continue = 0%. Nilai = Progres × Bobot; Total = jumlah Nilai Bab.</p></div>`;}
 
 /* ---------- perhitungan (klik angka) ---------- */
-function openCalc(sid,bno){const s=sById(sid);if(!s)return;const K=kesiapan(sid),B=K.mode==="bab";
-  const b=B&&bno!=null?K.babs.find(x=>x.no===+bno):null;
-  let body,formula;
-  if(b){const val=b.subs.filter(x=>x.pct!=null);formula=val.length?`(${val.map(x=>fmtPct(x.pct)).join(" + ")}) ÷ ${val.length} = <b>${fmtPct(b.pct)}</b>`:"Belum Ada Data";
-    body=`<thead><tr><th>Sub Bab</th><th>Progres</th><th>Dasar</th></tr></thead><tbody>${b.subs.map(x=>`<tr${x.pct==null?' class="muted"':""}><td><button type="button" class="lnk" data-act="ksSub" data-id="${sid}" data-c="${esc(x.code)}">${esc(x.label)}</button></td><td><b>${fmtPct(x.pct)}</b></td><td class="stamp">${esc(methodTxt(x))}</td></tr>`).join("")}</tbody>`;}
+function openCalc(sid,bno){const s=sById(sid);if(!s)return;const K=kesiapan(sid),SW=subWord(K);
+  const b=bno!=null?K.babs.find(x=>x.no===+bno):null;let body,formula;
+  if(b){const val=b.subs.filter(x=>x.pct!=null);formula=val.length?`Progres Bab = (${val.map(x=>fmtPct(x.pct)).join(" + ")}) ÷ ${val.length} = <b>${fmtPct(b.pct)}</b>${b.w!=null?`<br>Nilai Bab = ${fmtPct(b.pct)} × bobot ${fmtPct(b.w)} = <b>${fmtPct(b.val)}</b>`:""}`:"Belum Ada Data";
+    body=`<thead><tr><th>${SW}</th><th>Progres</th><th>Bobot</th><th>Nilai</th></tr></thead><tbody>${b.subs.map(x=>`<tr${x.pct==null?' class="muted"':""}><td><button type="button" class="lnk" data-act="ksSub" data-id="${sid}" data-c="${esc(x.code)}">${esc(x.label)}</button><div class="stamp">${esc(methodTxt(x))}</div></td><td><b>${fmtPct(x.pct)}</b></td><td>${x.w!=null?fmtPct(x.w):"—"}</td><td>${x.val!=null?fmtPct(x.val):"—"}</td></tr>`).join("")}</tbody>`;}
   else{const vb=K.babs.filter(x=>x.w!=null);formula=vb.length?`${vb.map(x=>`${fmtPct(x.pct)} × ${fmtPct(x.w)}`).join(" + ")} = <b>${fmtPct(K.pct)}</b>`:"Belum Ada Data";
-    body=`<thead><tr><th>Bab</th><th>Progres</th><th>Bobot</th><th>Nilai</th></tr></thead><tbody>${K.babs.map(x=>`<tr${x.w==null?' class="muted"':""}><td>${B?`<button type="button" class="lnk" data-act="ksCalc" data-id="${sid}" data-b="${x.no}">${esc(x.title)}</button>`:`<button type="button" class="lnk" data-act="ksSub" data-id="${sid}" data-c="${esc(x.subs[0].code)}">${esc(x.title)}</button>`}<div class="stamp">${esc(B?(x.pct==null?"Belum ada Sub Bab bernilai":`rata-rata ${x.nVal} Sub Bab`):methodTxt(x.subs[0]))}</div></td><td><b>${fmtPct(x.pct)}</b></td><td>${x.w!=null?fmtPct(x.w):"—"}</td><td><b>${x.val!=null?fmtPct(x.val):"—"}</b></td></tr>`).join("")}</tbody><tfoot><tr><td><b>Total</b></td><td></td><td>${vb.length?"100%":"—"}</td><td><b>${fmtPct(K.pct)}</b></td></tr></tfoot>`;}
+    body=`<thead><tr><th>Bab</th><th>Progres</th><th>Bobot</th><th>Nilai</th></tr></thead><tbody>${K.babs.map(x=>`<tr${x.w==null?' class="muted"':""}><td><button type="button" class="lnk" data-act="ksCalc" data-id="${sid}" data-b="${x.no}">${esc(x.title)}</button><div class="stamp">rata-rata ${x.nVal} ${SW}</div></td><td><b>${fmtPct(x.pct)}</b></td><td>${x.w!=null?fmtPct(x.w):"—"}</td><td><b>${x.val!=null?fmtPct(x.val):"—"}</b></td></tr>`).join("")}</tbody><tfoot><tr><td><b>Total</b></td><td></td><td>${vb.length?"100%":"—"}</td><td><b>${fmtPct(K.pct)}</b></td></tr></tfoot>`;}
   openModal(mHead(b?`Perhitungan ${b.title}`:`Perhitungan ${ksTot(s).toLowerCase()}`)+`<div class="mb"><div class="stamp"><b>${esc(s.title)}</b> · ${esc(s.jenis||"")}</div>
     <div class="ksform">${formula}</div><div class="tbl-wrap"><table class="kstbl">${body}</table></div>
-    <p class="stamp" style="margin-top:8px">${b?"Setiap Sub Bab dihitung satu kali, berapa pun jumlah meeting-nya.":"Bobot setiap Bab sama besar. Nilai = Progres × Bobot. Bab yang belum punya data tidak diberi bobot."}</p></div>
-    <div class="mf">${b?`<button class="btn" type="button" data-act="ksCalc" data-id="${sid}">Lihat total</button>`:""}<span style="flex:1"></span><button class="btn pri" type="button" data-x>Tutup</button></div>`,box=>{box.style.maxWidth="760px";});}
+    <p class="stamp" style="margin-top:8px">${b?`Bobot Bab dibagi rata ke setiap ${SW}. Klik ${SW} untuk melihat tindak lanjut dan sheet sumber datanya.`:"Bobot setiap Bab sama besar. Nilai = Progres × Bobot. Bab yang belum punya data tidak diberi bobot."}</p></div>
+    <div class="mf">${b?`<button class="btn" type="button" data-act="ksCalc" data-id="${sid}">Lihat total</button>`:""}<span style="flex:1"></span><button class="btn pri" type="button" data-x>Tutup</button></div>`,box=>{box.style.maxWidth="780px";});}
 
-/* ---------- halaman Bab / Sub Bab ---------- */
-function openSub(sid,code){const s=sById(sid);if(!s)return;const K=kesiapan(sid);const o=ksSubOf(K,code);
-  const x=o?o.x:{code,label:code,title:code,rows:[],c:cnt([]),pct:null,method:"none",rin:null,warn:[],docs:docsOf(sid,code),hist:rincOf(sid,code)},b=o?o.b:{title:""};
-  const rp=x.rows.map(r=>({r,P:rowProg(sid,r)}));
-  openModal(mHead(x.label||code)+`<div class="mb">
-    <div class="ksub"><div class="ksbig ks-${pctCls(x.pct)}"><small>Progres ${K.mode==="bab"?"Sub Bab":"Bab"}</small><b>${fmtPct(x.pct)}</b>${K.mode!=="bab"&&b.w!=null?`<small>Nilai ${fmtPct(b.val)} dari bobot ${fmtPct(b.w)}</small>`:""}</div>
-      <div><div class="stamp">${K.mode==="bab"?esc(b.title||"")+" · ":""}${esc(s.title)} · ${esc(s.jenis||"")}</div><div style="margin-top:4px"><b>Dasar:</b> ${esc(methodTxt(x))}</div>
-        <div class="stamp" style="margin-top:4px">${x.c.total?`${x.c.open} Open · ${x.c.continue} Continue · ${x.c.close} Close`:"Belum ada tindak lanjut"}</div></div></div>
+/* ---------- halaman Sub Bab / Topik ---------- */
+function openSub(sid,code){const s=sById(sid);if(!s)return;const K=kesiapan(sid),SW=subWord(K);const o=ksSubOf(K,code);if(!o)return toast("Data tidak ditemukan");const{b,x}=o;
+  openModal(mHead(x.label)+`<div class="mb">
+    <div class="ksub"><div class="ksbig ks-${pctCls(x.pct)}"><small>Progres ${SW}</small><b>${fmtPct(x.pct)}</b>${x.w!=null?`<small>Nilai ${fmtPct(x.val)} dari bobot ${fmtPct(x.w)}</small>`:""}</div>
+      <div><div class="stamp">${esc(b.title)} · ${esc(s.title)}</div><div style="margin-top:4px"><b>Dasar:</b> rata-rata ${x.rows.length} tindak lanjut${x.rw!=null?` (masing-masing bobot ${fmtPct(x.rw)} dari total)`:""}</div>
+        <div class="stamp" style="margin-top:4px">${x.c.open} Open · ${x.c.continue} Continue · ${x.c.close} Close</div></div></div>
     ${x.warn.map(w=>`<div class="note" style="margin-top:8px">⚠ ${esc(w)}</div>`).join("")}
-    ${x.rin?`<h3 class="ksh">Rincian tingkat ${K.mode==="bab"?"Sub Bab":"Bab"}</h3>${rincTable(x.rin)}`:""}
-    <h3 class="ksh">Tindak lanjut &amp; sumber data</h3>
-    ${rp.length?`<div class="tbl-wrap"><table class="kstbl"><thead><tr><th>Topik</th><th>Tindak Lanjut</th><th>PIC</th><th>Status</th><th>Sumber Data</th></tr></thead><tbody>${rp.map(({r,P})=>`<tr class="r-${r.st||"open"}${P.warn.length?" kswarn":""}"><td>${esc(r.topik||"—")}</td><td style="white-space:pre-line;min-width:200px">${esc(r.tl||"—")}</td><td>${esc(r.pic||"—")}</td><td>${pill(r.st||"open")}</td>
-      <td style="min-width:170px"><button type="button" class="srcb${P.m==="status"?" nos":""}" data-act="rowSrc" data-id="${sid}" data-k="${esc(r.k)}"><b>${fmtPct(P.pct)}</b>${P.warn.length?'<i class="kw">⚠</i>':""}${ksBar(P.pct)}<small>${P.m==="status"?"Mengikuti status":P.m==="rincian"?`Rincian ${P.rin.rinc.valid} item`:`${fmtN(P.src.plan)} → ${fmtN(P.src.act)}${P.src.unit?" "+esc(P.src.unit):""}`}${P.docs.length+P.hist.length?` · ${P.docs.length+P.hist.length} file`:""}</small></button></td></tr>`).join("")}</tbody></table></div>`:`<div class="stamp">Belum ada tindak lanjut.</div>`}
-    ${x.docs.length||x.hist.length?`<h3 class="ksh">File tingkat ${K.mode==="bab"?"Sub Bab":"Bab"}</h3>${filesHTML(x.hist,x.docs)}`:""}
-  </div><div class="mf"><button class="btn" type="button" data-act="ksCalc" data-id="${sid}" ${K.mode==="bab"?`data-b="${o?o.b.no:+code.split(".")[0]}"`:""}>${K.mode==="bab"?"Perhitungan Bab":"Perhitungan total"}</button><span style="flex:1"></span><button class="btn pri" type="button" data-x>Tutup</button></div>`,
+    ${x.rin?`<h3 class="ksh">Rincian tingkat ${SW}</h3>${rincTable(x.rin)}`:""}
+    <h3 class="ksh">Tindak lanjut &amp; sheet sumber data</h3>
+    <div class="tbl-wrap"><table class="kstbl"><thead><tr><th>Tindak Lanjut</th><th>PIC</th><th>Status</th><th>Sumber Data</th></tr></thead><tbody>${x.rp.map((P,i)=>{const r=x.rows[i];return `<tr class="r-${r.st||"open"}${P.warn.length?" kswarn":""}"><td style="white-space:pre-line;min-width:220px">${esc(r.tl||r.bahas||"—")}${r.bahas&&r.tl?`<div class="stamp">${esc(r.bahas)}</div>`:""}</td><td>${esc(r.pic||"—")}</td><td>${pill(r.st||"open")}</td>
+      <td style="min-width:170px"><button type="button" class="srcb${P.m==="status"?" nos":""}" data-act="rowSrc" data-id="${sid}" data-k="${esc(r.k)}"><b>${fmtPct(P.pct)}</b>${P.warn.length?'<i class="kw">⚠</i>':""}${ksBar(P.pct)}<small>${shortTxt(P)}${P.docs.length+P.hist.length?` · ${P.docs.length+P.hist.length} file`:""}</small></button></td></tr>`;}).join("")}</tbody></table></div>
+    ${x.docs.length||x.hist.length?`<h3 class="ksh">File tingkat ${SW}</h3>${filesHTML(x.hist,x.docs)}`:""}
+  </div><div class="mf"><button class="btn" type="button" data-act="ksCalc" data-id="${sid}" data-b="${b.no}">Perhitungan ${esc(b.title)}</button><span style="flex:1"></span><button class="btn pri" type="button" data-x>Tutup</button></div>`,
   box=>{box.style.maxWidth="1000px";box.style.width="min(1000px,100%)";
     box.querySelectorAll("[data-ksf]").forEach(a=>a.onclick=e=>{e.preventDefault();S.onModalClose=()=>setTimeout(()=>openSub(sid,code),0);openFile(a.dataset.ksf);});});}
-
 /* ---------- baca Excel rincian ---------- */
 function numOf(x){if(typeof x==="number")return isFinite(x)?x:null;let s=clean(x).replace(/\s/g,"");if(!s)return null;
   if(/^-?\d{1,3}(\.\d{3})+(,\d+)?$/.test(s))s=s.replace(/\./g,"").replace(",",".");else if(/^-?\d+,\d+$/.test(s))s=s.replace(",",".");
@@ -2655,7 +2688,7 @@ async function oldTemplate(jenis){const SD=hasPct({jenis});
       ["Jenis Notulensi","Persiapan, Permasalahan, atau Lainnya. Persiapan dan Permasalahan menampilkan persentase: tiap Bab berbobot sama, progres dari Plan/Aktual atau Status."],
       ["Bab","Nama Bab / kelompok pembahasan, mis. Bab I – Persiapan Logistik. Tulis di setiap baris, atau sekali di baris tersendiri sebagai judul. Persentase dihitung per Bab."],["Topik","Pokok bahasan. Untuk beberapa tindak lanjut pada topik yang sama, tulis topik yang sama di setiap baris."],
       ["Hasil Pembahasan","Ringkasan pembahasan / kesepakatan."],["Tindak Lanjut","Satu baris untuk satu tindak lanjut."],["PIC","Penanggung jawab."],["Due Date","Tanggal target, mis. 20 Oktober 2026. Teks seperti Minggu ke-1 November juga boleh."],
-      ["Status","Open, Continue, atau Close. Jika kosong otomatis Open."],...(SD?[["Sumber Data","Nama sumber angka, mis. MPP Oktober, PO 123, daftar unit. Boleh kosong."],["Plan / Aktual","Angka target dan realisasi tindak lanjut, mis. Plan 6 orang, Aktual 2. Hasil = Aktual ÷ Plan (maks. 100%). Kosongkan bila tidak terukur: hasil mengikuti Status (Close = 100%, Open/Continue = 0%)."],["Hasil (%)","Dihitung otomatis. Web menghitung ulang dari Plan dan Aktual."]]:[]),["Kolom tambahan","Boleh menambah kolom sendiri di kanan Status (mis. Unit). Kolom itu ikut terbaca di web."],[],["Contoh","1 | Bab I – Persiapan Manpower | Manpower | Pengawas dari KMB | Siapkan 8 unit vessel | Pak Dwi | 20 Oktober 2026 | Open |"],
+      ["Status","Open, Continue, atau Close. Jika kosong otomatis Open."],...(SD?[["Sumber Data","Nama sumber angka, mis. MPP Oktober, PO 123, daftar unit. Boleh kosong."],["Plan / Aktual","Angka target dan realisasi tindak lanjut, mis. Plan 6 orang, Aktual 2. Hasil = Aktual ÷ Plan (maks. 100%). Kosongkan bila tidak terukur: hasil mengikuti Status (Close = 100%, Open/Continue = 0%)."],["Banyak item","Untuk daftar item (mis. sparepart), di web klik kolom Sumber Data pada tindak lanjut → isi sheet. Form dari web menyertakan sheet SD n yang bisa diklik dari kolom Sumber Data."],["Bobot","Total 100% dibagi rata ke setiap Bab, lalu ke setiap Topik di Bab itu, lalu ke setiap tindak lanjut."],["Hasil (%)","Dihitung otomatis. Web menghitung ulang dari Plan dan Aktual."]]:[]),["Kolom tambahan","Boleh menambah kolom sendiri di kanan Status (mis. Unit). Kolom itu ikut terbaca di web."],[],["Contoh","1 | Bab I – Persiapan Manpower | Manpower | Pengawas dari KMB | Siapkan 8 unit vessel | Pak Dwi | 20 Oktober 2026 | Open |"],
       [],["Upload","Di web: + Meeting Baru → upload file, atau Notulensi → Upload Notulensi."]]);help["!cols"]=[{wch:18},{wch:110}];
     const wb=X.utils.book_new();X.utils.book_append_sheet(wb,ws,"Notulensi");X.utils.book_append_sheet(wb,help,"Petunjuk");
     await S.downloads.save({filename:`Template Notulensi Meeting${jenis?" - "+fnSafe(jenis):""}.xlsx`,data:new Blob([X.write(wb,{type:"array",bookType:"xlsx"})],{type:XMIME})});toast("Template siap");
@@ -2677,13 +2710,15 @@ function renderKsDash(fid){const box=$("ksDash");if(!box)return;const set=folder
    <div class="tbl-wrap"><table class="kstbl ksdash"><thead><tr><th>Notulensi</th><th>Kategori</th><th>Total</th><th>Per Bab</th><th>Status</th><th></th></tr></thead><tbody>${list.map(({s,K})=>`<tr>
      <td style="min-width:200px"><button class="fn" type="button" data-act="openS" data-id="${s.id}">${IC.series}<span>${esc(s.title)}</span></button><div class="stamp" style="margin-left:36px">${esc(fPathName(s.folderId))}</div></td><td><span class="jchip${s.jenis==="Persiapan"?" jp":""}" style="cursor:default">${esc(s.jenis)}</span></td>
      <td style="min-width:150px"><button type="button" class="kspct big" data-act="ksCalc" data-id="${s.id}">${fmtPct(K.pct)}</button>${ksBar(K.pct)}${K.warn?`<div class="kwt">⚠ ${K.warn} perlu verifikasi</div>`:""}</td>
-     <td><div class="ksbabs sm">${K.babs.slice(0,8).map(b=>K.mode==="bab"?`<button type="button" data-act="ksCalc" data-id="${s.id}" data-b="${b.no}" title="${esc(b.title)}"><span>${esc(b.title.replace(/\s*[–-].*$/,""))}</span><b>${fmtPct(b.pct)}</b></button>`:`<button type="button" data-act="ksSub" data-id="${s.id}" data-c="${esc(b.subs[0].code)}" title="${esc(b.title)}"><span>${esc(b.title.length>22?b.title.slice(0,21)+"…":b.title)}</span><b>${fmtPct(b.pct)}</b></button>`).join("")||`<span class="stamp">Belum ada tindak lanjut</span>`}${K.babs.length>8?`<span class="stamp">+${K.babs.length-8} lagi</span>`:""}</div></td>
+     <td><div class="ksbabs sm">${K.babs.slice(0,8).map(b=>`<button type="button" data-act="ksCalc" data-id="${s.id}" data-b="${b.no}" title="${esc(b.title)}${b.w!=null?` · bobot ${fmtPct(b.w)}`:""}"><span>${esc(b.title.length>22?b.title.slice(0,21)+"…":b.title)}</span><b>${fmtPct(b.pct)}</b></button>`).join("")||`<span class="stamp">Belum ada tindak lanjut</span>`}${K.babs.length>8?`<span class="stamp">+${K.babs.length-8} lagi</span>`:""}</div></td>
      <td style="white-space:nowrap"><span class="ksst"><i class="d-open"></i>${K.c.open}<i class="d-continue"></i>${K.c.continue}<i class="d-close"></i>${K.c.close}</span></td>
      <td><button class="btn sm" type="button" data-act="ksSrc" data-id="${s.id}">Sumber${K.nSrc?` (${K.nSrc})`:""}</button></td></tr>`).join("")}</tbody></table></div>`;}
 
 document.addEventListener("click",e=>{const el=e.target.closest("[data-act]");if(!el||el.closest("#menu"))return;const a=el.dataset.act;
   if(a==="ksSub"){e.preventDefault();openSub(el.dataset.id,el.dataset.c);}
   else if(a==="rowSrc"){e.preventDefault();openRowSrc(el.dataset.id,el.dataset.k);}
+  else if(a==="ksTog"){const t=el.closest("table"),open=el.getAttribute("aria-expanded")!=="true";el.setAttribute("aria-expanded",open);el.textContent=open?"▾":"▸";t.querySelectorAll(`tr[data-bk="${el.dataset.b}"]`).forEach(tr=>tr.hidden=!open);}
+  else if(a==="ksTogAll"){const t=el.closest("table"),open=el.textContent==="buka semua";el.textContent=open?"tutup semua":"buka semua";t.querySelectorAll("tr[data-bk]").forEach(tr=>tr.hidden=!open);t.querySelectorAll(".kstog").forEach(b=>{b.setAttribute("aria-expanded",open);b.textContent=open?"▾":"▸";});}
   else if(a==="ksCalc"){e.preventDefault();openCalc(el.dataset.id,el.dataset.b!=null&&el.dataset.b!==""?+el.dataset.b:null);}
   else if(a==="ksSrc"){go("series",{sid:el.dataset.id,vid:null});setTimeout(()=>$("ksBox")?.scrollIntoView({behavior:"smooth",block:"start"}),60);}
   else if(a==="ksJenis"){if(S.canEdit)setJenis(el.dataset.id);}
