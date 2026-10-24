@@ -1215,6 +1215,13 @@ border:1px solid transparent;background:var(--unit-soft);border-radius:7px;color
 /* Identitas vendor: konsisten berdasarkan nama di sheet Populasi Unit. */
 .mu-vendor-tag{display:inline-flex;align-items:center;max-width:100%;box-sizing:border-box;padding:3px 8px;border-radius:6px;border:1px solid var(--mu-vendor-bd,#CBD5E1);background:var(--mu-vendor-bg,#F1F5F9);color:var(--mu-vendor-fg,#334155);font-size:10px;font-weight:800;line-height:1.4;letter-spacing:.01em;white-space:normal;overflow-wrap:anywhere;text-align:center}
 .mu-pop-vendor-head .mu-vendor-tag{font-size:9px;padding:2px 6px;vertical-align:middle}
+/* Merek unit: pil berwarna dengan titik, beda bentuk dari tag vendor. */
+.mu-brand-tag{display:inline-flex;align-items:center;gap:5px;max-width:100%;box-sizing:border-box;padding:3px 9px 3px 7px;border-radius:999px;background:var(--mu-brand-bg,#F1F5F9);color:var(--mu-brand-fg,#334155);border:1px solid color-mix(in srgb,var(--mu-brand-dot,#94A3B8) 35%,white);font-size:10px;font-weight:800;line-height:1.4;white-space:nowrap;overflow-wrap:normal}
+.mu-brand-tag::before{content:"";flex:none;width:7px;height:7px;border-radius:50%;background:var(--mu-brand-dot,#94A3B8)}
+.mu-brand-tag.mu-brand-empty{background:#F8FAFC;color:#94A3B8;border-style:dashed;border-color:#CBD5E1;font-weight:600}
+.mu-brand-tag.mu-brand-empty::before{background:#CBD5E1}
+.mu-pop-brand .mu-brand-tag{font-size:9.5px;padding:2px 8px 2px 6px}
+@media print{.mu-brand-tag{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 </style>
 <script src="../remembered-access.js?v=20261020"></script></head>
 <body>
@@ -1347,7 +1354,7 @@ border:1px solid transparent;background:var(--unit-soft);border-radius:7px;color
     <section class="mu-mpp-details" id="muPopDetails" aria-label="Detail unit per jenis">
       <div class="mu-mpp-detail-head"><div><span class="mu-mpp-eyebrow">DETAIL UNIT</span><h3 id="muPopDetailTitle">Seluruh unit di lokasi</h3><p id="muPopDetailSub">Pilih jenis unit pada kartu atau tabel rekap untuk menyaring daftar.</p></div><button type="button" class="btn small" data-unit-all hidden id="muPopReset">Lihat semua</button></div>
       <div class="mu-mpp-detail-wrap"><table class="mu-mpp-detail-table">
-      <thead><tr><th>No</th><th>Nomor lambung</th><th>Jenis Unit</th><th>Vendor</th><th>Project</th><th>Posisi</th><th>Status Operasional</th><th>Kondisi</th><th class="n">HM</th><th>Tanggal tiba</th><th>Keterangan</th><th class="mu-mpp-actions">Aksi</th></tr></thead>
+      <thead><tr><th>No</th><th>Nomor lambung</th><th>Jenis Unit</th><th>Vendor</th><th>Merek</th><th>Project</th><th>Posisi</th><th>Status Operasional</th><th>Kondisi</th><th class="n">HM</th><th>Tanggal tiba</th><th>Keterangan</th><th class="mu-mpp-actions">Aksi</th></tr></thead>
       <tbody id="tUnit"></tbody>
       </table></div>
     </section>
@@ -2428,6 +2435,51 @@ function muVendorTag(name){
   return '<span class="mu-vendor-tag" style="--mu-vendor-fg:'+c.fg+';--mu-vendor-bg:'+c.bg+';--mu-vendor-bd:'+c.bd+'" title="Vendor: '+esc(label)+'">'+esc(label)+'</span>';
 }
 
+/* Warna merek unit: warna tetap untuk merek umum, merek lain dapat warna stabil dari namanya. */
+const MU_BRAND_COLORS={
+  VOLVO:{fg:"#1E3A8A",bg:"#EEF2FF",dot:"#1E40AF"},
+  SANY:{fg:"#B91C1C",bg:"#FEF2F2",dot:"#DC2626"},
+  ZOOMLION:{fg:"#166534",bg:"#F0FDF4",dot:"#16A34A"},
+  HITACHI:{fg:"#C2410C",bg:"#FFF7ED",dot:"#EA580C"},
+  KOMATSU:{fg:"#1D4ED8",bg:"#EFF6FF",dot:"#F59E0B"},
+  CATERPILLAR:{fg:"#713F12",bg:"#FEFCE8",dot:"#EAB308"},
+  CAT:{fg:"#713F12",bg:"#FEFCE8",dot:"#EAB308"},
+  HINO:{fg:"#9F1239",bg:"#FFF1F2",dot:"#E11D48"},
+  ISUZU:{fg:"#991B1B",bg:"#FEF2F2",dot:"#EF4444"},
+  MITSUBISHI:{fg:"#9F1239",bg:"#FFF1F2",dot:"#BE123C"},
+  FUSO:{fg:"#9F1239",bg:"#FFF1F2",dot:"#BE123C"},
+  SCANIA:{fg:"#1E3A8A",bg:"#EFF6FF",dot:"#2563EB"},
+  MERCEDES:{fg:"#334155",bg:"#F8FAFC",dot:"#64748B"},
+  "MERCEDES-BENZ":{fg:"#334155",bg:"#F8FAFC",dot:"#64748B"},
+  UD:{fg:"#155E75",bg:"#ECFEFF",dot:"#0891B2"},
+  "UD TRUCKS":{fg:"#155E75",bg:"#ECFEFF",dot:"#0891B2"},
+  KYOKUTO:{fg:"#5B21B6",bg:"#F5F3FF",dot:"#7C3AED"},
+  TOYOTA:{fg:"#991B1B",bg:"#FEF2F2",dot:"#DC2626"},
+  SHACMAN:{fg:"#9A3412",bg:"#FFF7ED",dot:"#F97316"},
+  SINOTRUK:{fg:"#075985",bg:"#F0F9FF",dot:"#0284C7"},
+  HOWO:{fg:"#075985",bg:"#F0F9FF",dot:"#0284C7"},
+  LIEBHERR:{fg:"#854D0E",bg:"#FEFCE8",dot:"#CA8A04"},
+  DOOSAN:{fg:"#1E40AF",bg:"#EFF6FF",dot:"#3B82F6"},
+  HYUNDAI:{fg:"#1E3A8A",bg:"#EFF6FF",dot:"#1D4ED8"},
+  XCMG:{fg:"#A16207",bg:"#FEFCE8",dot:"#EAB308"},
+  LIUGONG:{fg:"#1E40AF",bg:"#EFF6FF",dot:"#2563EB"},
+  SDLG:{fg:"#9A3412",bg:"#FFF7ED",dot:"#EA580C"}
+};
+const MU_BRAND_PALETTE=[
+  {fg:"#0F766E",bg:"#F0FDFA",dot:"#14B8A6"},{fg:"#6D28D9",bg:"#F5F3FF",dot:"#8B5CF6"},
+  {fg:"#BE185D",bg:"#FDF2F8",dot:"#EC4899"},{fg:"#0369A1",bg:"#F0F9FF",dot:"#0EA5E9"},
+  {fg:"#4D7C0F",bg:"#F7FEE7",dot:"#84CC16"},{fg:"#B45309",bg:"#FFFBEB",dot:"#F59E0B"},
+  {fg:"#4338CA",bg:"#EEF2FF",dot:"#6366F1"},{fg:"#9F1239",bg:"#FFF1F2",dot:"#F43F5E"}
+];
+function muBrandTag(name){
+  const label=String(name||"").trim();
+  if(!label) return '<span class="mu-brand-tag mu-brand-empty" title="Merek belum diisi">Belum diisi</span>';
+  const key=label.replace(/\s+/g," ").toUpperCase();
+  let c=MU_BRAND_COLORS[key]||MU_BRAND_COLORS[key.split(/[\s/(-]/)[0]];
+  if(!c){ let h=0; for(let i=0;i<key.length;i++) h=((h*31)+key.charCodeAt(i))>>>0; c=MU_BRAND_PALETTE[h%MU_BRAND_PALETTE.length]; }
+  return '<span class="mu-brand-tag" style="--mu-brand-fg:'+c.fg+';--mu-brand-bg:'+c.bg+';--mu-brand-dot:'+c.dot+'" title="Merek: '+esc(label)+'">'+esc(label)+'</span>';
+}
+
 /* Rekap populasi aktual: Jenis Unit -> Vendor -> Merek.
    Seluruh angka berasal dari satu kumpulan unit di lokasi. */
 function muPopTypeName(value){
@@ -2509,7 +2561,7 @@ function renderPopDash(){
           '<th>Merek Unit</th><th>Total</th><th>Status Operasional</th><th>Kondisi Unit</th>'+
         '</tr></thead><tbody>'+
         brands.map(b=>
-          '<tr><td class="mu-pop-brand">'+esc(b.brand)+'</td><td class="mu-pop-number">'+b.items.length+'</td>'+
+          '<tr><td class="mu-pop-brand">'+muBrandTag(b.brand)+'</td><td class="mu-pop-number">'+b.items.length+'</td>'+
           '<td><div class="mu-pop-badges">'+muPopBadges(b.items,x=>x.operational,false)+'</div></td>'+
           '<td><div class="mu-pop-badges">'+muPopBadges(b.items,x=>x.kondisi,true)+'</div></td></tr>'
         ).join('')+'</tbody></table></div></section>';
@@ -2843,6 +2895,7 @@ function renderUnit(){
       <td><span class="plate">${esc(u.kode)}</span>${isExistingUnit(u)?`<span class="sub" style="font-size:9px;color:#6d28d9">Existing</span>`:""}${u.kodeSementara?`<span class="sub" style="color:var(--warn);font-size:9px">Nomor sementara</span>`:""}</td>
       <td><b>${esc(u.tipe||"—")}</b></td>
       <td>${muVendorTag(m.vendor)}</td>
+      <td>${muBrandTag(m.merk)}</td>
       <td><span class="ptag">${esc(projKode(u.projectId))}</span></td>
       <td><span title="${esc(u.lokasi||"")}">${esc(u.lokasi||"—")}</span>${mob?`<span class="sub" style="font-size:9px">→ ${esc(mob.ke)} (${esc(mob.status)})</span>`:""}</td>
       <td>${chip(UNIT_STATUS,u.status)}</td>
@@ -2852,7 +2905,7 @@ function renderUnit(){
       <td class="mu-mpp-description">${catatan?`<span class="mu-mpp-ellipsis" title="${esc(catatan)}">${esc(catatan)}</span><button class="mu-mpp-view" data-act="unitInfo" data-id="${esc(u.id)}" type="button">Lihat detail</button>`:`<button class="mu-mpp-view" data-act="unitInfo" data-id="${esc(u.id)}" type="button">Rincian</button>`}</td>
       <td class="mu-mpp-actions">${ops||"—"}</td>
     </tr>`;
-  }).join(""):`<tr><td colspan="12">${emptyState(S.ready?"Belum ada unit untuk filter ini":"Memuat data…",S.ready?"Pilih filter lain atau tambahkan unit existing dan unit tiba.":"",canWrite&&S.ready?`<button class="btn small" data-act="addExistingUnit" type="button">+ Input unit existing</button> ${S.kirim.length?`<button class="btn primary small" data-act="addUnitBtn" type="button">+ Catat unit tiba</button>`:""}`:"")}</td></tr>`;
+  }).join(""):`<tr><td colspan="13">${emptyState(S.ready?"Belum ada unit untuk filter ini":"Memuat data…",S.ready?"Pilih filter lain atau tambahkan unit existing dan unit tiba.":"",canWrite&&S.ready?`<button class="btn small" data-act="addExistingUnit" type="button">+ Input unit existing</button> ${S.kirim.length?`<button class="btn primary small" data-act="addUnitBtn" type="button">+ Catat unit tiba</button>`:""}`:"")}</td></tr>`;
 }
 
 /* Foto per unit: gunakan layanan upload dokumentasi Drive yang sudah ada,
