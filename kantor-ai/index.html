@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Kantor AI · Monitoring</title>
+<title>Kantor Monitoring</title>
 <meta name="theme-color" content="#6D28D9">
 <style>
 :root{color-scheme:light;--bg:#EEF0F8;--card:rgba(255,255,255,.96);--ink:#1E1B3A;--ink-2:#4B4868;--muted:#7D7A99;--line:#E6E4F2;--p:#6D28D9;--p-soft:#EFE9FE;--good:#15803D;--good-soft:#DCFCE7;--warn:#B45309;--warn-soft:#FEF3C7;--crit:#E11D48;--crit-soft:#FFE4E6;--idle:#64748B;--idle-soft:#F1F5F9}
@@ -20,7 +20,7 @@ header .sp{flex:1}
 .pill i{width:8px;height:8px;border-radius:50%;background:currentColor}
 .ok{color:var(--good);background:var(--good-soft)}.warn{color:var(--warn);background:var(--warn-soft)}.crit{color:var(--crit);background:var(--crit-soft)}.idle{color:var(--idle);background:var(--idle-soft)}
 .btn{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:9px;padding:6px 10px;cursor:pointer;text-decoration:none}
-#stage{position:relative;overflow:hidden;min-height:0}
+#stage{position:relative;overflow:hidden;min-height:0;background:radial-gradient(ellipse at 50% 25%,#20305a 0%,#0e1628 55%,#090d18 100%)}
 #stage canvas{display:block;width:100%;height:100%;touch-action:none}
 #labels{position:absolute;inset:0;pointer-events:none}
 .tag{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
@@ -50,6 +50,16 @@ aside .team button span:nth-child(2){flex:1}
 .gate .card{max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;text-align:center}
 .gate h2{margin:0 0 6px}.gate p{color:var(--ink-2);margin:0 0 14px}
 .demo{position:absolute;left:12px;bottom:12px;z-index:2}
+.card3d{position:absolute;transform:translate(-50%,-50%);background:rgba(255,255,255,.97);color:#1e1b3a;border-radius:12px;padding:6px 10px 7px;box-shadow:0 10px 28px rgba(0,0,0,.4);font-size:11px;line-height:1.3;width:168px;pointer-events:auto;cursor:pointer;z-index:1}
+.card3d h5{margin:0 0 3px;font-size:12.5px;display:flex;gap:7px;align-items:center;line-height:1.2}.card3d h5 span:nth-child(2){flex:1}
+.card3d .ic{width:22px;height:22px;flex:0 0 22px;border-radius:50%;display:grid;place-items:center;background:#e0f2fe;font-size:14px}
+.card3d .dot{width:8px;height:8px;border-radius:50%;background:#94a3b8}.card3d .dot.ok{background:#22c55e}.card3d .dot.warn{background:#f59e0b}.card3d .dot.crit{background:#ef4444}
+.card3d ul{margin:0;padding:0;list-style:none}.card3d li::before{content:'✓ ';color:#16a34a;font-weight:800}
+.nocards .card3d{display:none}
+.badge3d{position:absolute;transform:translate(-50%,-50%);background:rgba(8,15,30,.9);border:2px solid #38bdf8;color:#fff;border-radius:10px;padding:6px 14px;font-weight:800;font-size:17px;line-height:1.2;pointer-events:none;box-shadow:0 0 18px rgba(56,189,248,.35)}.badge3d small{display:block;font-weight:500;font-size:12.5px;color:#bae6fd}
+.legend{position:absolute;right:12px;bottom:12px;z-index:3}
+.now{font-size:13px;color:var(--ink-2);margin:-4px 0 8px;font-weight:600}
+.tag .bub{background:rgba(255,255,255,.95);color:#1e1b3a}.tag .bub.ok{background:#ecfdf5;color:#166534}.tag .bub.warn{background:#fffbeb;color:#92400e}.tag .bub.crit{background:#fff1f2;color:#be123c}.tag .bub.idle{background:#f8fafc;color:#334155}
 .sec{margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em}
 .ask textarea{width:100%;min-height:84px;resize:vertical;font:inherit;font-size:14px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 .ask textarea:focus{outline:2px solid var(--p);border-color:transparent}
@@ -74,7 +84,7 @@ aside .team button span:nth-child(2){flex:1}
   aside{border-left:0;border-top:1px solid var(--line);max-height:44vh;padding:14px 16px}
   header .sub{display:none}
   .tag .bub{max-width:150px;font-size:11px;padding:4px 7px}.tag .nm{font-size:10px}
-  .tag:not(.sel) .bub{display:none}.tag .nm i{display:inline-block}.tag.sel{z-index:2}
+  .tag:not(.sel) .bub{display:none}.badge3d.b1{display:none}.badge3d{font-size:12px;padding:4px 9px}.badge3d small{font-size:10px}.card3d{width:150px;font-size:10.5px}.tag .nm i{display:inline-block}.tag.sel{z-index:2}
 }
 </style>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
@@ -83,7 +93,7 @@ aside .team button span:nth-child(2){flex:1}
 <div id="app">
   <header>
     <div class="lg">AI</div>
-    <div><h1>Kantor AI</h1><div class="sub">Tim pengawas web Monitoring · diperbarui <span id="upd">–</span></div></div>
+    <div><h1>Kantor Monitoring</h1><div class="sub">Tim AI yang bekerja live untuk web Monitoring · diperbarui <span id="upd">–</span></div></div>
     <div class="sp"></div>
     <span id="overall" class="pill idle"><i></i>Memuat…</span>
     <a class="btn" href="../" aria-label="Kembali ke Monitoring">←<span class="tx"> Monitoring</span></a>
@@ -105,50 +115,56 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const wib = (t) => new Date(t).toLocaleString('id-ID', { timeZone: 'Asia/Jakarta', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
 const mask = (e) => { const [u, d] = String(e || '').split('@'); return d ? u.slice(0, 3) + '…@' + d : (e || 'link tamu'); };
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+const short = (t, n = 34) => { t = String(t || ''); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
 
 /* ---------- tim ---------- */
 const TEAM = [
-  { id: 'satpam', name: 'Satpam', role: 'Keamanan', shirt: 0x1e3a8a, pos: [-9, 0, -4], rug: 0xdbeafe, prop: 'gate' },
-  { id: 'teknisi', name: 'Teknisi', role: 'Kesehatan web', shirt: 0x0f766e, pos: [-3, 0, -4], rug: 0xccfbf1, prop: 'rack' },
-  { id: 'pencatat', name: 'Pencatat', role: 'Aktivitas Editor', shirt: 0xb45309, pos: [3, 0, -4], rug: 0xfef3c7, prop: 'shelf' },
-  { id: 'marketing', name: 'Marketing', role: 'Penjualan Monitoring', shirt: 0xea580c, pos: [9, 0, -4], rug: 0xffedd5, prop: 'promo' },
-  { id: 'resepsionis', name: 'Resepsionis', role: 'Akses & link', shirt: 0xbe185d, pos: [-7.5, 0, 3.8], rug: 0xfce7f3, prop: 'plant' },
-  { id: 'manager', name: 'Manager Operasional', role: 'Terima permintaan & bagi tugas', shirt: 0x1f2937, pos: [0, 0, 3.8], rug: 0xe0e7ff, prop: 'tasks' },
-  { id: 'sekretaris', name: 'Sekretaris', role: 'Laporan pagi', shirt: 0x6d28d9, pos: [7.5, 0, 3.8], rug: 0xede9fe, prop: 'board' },
+  { id: 'manager', name: 'Manager Operasional', role: 'Lantai 2 · terima permintaan & bagi tugas', acc: 0x2563eb },
+  { id: 'satpam', name: 'Satpam', role: 'Keamanan & ronda', acc: 0x1e3a8a },
+  { id: 'resepsionis', name: 'Resepsionis', role: 'Akses, undangan & link', acc: 0xec4899 },
+  { id: 'teknisi', name: 'Teknisi', role: 'Kesehatan web & deploy', acc: 0x3b82f6 },
+  { id: 'pencatat', name: 'Pencatat', role: 'Aktivitas & perubahan data', acc: 0x0ea5e9 },
+  { id: 'sekretaris', name: 'Sekretaris', role: 'Laporan pagi & dokumen', acc: 0x8b5cf6 },
+  { id: 'admin_db', name: 'Admin Database & Backup', role: 'Database, file & cadangan', acc: 0x1d4ed8 },
+  { id: 'designer', name: 'Designer', role: 'Desain web & visual', acc: 0xf472b6 },
+  { id: 'marketing', name: 'Marketing', role: 'Penjualan Monitoring', acc: 0x14b8a6 },
 ];
 const DIV = Object.fromEntries(TEAM.map((t) => [t.id, t.name]));
 const JS = { antre: ['Antre', 'idle'], dikerjakan: ['Dikerjakan', 'ok'], butuh_persetujuan: ['Butuh persetujuan', 'warn'], disetujui: ['Disetujui', 'ok'], ditolak: ['Ditolak', 'idle'], selesai: ['Selesai', 'ok'], gagal: ['Gagal', 'crit'] };
 const RS = { baru: ['Baru', 'warn'], direncanakan: ['Direncanakan', 'ok'], dikerjakan: ['Dikerjakan', 'ok'], butuh_persetujuan: ['Butuh persetujuan', 'warn'], selesai: ['Selesai', 'ok'], dibatalkan: ['Dibatalkan', 'idle'] };
 let DATA = null, STATE = {}, SEL = 'manager', SB = null, RELOAD = () => {};
 
+const activeJobs = (d) => (d.requests || []).filter((q) => q.status !== 'dibatalkan').flatMap((q) => q.jobs || []);
 function derive(d) {
   const rep = d.last_report, chk = (rep && rep.checks) || {};
   const ageH = rep ? (Date.now() - new Date(rep.created_at).getTime()) / 36e5 : null;
-  const pend = d.pending_requests || [], la = d.links_active || {};
+  const pend = d.pending_requests || [], db = d.db || {};
   const fromCheck = (c, idleText) => c ? { level: c.level || 'ok', bubble: c.summary || LV[c.level || 'ok'], items: c.items || [] } : { level: 'idle', bubble: idleText, items: [] };
   const s = {};
   s.satpam = fromCheck(chk.security, 'Menunggu ronda pagi');
   s.teknisi = fromCheck(chk.web, 'Menunggu cek pagi');
   const n = d.activity_24h || 0, del = d.deletes_24h || 0;
-  s.pencatat = { level: del >= 20 ? 'crit' : del >= 5 ? 'warn' : 'ok', bubble: del >= 5 ? `${del} penghapusan!` : n ? `${n} aktivitas hari ini` : 'Sepi, belum ada aktivitas', busy: n > 0 };
-  s.resepsionis = { level: pend.length ? 'warn' : 'ok', bubble: pend.length ? `${pend.length} tamu menunggu izin` : 'Tidak ada antrean', busy: (d.links_expiring_3d || 0) > 0 };
-  if (!rep) s.sekretaris = { level: 'idle', bubble: 'Laporan pertama 08.00' };
+  s.pencatat = { level: del >= 20 ? 'crit' : del >= 5 ? 'warn' : 'ok', bubble: del >= 5 ? `${del} penghapusan!` : n ? `${n} aktivitas hari ini` : 'Belum ada aktivitas' };
+  s.resepsionis = { level: pend.length ? 'warn' : 'ok', bubble: pend.length ? `${pend.length} tamu menunggu izin` : 'Tidak ada antrean' };
+  if (!rep) s.sekretaris = { level: 'idle', bubble: 'Laporan pertama besok pagi' };
   else if (ageH > 26) s.sekretaris = { level: 'warn', bubble: 'Laporan terlambat' };
   else s.sekretaris = { level: rep.level, bubble: rep.level === 'ok' ? 'Laporan pagi siap' : 'Ada temuan di laporan' };
-  // tugas dari Manager
-  const reqs = (d.requests || []).filter((q) => q.status !== 'dibatalkan');
-  const jobs = reqs.flatMap((q) => q.jobs || []);
+  const mb = +db.size_mb || 0;
+  s.admin_db = { level: mb > 480 ? 'crit' : mb > 400 ? 'warn' : db.size_mb != null ? 'ok' : 'idle', bubble: db.size_mb != null ? `DB ${mb} MB · ${db.tables} tabel` : 'Menunggu data' };
+  s.designer = { level: 'idle', bubble: 'Siap mendesain' };
   s.marketing = { level: 'idle', bubble: 'Siap promosi Monitoring' };
+  const reqs = (d.requests || []).filter((q) => q.status !== 'dibatalkan'), jobs = activeJobs(d);
   for (const t of TEAM) {
     if (t.id === 'manager') continue;
     const mine = jobs.filter((j) => j.division === t.id), need = mine.filter((j) => j.status === 'butuh_persetujuan'), act = mine.filter((j) => ['antre', 'dikerjakan', 'disetujui'].includes(j.status));
-    if (need.length) s[t.id] = { level: s[t.id].level === 'crit' ? 'crit' : 'warn', bubble: 'Butuh persetujuan Anda', busy: true };
-    else if (act.length) s[t.id] = { level: s[t.id].level === 'idle' ? 'ok' : s[t.id].level, bubble: '✍️ ' + act[0].title.slice(0, 34), busy: true };
+    if (need.length) s[t.id] = { level: s[t.id].level === 'crit' ? 'crit' : 'warn', bubble: 'Butuh persetujuan Anda', job: need[0] };
+    else if (act.length) s[t.id] = { level: s[t.id].level === 'idle' ? 'ok' : s[t.id].level, bubble: '✍️ ' + short(act[0].title), job: act[0] };
   }
-  const baru = reqs.filter((q) => q.status === 'baru').length, need = jobs.filter((j) => j.status === 'butuh_persetujuan').length, act = jobs.filter((j) => ['antre', 'dikerjakan', 'disetujui'].includes(j.status)).length;
-  s.manager = baru ? { level: 'ok', bubble: `${baru} permintaan baru, segera dibagi`, busy: true }
+  const baru = reqs.filter((q) => q.status === 'baru'), need = jobs.filter((j) => j.status === 'butuh_persetujuan').length, act = jobs.filter((j) => ['antre', 'dikerjakan', 'disetujui'].includes(j.status)).length;
+  s.manager = baru.length ? { level: 'ok', bubble: `${baru.length} permintaan baru`, req: baru[0] }
     : need ? { level: 'warn', bubble: `${need} tugas menunggu persetujuan` }
-    : act ? { level: 'ok', bubble: `Mengawasi ${act} tugas`, busy: true } : { level: 'idle', bubble: 'Siap menerima permintaan' };
+    : act ? { level: 'ok', bubble: `Mengawasi ${act} tugas` } : { level: 'idle', bubble: 'Siap menerima permintaan' };
   return s;
 }
 function overallOf(s) { const L = Object.values(s).map((x) => x.level); return L.includes('crit') ? 'crit' : L.includes('warn') ? 'warn' : L.every((x) => x === 'idle') ? 'idle' : 'ok'; }
@@ -179,15 +195,21 @@ function reqHtml(q) {
     ${(q.jobs || []).map((j) => jobHtml(j, true)).join('') || (q.status === 'baru' ? '<div class="meta">Menunggu Manager membagi tugas (dicek tiap jam, 07.00–22.00 WIB).</div>' : '')}
     ${['baru', 'direncanakan', 'dikerjakan', 'butuh_persetujuan'].includes(q.status) ? `<div class="acts"><button type="button" class="btn" data-cancel="${q.id}">Batalkan</button></div>` : ''}</div>`;
 }
+const INFO = {
+  satpam: 'Berkeliling memeriksa gerbang, parkir, lobi, ruang server, dan lantai 2. Setiap pagi ia memeriksa Security Advisor Supabase, login mencurigakan, dan penghapusan data massal.',
+  teknisi: 'Menjaga 9 halaman web tetap hidup: status deploy GitHub Pages, file halaman, dan error berulang di log.',
+  designer: 'Mendesain ulang tampilan web, dashboard, ikon, dan gambar. Kirim permintaan desain lewat Manager Operasional. Desain baru selalu berupa usulan dan menunggu persetujuan Anda sebelum dipasang.',
+  marketing: 'Menyiapkan bahan untuk menjual Monitoring: profil produk, harga, brosur, pesan penawaran, dan profil calon pembeli. Apa pun yang dikirim ke orang luar selalu menunggu persetujuan Anda.',
+};
 function panel() {
   const d = DATA, w = TEAM.find((t) => t.id === SEL), st = STATE[SEL] || { level: 'idle', bubble: '' };
   const reqs = d.requests || [];
-  const myJobs = reqs.filter((q) => q.status !== 'dibatalkan').flatMap((q) => q.jobs || []).filter((j) => j.division === SEL);
+  const myJobs = activeJobs(d).filter((j) => j.division === SEL);
   let body = '';
   if (SEL === 'satpam' || SEL === 'teknisi') {
     const c = d.last_report && d.last_report.checks && d.last_report.checks[SEL === 'satpam' ? 'security' : 'web'];
-    body = c ? `${(c.items || []).length ? '<ul>' + c.items.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>' : ''}<p class="muted">Diperiksa ${wib(d.last_report.created_at)} WIB.</p>`
-      : `<p class="muted">${SEL === 'satpam' ? 'Satpam memeriksa Security Advisor Supabase, login mencurigakan, dan penghapusan massal' : 'Teknisi memeriksa apakah 9 halaman web hidup dan ada error di log'} setiap pagi pukul 08.00 WIB.</p>`;
+    body = `<p class="muted">${INFO[SEL]}</p>` + (c ? `${(c.items || []).length ? '<ul>' + c.items.map((x) => '<li>' + esc(x) + '</li>').join('') + '</ul>' : ''}<p class="muted">Pemeriksaan terakhir ${wib(d.last_report.created_at)} WIB.</p>` : '');
+    if (SEL === 'satpam') body += `<div class="kv"><span>Login 24 jam</span><b>${d.signins_24h || 0}</b><span>Penghapusan 24 jam</span><b>${d.deletes_24h || 0}</b></div>`;
   } else if (SEL === 'pencatat') {
     const by = Object.entries(d.activity_by_app || {});
     body = `<div class="kv"><span>Aktivitas 24 jam</span><b>${d.activity_24h || 0}</b><span>Orang yang mengubah</span><b>${d.actors_24h || 0}</b><span>Penghapusan 24 jam</span><b>${d.deletes_24h || 0}</b></div>`
@@ -195,23 +217,27 @@ function panel() {
       + '<b>Terakhir</b><ul>' + (d.activity_recent || []).map((r) => `<li><span class="muted">${wib(r.at)}</span> · ${esc(APPS[r.app] || r.app)}${r.site ? ' (' + esc(r.site) + ')' : ''}: ${esc(r.action).slice(0, 90)} <span class="muted">— ${esc(mask(r.actor))}</span></li>`).join('') + '</ul>';
   } else if (SEL === 'resepsionis') {
     const la = d.links_active || {}, pend = d.pending_requests || [];
-    body = `<div class="kv"><span>Permintaan akses</span><b>${pend.length}</b><span>Link Pelihat aktif</span><b>${la.viewer || 0}</b><span>Link Editor tanpa login</span><b>${la.editor || 0}</b><span>Kedaluwarsa ≤ 3 hari</span><b>${d.links_expiring_3d || 0}</b><span>Login 24 jam</span><b>${d.signins_24h || 0}</b></div>`
+    body = `<div class="kv"><span>Permintaan akses</span><b>${pend.length}</b><span>Link Pelihat aktif</span><b>${la.viewer || 0}</b><span>Link Editor tanpa login</span><b>${la.editor || 0}</b><span>Kedaluwarsa ≤ 3 hari</span><b>${d.links_expiring_3d || 0}</b><span>Anggota terdaftar</span><b>${d.members || 0}</b></div>`
       + (pend.length ? '<b>Menunggu izin</b><ul>' + pend.map((p) => `<li>${esc(mask(p.email))} → ${esc(APPS[p.app_id] || p.app_id)}</li>`).join('') + '</ul>' : '')
       + ((la.editor || 0) ? '<p class="muted">Saran: cabut link Editor tanpa login; Editor sebaiknya masuk dengan kode email.</p>' : '')
       + '<a class="btn" href="../#akses">Kelola akses →</a>';
+  } else if (SEL === 'admin_db') {
+    const db = d.db || {};
+    body = `<div class="kv"><span>Ukuran database</span><b>${db.size_mb ?? '–'} MB</b><span>Tabel</span><b>${db.tables ?? '–'}</b><span>Total baris data</span><b>${db.rows ?? '–'}</b><span>File tersimpan</span><b>${db.storage_files ?? '–'}</b></div>`
+      + ((db.top || []).length ? '<b>Tabel terbesar</b><ul>' + db.top.map((t) => `<li>${esc(t.name)}: ${t.rows} baris</li>`).join('') + '</ul>' : '')
+      + '<p class="muted">Batas paket gratis Supabase 500 MB. Status cadangan harian bisa dicek di Dashboard Supabase → Database → Backups.</p>';
   } else if (SEL === 'manager') {
     body = `<form class="ask" id="askForm"><div class="sec">Permintaan baru</div><textarea id="askText" maxlength="4000" placeholder="Contoh: Siapkan bahan untuk menawarkan Monitoring ke kontraktor tambang lain: brosur, harga, dan pesan WhatsApp."></textarea>
       <div class="row"><span class="muted">Manager membaginya ke tim dalam ±1 jam.</span><button type="submit" class="btn pri">Kirim</button></div></form>
       <div class="sec">Permintaan Anda</div>${reqs.length ? reqs.map(reqHtml).join('') : '<p class="muted">Belum ada permintaan.</p>'}`;
-  } else if (SEL === 'marketing') {
-    body = `<p class="muted">Marketing menyiapkan bahan untuk menjual Monitoring: profil produk, daftar harga, brosur, pesan WhatsApp/email penawaran, dan riset calon pembeli. Kirim permintaan lewat Manager Operasional. Apa pun yang dikirim ke orang luar selalu menunggu persetujuan Anda.</p>`;
-  } else {
+  } else if (SEL === 'sekretaris') {
     const r = d.last_report;
-    body = r ? `<p class="muted">Laporan ${wib(r.created_at)} WIB</p><div class="rep">${md(r.body || r.summary)}</div>` : '<p class="muted">Sekretaris menyusun laporan setiap pagi pukul 08.00 WIB dan mengirimnya ke HP serta email Anda. Laporan pertama muncul besok pagi.</p>';
-  }
-  if (SEL !== 'manager') body += myJobs.length ? '<div class="sec">Tugas dari Manager</div>' + myJobs.map((j) => jobHtml(j, false)).join('') : (SEL === 'marketing' ? '<p class="muted">Belum ada tugas.</p>' : '');
-  $('panel').innerHTML = `<div class="role">${esc(w.role)}</div><h2>${esc(w.name)}</h2><div class="big ${st.level}"><b>${LV[st.level]}</b> · ${esc(st.bubble)}</div>${body}
-    <div class="team">${TEAM.map((t) => `<button type="button" data-w="${t.id}" class="${t.id === SEL ? 'on' : ''}"><span class="pill ${STATE[t.id].level}" style="padding:3px 6px"><i></i></span><span>${t.name}</span><span class="muted">${esc(t.role)}</span></button>`).join('')}</div>`;
+    body = r ? `<p class="muted">Laporan ${wib(r.created_at)} WIB</p><div class="rep">${md(r.body || r.summary)}</div>` : '<p class="muted">Sekretaris menyusun laporan setiap pagi dan mengirimnya ke HP serta email Anda.</p>';
+  } else body = `<p class="muted">${INFO[SEL]}</p>`;
+  if (SEL !== 'manager') body += myJobs.length ? '<div class="sec">Tugas dari Manager</div>' + myJobs.map((j) => jobHtml(j, false)).join('') : (['marketing', 'designer'].includes(SEL) ? '<p class="muted">Belum ada tugas.</p>' : '');
+  $('panel').innerHTML = `<div class="role">${esc(w.role)}</div><h2>${esc(w.name)}</h2><div class="big ${st.level}"><b>${LV[st.level]}</b> · ${esc(st.bubble)}</div>
+    <p class="now">🔴 LIVE · <span id="nowTxt"></span></p>${body}
+    <div class="team">${TEAM.map((t) => `<button type="button" data-w="${t.id}" class="${t.id === SEL ? 'on' : ''}"><span class="pill ${STATE[t.id].level}" style="padding:3px 6px"><i></i></span><span>${t.name}</span><span class="muted">${esc(t.role.split(' · ').pop())}</span></button>`).join('')}</div>`;
 }
 $('panel').addEventListener('click', async (e) => {
   const b = e.target.closest('[data-w]'); if (b) { select(b.dataset.w); return; }
@@ -240,127 +266,413 @@ $('panel').addEventListener('submit', async (e) => {
   RELOAD();
 });
 
-/* ---------- 3D ---------- */
+/* ---------- 3D: dunia ---------- */
 const stage = $('stage'), labels = $('labels');
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 stage.prepend(renderer.domElement);
 const scene = new THREE.Scene();
-const cam = new THREE.PerspectiveCamera(35, 1, 0.1, 200);
+scene.fog = new THREE.Fog(0x0e1628, 60, 110);
+const cam = new THREE.PerspectiveCamera(34, 1, 0.1, 300);
 const ctl = new OrbitControls(cam, renderer.domElement);
-ctl.target.set(0, 0.5, 0); ctl.enableDamping = true; ctl.enablePan = false;
-ctl.minPolarAngle = 0.5; ctl.maxPolarAngle = 1.2; ctl.minDistance = 14; ctl.maxDistance = 82;
+ctl.target.set(0, 1.4, 2.2); ctl.enableDamping = true; ctl.screenSpacePanning = true;
+ctl.minPolarAngle = 0.35; ctl.maxPolarAngle = 1.25; ctl.minDistance = 12; ctl.maxDistance = 95;
 
-scene.add(new THREE.HemisphereLight(0xffffff, 0xb9b3d6, 1.6));
-const sun = new THREE.DirectionalLight(0xffffff, 1.6);
-sun.position.set(8, 16, 10); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
-Object.assign(sun.shadow.camera, { left: -16, right: 16, top: 12, bottom: -12 }); scene.add(sun);
+scene.add(new THREE.HemisphereLight(0xaebfe8, 0x2a2015, 0.85));
+const sun = new THREE.DirectionalLight(0xffdcae, 1.15);
+sun.position.set(-10, 26, 18); sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -24, right: 24, top: 22, bottom: -22, near: 1, far: 80 }); sun.shadow.bias = -0.0005; scene.add(sun);
+const warmL = (x, y, z, i = 9, d = 10) => { const l = new THREE.PointLight(0xffc98a, i, d, 1.6); l.position.set(x, y, z); scene.add(l); };
+warmL(0, 6.6, -9.5, 20, 22); warmL(-10.5, 3.6, 1.6, 14, 14); warmL(10.5, 3.6, 1.6, 14, 14); warmL(0, 3.0, 5.5, 14, 12); warmL(0, 2.6, 13.6, 8, 7);
 
-const M = (c, o = {}) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, ...o });
-function box(w, h, d, c, x, y, z, parent = scene, o) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), M(c, o)); m.position.set(x, y, z); m.castShadow = m.receiveShadow = true; parent.add(m); return m; }
-
-// lantai, dinding, jendela
-box(26, 0.3, 16.5, 0xf3efe6, 0, -0.15, 0);
-box(26, 4, 0.3, 0xe7e3f3, 0, 2, -8.35); box(0.3, 4, 16.5, 0xdcd7ee, -13.1, 2, 0);
-for (const x of [-9, -3, 3, 9]) { box(3.2, 1.8, 0.1, 0xbfe3ff, x, 2.6, -8.17, scene, { emissive: 0x9bd1ff, emissiveIntensity: 0.25 }); box(3.4, 0.12, 0.2, 0xffffff, x, 1.65, -8.15); }
-box(0.1, 1.8, 3, 0xbfe3ff, -12.92, 2.4, 2, scene, { emissive: 0x9bd1ff, emissiveIntensity: 0.25 });
-// papan nama
-const sign = (() => { const c = document.createElement('canvas'); c.width = 720; c.height = 96; const g = c.getContext('2d'); g.fillStyle = '#6D28D9'; g.fillRect(0, 0, 720, 96); g.fillStyle = '#fff'; g.font = 'bold 46px system-ui,sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('KANTOR AI · MONITORING', 360, 50); return new THREE.CanvasTexture(c); })();
-const signM = new THREE.Mesh(new THREE.PlaneGeometry(6.8, 0.9), new THREE.MeshBasicMaterial({ map: sign })); signM.position.set(0, 3.7, -8.18); scene.add(signM);
-
-function plant(x, z, s = 1) { box(0.6 * s, 0.6 * s, 0.6 * s, 0xd6cfc4, x, 0.3 * s, z); const l = new THREE.Mesh(new THREE.IcosahedronGeometry(0.62 * s, 0), M(0x4ade80, { flatShading: true })); l.position.set(x, 1.05 * s, z); l.castShadow = true; scene.add(l); }
-plant(-12.2, -7.4); plant(12.2, -7.4); plant(12.2, 7.4, 0.9); plant(-12.2, 7.4, 0.9);
-
-const W = {};
-const skin = 0xf2c7a5, hairC = [0x2b2118, 0x1f1b16, 0x5a3a22, 0x111111, 0x3b2a20, 0x6b4423, 0x1c1917];
-TEAM.forEach((t, i) => {
-  const g = new THREE.Group(); g.position.set(...t.pos); scene.add(g);
-  const rug = new THREE.Mesh(new THREE.BoxGeometry(5.6, 0.04, 4.6), M(t.rug)); rug.position.y = 0.02; rug.receiveShadow = true; g.add(rug);
-  // meja + monitor + lampu status
-  box(2.6, 0.12, 1.2, 0xffffff, 0, 1.0, -0.6, g); box(0.1, 1.0, 1.1, 0xe5e7eb, -1.2, 0.5, -0.6, g); box(0.1, 1.0, 1.1, 0xe5e7eb, 1.2, 0.5, -0.6, g);
-  box(1.1, 0.7, 0.08, 0x1f2937, 0, 1.55, -0.95, g); box(0.15, 0.3, 0.15, 0x374151, 0, 1.2, -0.95, g);
-  const scr = box(1.0, 0.6, 0.02, 0x93c5fd, 0, 1.55, -0.9, g, { emissive: 0x60a5fa, emissiveIntensity: 0.6 });
-  const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.16, 16, 12), new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 1 })); lamp.position.set(1.0, 1.25, -0.8); g.add(lamp);
-  box(0.9, 0.08, 0.9, 0x4b5563, 0, 0.6, 0.55, g); box(0.9, 0.8, 0.1, 0x4b5563, 0, 1.0, 1.0, g);
-  // properti
-  if (t.prop === 'rack') { for (let k = 0; k < 2; k++) { box(0.8, 2.2, 0.8, 0x1f2937, 2.2 - k * 0.9 - 0.2, 1.1, -1.7, g); for (let j = 0; j < 5; j++) box(0.6, 0.06, 0.02, j % 2 ? 0x22d3ee : 0x4ade80, 2.2 - k * 0.9 - 0.2, 0.4 + j * 0.38, -1.29, g, { emissive: j % 2 ? 0x22d3ee : 0x4ade80, emissiveIntensity: 0.8 }); } }
-  if (t.prop === 'shelf') { box(1.8, 2, 0.5, 0xc8a27a, -1.9, 1, -1.8, g); [0x60a5fa, 0xf87171, 0xfbbf24, 0x34d399, 0xa78bfa].forEach((c, j) => box(0.22, 0.5, 0.35, c, -2.6 + j * 0.3, 1.5, -1.75, g)); }
-  if (t.prop === 'gate') { box(0.25, 2, 0.25, 0x94a3b8, -2.3, 1, -1.6, g); box(0.25, 2, 0.25, 0x94a3b8, -2.3, 1, 0.2, g); box(0.2, 0.2, 2, 0x94a3b8, -2.3, 2, -0.7, g); }
-  if (t.prop === 'plant') { box(2.4, 1.1, 0.5, 0xf9a8d4, 0, 0.55, -2.0, g); plant(t.pos[0] - 2.2, t.pos[2] - 1.8, 0.8); }
-  if (t.prop === 'promo') { box(1.6, 2.1, 0.08, 0xfb923c, 1.7, 1.25, -1.9, g); box(1.3, 0.5, 0.09, 0xffffff, 1.7, 1.8, -1.88, g); box(1.3, 0.12, 0.09, 0xffffff, 1.7, 1.2, -1.88, g); box(0.9, 0.12, 0.09, 0xffffff, 1.55, 0.95, -1.88, g);
-    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.5, 16, 1, true), M(0xf97316, { side: THREE.DoubleSide })); cone.rotation.z = Math.PI / 2; cone.position.set(-0.8, 1.2, -0.6); g.add(cone); }
-  if (t.prop === 'tasks') { box(2.8, 1.6, 0.08, 0xffffff, 0, 2.0, -2.1, g); box(0.08, 2.0, 0.08, 0x9ca3af, -1.3, 1.0, -2.1, g); box(0.08, 2.0, 0.08, 0x9ca3af, 1.3, 1.0, -2.1, g);
-    [[-0.9, 2.4, 0xfde047], [-0.3, 2.4, 0xf9a8d4], [0.3, 2.4, 0x86efac], [0.9, 2.4, 0x93c5fd], [-0.6, 1.8, 0xfdba74], [0.1, 1.8, 0xfde047], [0.8, 1.8, 0xc4b5fd]].forEach(([x, y, c]) => box(0.42, 0.42, 0.04, c, x, y, -2.04, g));
-    box(3.0, 0.12, 1.3, 0xffffff, 0, 1.0, -0.6, g); }
-  if (t.prop === 'board') { box(2.2, 1.4, 0.08, 0xffffff, -1.6, 1.8, -1.9, g); box(0.08, 1.8, 0.08, 0x9ca3af, -1.6, 0.9, -1.88, g); }
-  // orang
-  const p = new THREE.Group(); p.position.set(0, 0, 0.45); g.add(p);
-  const legL = box(0.24, 0.6, 0.24, 0x334155, -0.16, 0.3, 0, p), legR = box(0.24, 0.6, 0.24, 0x334155, 0.16, 0.3, 0, p);
-  const body = box(0.7, 0.75, 0.42, t.shirt, 0, 0.98, 0, p);
-  const head = new THREE.Group(); head.position.set(0, 1.62, 0); p.add(head);
-  box(0.55, 0.55, 0.5, skin, 0, 0, 0, head); box(0.58, 0.18, 0.54, hairC[i], 0, 0.27, 0.02, head);
-  box(0.08, 0.08, 0.02, 0x111111, -0.12, 0.03, -0.26, head); box(0.08, 0.08, 0.02, 0x111111, 0.12, 0.03, -0.26, head);
-  if (t.id === 'satpam') box(0.62, 0.14, 0.62, 0x1e3a8a, 0, 0.36, -0.02, head);
-  if (t.id === 'teknisi') box(0.64, 0.08, 0.1, 0x111827, 0, 0.2, 0, head);
-  if (t.id === 'manager') box(0.12, 0.5, 0.02, 0xdc2626, 0, 0.98, -0.22, p);
-  const armL = new THREE.Group(), armR = new THREE.Group(); armL.position.set(-0.46, 1.3, 0); armR.position.set(0.46, 1.3, 0); p.add(armL, armR);
-  box(0.2, 0.62, 0.2, t.shirt, 0, -0.3, 0, armL); box(0.2, 0.62, 0.2, t.shirt, 0, -0.3, 0, armR);
-  p.rotation.y = Math.PI; // menghadap meja
-  const tag = document.createElement('div'); tag.className = 'tag'; tag.innerHTML = '<div class="bub"></div><div class="nm"><i></i><span></span></div>';
-  tag.querySelector('.nm span').textContent = t.name; tag.onclick = () => select(t.id); labels.appendChild(tag);
-  W[t.id] = { g, p, body, head, armL, armR, legL, legR, lamp, scr, tag, phase: i * 1.3 };
+const MC = new Map();
+const M = (c, o = {}) => { const k = c + JSON.stringify(o); if (!MC.has(k)) MC.set(k, new THREE.MeshStandardMaterial({ color: c, roughness: 0.8, ...o })); return MC.get(k); };
+const GLASS = new THREE.MeshStandardMaterial({ color: 0xbfe6ff, transparent: true, opacity: 0.22, roughness: 0.1, metalness: 0.1, depthWrite: false });
+function blk(w, h, d, c, x, y0, z, parent = scene, o) { const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), typeof c === 'object' ? c : M(c, o)); m.position.set(x, y0 + h / 2, z); m.castShadow = m.receiveShadow = c !== GLASS; parent.add(m); return m; }
+function cyl(r, h, c, x, y0, z, o, seg = 16) { const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, h, seg), M(c, o)); m.position.set(x, y0 + h / 2, z); m.castShadow = true; scene.add(m); return m; }
+function canvasTex(w, h, draw) { const c = document.createElement('canvas'); c.width = w; c.height = h; draw(c.getContext('2d'), w, h); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; return t; }
+function rr(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); }
+function plate(text, x, y, z, { h = 0.55, bg = '#0f172a', fg = '#ffffff', sub = '', border = '' } = {}) {
+  const fs = 64, pad = 34; const tmp = document.createElement('canvas').getContext('2d'); tmp.font = `800 ${fs}px system-ui,sans-serif`;
+  const tw = Math.max(tmp.measureText(text).width, sub ? (tmp.font = `600 ${fs * 0.55}px system-ui,sans-serif`, tmp.measureText(sub).width) : 0);
+  const W = Math.ceil(tw + pad * 2), H = sub ? 150 : 100;
+  const tex = canvasTex(W, H, (g) => { rr(g, 3, 3, W - 6, H - 6, 18); g.fillStyle = bg; g.fill(); if (border) { g.lineWidth = 5; g.strokeStyle = border; g.stroke(); }
+    g.fillStyle = fg; g.textBaseline = 'middle'; g.font = `800 ${fs}px system-ui,sans-serif`; g.textAlign = sub ? 'left' : 'center'; g.fillText(text, sub ? pad : W / 2, sub ? 52 : H / 2 + 3);
+    if (sub) { g.font = `600 ${fs * 0.55}px system-ui,sans-serif`; g.globalAlpha = 0.85; g.fillText(sub, pad, 112); } });
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthWrite: false })); sp.scale.set(h * W / H, h, 1); sp.position.set(x, y, z); sp.renderOrder = 2; scene.add(sp); return sp;
+}
+const dashTex = (title) => canvasTex(640, 300, (g, W, H) => {
+  g.fillStyle = '#0b1220'; g.fillRect(0, 0, W, H); g.fillStyle = '#1e293b'; g.fillRect(0, 0, W, 34);
+  g.fillStyle = '#93c5fd'; g.font = '700 20px system-ui'; g.fillText(title, 14, 24);
+  [['MPP', '#60a5fa'], ['APD', '#34d399'], ['UNIT', '#fbbf24']].forEach(([t, c], i) => { rr(g, 14 + i * 120, 46, 108, 60, 8); g.fillStyle = '#111c33'; g.fill(); g.fillStyle = c; g.font = '800 26px system-ui'; g.fillText(String(60 + i * 17), 26 + i * 120, 84); g.fillStyle = '#94a3b8'; g.font = '600 14px system-ui'; g.fillText(t, 26 + i * 120, 100); });
+  for (let i = 0; i < 9; i++) { const h = 30 + ((i * 37) % 90); g.fillStyle = i % 2 ? '#3b82f6' : '#22d3ee'; g.fillRect(380 + i * 26, 250 - h, 16, h); }
+  g.strokeStyle = '#a78bfa'; g.lineWidth = 4; g.beginPath(); for (let i = 0; i <= 10; i++) g.lineTo(16 + i * 34, 250 - 40 - Math.sin(i * 0.8) * 30 - i * 6); g.stroke();
+  g.fillStyle = '#334155'; g.fillRect(14, 260, 612, 2);
 });
+function screen(w, h, x, y, z, ry, title, parent = scene) { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: dashTex(title) })); m.position.set(x, y, z); m.rotation.y = ry; parent.add(m); blk(w + 0.12, h + 0.12, 0.06, 0x111827, x - Math.sin(ry) * 0.04, y - h / 2 - 0.06, z - Math.cos(ry) * 0.04, parent).rotation.y = ry; return m; }
+function plant(x, y0, z, s = 1) { cyl(0.28 * s, 0.5 * s, 0xd6cfc4, x, y0, z); const l = new THREE.Mesh(new THREE.IcosahedronGeometry(0.55 * s, 0), M(0x3fae5a, { flatShading: true })); l.position.set(x, y0 + 0.95 * s, z); l.castShadow = true; scene.add(l); }
+function tree(x, z, s = 1) { cyl(0.18 * s, 1.4 * s, 0x5b3a1e, x, 0, z); const l = new THREE.Mesh(new THREE.IcosahedronGeometry(1.2 * s, 0), M(0x2f7d46, { flatShading: true })); l.position.set(x, 2.1 * s, z); l.castShadow = true; scene.add(l); }
+function lamp(x, z, h = 2.6) { cyl(0.06, h, 0x1f2937, x, 0, z); const b = new THREE.Mesh(new THREE.SphereGeometry(0.16, 12, 8), new THREE.MeshStandardMaterial({ color: 0xffe2a8, emissive: 0xffc46b, emissiveIntensity: 2 })); b.position.set(x, h + 0.1, z); scene.add(b); }
+function desk(x, y0, z, w = 2.2, monitors = 2, parent = scene) {
+  blk(w, 0.1, 0.9, 0xf3f4f6, x, y0 + 0.82, z, parent); blk(0.08, 0.82, 0.8, 0xd1d5db, x - w / 2 + 0.1, y0, z, parent); blk(0.08, 0.82, 0.8, 0xd1d5db, x + w / 2 - 0.1, y0, z, parent);
+  for (let i = 0; i < monitors; i++) { const mx = x + (i - (monitors - 1) / 2) * 0.75; blk(0.66, 0.42, 0.05, 0x111827, mx, y0 + 1.02, z + 0.25, parent); const s = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 0.36), new THREE.MeshStandardMaterial({ color: 0x60a5fa, emissive: 0x3b82f6, emissiveIntensity: 0.9 })); s.position.set(mx, y0 + 1.23, z + 0.22); s.rotation.y = Math.PI; parent.add(s); }
+  const lampM = new THREE.Mesh(new THREE.SphereGeometry(0.1, 12, 8), new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 1.2 }));
+  lampM.position.set(x + w / 2 - 0.25, y0 + 1.0, z - 0.2); parent.add(lampM); return lampM;
+}
+function chair(x, y0, z) { blk(0.55, 0.08, 0.55, 0x374151, x, y0 + 0.45, z); blk(0.55, 0.55, 0.08, 0x374151, x, y0 + 0.5, z - 0.27); cyl(0.04, 0.45, 0x6b7280, x, y0, z); }
+function rack(x, y0, z, ry = 0) { const g = new THREE.Group(); g.position.set(x, y0, z); g.rotation.y = ry; scene.add(g); blk(0.8, 2.1, 0.7, 0x111827, 0, 0, 0, g); for (let j = 0; j < 6; j++) blk(0.62, 0.05, 0.02, j % 2 ? 0x22d3ee : 0x4ade80, 0, 0.3 + j * 0.3, 0.36, g, { emissive: j % 2 ? 0x22d3ee : 0x4ade80, emissiveIntensity: 1.2 }); return g; }
+function shelf(x, y0, z, ry = 0, cols = [0x60a5fa, 0xf87171, 0xfbbf24, 0x34d399, 0xa78bfa]) { const g = new THREE.Group(); g.position.set(x, y0, z); g.rotation.y = ry; scene.add(g); blk(1.8, 2.0, 0.45, 0x8b6b4a, 0, 0, 0, g); [0.5, 1.1, 1.6].forEach((y) => cols.forEach((c, i) => blk(0.2, 0.42, 0.3, c, -0.6 + i * 0.3, y, 0.05, g))); return g; }
 
+/* lantai & jalan */
+blk(80, 0.1, 70, 0x1b2230, 0, -0.12, 0);
+blk(80, 0.05, 6, 0x262c38, 0, -0.03, 20.5);
+for (let x = -36; x < 36; x += 4) blk(1.8, 0.02, 0.18, 0xe5e7eb, x, 0.02, 20.5);
+[[-26, -4, 18, 34], [26, -4, 18, 34]].forEach(([x, z, w, d]) => blk(w, 0.06, d, 0x22432b, x, -0.04, z));
+blk(30.4, 0.2, 16.4, 0xeae4d8, 0, -0.18, 1.6);
+for (let x = -15; x <= 15; x += 2.5) blk(0.02, 0.01, 16.2, 0xdcd4c4, x, 0.02, 1.6);
+// dinding luar lantai 1
+blk(0.25, 2.8, 16.4, 0x5a3d27, -15.1, 0, 1.6); blk(0.25, 2.8, 16.4, 0x5a3d27, 15.1, 0, 1.6);
+for (const s of [-1, 1]) { blk(0.1, 1.4, 2.6, GLASS, s * 15.25, 1.0, -3.6); blk(0.1, 1.4, 2.6, GLASS, s * 15.25, 1.0, 1.4); blk(0.1, 1.4, 2.6, GLASS, s * 15.25, 1.0, 6.6); }
+// fasad depan rendah + pot tanaman
+for (const s of [-1, 1]) { blk(12.8, 0.7, 0.4, 0x2f3542, s * 8.6, 0, 9.6); for (let x = 3; x < 15; x += 2.2) plant(s * x, 0.7, 9.6, 0.55); }
+// lantai 2 (dasar gedung + pelat)
+blk(30.4, 3.15, 7, 0x3b2a1d, 0, 0, -10); for (let x = -14; x <= 14; x += 2) blk(0.12, 3.1, 0.04, 0x6b4a2f, x, 0, -6.48);
+blk(30.4, 0.25, 7.2, 0xefe9dd, 0, 3.15, -9.95);
+blk(30.4, 3.2, 0.3, 0x4a3324, 0, 3.4, -13.45);
+blk(0.25, 3.2, 7.2, 0x4a3324, -15.1, 3.4, -9.95); blk(0.25, 3.2, 7.2, 0x4a3324, 15.1, 3.4, -9.95);
+for (let x = -13; x <= 13; x += 4.33) blk(0.12, 0.05, 6.8, 0xd9d0c0, x, 3.41, -9.95);
+// pagar kaca lantai 2 (celah untuk tangga)
+[[-15, -4.6], [-2, 2], [4.6, 15]].forEach(([a, b]) => { blk(b - a, 1.0, 0.06, GLASS, (a + b) / 2, 3.4, -6.4); blk(b - a, 0.06, 0.1, 0x9ca3af, (a + b) / 2, 4.4, -6.4); });
+// papan nama & layar besar
+const signTex = canvasTex(1200, 170, (g, W, H) => { rr(g, 4, 4, W - 8, H - 8, 22); g.fillStyle = '#0b1220'; g.fill(); g.lineWidth = 6; g.strokeStyle = '#38bdf8'; g.stroke();
+  g.strokeStyle = '#38bdf8'; g.lineWidth = 12; g.beginPath(); g.moveTo(60, 120); g.lineTo(110, 80); g.lineTo(150, 100); g.lineTo(205, 45); g.stroke();
+  let fs = 92; g.textBaseline = 'middle'; const fit = () => { g.font = `900 ${fs}px system-ui,sans-serif`; return g.measureText('KANTOR ').width + g.measureText('MONITORING').width; }; while (fit() > W - 290 && fs > 40) fs -= 4; const k = g.measureText('KANTOR ').width; g.fillStyle = '#ffffff'; g.fillText('KANTOR', 250, 92); g.fillStyle = '#38bdf8'; g.fillText('MONITORING', 250 + k, 92); });
+const signM = new THREE.Mesh(new THREE.PlaneGeometry(10, 1.42), new THREE.MeshBasicMaterial({ map: signTex, transparent: true })); signM.position.set(0, 7.25, -13.25); scene.add(signM);
+screen(6.4, 2.2, 0, 5.4, -13.27, 0, 'MONITORING · ALL JOBSITE');
+// Manager (lantai 2)
+const L2 = 3.4;
+const lamps = {};
+lamps.manager = desk(0, L2, -9.35, 3.0, 3); chair(0, L2, -10.8);
+shelf(-3.6, L2, -13.0); shelf(3.6, L2, -13.0, 0, [0x93c5fd, 0xfca5a5, 0xfde68a, 0xa7f3d0, 0xc4b5fd]);
+plant(-5.2, L2, -12.6, 0.9); plant(5.2, L2, -12.6, 0.9); plant(-2.0, L2, -7.2, 0.6); plant(2.0, L2, -7.2, 0.6);
+// lounge kiri & ruang kanan lantai 2
+blk(2.6, 0.45, 0.9, 0x4b5563, -10.5, L2, -12.3); blk(2.6, 0.5, 0.25, 0x4b5563, -10.5, L2 + 0.45, -12.7); blk(0.9, 0.45, 1.8, 0x4b5563, -12.4, L2, -11.2);
+blk(1.4, 0.42, 0.8, 0x8b6b4a, -10.4, L2, -10.6); plant(-8.2, L2, -12.6, 0.8);
+blk(3.2, 1.6, 0.08, 0xffffff, 10.2, L2 + 0.9, -13.2); [[9, 0xfde047], [9.7, 0xf9a8d4], [10.4, 0x86efac], [11.1, 0x93c5fd], [9.35, 0xfdba74], [10.05, 0xc4b5fd]].forEach(([x, c], i) => blk(0.45, 0.45, 0.03, c, x, L2 + (i < 4 ? 1.75 : 1.15), -13.14));
+blk(1.6, 0.75, 1.0, 0xf3f4f6, 10.2, L2, -10.8); chair(9.6, L2, -11.6); chair(10.8, L2, -11.6); plant(12.8, L2, -12.6, 0.8);
+// tangga
+for (const s of [-1, 1]) {
+  const n = 12; for (let i = 0; i < n; i++) { const top = L2 * (i + 1) / n, z = -0.75 - (i + 0.5) * (5.6 / n); blk(2.1, top, 5.6 / n, 0xcfc6b6, s * 3.3, 0, z); }
+  blk(0.06, 0.9, 6.2, GLASS, s * 2.2, 1.9, -3.6).rotation.x = Math.atan2(L2, 5.6);
+}
+// ruang meeting kaca
+blk(4.2, 0.02, 4.8, 0xd8cfbf, 0, 0.0, 1.9);
+blk(0.06, 2.4, 4.8, GLASS, -2.1, 0, 1.9); blk(0.06, 2.4, 4.8, GLASS, 2.1, 0, 1.9); blk(4.2, 2.4, 0.06, GLASS, 0, 0, -0.5);
+blk(1.5, 2.4, 0.06, GLASS, -1.35, 0, 4.3); blk(1.5, 2.4, 0.06, GLASS, 1.35, 0, 4.3); for (const [w, d, x, z] of [[4.3, 0.12, 0, -0.5], [4.3, 0.12, 0, 4.3], [0.12, 4.9, -2.1, 1.9], [0.12, 4.9, 2.1, 1.9]]) blk(w, 0.12, d, 0x1f2937, x, 2.4, z);
+blk(1.3, 0.08, 2.8, 0x8b5a2b, 0, 0.74, 1.9); blk(0.2, 0.74, 0.2, 0x5b3a1e, 0, 0, 1.9);
+for (const z of [0.9, 1.9, 2.9]) { chair(-1.05, 0, z); chair(1.05, 0, z); }
+screen(2.4, 1.0, 0, 1.35, -0.44, 0, 'RAPAT TIM');
+// resepsionis
+lamps.resepsionis = desk(0, 0, 7.35, 3.2, 2);
+blk(3.6, 1.0, 0.25, 0xf9fafb, 0, 0, 7.95); blk(0.3, 1.0, 1.0, 0xf9fafb, -1.75, 0, 7.5); blk(0.3, 1.0, 1.0, 0xf9fafb, 1.75, 0, 7.5);
+blk(3.6, 0.06, 0.3, 0xf472b6, 0, 1.0, 7.95, scene, { emissive: 0xf472b6, emissiveIntensity: 0.6 });
+blk(1.6, 0.45, 0.7, 0x6b7280, -4.6, 0, 7.6); blk(1.6, 0.45, 0.7, 0x6b7280, 4.6, 0, 7.6); plant(-5.8, 0, 6.2, 0.7); plant(5.8, 0, 6.2, 0.7);
+
+/* ruang lantai 1 */
+const ROOMS = {
+  teknisi: { x: -11, z: -3.8, side: -1 }, pencatat: { x: -11, z: 1.4, side: -1 }, sekretaris: { x: -11, z: 6.6, side: -1 },
+  admin_db: { x: 11, z: -3.8, side: 1 }, designer: { x: 11, z: 1.4, side: 1 }, marketing: { x: 11, z: 6.6, side: 1 },
+};
+const RUG = { teknisi: 0xdbeafe, pencatat: 0xe0f2fe, sekretaris: 0xede9fe, admin_db: 0xdbeafe, designer: 0xfce7f3, marketing: 0xccfbf1 };
+const SPOT = {};
+for (const [id, r] of Object.entries(ROOMS)) {
+  const { x, z, side } = r, inner = x - side * 3.9;
+  blk(7.6, 0.03, 5.0, RUG[id], x, 0.0, z);
+  if (z > -3) { blk(7.8, 1.5, 0.14, 0x6b4a2f, x, 0, z - 2.6); blk(7.8, 0.05, 0.16, 0xffd79a, x, 1.5, z - 2.6, scene, { emissive: 0xffb45e, emissiveIntensity: 1.4 }); }
+  blk(0.14, 1.0, 1.6, 0x6b4a2f, inner, 0, z - 2.0); blk(0.14, 1.0, 2.0, 0x6b4a2f, inner, 0, z + 1.5);
+  blk(0.08, 0.04, 4.6, 0xffe2b0, x + side * 3.6, 2.75, z, scene, { emissive: 0xffc070, emissiveIntensity: 2.2 });
+  lamps[id] = desk(x, 0, z + 0.25, 2.4, 2); chair(x, 0, z - 1.0);
+  plate(TEAM.find((t) => t.id === id).name.toUpperCase(), x, 1.05, z + 2.35, { h: 0.4 });
+  const back = z - 2.05, out = x + side * 2.9;
+  if (id === 'teknisi' || id === 'admin_db') { rack(out, 0, back + 0.1); rack(out - side * 0.9, 0, back + 0.1); SPOT[id + '_rack'] = [out - side * 0.45, 0, back + 0.95, Math.PI]; }
+  if (id === 'admin_db') { blk(1.2, 1.5, 0.6, 0x475569, x - side * 0.6, 0, back + 0.1); for (let j = 0; j < 3; j++) blk(1.0, 0.04, 0.02, 0x60a5fa, x - side * 0.6, 0.35 + j * 0.4, back + 0.42, scene, { emissive: 0x60a5fa, emissiveIntensity: 1 }); SPOT.admin_db_backup = [x - side * 0.6, 0, back + 1.0, Math.PI]; }
+  if (id === 'teknisi') screen(1.6, 0.8, x - side * 0.6, 1.9, back + 0.08, 0, 'DEPLOY');
+  if (id === 'pencatat' || id === 'sekretaris') { shelf(out - side * 0.4, 0, back + 0.25); SPOT[id + '_shelf'] = [out - side * 0.4, 0, back + 1.0, Math.PI]; }
+  if (id === 'pencatat') { blk(1.6, 1.0, 0.04, 0xffffff, x - side * 0.8, 1.0, back + 0.05); for (let j = 0; j < 6; j++) blk(0.32, 0.26, 0.02, [0xfde047, 0xf9a8d4, 0x86efac][j % 3], x - side * 0.8 - 0.55 + (j % 3) * 0.55, 1.6 - Math.floor(j / 3) * 0.4, back + 0.08); }
+  if (id === 'sekretaris') { blk(0.8, 1.3, 0.6, 0x9ca3af, x - side * 0.8, 0, back + 0.2); SPOT.sekretaris_file = [x - side * 0.8, 0, back + 0.95, Math.PI]; }
+  if (id === 'designer') { const e = blk(1.2, 1.0, 0.06, 0xffffff, out - side * 0.2, 0.9, back + 0.6); e.rotation.x = -0.15; blk(0.06, 1.3, 0.06, 0x8b6b4a, out - side * 0.2, 0, back + 0.65);
+    const art = canvasTex(256, 200, (g) => { g.fillStyle = '#fff'; g.fillRect(0, 0, 256, 200); ['#f472b6', '#60a5fa', '#fbbf24', '#34d399'].forEach((c, i) => { g.fillStyle = c; g.beginPath(); g.arc(50 + i * 52, 70 + (i % 2) * 50, 34, 0, 7); g.fill(); }); });
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(1.1, 0.9), new THREE.MeshBasicMaterial({ map: art })); p.position.set(out - side * 0.2, 1.42, back + 0.64); p.rotation.x = -0.15; scene.add(p);
+    SPOT.designer_easel = [out - side * 0.2, 0, back + 1.4, Math.PI];
+    [0xf472b6, 0x60a5fa, 0xfbbf24].forEach((c, i) => blk(0.7, 0.5, 0.03, c, x - side * (1.4 - i * 0.85), 1.6, back + 0.05)); }
+  if (id === 'marketing') { blk(1.8, 1.1, 0.05, 0x0f766e, x - side * 0.6, 1.0, back + 0.05);
+    const ic = canvasTex(360, 110, (g) => { [['#e1306c', 'IG'], ['#111827', 'TT'], ['#ff0000', 'YT'], ['#1877f2', 'FB']].forEach(([c, t], i) => { rr(g, 10 + i * 88, 15, 78, 78, 18); g.fillStyle = c; g.fill(); g.fillStyle = '#fff'; g.font = '800 32px system-ui'; g.textAlign = 'center'; g.fillText(t, 49 + i * 88, 66); }); });
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.5), new THREE.MeshBasicMaterial({ map: ic, transparent: true })); p.position.set(x - side * 0.6, 1.62, back + 0.09); scene.add(p);
+    blk(0.9, 1.6, 0.06, 0xfb923c, out, 0, back + 0.6); SPOT.marketing_board = [out, 0, back + 1.35, Math.PI]; }
+  plant(x + side * 3.3, 0, z + 2.0, 0.6);
+}
+plate('RUANG MEETING', 0, 3.0, 4.3, { h: 0.42 });
+plate('RESEPSIONIS', 0, 0.55, 8.3, { h: 0.4 });
+plate('MANAGER OPERASIONAL', 0, L2 + 0.5, -8.75, { h: 0.4 });
+
+/* gerbang, pos satpam, parkir */
+for (const s of [-1, 1]) { blk(13, 1.1, 0.12, 0x374151, s * 8.7, 0, 11.2); for (let x = 2.4; x < 15.2; x += 1.6) blk(0.14, 1.3, 0.14, 0x1f2937, s * x, 0, 11.2); blk(0.4, 1.6, 0.4, 0x4b5563, s * 2.2, 0, 11.2); lamp(s * 2.2, 11.9, 2.3); }
+const barrier = new THREE.Group(); barrier.position.set(-2.0, 1.0, 11.6); scene.add(barrier);
+for (let i = 0; i < 6; i++) blk(0.66, 0.12, 0.12, i % 2 ? 0xffffff : 0xdc2626, 0.33 + i * 0.66, -0.06, 0, barrier);
+blk(0.3, 1.0, 0.3, 0x111827, -2.0, 0, 11.6);
+const booth = { x: 0, z: 13.9 };
+blk(2.8, 0.15, 2.4, 0x9ca3af, booth.x, 0, booth.z);
+blk(2.8, 2.3, 0.14, 0x334155, booth.x, 0.15, booth.z - 1.15); blk(0.14, 2.3, 2.4, 0x334155, booth.x - 1.35, 0.15, booth.z); blk(0.14, 1.0, 1.1, 0x334155, booth.x + 1.35, 0.15, booth.z + 0.6);
+blk(2.8, 1.0, 0.14, 0x334155, booth.x, 0.15, booth.z + 1.15); blk(2.8, 1.3, 0.06, GLASS, booth.x, 1.15, booth.z + 1.15);
+blk(3.4, 0.22, 3.0, 0x111827, booth.x, 2.45, booth.z); desk(booth.x, 0.15, booth.z + 0.55, 1.8, 2);
+plate('POS SATPAM', booth.x, 3.05, booth.z + 1.3, { h: 0.42 });
+const pTex = canvasTex(128, 128, (g) => { g.fillStyle = 'rgba(0,0,0,0)'; g.clearRect(0, 0, 128, 128); g.strokeStyle = '#e5e7eb'; g.lineWidth = 6; g.strokeRect(8, 8, 112, 112); g.fillStyle = '#e5e7eb'; g.font = '900 86px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('P', 64, 70); });
+for (const s of [-1, 1]) for (let i = 0; i < 2; i++) { const x = s * (6.5 + i * 3.4); for (const dx of [-1.6, 1.6]) blk(0.1, 0.02, 4.2, 0xe5e7eb, x + dx, 0, 14.6);
+  const p = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8), new THREE.MeshBasicMaterial({ map: pTex, transparent: true })); p.rotation.x = -Math.PI / 2; p.position.set(x, 0.03, 14.8); scene.add(p); }
+for (const s of [-1, 1]) for (let x = 3.4; x < 15; x += 3.8) lamp(s * x, 17.4, 2.4);
+for (const [x, z, sc] of [[-19, -12, 1.4], [-19, -4, 1.2], [-19, 4, 1.3], [-19, 12, 1.1], [19, -12, 1.4], [19, -4, 1.2], [19, 4, 1.3], [19, 12, 1.1], [-10, -17, 1.3], [0, -17, 1.4], [10, -17, 1.3], [-17, 18, 1.0], [17, 18, 1.0]]) tree(x, z, sc);
+
+/* ---------- robot ---------- */
+const WHITE = M(0xf5f7fb, { roughness: 0.45 }), DARK = M(0x0b1220, { roughness: 0.3 });
+function robot(t) {
+  const g = new THREE.Group(), acc = M(t.acc, { roughness: 0.5 });
+  const legL = new THREE.Group(), legR = new THREE.Group(); legL.position.set(-0.15, 0.4, 0); legR.position.set(0.15, 0.4, 0); g.add(legL, legR);
+  for (const L of [legL, legR]) { const m = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.1, 0.36, 10), M(0x9ca3af)); m.position.y = -0.2; L.add(m); const f = new THREE.Mesh(new THREE.SphereGeometry(0.13, 10, 8), acc); f.scale.set(1, 0.5, 1.3); f.position.set(0, -0.38, 0.04); L.add(f); }
+  const bodyG = new THREE.Group(); g.add(bodyG);
+  const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.3, 6, 14), WHITE); body.position.y = 0.78; body.castShadow = true; bodyG.add(body);
+  const chest = new THREE.Mesh(new THREE.CircleGeometry(0.1, 16), new THREE.MeshStandardMaterial({ color: t.acc, emissive: t.acc, emissiveIntensity: 0.8 })); chest.position.set(0, 0.84, 0.305); bodyG.add(chest);
+  const head = new THREE.Group(); head.position.y = 1.42; bodyG.add(head);
+  const skull = new THREE.Mesh(new THREE.SphereGeometry(0.4, 24, 18), WHITE); skull.scale.set(1.15, 0.92, 1); skull.castShadow = true; head.add(skull);
+  const face = new THREE.Mesh(new THREE.SphereGeometry(0.4, 24, 18), DARK); face.scale.set(0.95, 0.62, 0.55); face.position.set(0, -0.02, 0.2); head.add(face);
+  const eyeM = new THREE.MeshStandardMaterial({ color: 0x67e8f9, emissive: 0x22d3ee, emissiveIntensity: 2 });
+  const eyes = []; for (const s of [-1, 1]) { const e = new THREE.Mesh(new THREE.SphereGeometry(0.065, 12, 10), eyeM); e.scale.set(1, 1.35, 0.5); e.position.set(s * 0.13, 0.0, 0.415); head.add(e); eyes.push(e); }
+  const smile = new THREE.Mesh(new THREE.TorusGeometry(0.06, 0.012, 6, 12, Math.PI), eyeM); smile.rotation.z = Math.PI; smile.position.set(0, -0.11, 0.42); head.add(smile);
+  for (const s of [-1, 1]) { const ear = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.1, 16), acc); ear.rotation.z = Math.PI / 2; ear.position.set(s * 0.47, 0, 0); head.add(ear); }
+  if (t.id === 'satpam') { const cap = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.4, 0.2, 18), M(0x1e293b)); cap.position.y = 0.36; head.add(cap); const brim = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.04, 0.25), M(0x111827)); brim.position.set(0, 0.28, 0.32); head.add(brim); const badge = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 6), M(0xfbbf24, { emissive: 0xfbbf24, emissiveIntensity: 0.6 })); badge.position.set(0, 0.4, 0.37); head.add(badge); }
+  else if (t.id === 'designer') { const beret = new THREE.Mesh(new THREE.SphereGeometry(0.34, 16, 10), acc); beret.scale.set(1.1, 0.35, 1.1); beret.position.set(0.05, 0.36, -0.02); head.add(beret); }
+  else { const ant = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.22, 6), M(0x9ca3af)); ant.position.y = 0.46; head.add(ant); const tip = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 8), new THREE.MeshStandardMaterial({ color: t.acc, emissive: t.acc, emissiveIntensity: 1.2 })); tip.position.y = 0.6; head.add(tip); }
+  if (t.id === 'manager') { const tie = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.26, 0.02), M(0xdc2626)); tie.position.set(0, 0.95, 0.31); bodyG.add(tie); }
+  const arm = (s) => { const a = new THREE.Group(); a.position.set(s * 0.4, 1.0, 0); const m = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.26, 4, 8), WHITE); m.position.y = -0.2; a.add(m); const h = new THREE.Mesh(new THREE.SphereGeometry(0.1, 10, 8), acc); h.position.y = -0.42; a.add(h); bodyG.add(a); return a; };
+  const armL = arm(-1), armR = arm(1);
+  g.traverse((o) => { if (o.isMesh) o.castShadow = true; });
+  return { g, bodyG, head, armL, armR, legL, legR, eyeM };
+}
+
+/* ---------- jalur (graf) ---------- */
+const N = {};
+const node = (k, x, y, z) => { N[k] = { k, p: new THREE.Vector3(x, y, z), e: [] }; };
+const link = (a, b) => { N[a].e.push(b); N[b].e.push(a); };
+node('PLZ_L', -6.2, 0, 9.0); node('PLZ_C', 0, 0, 9.0); node('PLZ_R', 6.2, 0, 9.0);
+link('PLZ_L', 'PLZ_C'); link('PLZ_C', 'PLZ_R');
+node('REC_OUT', 2.6, 0, 9.0); link('REC_OUT', 'PLZ_C'); link('REC_OUT', 'PLZ_R');
+node('REC_SIDE', 2.6, 0, 6.7); node('SEAT_resepsionis', 0, 0, 6.6); link('REC_OUT', 'REC_SIDE'); link('REC_SIDE', 'SEAT_resepsionis');
+for (const [id, r] of Object.entries(ROOMS)) {
+  const { x, z, side } = r, sz = z - 0.45, cx = side * 6.2;
+  node('SEAT_' + id, x, 0, sz); node('IN_' + id, x - side * 2.4, 0, sz); node('DOOR_' + id, cx, 0, sz);
+  link('SEAT_' + id, 'IN_' + id); link('IN_' + id, 'DOOR_' + id);
+}
+for (const k of Object.keys(SPOT)) { const [x, y, z] = SPOT[k]; node('SP_' + k, x, y, z); const id = Object.keys(ROOMS).find((r) => k.startsWith(r)); link('SP_' + k, 'SEAT_' + id); }
+node('STL0', -3.3, 0, -0.5); node('STL1', -3.3, L2, -6.5); node('STR0', 3.3, 0, -0.5); node('STR1', 3.3, L2, -6.5);
+node('CL_S', -6.2, 0, -0.5); node('CR_S', 6.2, 0, -0.5);
+for (const s of ['L', 'R']) { const sg = s === 'L' ? -1 : 1; const chain = [['teknisi', 'admin_db'], ['pencatat', 'designer'], ['sekretaris', 'marketing']].map((p) => 'DOOR_' + p[sg < 0 ? 0 : 1]);
+  const seq = [chain[0], 'C' + s + '_S', chain[1], chain[2], 'PLZ_' + s]; for (let i = 0; i < seq.length - 1; i++) link(seq[i], seq[i + 1]); }
+link('CL_S', 'STL0'); link('STL0', 'STL1'); link('CR_S', 'STR0'); link('STR0', 'STR1');
+node('L2L', -3.3, L2, -7.4); node('L2C', 0, L2, -7.6); node('L2R', 3.3, L2, -7.4); link('STL1', 'L2L'); link('STR1', 'L2R'); link('L2L', 'L2C'); link('L2C', 'L2R');
+node('MGR_OUT', 1.9, L2, -8.0); node('MGR_SIDE', 1.9, L2, -10.2); node('SEAT_manager', 0, L2, -10.2); link('L2C', 'MGR_OUT'); link('L2R', 'MGR_OUT'); link('MGR_OUT', 'MGR_SIDE'); link('MGR_SIDE', 'SEAT_manager');
+node('LOUNGE', -9.5, L2, -9.0); link('L2L', 'LOUNGE'); node('OFFICE2', 12.4, L2, -9.4); link('L2R', 'OFFICE2'); node('BOARD2', 11.5, L2, -12.3); link('OFFICE2', 'BOARD2');
+node('MEET_DOOR', 0, 0, 5.2); node('MEET_IN', 0, 0, 3.7); link('PLZ_C', 'MEET_DOOR'); link('MEET_DOOR', 'MEET_IN');
+const CHAIRS = [];
+for (const z of [0.9, 1.9, 2.9]) for (const s of [-1, 1]) { const k = `CH_${s}_${z}`; node(k, s * 1.55, 0, z); node(k + 'a', s * 1.55, 0, 3.7); link('MEET_IN', k + 'a'); link(k + 'a', k); CHAIRS.push(k); }
+node('HEAD', 0, 0, 0.12); node('HEADa', 1.55, 0, 3.75); node('HEADb', 1.55, 0, 0.12); link('MEET_IN', 'HEADa'); link('HEADa', 'HEADb'); link('HEADb', 'HEAD');
+node('GATE_IN', 0, 0, 10.4); node('GATE_OUT', 0, 0, 12.2); link('PLZ_C', 'GATE_IN'); link('GATE_IN', 'GATE_OUT');
+node('POST_DOOR', 1.9, 0, 12.4); node('POST_IN', 1.9, 0, 13.35); node('SEAT_satpam', 0, 0.15, 13.35); link('GATE_OUT', 'POST_DOOR'); link('POST_DOOR', 'POST_IN'); link('POST_IN', 'SEAT_satpam');
+node('PARK_L', -8.3, 0, 12.4); node('PARK_L2', -8.3, 0, 17.0); node('PARK_R', 8.3, 0, 12.4); node('PARK_R2', 8.3, 0, 17.0);
+link('GATE_OUT', 'PARK_L'); link('PARK_L', 'PARK_L2'); link('GATE_OUT', 'PARK_R'); link('PARK_R', 'PARK_R2');
+function route(a, b) {
+  const dist = { [a]: 0 }, prev = {}, Q = new Set(Object.keys(N));
+  while (Q.size) { let u = null; for (const k of Q) if (dist[k] !== undefined && (u === null || dist[k] < dist[u])) u = k; if (u === null || u === b) break; Q.delete(u);
+    for (const v of N[u].e) { const nd = dist[u] + N[u].p.distanceTo(N[v].p); if (dist[v] === undefined || nd < dist[v]) { dist[v] = nd; prev[v] = u; } } }
+  const path = []; let c = b; while (c && c !== a) { path.unshift(c); c = prev[c]; } return c === a ? path : [];
+}
+
+/* ---------- agen & perilaku ---------- */
+const AG = {};
+TEAM.forEach((t) => {
+  const r = robot(t); scene.add(r.g);
+  const home = 'SEAT_' + t.id; r.g.position.copy(N[home].p);
+  const tag = document.createElement('div'); tag.className = 'tag'; tag.innerHTML = '<div class="bub"></div><div class="nm"><i></i><span></span></div>';
+  tag.querySelector('.nm span').textContent = t.name; tag.querySelector('.bub').textContent = 'Bersiap kerja…'; tag.onclick = () => select(t.id); labels.appendChild(tag);
+  AG[t.id] = { id: t.id, r, tag, home, node: home, q: [], cur: null, say: 'Bersiap kerja…', face: 0, anim: 'idle', ph: Math.random() * 6, n: 0 };
+});
+const CARDS = {
+  manager: ['📊', [13.2, 6.6, -10], ['Menerima permintaan Anda', 'Membagi tugas ke tim', 'Mengatur prioritas', 'Memantau progres', 'Lapor ke Anda']],
+  teknisi: ['🖥️', [-17.4, 1.2, -5.0], ['Cek 9 halaman web', 'Deploy & GitHub', 'Pantau error log', 'Perbaikan & perawatan']],
+  pencatat: ['📋', [-17.4, 1.2, 1.4], ['Aktivitas Editor', 'Perubahan data', 'Penghapusan data', 'Riwayat sistem']],
+  sekretaris: ['✉️', [-17.4, 1.2, 7.9], ['Analisis data', 'Laporan pagi lengkap', 'Ringkasan operasional', 'Dokumentasi']],
+  admin_db: ['🗄️', [17.4, 1.2, -5.0], ['Ukuran & isi database', 'Cek cadangan Supabase', 'Sinkron file Drive', 'Integritas data']],
+  designer: ['🎨', [17.4, 1.2, 1.4], ['Desain web', 'Dashboard & UI/UX', 'Gambar & visual']],
+  marketing: ['📣', [17.4, 1.2, 7.9], ['Profil & materi promosi', 'Strategi pemasaran', 'Konten media sosial', 'Calon pembeli']],
+  resepsionis: ['🔑', [5.6, 1.4, 7.6], ['Permintaan akses', 'Undangan & link', 'Hak akses pengguna', 'Tamu menunggu izin']],
+  satpam: ['🛡️', [5.0, 1.2, 14.2], ['Ronda gerbang & parkir', 'Cek ruang server', 'Login mencurigakan', 'Security Advisor']],
+};
+const cardEls = {};
+for (const [id, [ic, at, items]] of Object.entries(CARDS)) {
+  const el = document.createElement('div'); el.className = 'card3d'; el.innerHTML = `<h5><span class="ic">${ic}</span><span>${esc(DIV[id])}</span><i class="dot"></i></h5><ul>${items.map((x) => `<li>${esc(x)}</li>`).join('')}</ul>`;
+  el.onclick = () => select(id); labels.appendChild(el); cardEls[id] = { el, at: new THREE.Vector3(...at) };
+}
+const badges = [['LANTAI 2', 'Manager Operasional', [-11.8, 7.8, -10]], ['LANTAI 1', 'Area Operasional', [-17.2, 3.2, -9.6]]].map(([a, b, at], i) => {
+  const el = document.createElement('div'); el.className = 'badge3d b' + (2 - i); el.innerHTML = `${a}<small>${b}</small>`; labels.appendChild(el); return { el, at: new THREE.Vector3(...at) }; });
+const legendBtn = document.createElement('button'); legendBtn.type = 'button'; legendBtn.className = 'btn legend'; stage.appendChild(legendBtn);
+let showCards = !matchMedia('(max-width: 820px)').matches;
+try { const v0 = localStorage.getItem('kantor-cards'); if (v0 !== null) showCards = v0 === '1'; } catch (e) {}
+const setCards = () => { legendBtn.textContent = showCards ? 'Sembunyikan keterangan' : 'Tampilkan keterangan'; labels.classList.toggle('nocards', !showCards); };
+legendBtn.onclick = () => { showCards = !showCards; try { localStorage.setItem('kantor-cards', showCards ? '1' : '0'); } catch (e) {} setCards(); }; setCards();
+const MEET = { until: 0, divs: [], topic: '' };
+const go = (k) => ({ type: 'go', to: k });
+const work = (anim, dur, say, face) => ({ type: 'work', anim, dur, say, face });
+const FRONT = 0, BACK = Math.PI;
+const D = () => DATA || {};
+let NOW = 0;
+function plan(a) {
+  const id = a.id, st = STATE[id] || {}, d = D(), now = NOW;
+  const jobSay = st.job ? '✍️ ' + short(st.job.title) : null;
+  if (id !== 'manager' && MEET.until > now && MEET.divs.includes(id) && !a.met) { a.met = true; const ch = CHAIRS[MEET.divs.indexOf(id) % CHAIRS.length]; return [go(ch), work('talk', Math.max(4, MEET.until - now), 'Rapat: ' + short(MEET.topic, 28), N[ch].p.x < 0 ? Math.PI / 2 : -Math.PI / 2), go(a.home)]; }
+  if (MEET.until <= now) a.met = false;
+  a.n++;
+  switch (id) {
+    case 'satpam': {
+      if (st.level === 'warn' || st.level === 'crit') return [go(a.home), work('alert', 8, '⚠️ Siaga: ' + st.bubble, FRONT)];
+      const rounds = [
+        [go('GATE_OUT'), work('look', 2.5, 'Cek gerbang ✓')],
+        [go('PARK_L2'), work('look', 2.5, 'Cek parkir kiri ✓')],
+        [go('PARK_R2'), work('look', 2.5, 'Cek parkir kanan ✓')],
+        [go('PLZ_C'), work('look', 2, 'Cek lobi ✓')],
+        [go('DOOR_teknisi'), work('look', 2.5, 'Cek ruang server ✓', -Math.PI / 2)],
+        [go('DOOR_admin_db'), work('look', 2.5, 'Cek ruang backup ✓', Math.PI / 2)],
+        [go('L2C'), work('look', 3, 'Cek lantai 2 ✓')],
+        [go('LOUNGE'), work('look', 2, 'Cek lounge ✓')],
+      ];
+      const sel = rounds.sort(() => Math.random() - 0.5).slice(0, 3).flat();
+      return [...sel, go(a.home), work('type', 7, pick([`Login 24 jam: ${d.signins_24h || 0}`, `Penghapusan 24 jam: ${d.deletes_24h || 0}`, st.bubble ? 'Advisor: ' + st.bubble : 'Pantau CCTV…']), FRONT)];
+    }
+    case 'teknisi': return a.n % 2 ? [work('type', 7, jobSay || pick(['Cek deploy GitHub Pages…', 'Pantau error log…', 'Web: ' + st.bubble]), FRONT)]
+      : [go('SP_teknisi_rack'), work('inspect', 4, pick(['Cek server ✓', 'Cek 9 halaman web ✓', 'Restart cache…']), BACK), go(a.home)];
+    case 'pencatat': {
+      const r = (d.activity_recent || [])[a.n % Math.max(1, (d.activity_recent || []).length)];
+      return a.n % 2 ? [work('type', 7, jobSay || (r ? `Catat: ${APPS[r.app] || r.app} · ${short(r.action, 22)}` : 'Menunggu aktivitas…'), FRONT)]
+        : [go('SP_pencatat_shelf'), work('file', 3.5, `Arsip ${d.activity_24h || 0} aktivitas hari ini`, BACK), go(a.home)];
+    }
+    case 'sekretaris':
+      if (a.n % 3 === 0) return [go('MGR_OUT'), work('give', 3, 'Antar laporan ke Manager 📄', -Math.PI / 2), go(a.home)];
+      return a.n % 3 === 1 ? [work('type', 8, jobSay || (d.last_report ? 'Rapikan laporan pagi…' : 'Siapkan laporan besok pagi…'), FRONT)]
+        : [go('SP_sekretaris_file'), work('file', 3, 'Simpan dokumen ✓', BACK), go(a.home)];
+    case 'resepsionis': {
+      const pend = (d.pending_requests || []).length;
+      if (pend) return [work('wave', 6, `${pend} tamu menunggu izin Anda`, FRONT)];
+      return [work(a.n % 3 ? 'type' : 'wave', 6, pick(['Selamat datang di Monitoring!', `Link Pelihat aktif: ${(d.links_active || {}).viewer || 0}`, `Kedaluwarsa ≤3 hari: ${d.links_expiring_3d || 0}`]), FRONT)];
+    }
+    case 'admin_db': {
+      const db = d.db || {};
+      if (a.n % 3 === 1) return [go('SP_admin_db_backup'), work('inspect', 4, 'Cek cadangan data ✓', BACK), go(a.home)];
+      if (a.n % 3 === 2) return [go('SP_admin_db_rack'), work('inspect', 4, `${db.rows ?? '–'} baris data aman ✓`, BACK), go(a.home)];
+      return [work('type', 7, jobSay || `Database ${db.size_mb ?? '–'} MB · ${db.storage_files ?? '–'} file`, FRONT)];
+    }
+    case 'designer': return a.n % 2 ? [go('SP_designer_easel'), work('draw', 7, jobSay || pick(['Sketsa tampilan baru…', 'Coba palet warna…', 'Gambar ikon…']), BACK), go(a.home)]
+      : [work('type', 6, jobSay || 'Rapikan desain dashboard…', FRONT)];
+    case 'marketing': return a.n % 2 ? [work('type', 7, jobSay || pick(['Susun materi promosi…', 'Tulis caption media sosial…', 'Riset calon pembeli…']), FRONT)]
+      : [go('SP_marketing_board'), work('talk', 4, pick(['Rancang poster Monitoring', 'Strategi pemasaran']), BACK), go(a.home)];
+    case 'manager': {
+      const reqs = (d.requests || []).filter((q) => ['baru', 'direncanakan', 'dikerjakan'].includes(q.status));
+      const divs = [...new Set(activeJobs(d).filter((j) => ['antre', 'dikerjakan', 'disetujui'].includes(j.status)).map((j) => j.division))];
+      if (reqs.length && a.n % 3 === 1) {
+        return [go('HEAD'), { type: 'call', divs: divs.length ? divs : ['sekretaris'], topic: reqs[0].text }, work('talk', 14, 'Briefing: ' + short(reqs[0].text, 26), FRONT), go(a.home)];
+      }
+      if (a.n % 4 === 2) return [go('BOARD2'), work('inspect', 4, 'Atur prioritas tugas', BACK), go(a.home)];
+      return [work('type', 8, st.bubble === 'Siap menerima permintaan' ? 'Memantau progres tim…' : st.bubble, FRONT)];
+    }
+  }
+  return [work('idle', 5, '…', FRONT)];
+}
+function step(a, dt, now) {
+  if (!a.cur) {
+    if (!a.q.length) a.q = plan(a);
+    const nx = a.q.shift();
+    if (nx.type === 'go') { const p = route(a.node, nx.to); a.cur = { type: 'walk', pts: p }; if (!p.length) a.cur = null; }
+    else if (nx.type === 'call') { MEET.until = now + 18; MEET.divs = nx.divs; MEET.topic = nx.topic; for (const k of nx.divs) if (AG[k] && !AG[k].cur?.pts) AG[k].q = []; return; }
+    else { a.cur = { ...nx, t: 0 }; a.say = nx.say; if (nx.face !== undefined) a.face = nx.face; }
+  }
+  const c = a.cur; if (!c) return;
+  if (c.type === 'walk') {
+    a.anim = 'walk';
+    const tgt = N[c.pts[0]].p, pos = a.r.g.position, dv = tgt.clone().sub(pos), dist = dv.length(), sp = 2.1 * dt;
+    if (dist <= sp) { pos.copy(tgt); a.node = c.pts.shift(); if (!c.pts.length) a.cur = null; }
+    else { pos.addScaledVector(dv.normalize(), sp); a.face = Math.atan2(dv.x, dv.z); }
+    a.say = '🚶 ' + (a.q.find((x) => x.say)?.say || 'Menuju tempat kerja');
+  } else { a.anim = c.anim; c.t += dt; if (c.t >= c.dur) a.cur = null; }
+}
 const COL = { ok: 0x22c55e, warn: 0xf59e0b, crit: 0xef4444, idle: 0x94a3b8 };
+const EYE = { ok: 0x22d3ee, warn: 0xf59e0b, crit: 0xef4444, idle: 0x22d3ee };
+function pose(a, t) {
+  const { r } = a, ph = t * 1 + a.ph, an = a.anim;
+  let ry = r.g.rotation.y, dy = a.face - ry; while (dy > Math.PI) dy -= 2 * Math.PI; while (dy < -Math.PI) dy += 2 * Math.PI; r.g.rotation.y = ry + dy * 0.18;
+  const lv = (STATE[a.id] || {}).level || 'idle'; r.eyeM.emissive.setHex(EYE[lv]); r.eyeM.color.setHex(EYE[lv]);
+  r.bodyG.position.y = 0; r.legL.rotation.x = r.legR.rotation.x = 0; r.armL.rotation.set(0, 0, 0); r.armR.rotation.set(0, 0, 0); r.head.rotation.set(0, 0, 0);
+  if (an === 'walk') { const s = Math.sin(ph * 9); r.legL.rotation.x = s * 0.6; r.legR.rotation.x = -s * 0.6; r.armL.rotation.x = -s * 0.5; r.armR.rotation.x = s * 0.5; r.bodyG.position.y = Math.abs(Math.cos(ph * 9)) * 0.05; }
+  else if (an === 'type') { r.armL.rotation.x = -1.15 + Math.sin(ph * 14) * 0.12; r.armR.rotation.x = -1.15 + Math.cos(ph * 14) * 0.12; r.head.rotation.x = 0.12; r.head.rotation.y = Math.sin(ph * 0.6) * 0.15; }
+  else if (an === 'inspect') { r.armR.rotation.x = -2.1; r.armR.rotation.z = -0.2 + Math.sin(ph * 3) * 0.1; r.head.rotation.x = -0.15; r.head.rotation.y = Math.sin(ph * 1.5) * 0.3; }
+  else if (an === 'file') { r.armR.rotation.x = -2.6 + Math.sin(ph * 4) * 0.2; r.armL.rotation.x = -1.0; r.bodyG.position.y = Math.abs(Math.sin(ph * 4)) * 0.04; }
+  else if (an === 'draw') { r.armR.rotation.x = -1.6 + Math.sin(ph * 5) * 0.25; r.armR.rotation.z = Math.cos(ph * 5) * 0.25; r.head.rotation.z = Math.sin(ph) * 0.1; }
+  else if (an === 'wave') { r.armR.rotation.z = 2.6 + Math.sin(ph * 7) * 0.35; r.head.rotation.z = Math.sin(ph * 2) * 0.1; }
+  else if (an === 'look') { r.head.rotation.y = Math.sin(ph * 2.2) * 0.8; r.armL.rotation.x = -0.3; }
+  else if (an === 'talk' || an === 'give') { r.armL.rotation.x = -0.9 + Math.sin(ph * 4) * 0.3; r.armR.rotation.x = -0.9 + Math.cos(ph * 3.3) * 0.35; r.head.rotation.y = Math.sin(ph * 1.2) * 0.35; }
+  else if (an === 'alert') { r.bodyG.position.y = Math.abs(Math.sin(ph * 6)) * 0.12; r.armL.rotation.z = -2.6; r.armR.rotation.z = 2.6; }
+  else { r.bodyG.position.y = Math.sin(ph * 2) * 0.015; r.head.rotation.y = Math.sin(ph * 0.5) * 0.4; }
+}
+
+/* ---------- interaksi & loop ---------- */
 const ray = new THREE.Raycaster(), ptr = new THREE.Vector2(); let down = null;
 renderer.domElement.addEventListener('pointerdown', (e) => { down = [e.clientX, e.clientY]; });
 renderer.domElement.addEventListener('pointerup', (e) => {
   if (!down || Math.hypot(e.clientX - down[0], e.clientY - down[1]) > 6) return;
-  const r = renderer.domElement.getBoundingClientRect(); ptr.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  const rc = renderer.domElement.getBoundingClientRect(); ptr.set(((e.clientX - rc.left) / rc.width) * 2 - 1, -((e.clientY - rc.top) / rc.height) * 2 + 1);
   ray.setFromCamera(ptr, cam);
-  for (const h of ray.intersectObjects(scene.children, true)) { const id = Object.keys(W).find((k) => { let o = h.object; while (o) { if (o === W[k].g) return true; o = o.parent; } return false; }); if (id) { select(id); break; } }
+  const hits = ray.intersectObjects(Object.values(AG).map((a) => a.r.g), true);
+  if (hits.length) { const id = Object.keys(AG).find((k) => { let o = hits[0].object; while (o) { if (o === AG[k].r.g) return true; o = o.parent; } return false; }); if (id) select(id); }
 });
-
-function select(id) { SEL = id; Object.entries(W).forEach(([k, w]) => w.tag.classList.toggle('sel', k === id)); if (DATA) panel(); }
-
+function select(id) { SEL = id; Object.entries(AG).forEach(([k, a]) => a.tag.classList.toggle('sel', k === id)); if (DATA) panel(); }
 function fit() {
   const w = stage.clientWidth, h = stage.clientHeight; renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix();
-  const half = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * cam.aspect; // lebar pandang
-  const dist = Math.min(80, Math.max(27, 14.5 / half));
-  const dir = new THREE.Vector3(0.55, 0.85, 1).normalize(); cam.position.copy(ctl.target).addScaledVector(dir, dist);
+  const half = Math.tan(THREE.MathUtils.degToRad(cam.fov / 2)) * cam.aspect;
+  const dist = Math.min(100, Math.max(30, 21.5 / half));
+  const dir = new THREE.Vector3(0, 1.3, 1).normalize(); cam.position.copy(ctl.target).addScaledVector(dir, dist);
 }
 new ResizeObserver(fit).observe(stage); fit();
-
-const v = new THREE.Vector3(), clock = new THREE.Clock();
+const v = new THREE.Vector3(), clock = new THREE.Clock(); let acc = 0;
 function loop() {
-  const t = clock.getElapsedTime(), W0 = stage.clientWidth, H0 = stage.clientHeight;
-  for (const [id, w] of Object.entries(W)) {
-    const s = STATE[id] || { level: 'idle' }, ph = t * 1 + w.phase;
-    w.lamp.material.color.setHex(COL[s.level]); w.lamp.material.emissive.setHex(COL[s.level]);
-    w.lamp.material.emissiveIntensity = s.level === 'crit' ? 0.6 + Math.abs(Math.sin(t * 5)) * 1.6 : s.level === 'warn' ? 0.7 + Math.abs(Math.sin(t * 2.5)) * 0.8 : 1;
-    w.scr.material.emissive.setHex(s.level === 'crit' ? 0xef4444 : s.level === 'warn' ? 0xf59e0b : 0x60a5fa);
-    const alert = s.level === 'warn' || s.level === 'crit';
-    if (alert) { // berdiri, menoleh ke kamera, melambai
-      w.p.position.y = 0.05 + Math.abs(Math.sin(ph * 3)) * 0.06; w.p.rotation.y = Math.PI * 0.15;
-      w.armR.rotation.z = 2.6 + Math.sin(ph * 6) * 0.35; w.armL.rotation.x = 0; w.head.rotation.y = Math.sin(ph) * 0.2;
-    } else if (s.level === 'idle') {
-      w.p.position.y = Math.sin(ph * 1.2) * 0.015; w.p.rotation.y = Math.PI; w.armR.rotation.set(0, 0, 0); w.armL.rotation.set(0, 0, 0); w.head.rotation.y = Math.sin(ph * 0.4) * 0.5;
-    } else { // mengetik
-      const sp = s.busy ? 14 : 7; w.p.position.y = 0; w.p.rotation.y = Math.PI; w.armR.rotation.z = 0;
-      w.armL.rotation.x = -1.1 + Math.sin(ph * sp) * 0.15; w.armR.rotation.x = -1.1 + Math.cos(ph * sp) * 0.15; w.head.rotation.y = Math.sin(ph * 0.7) * 0.15;
-    }
-    v.set(0, alert ? 2.75 : 2.6, 0.45).applyMatrix4(w.g.matrixWorld).project(cam);
-    w.tag.style.left = ((v.x + 1) / 2) * W0 + 'px'; w.tag.style.top = ((1 - v.y) / 2) * H0 + 'px';
-    w.tag.style.display = v.z < 1 ? '' : 'none';
+  const dt = Math.min(clock.getDelta(), 0.05), t = clock.elapsedTime, W0 = stage.clientWidth, H0 = stage.clientHeight;
+  NOW = t; if (DATA) for (const a of Object.values(AG)) step(a, dt, t);
+  const sat = AG.satpam.r.g.position; const open = Math.abs(sat.x) < 3 && sat.z > 9.6 && sat.z < 12.6 || sat.z > 11.8 && Math.abs(sat.x) > 2;
+  barrier.rotation.z += ((open ? 1.25 : 0) - barrier.rotation.z) * 0.08;
+  for (const [id, a] of Object.entries(AG)) {
+    pose(a, t);
+    const lv = (STATE[id] || {}).level || 'idle', L = lamps[id];
+    if (L) { L.material.color.setHex(COL[lv]); L.material.emissive.setHex(COL[lv]); L.material.emissiveIntensity = lv === 'crit' ? 0.6 + Math.abs(Math.sin(t * 5)) * 2 : lv === 'warn' ? 0.8 + Math.abs(Math.sin(t * 2.5)) : 1.2; }
+    v.set(0, 2.15, 0).add(a.r.g.position).project(cam);
+    a.tag.style.left = ((v.x + 1) / 2) * W0 + 'px'; a.tag.style.top = ((1 - v.y) / 2) * H0 + 'px'; a.tag.style.display = v.z < 1 ? '' : 'none';
+    a.tag.style.zIndex = String(Math.round((1 - v.z) * 1000));
+    const c = cardEls[id]; if (c && showCards) { v.copy(c.at).project(cam); c.el.style.left = ((v.x + 1) / 2) * W0 + 'px'; c.el.style.top = ((1 - v.y) / 2) * H0 + 'px'; c.el.querySelector('.dot').className = 'dot ' + lv; }
   }
+  for (const b of badges) { v.copy(b.at).project(cam); b.el.style.left = ((v.x + 1) / 2) * W0 + 'px'; b.el.style.top = ((1 - v.y) / 2) * H0 + 'px'; }
+  acc += dt;
+  if (acc > 0.25) { acc = 0; for (const a of Object.values(AG)) { const b = a.tag.querySelector('.bub'); if (b.textContent !== a.say) b.textContent = a.say; } const nt = $('nowTxt'); if (nt && AG[SEL]) nt.textContent = AG[SEL].say; }
   ctl.update(); renderer.render(scene, cam); requestAnimationFrame(loop);
 }
 loop();
 
 function apply(d) {
   DATA = d; STATE = derive(d);
-  for (const [id, w] of Object.entries(W)) { const s = STATE[id], b = w.tag.querySelector('.bub'); b.className = 'bub ' + s.level; b.textContent = s.bubble; w.tag.querySelector('.nm i').className = s.level; w.tag.classList.toggle('hot', s.level === 'warn' || s.level === 'crit'); }
+  for (const [id, a] of Object.entries(AG)) { const s = STATE[id]; a.tag.querySelector('.bub').className = 'bub ' + s.level; a.tag.querySelector('.nm i').className = s.level; a.tag.classList.toggle('hot', s.level === 'warn' || s.level === 'crit'); }
   const o = overallOf(STATE); $('overall').className = 'pill ' + o; $('overall').innerHTML = '<i></i>' + (o === 'ok' ? 'Semua aman' : o === 'warn' ? 'Ada yang perlu dicek' : o === 'crit' ? 'Ada masalah!' : 'Menunggu laporan pertama');
   $('upd').textContent = wib(d.now || Date.now()); select(SEL);
 }
@@ -369,17 +681,17 @@ function apply(d) {
 function gate(title, text, btn) { const g = $('gate'); g.hidden = false; g.innerHTML = `<div class="card"><h2>${title}</h2><p>${text}</p>${btn || ''}</div>`; }
 const demoData = () => ({ now: new Date().toISOString(), activity_24h: 23, actors_24h: 3, deletes_24h: 1, activity_by_app: { kmb: 14, apd: 6, 'unit-monitoring': 3 },
   activity_recent: [{ at: new Date(Date.now() - 9e5).toISOString(), app: 'kmb', site: 'C4', actor: 'andi@contoh.com', action: 'Pelamar diperbarui.' }, { at: new Date(Date.now() - 4e6).toISOString(), app: 'apd', site: null, actor: 'rina@contoh.com', action: 'Stok helm masuk 20 pcs' }],
-  pending_requests: [{ app_id: 'kmb', email: 'budi@contoh.com', requested_at: new Date().toISOString() }, { app_id: 'apd', email: 'sari@contoh.com', requested_at: new Date().toISOString() }],
-  links_active: { viewer: 106, editor: 3 }, links_expiring_3d: 5, signins_24h: 4, members: 3,
-  last_report: { created_at: new Date(Date.now() - 3 * 36e5).toISOString(), level: 'warn', summary: 'Aman, ada 2 permintaan akses menunggu.',
-    body: '### Ringkasan\nSemua normal, cukup setujui **2 permintaan akses**.\n### Keamanan\n- Tidak ada celah baru di Supabase\n### Aktivitas kemarin\n- Manpower KMB: 14 perubahan (site C4)\n- APD: 6 data baru\n### Perlu tindakan\n- 2 permintaan akses menunggu\n- 5 link Pelihat kedaluwarsa dalam 3 hari',
-    checks: { security: { level: 'ok', summary: 'Tidak ada celah baru', items: ['Security Advisor: 0 temuan baru', 'Tidak ada login mencurigakan'] }, web: { level: 'ok', summary: '9/9 halaman hidup', items: ['Semua halaman merespons', 'Tidak ada error di log'] } } },
-  requests: [{ id: 2, created_at: new Date(Date.now() - 5 * 36e5).toISOString(), text: 'Siapkan bahan untuk menawarkan Monitoring ke kontraktor tambang lain.', status: 'butuh_persetujuan', manager_note: 'Dibagi ke Marketing (3 tugas).',
-    jobs: [{ id: 21, division: 'marketing', title: 'Profil produk & daftar fitur', status: 'selesai', result: '### Monitoring\n- MPP, APD, unit alat berat, notulensi dalam satu web\n- Akses Editor/Pelihat per jobsite' },
-      { id: 22, division: 'marketing', title: 'Usulan harga paket', status: 'butuh_persetujuan', proposal: 'Paket **Basic** Rp1,5 jt/bln (1 jobsite), **Pro** Rp4 jt/bln (5 jobsite). Setujui sebagai harga resmi?' },
-      { id: 23, division: 'marketing', title: 'Riset 10 calon pembeli', status: 'dikerjakan' }] },
-    { id: 1, created_at: new Date(Date.now() - 30 * 36e5).toISOString(), text: 'Cabut semua link Editor tanpa login.', status: 'selesai', manager_note: 'Selesai setelah disetujui.',
-      jobs: [{ id: 11, division: 'resepsionis', title: 'Cabut 3 link Editor', status: 'selesai', result: '3 link Editor (BUPR, KTA-TRA, MBJ) sudah dicabut.' }] }] });
+  pending_requests: [{ app_id: 'kmb', email: 'budi@contoh.com', requested_at: new Date().toISOString() }],
+  links_active: { viewer: 106, editor: 0 }, links_expiring_3d: 5, signins_24h: 4, members: 3,
+  db: { size_mb: 14.8, tables: 26, rows: 266, storage_files: 54, top: [{ name: 'monitoring_guest_links', rows: 109 }, { name: 'kta_drive_files', rows: 49 }] },
+  last_report: { created_at: new Date(Date.now() - 3 * 36e5).toISOString(), level: 'ok', summary: 'Semua aman.',
+    body: '### Ringkasan\nSemua normal.\n### Keamanan\n- Tidak ada celah baru di Supabase\n### Aktivitas kemarin\n- Manpower KMB: 14 perubahan (site C4)\n- APD: 6 data baru',
+    checks: { security: { level: 'ok', summary: 'Tidak ada celah baru', items: ['Security Advisor: 0 temuan baru', 'Tidak ada login mencurigakan'] }, web: { level: 'ok', summary: 'Deploy sukses, 9/9', items: ['Deploy GitHub Pages sukses', 'Tidak ada error berulang'] } } },
+  requests: [{ id: 3, created_at: new Date(Date.now() - 2 * 36e5).toISOString(), text: 'Desain ulang halaman beranda Monitoring supaya lebih modern.', status: 'dikerjakan', manager_note: 'Dibagi ke Designer & Teknisi.',
+    jobs: [{ id: 31, division: 'designer', title: 'Mockup beranda baru', status: 'dikerjakan' }, { id: 32, division: 'teknisi', title: 'Cek dampak ke 9 halaman', status: 'antre' }] },
+    { id: 2, created_at: new Date(Date.now() - 5 * 36e5).toISOString(), text: 'Siapkan bahan untuk menawarkan Monitoring ke kontraktor tambang lain.', status: 'butuh_persetujuan', manager_note: 'Dibagi ke Marketing (2 tugas).',
+    jobs: [{ id: 21, division: 'marketing', title: 'Profil produk & daftar fitur', status: 'selesai', result: '### Monitoring\n- MPP, APD, unit alat berat, notulensi dalam satu web' },
+      { id: 22, division: 'marketing', title: 'Usulan harga paket', status: 'butuh_persetujuan', proposal: 'Paket **Basic** Rp1,5 jt/bln (1 jobsite), **Pro** Rp4 jt/bln (5 jobsite). Setujui sebagai harga resmi?' }] }] });
 
 async function start() {
   if (DEMO) { const b = document.createElement('span'); b.className = 'pill warn demo'; b.innerHTML = '<i></i>Mode contoh, bukan data asli'; stage.appendChild(b); apply(demoData()); return; }
