@@ -32,11 +32,12 @@ Masuk sebagai Pemilik → **Unit & File** → **Upload Folder** → pilih folder
 ## Kategori & persentase
 - **Kategori notulensi**: Persiapan, Permasalahan, Lainnya (bisa ditambah). Dipilih dengan klik saat unduh template, Meeting Baru, form live, form update Word/Excel, upload, dan koreksi dari file.
 - **Unduh Template Notulensi**: pilih kategori lalu **Unduh Excel** atau **Unduh Word**.
-- **Template Excel (Persiapan/Permasalahan)**: kolom No, Bab, Topik, Hasil Pembahasan, Tindak Lanjut, PIC, Due Date, Status + **Sumber Data** (dropdown kode SD 1–SD 300, boleh ketik kode sendiri), **Lihat ›**, **Hasil (%)**, **Nilai Sub Bab**, **Nilai Bab**. Total kesiapan di kanan atas.
-  - Semua sumber diisi di satu sheet **Sumber Data**: Kode SD, Nama Sumber, No, Persiapan, Jumlah, Aktual, Persentase. Tidak ada batas jumlah sumber.
-  - Hasil (%) per tindak lanjut: rata-rata Persentase item berkode sama; tanpa kode: Close/Continue = 100%, Open = 0%.
-  - Nilai Sub Bab (Topik) = rata-rata Hasil; Nilai Bab = rata-rata Nilai Sub Bab; Total = rata-rata Nilai Bab. Dihitung otomatis di Excel dan sama dengan web.
-  - Saat upload, sheet Sumber Data ikut terbaca. File lama dengan sheet SD n tetap terbaca.
+- **Template Excel (Persiapan/Permasalahan)**, tanpa macro: kolom No, Bab, Topik, Hasil Pembahasan, Tindak Lanjut, PIC, Due Date, Status + **Sumber Data** (dropdown kode), **Lihat ›**, **Hasil (%)**, **Nilai Sub Bab**, **Nilai Bab**.
+  - Kanan atas: **Total kesiapan**, dropdown **Pilih sumber** + **Buka ›**, dan **+ Tambah sumber**.
+  - Tambah sumber: buka sheet *SD contoh* → klik kanan tab › Move or Copy › Create a copy → ganti nama SD 1, SD 2, … → pilih kode yang sama di kolom Sumber Data. Sheet SD hanya ada untuk sumber yang dipakai.
+  - Sheet SD: Nama sumber data, lalu No, Persiapan, Jumlah, Aktual, Persentase. Hasil = rata-rata Persentase.
+  - Hasil (%) per tindak lanjut dari sheet SD; tanpa sumber: Close/Continue = 100%, Open = 0%. Nilai Sub Bab = rata-rata Hasil per Topik; Nilai Bab = rata-rata Nilai Sub Bab; Total = rata-rata Nilai Bab. Sama dengan perhitungan web.
+  - Saat upload, setiap sheet yang namanya sama dengan kode di kolom Sumber Data ikut terbaca. Form dari web hanya membuat sheet SD untuk sumber yang sudah ada.
 - **Template Word**: kolom Sumber Data diisi teks, mis. "Plan 6 / Aktual 2".
 - **Di web**: klik kolom *Sumber Data* pada tindak lanjut → sheet isian (bisa tempel dari Excel), plus upload rincian/bukti.
 - **Koreksi dari file**: menu ⋮ › *Koreksi Meeting ke-n dari file Word/Excel revisi*.
