@@ -418,8 +418,13 @@ select.stsel.s-close{background:var(--green-soft);color:#24774E;font-weight:700;
 .etbl th.colh input{background:#fff;border:1px dashed var(--line-2);border-radius:6px;padding:4px 6px;font-weight:700;font-size:12px;min-width:90px;width:100%}
 
 .ro [data-act=newMeeting],.ro [data-act=updMeeting],.ro [data-act=newFolder],.ro [data-act=newManual],.ro [data-act=uploadFile],.ro [data-act=uploadNotu],.ro [data-act=rowMenu],.ro #phBtn,.ro #wdRegen,.ro #attBtn,.ro [data-delph],.ro [data-delf],.ro #sMenu,.ro .ed-only{display:none!important}
-.fsplit{display:grid;grid-template-columns:280px minmax(0,1fr);gap:14px;align-items:start}
-@media (max-width:900px){.fsplit{grid-template-columns:1fr}.tree{position:static!important;max-height:none!important}}
+.fsplit{display:grid;grid-template-columns:var(--tw,280px) 14px minmax(0,1fr);gap:0;align-items:start}
+.fsdrag{align-self:stretch;cursor:col-resize;display:flex;justify-content:center;touch-action:none;position:relative;min-height:120px}
+.fsdrag i{width:4px;margin:8px 0;border-radius:4px;background:#E6E4F2;transition:background .15s}
+.fsdrag:hover i,.fsdrag:focus-visible i,.fsplit.dragging .fsdrag i{background:#C4B5FD}.fsdrag:focus-visible{outline:none}
+.fsplit.dragging{user-select:none;cursor:col-resize}
+.tree .tn,.tree .nm{overflow-wrap:anywhere}
+@media (max-width:900px){.fsplit{grid-template-columns:1fr}.fsdrag{display:none}.tree{position:static!important;max-height:none!important}}
 .tree{padding:8px 6px;position:sticky;top:84px;max-height:calc(100vh - 110px);overflow:auto}
 .tree .th{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 10px}
 .tree ul{list-style:none;margin:0;padding:0}
@@ -1747,7 +1752,11 @@ function renderFiles(){
       ${body||`<tr><td colspan="6"><div class="empty"><b>${q?"Tidak ada yang cocok":here?kd+" ini masih kosong":S.folders.length?"Pilih Unit di panel Struktur":"Belum ada Unit"}</b>${q?"":here?`Klik <b style="display:inline">+ Meeting Baru</b> untuk notulensi, atau <b style="display:inline">Upload Berkas</b> untuk dokumen pendukung.${canSub?` Bisa juga membuat ${nextKd}.`:""}`:S.folders.length?"":`Mulai dengan <b style="display:inline">+ Unit</b>, misalnya Operasional, KMB, atau Logistik.`}</div></td></tr>`}
      </tbody></table></div>
      <div class="hint ed-only"><b>Upload Notulensi</b>: Word/Excel notulensi dibaca menjadi tabel tindak lanjut. <b>Upload Berkas</b>: dokumen pendukung disimpan apa adanya. <b>Upload Folder</b>: satu folder dari laptop beserta subfolder dan isinya; folder bertanggal yang berisi notulensi otomatis menjadi Meeting ke-n. Bisa juga menarik file atau folder dari Explorer langsung ke tabel ini. Maks. 20 MB per file.</div>`;
-  $("fsBody").innerHTML=`<div class="fsplit">${tree}<div class="card cpad" style="min-width:0">${content}</div></div>`;
+  $("fsBody").innerHTML=`<div class="fsplit" style="--tw:${S.treeW||(S.treeW=load("rn2-treew",280))}px">${tree}<div class="fsdrag" role="separator" aria-orientation="vertical" aria-label="Atur lebar panel Struktur" tabindex="0" title="Geser ke kanan/kiri untuk mengatur lebar · klik dua kali untuk ukuran awal"><i></i></div><div class="card cpad" style="min-width:0">${content}</div></div>`;
+  {const sp=$("fsBody").querySelector(".fsplit"),dg=sp.querySelector(".fsdrag");const set=w=>{S.treeW=Math.round(Math.max(200,Math.min(w,Math.min(720,sp.clientWidth-360))));sp.style.setProperty("--tw",S.treeW+"px");};const save=()=>store("rn2-treew",S.treeW);
+    dg.onpointerdown=e=>{e.preventDefault();dg.setPointerCapture(e.pointerId);const x0=e.clientX,w0=S.treeW;sp.classList.add("dragging");
+      dg.onpointermove=ev=>set(w0+ev.clientX-x0);dg.onpointerup=dg.onpointercancel=()=>{dg.onpointermove=null;sp.classList.remove("dragging");save();};};
+    dg.ondblclick=()=>{set(280);save();};dg.onkeydown=e=>{if(e.key==="ArrowLeft"||e.key==="ArrowRight"){e.preventDefault();set(S.treeW+(e.key==="ArrowRight"?20:-20));save();}};}
   const cq=$("cq");if(cq)cq.oninput=()=>{S.cq=cq.value;const p=cq.selectionStart;renderFiles();const n=$("cq");n.focus();n.setSelectionRange(p,p);};
   $("fsBody").querySelectorAll("[data-sortk]").forEach(b=>b.onclick=()=>{const k=b.dataset.sortk;S.fsort=FS.k===k?{...FS,d:-FS.d}:{...FS,k,d:k==="date"||k==="size"?-1:1};store("rn2-fsort",S.fsort);renderFiles();});
   $("grpT").onchange=e=>{S.fsort={...FS,group:e.target.checked};store("rn2-fsort",S.fsort);renderFiles();};
