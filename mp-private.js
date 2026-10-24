@@ -291,7 +291,7 @@
     if (ok()) {
       const n = Object.values(PV.rows).reduce((a, r) => a + Object.keys(r).length, 0);
       const st = PV.loading ? 'memuat data pribadi…' : PV.err ? 'data pribadi gagal dimuat: ' + esc(PV.err) : `data pribadi ${n} karyawan`;
-      h = h.replace(/(<div class="small" style="margin:-4px 0 10px">)([\s\S]*?)(<\/div>)/, (m, a, b, c) => `${a}${b} · <span title="Hanya terlihat oleh Pemilik & Editor">🔒 ${st}</span>${DL ? ' · <button type="button" class="lnk" id="pvXlsx">Download Excel Lengkap</button>' : ''}${c}`);
+      h = h.replace(/(<div class="small" style="margin:-4px 0 10px">)([\s\S]*?)(<\/div>)/, (m, a, b, c) => `${a}${b} · <span title="Bisa dilihat dan diubah Pemilik & Editor">${st}</span>${DL ? ' · <button type="button" class="lnk" id="pvXlsx">Download Excel Lengkap</button>' : ''}${c}`);
     }
     return h;
   };
