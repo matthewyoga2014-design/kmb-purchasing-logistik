@@ -251,8 +251,8 @@ a.hb { text-decoration: none; }
   <div class="grid" id="grid"></div>
 </main>
 <div class="foot"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Login cukup sekali: setelah masuk di salah satu web, Anda otomatis dikenali di web proyek lainnya. Editor hanya bisa mengubah proyek yang didaftarkan Pemilik.</div>
-<div class="modal" id="lgModal" hidden><form class="dlg" id="lgForm" novalidate><h3>Masuk</h3><p>Masukkan email Anda. Isi password jika akun sudah punya password; kosongkan untuk menerima kode masuk lewat email.</p>
-  <input type="email" id="lgEm" placeholder="nama@email.com" autocomplete="email" required><input type="password" id="lgPw" placeholder="Password (opsional)" autocomplete="current-password">
+<div class="modal" id="lgModal" hidden><form class="dlg" id="lgForm" novalidate><h3>Masuk</h3><p>Ketik email Anda, lalu masukkan <b>kode 6 angka</b> yang kami kirim ke email itu.</p>
+  <input type="email" id="lgEm" placeholder="nama@email.com" autocomplete="email" required><input type="password" id="lgPw" placeholder="Password" autocomplete="current-password">
   <div class="row"><button type="button" class="btn btn-g" id="lgX">Batal</button><button type="submit" class="btn btn-p">Masuk</button></div></form></div>
 <div id="wm" aria-hidden="true"></div>
 <div id="shield" hidden><div><b>Tampilan disembunyikan</b><span>Screenshot dan rekam layar tidak diizinkan untuk Pelihat. Klik di sini untuk melanjutkan.</span></div></div>
@@ -467,6 +467,8 @@ document.addEventListener('click', async (e) => {
   if (e.target.closest('#outBtn') && SB) { await SB.auth.signOut(); toast('Anda sudah keluar.'); }
   if (e.target.closest('#lgX') || e.target.id === 'lgModal') document.getElementById('lgModal').hidden = true;
 });
+function kotpPw(i,s){if(!i)return;const go=()=>window.KMBOtp&&KMBOtp.hidePassword&&KMBOtp.hidePassword(i,{submit:s||(i.form&&i.form.querySelector('[type=submit]'))});if(window.KMBOtp)go();else window.addEventListener('load',go,{once:true});}
+kotpPw(document.getElementById('lgPw'));
 document.getElementById('lgForm').addEventListener('submit', async (e) => {
   e.preventDefault(); if (!SB) return;
   const email = document.getElementById('lgEm').value.trim().toLowerCase(), pw = document.getElementById('lgPw').value;
@@ -757,4 +759,4 @@ skeleton(); whoUI(); guard();
   document.addEventListener('visibilitychange', () => { if (!document.hidden) load(); });
 })();
 </script>
-<script src="../otp-login.js?v=20261024"></script></body></html>
+<script src="../otp-login.js?v=20261025"></script></body></html>

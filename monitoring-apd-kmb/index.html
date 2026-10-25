@@ -1899,8 +1899,10 @@ document.addEventListener('click', async (e) => {
   S.asked = true; toast(data === 'member' ? 'Akun ini sudah punya akses. Muat ulang halaman.' : 'Permintaan akses terkirim ke Pemilik/Editor.'); lockScreen();
 }, true);
 function unlock() { const el = $('lockScr'); if (el) el.hidden = true; document.body.classList.remove('locked'); }
+function kotpPw(i,s){if(!i)return;const go=()=>window.KMBOtp&&KMBOtp.hidePassword&&KMBOtp.hidePassword(i,{submit:s||(i.form&&i.form.querySelector('[type=submit]'))});if(window.KMBOtp)go();else window.addEventListener('load',go,{once:true});}
 function openLogin() {
-  modal(`${mh('Masuk', 'Masuk ke Monitoring')}<p class="small">Editor: gunakan email yang didaftarkan Pemilik. Isi password jika akun sudah punya; kosongkan untuk menerima <b>kode masuk</b> lewat email. Login berlaku juga di web Monitoring lain.</p><form id="lgForm"><div class="fgrid"><div class="fld full"><label for="lg_e">Email</label><input id="lg_e" type="email" autocomplete="email" required placeholder="nama@email.com"></div><div class="fld full"><label for="lg_p">Password (opsional)</label><input id="lg_p" type="password" autocomplete="current-password"></div></div>${actions('Masuk')}</form>`);
+  modal(`${mh('Masuk', 'Masuk ke Monitoring')}<p class="small">Ketik email Anda, lalu masukkan <b>kode 6 angka</b> yang kami kirim ke email itu. Login berlaku juga di web Monitoring lain.</p><form id="lgForm"><div class="fgrid"><div class="fld full"><label for="lg_e">Email</label><input id="lg_e" type="email" autocomplete="email" required placeholder="nama@email.com"></div><div class="fld full"><label for="lg_p">Password</label><input id="lg_p" type="password" autocomplete="current-password"></div></div>${actions('Masuk')}</form>`);
+  kotpPw($('lg_p'));
   $('lgForm').onsubmit = async (e) => {
     e.preventDefault(); const em = $('lg_e').value.trim().toLowerCase(), pw = $('lg_p').value;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { toast('Format email belum benar.', true); return; }
@@ -2198,4 +2200,4 @@ init();
   }, true);
   try { after(); } catch (e) {}
 })();
-</script><!--/permx--><script src="../activity-log.js?v=20261024" data-kind="apd"></script><script src="../otp-login.js?v=20261024"></script></body></html>
+</script><!--/permx--><script src="../activity-log.js?v=20261024" data-kind="apd"></script><script src="../otp-login.js?v=20261025"></script></body></html>

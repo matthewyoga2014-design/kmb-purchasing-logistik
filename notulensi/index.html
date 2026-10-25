@@ -1024,12 +1024,13 @@ function gate(kind,msg){
   const em=SESSION?.user?.email||"";
   $("gBody").innerHTML=kind==="login"?`
     <form id="gForm" class="gform"><label class="f">Email<input type="email" id="gEm" autocomplete="email" required placeholder="nama@email.com"></label>
-      <label class="f">Password <span class="muted" style="font-weight:500">(kosongkan untuk dikirimi kode masuk)</span><input type="password" id="gPw" autocomplete="current-password"></label>
-      <button class="btn pri" type="submit">Masuk</button><p class="gmsg" id="gMsg">${msg||"Gunakan akun yang sama dengan Portal Monitoring Manpower."}</p></form>`
+      <label class="f">Password<input type="password" id="gPw" autocomplete="current-password"></label>
+      <button class="btn pri" type="submit">Masuk</button><p class="gmsg" id="gMsg">${msg||"Ketik email Anda, lalu masukkan kode 6 angka yang kami kirim ke email itu."}</p></form>`
    :kind==="setup"?`<p>Alamat Google Apps Script belum diisi. Tempel URL <b>/exec</b> dari deployment Apps Script Anda.</p>
       <form id="gSet" class="gform"><label class="f">URL Apps Script<input type="url" id="gUrl" required placeholder="https://script.google.com/macros/s/…/exec" value="${gasUrl()}"></label><button class="btn pri" type="submit">Simpan</button></form>`
    :`<p>${msg}</p>${GUEST_SHARE?'<p class="muted">Jika link valid tetapi server Drive belum mendukungnya, perbarui deployment Apps Script menggunakan <a href="https://github.com/matthewyoga2014-design/kmb-purchasing-logistik/blob/main/notulensi/apps-script/Code.gs" target="_blank" rel="noopener">kode Notulensi terbaru</a>. Gunakan deployment Web App yang sama agar URL /exec tidak berubah.</p>':'<p class="muted">Masuk sebagai <b>'+em+'</b></p>'}<div class="gform"><button class="btn pri" type="button" onclick="location.reload()">Coba lagi</button>${GUEST_SHARE?'':'<button class="btn" type="button" id="gOut">Keluar</button>'}</div>`;
-  const f=$("gForm");if(f)f.onsubmit=async e=>{e.preventDefault();const email=$("gEm").value.trim().toLowerCase(),pw=$("gPw").value;$("gMsg").textContent="Memproses…";
+  function kotpPw(i,s){if(!i)return;const go=()=>window.KMBOtp&&KMBOtp.hidePassword&&KMBOtp.hidePassword(i,{submit:s||(i.form&&i.form.querySelector('[type=submit]'))});if(window.KMBOtp)go();else window.addEventListener('load',go,{once:true});}
+const f=$("gForm");if(f)kotpPw($("gPw"));if(f)f.onsubmit=async e=>{e.preventDefault();const email=$("gEm").value.trim().toLowerCase(),pw=$("gPw").value;$("gMsg").textContent="Memproses…";
     const r=pw?await SB.auth.signInWithPassword({email,password:pw}):await SB.auth.signInWithOtp({email,options:{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:false}});
     $("gMsg").textContent=r.error?(/invalid login/i.test(r.error.message)?"Email atau password salah.":"Gagal masuk: "+r.error.message):pw?"Berhasil masuk…":"Kode masuk dikirim ke "+email+".";if(!pw&&!r.error&&window.KMBOtp)KMBOtp.prompt(SB,email,{emailRedirectTo:location.origin+location.pathname,shouldCreateUser:false});};
   const s=$("gSet");if(s)s.onsubmit=e=>{e.preventDefault();try{localStorage.setItem("notu-gas",$("gUrl").value.trim());}catch(_){}location.reload();};
@@ -3076,5 +3077,5 @@ document.addEventListener("focusout",()=>setTimeout(()=>{if(S.pending&&$("modal"
 
 
 </script>
-<!--uppick--><!--/uppick--><script src="../otp-login.js?v=20261024"></script></body>
+<!--uppick--><!--/uppick--><script src="../otp-login.js?v=20261025"></script></body>
 </html>

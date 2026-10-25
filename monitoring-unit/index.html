@@ -3258,19 +3258,19 @@ function renderWho(){
   $("#btnDownload").hidden=!priv; $("#btnPrint").hidden=!(priv || (GUEST_SHARE && role==="viewer"));muTrashButton();
 }
 function showLogin(){
-  openForm({title:"Masuk",desc:"Pakai akun yang sama dengan Portal Monitoring Manpower. Pemilik dan Editor bisa mengubah data, mengunduh Excel, dan print.",ok:"Masuk",
-    fields:[{key:"email",label:"Email",type:"email",req:true,full:true,ph:"nama@perusahaan.com"},{key:"pw",label:"Kata sandi",type:"password",req:true,full:true}],
-    onSubmit:d=>{ const okb=$("#dlgOk"); okb.disabled=true;
-      sb.auth.signInWithPassword({email:d.email,password:d.pw}).then(({error})=>{ okb.disabled=false;
-        if(error){ toast(/invalid/i.test(error.message)?"Email atau kata sandi salah.":"Gagal masuk: "+error.message); return; }
-        $("#dlg").close(); toast("Berhasil masuk."); });
+  const redirect=location.href.split("#")[0];
+  openForm({title:"Masuk",desc:"Ketik email Anda, lalu masukkan kode 6 angka yang kami kirim ke email itu. Pakai akun yang sama dengan Portal Monitoring Manpower.",ok:"Kirim kode",
+    fields:[{key:"email",label:"Email",type:"email",req:true,full:true,ph:"nama@perusahaan.com"},{key:"pw",label:"Kata sandi",type:"password",full:true}],
+    onSubmit:d=>{ const okb=$("#dlgOk"), em=String(d.email||"").trim().toLowerCase(); okb.disabled=true;
+      if(d.pw){ sb.auth.signInWithPassword({email:em,password:d.pw}).then(({error})=>{ okb.disabled=false;
+          if(error){ toast(/invalid/i.test(error.message)?"Email atau kata sandi salah.":"Gagal masuk: "+error.message); return; }
+          $("#dlg").close(); toast("Berhasil masuk."); });
+        return false; }
+      sb.auth.signInWithOtp({email:em,options:{emailRedirectTo:redirect}}).then(({error})=>{ okb.disabled=false;
+        if(error){ toast(/rate|seconds/i.test(error.message)?"Terlalu sering meminta kode. Tunggu beberapa menit.":"Gagal mengirim kode: "+error.message); return; }
+        $("#dlg").close(); toast("Kode masuk dikirim ke "+em+"."); if(window.KMBOtp)KMBOtp.prompt(sb,em,{emailRedirectTo:redirect}); });
       return false; }});
-  const link=document.createElement("div"); link.className="note";
-  link.innerHTML=`Lupa atau belum punya kata sandi? <button type="button" class="linkish" id="otpBtn">Kirim kode masuk ke email</button>`;
-  $("#dlgBody").appendChild(link);
-  $("#otpBtn").onclick=async()=>{ const em=$("#f_email").value.trim(); if(!em){ toast("Isi email dulu."); $("#f_email").focus(); return; }
-    const {error}=await sb.auth.signInWithOtp({email:em,options:{emailRedirectTo:location.href.split("#")[0]}});
-    toast(error?"Gagal mengirim kode: "+error.message:"Kode masuk dikirim ke "+em+"."); if(!error&&window.KMBOtp)KMBOtp.prompt(sb,em,{emailRedirectTo:location.href.split("#")[0]}); };
+  const pw=$("#f_pw"); if(pw){ pw.autocomplete="current-password"; if(window.KMBOtp&&KMBOtp.hidePassword) KMBOtp.hidePassword(pw,{submit:$("#dlgOk")}); }
 }
 function showAccount(){
   const r=(k,icon,grad,title,text)=>`<div class="rule${role===k?" me":""}"><span class="tile-ic" style="background:var(--g-${grad})">${ic(icon)}</span><span><b>${title}${role===k?" · Anda":""}</b>${text}</span></div>`;
@@ -3655,5 +3655,5 @@ window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,la
     e.preventDefault(); open(i);
   }, true);
 })();
-</script><!--/uppick--><script src="../activity-log.js?v=20261024" data-kind="unit"></script><script src="../otp-login.js?v=20261024"></script></body>
+</script><!--/uppick--><script src="../activity-log.js?v=20261024" data-kind="unit"></script><script src="../otp-login.js?v=20261025"></script></body>
 </html>

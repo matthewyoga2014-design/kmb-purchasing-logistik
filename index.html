@@ -501,7 +501,7 @@ function render() {
   const pc = Object.values(S.pend).reduce((a, b) => a + b, 0); $('setBtn').querySelector('.dot').hidden = !pc;
   if (!S.loaded) { $('tot').innerHTML = ''; $('grid').innerHTML = '<div class="lock"><span class="lg">M</span><p>Menyiapkan…</p></div>'; $('page').hidden = true; return; }
   if (PORTAL_SHARE) { renderGuestPortal(); return; }
-  if (!S.user) { $('tot').innerHTML = ''; $('note').innerHTML = ''; $('page').hidden = true; $('grid').innerHTML = loginHtml(); return; }
+  if (!S.user) { $('tot').innerHTML = ''; $('note').innerHTML = ''; $('page').hidden = true; $('grid').innerHTML = loginHtml(); kotpPw($('lg_p')); return; }
   // Pemilik: Kantor Monitoring adalah halaman utama (beranda tetap bisa dibuka lewat ?beranda).
   let berandaTab = false; try { if (/[?&]beranda\b/.test(location.search)) sessionStorage.setItem('kmb-beranda', '1'); berandaTab = sessionStorage.getItem('kmb-beranda') === '1'; } catch (e) {}
   if (ui.page === 'home' && isOwner() && !berandaTab && !S.inviteRes && !location.hash && !/[?&](i|k|share)=/.test(location.search)) { location.replace('kantor-ai/'); return; }
@@ -561,12 +561,13 @@ function inviteBox() {
   const v = ok[0];
   return `<div class="invite"><span class="chip ${v.role === 'viewer' ? 'vw' : ''}">Undangan ${ROLE_L[v.role]}</span><h3>${ok.length > 1 ? `${ok.length} web monitoring` : esc((subOf(v.app_id) || {}).portal + ' · ' + (subOf(v.app_id) || {}).name)}</h3>${ok.length > 1 ? `<p>${ok.map((x) => { const sb = subOf(x.app_id); return esc(sb ? sb.name : x.app_id) + ` (${ROLE_L[x.role]})`; }).join(' · ')}</p>` : ''}<p>Undangan ini untuk email <b>${esc(v.email_hint)}</b>. Masuk dengan email tersebut untuk menerima akses.${bad ? ` ${bad} link lain sudah tidak berlaku.` : ''}</p></div>`;
 }
+function kotpPw(i,s){if(!i)return;const go=()=>window.KMBOtp&&KMBOtp.hidePassword&&KMBOtp.hidePassword(i,{submit:s||(i.form&&i.form.querySelector('[type=submit]'))});if(window.KMBOtp)go();else window.addEventListener('load',go,{once:true});}
 function loginHtml() {
-  return `<div class="lock lgc"><span class="lg">M</span><h2>Masuk</h2><p>Gunakan email yang diundang atau didaftarkan Pemilik.</p>${inviteToken() ? '<div class="nb warn"><b>Ini link undangan email lama.</b> Link ini masih meminta login. Agar penerima langsung masuk tanpa password seperti Google Sheets, minta Pemilik membuat ulang melalui <b>Bagikan → Link tanpa login</b> dan kirim link baru.</div>' : ''}${inviteBox()}
-    <form id="lgForm" class="lf" novalidate><label for="lg_e">Email</label><input id="lg_e" type="email" autocomplete="email" required placeholder="nama@email.com"><label for="lg_p">Password (opsional)</label><input id="lg_p" type="password" autocomplete="current-password" placeholder="Kosongkan untuk menerima kode masuk lewat email"><button type="submit" class="btn btn-p">Masuk</button></form>
-    <div class="invite"><h3>Link email membuka halaman yang salah?</h3><p>Di Gmail, klik kanan tombol/link masuk dan pilih <b>Salin alamat link</b> (jangan klik link). Tempel di bawah agar verifikasi selesai langsung di portal ini.</p>
+  return `<div class="lock lgc"><span class="lg">M</span><h2>Masuk</h2><p>Ketik email Anda, lalu masukkan <b>kode 6 angka</b> yang kami kirim ke email itu.</p>${inviteToken() ? '<div class="nb warn"><b>Ini link undangan email lama.</b> Link ini masih meminta login. Agar penerima langsung masuk tanpa password seperti Google Sheets, minta Pemilik membuat ulang melalui <b>Bagikan → Link tanpa login</b> dan kirim link baru.</div>' : ''}${inviteBox()}
+    <form id="lgForm" class="lf" novalidate><label for="lg_e">Email</label><input id="lg_e" type="email" autocomplete="email" required placeholder="nama@email.com"><label for="lg_p">Password</label><input id="lg_p" type="password" autocomplete="current-password"><button type="submit" class="btn btn-p">Masuk</button></form>
+    <details class="invite"><summary class="small" style="cursor:pointer">Email berisi link, bukan kode?</summary><p>Di Gmail, klik kanan tombol/link masuk dan pilih <b>Salin alamat link</b> (jangan klik link). Tempel di bawah agar verifikasi selesai langsung di portal ini.</p>
       <form id="mailLinkForm" class="lf" novalidate><label for="mailLinkInput">Alamat link dari email Supabase</label><input id="mailLinkInput" type="text" autocomplete="off" placeholder="Tempel link verifikasi dari Gmail" required><button type="submit" class="btn btn-g">Verifikasi & masuk</button></form>
-      <p class="small">Link bersifat rahasia dan sekali pakai. Jangan bagikan kepada siapa pun.</p></div>
+      <p class="small">Link bersifat rahasia dan sekali pakai. Jangan bagikan kepada siapa pun.</p></details>
     <p class="small">Belum punya akses? Minta Pemilik atau Editor membagikan link undangan ke email Anda.</p></div>`;
 }
 async function doLogin(e) {
@@ -891,4 +892,4 @@ async function init() {
 }
 init();
 </script>
-<script src="activity-page.js?v=20261024c"></script><script src="otp-login.js?v=20261024"></script></body></html>
+<script src="activity-page.js?v=20261024c"></script><script src="otp-login.js?v=20261025"></script></body></html>

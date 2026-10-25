@@ -159,10 +159,11 @@ async function commit(mutate, okMsg) {
 }
 
 // ---------- login ----------
+function kotpPw(i,s){if(!i)return;const go=()=>window.KMBOtp&&KMBOtp.hidePassword&&KMBOtp.hidePassword(i,{submit:s||(i.form&&i.form.querySelector('[type=submit]'))});if(window.KMBOtp)go();else window.addEventListener('load',go,{once:true});}
 function openLogin() {
   openForm({ eyebrow: 'Masuk', title: 'Masuk', submit: 'Masuk',
-    intro: 'Editor: masukkan email yang sudah didaftarkan Pemilik. Pelihat: masuk dengan email Anda untuk meminta izin cetak. Isi password jika akun Anda sudah punya password; kosongkan untuk menerima <b>kode masuk</b> lewat email.',
-    values: {}, fields: [{ k: 'em', label: 'Email', req: true, full: true, ph: 'nama@email.com' }, { k: 'pw', label: 'Password (opsional)', full: true }],
+    intro: 'Ketik email Anda, lalu masukkan <b>kode 6 angka</b> yang kami kirim ke email itu. Editor: pakai email yang didaftarkan Pemilik.',
+    values: {}, fields: [{ k: 'em', label: 'Email', req: true, full: true, ph: 'nama@email.com' }, { k: 'pw', label: 'Password', full: true }],
     onSave: async (v) => {
       const email = String(v.em || '').trim().toLowerCase();
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast('Format email belum benar.', true); return false; }
@@ -179,11 +180,11 @@ function openLogin() {
         return true;
       } catch (e) {
         const m = (e && e.message) || '';
-        toast(/invalid login/i.test(m) ? 'Email atau password salah.' : /rate|limit|seconds/i.test(m) ? 'Terlalu sering meminta link. Tunggu beberapa menit lalu coba lagi.' : 'Gagal masuk: ' + m, true);
+        toast(/invalid login/i.test(m) ? 'Email atau password salah.' : /rate|limit|seconds/i.test(m) ? 'Terlalu sering meminta kode. Tunggu beberapa menit lalu coba lagi.' : 'Gagal masuk: ' + m, true);
         return false;
       }
     } });
-  const pw = document.getElementById('f_pw'); if (pw) { pw.type = 'password'; pw.autocomplete = 'current-password'; }
+  const pw = document.getElementById('f_pw'); if (pw) { pw.type = 'password'; pw.autocomplete = 'current-password'; kotpPw(pw); }
   const em = document.getElementById('f_em'); if (em) { em.type = 'email'; em.autocomplete = 'email'; }
 }
 
