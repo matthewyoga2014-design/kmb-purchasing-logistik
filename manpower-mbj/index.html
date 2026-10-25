@@ -2036,7 +2036,7 @@ function vacStats(D) {
 // ================= v9: per-candidate stage dates + document uploads =================
 let ASSETS = null;
 const C_STAGE_KEYS = ['Psikologi Test', 'Interview User', 'Offering Latter', 'MCU', 'FU MCU', 'On Site', 'Induksi'];
-const C_UPLOADS = { sumber: 'Berkas Lamaran / CV', st0: 'Hasil Psikologi Test', st1: 'Hasil Interview User', st2: 'Offering Letter', st3: 'Hasil MCU' };
+const C_UPLOADS = { sumber: 'Berkas Lamaran / CV', st0: 'Hasil Psikologi Test', st1: 'Hasil Interview User', st2: 'Offering Letter', st3: 'Hasil MCU', st6: 'Bukti Induksi' };
 function candStage(c, p) {
   const ds = Array.isArray(c.dates) ? c.dates : [];
   let k = -1; ds.forEach((d, i) => { if (d) k = i; });
@@ -2156,7 +2156,7 @@ function candForm(idx, ci) {
       { k: 'd1', label: 'Interview User', type: 'date' }, { k: 'u_st1', label: 'Hasil Interview User', type: 'upload' },
       { k: 'd2', label: 'Offering Letter', type: 'date' }, { k: 'u_st2', label: 'Offering Letter (dokumen)', type: 'upload' },
       { k: 'd3', label: 'MCU', type: 'date' }, { k: 'u_st3', label: 'Hasil MCU', type: 'upload' },
-      { k: 'd4', label: 'FU MCU', type: 'date' }, { k: 'd5', label: 'On Site', type: 'date' }, { k: 'd6', label: 'Induksi', type: 'date' },
+      { k: 'd4', label: 'FU MCU', type: 'date' }, { k: 'd5', label: 'On Site', type: 'date' }, { k: 'd6', label: 'Induksi', type: 'date' }, { k: 'u_st6', label: 'Bukti Induksi', type: 'upload' },
       { k: 'status', label: 'Status Kandidat', type: 'select', options: C_STATUS },
       { k: 'note', label: 'Keterangan', type: 'textarea', full: true, rows: 3, ph: 'Contoh: Tidak lolos interview user' },
     ] }],
