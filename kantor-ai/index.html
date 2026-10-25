@@ -827,11 +827,12 @@ async function loadThreads() {
   const sel = $('chatThreads'); sel.innerHTML = '<option value="">Riwayat chat…</option>' + CHAT.threads.map((t) => `<option value="${t.id}" ${t.id === CHAT.thread ? 'selected' : ''}>${esc(short(t.title, 40))}</option>`).join('');
 }
 async function loadThread(id) {
-  CHAT.thread = id || null; chatBody.innerHTML = '';
+  CHAT.thread = id || null; CHAT.waiting = false; chatBody.innerHTML = '';
   if (!id) { emptyChat(); return; }
   const { data } = await SB.from('office_messages').select('role,content,files').eq('thread_id', id).order('id');
   const sg = await signedMap(data || []);
   (data || []).forEach((m) => msgEl(m.role, m.content, m.files, sg)); scrollEnd();
+  CHAT.seen = (data || []).length; const last = (data || [])[(data || []).length - 1]; if (last && last.role === 'user') { CHAT.waiting = true; msgEl('assistant', '⏳ Menunggu jawaban Manager di putaran terjadwal berikutnya…', []); }
 }
 function renderFiles() {
   $('chatFiles').innerHTML = CHAT.files.map((f, i) => `<span class="fchip">${f.file.type.startsWith('image/') ? '🖼️' : f.file.name.match(/\.pdf$/i) ? '📄' : '📊'} ${esc(short(f.file.name, 28))}<button type="button" data-rm="${i}" aria-label="Hapus">✕</button></span>`).join('');
@@ -861,6 +862,21 @@ Kunci API Claude belum dipasang. Langkahnya:
 - Buka **Dashboard Supabase** → **Edge Functions** → **Secrets** → **Add new secret**
 - Name: **ANTHROPIC_API_KEY**, Value: tempel kunci tadi → **Save**
 Setelah itu kirim pesan lagi di sini.`;
+// Tanpa API key: pesan masuk antrean Manager terjadwal (Claude langganan Pemilik).
+// Jawaban ditulis database ke riwayat chat ini saat permintaan selesai.
+async function queueChat(text, files) {
+  const { data, error } = await SB.rpc('office_chat_queue', { p_thread: CHAT.thread, p_text: text, p_files: files });
+  if (error) return /office_chat_queue|function/i.test(error.message) ? NOKEY : '⚠️ ' + error.message;
+  CHAT.thread = data.thread_id; CHAT.waiting = true; CHAT.seen = await msgCount(CHAT.thread); setTimeout(RELOAD, 800);
+  return `📨 **Pesan masuk antrean Manager** (permintaan #${data.request_id}).\n\nClaude akan mengerjakannya di putaran terjadwal berikutnya (tiap jam, 07.00–22.00 WIB). Jawabannya muncul otomatis di chat ini dan di meja Manager. Butuh jawaban seketika? Pasang API key Claude, langkahnya ada di meja Manager.`;
+}
+async function pollChat() {
+  if (DEMO || !CHAT.waiting || !CHAT.thread || CHAT.busy || $('chat').hidden) return;
+  const n = await msgCount(CHAT.thread);
+  if (n != null && n > (CHAT.seen || 0)) await loadThread(CHAT.thread);
+}
+async function msgCount(id) { const { count } = await SB.from('office_messages').select('id', { count: 'exact', head: true }).eq('thread_id', id); return count; }
+setInterval(pollChat, 60000);
 async function send(text) {
   if (CHAT.busy) return;
   text = (text || '').trim(); if (!text && !CHAT.files.length) return;
@@ -880,7 +896,7 @@ async function send(text) {
     } else {
       const { data: { session } } = await SB.auth.getSession();
       const r = await fetch(FN_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token, apikey: CFG.key }, body: JSON.stringify({ thread_id: CHAT.thread, message: text, files }) });
-      if (!r.ok) { const j = await r.json().catch(() => ({})); if (j.code === 'no_key') { full = NOKEY; } else full = '⚠️ ' + (j.error || ('Gagal (' + r.status + ')')); }
+      if (!r.ok) { const j = await r.json().catch(() => ({})); if (j.code === 'no_key') { full = await queueChat(text, files); } else full = '⚠️ ' + (j.error || ('Gagal (' + r.status + ')')); }
       else {
         const rd = r.body.getReader(), dec = new TextDecoder(); let buf = '';
         while (true) { const { value, done } = await rd.read(); if (done) break; buf += dec.decode(value, { stream: true });
