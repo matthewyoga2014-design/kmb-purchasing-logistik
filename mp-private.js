@@ -18,7 +18,7 @@
   };
   const PF = [
     ['nip', 'NIP (Karyawan)', '', 'id'], ['nik', 'NIK KTP', '', 'id'], ['kk', 'No. KK', '', 'id'], ['npwp', 'No. NPWP', '', 'id'],
-    ['agama', 'Agama', 'agama', 'id'], ['tmpLahir', 'Tempat Lahir', '', 'id'], ['tglLahir', 'Tanggal Lahir', 'date', 'id'],
+    ['agama', 'Agama', 'agama', 'id'], ['status', 'Status Perkawinan', 'kawin', 'id'], ['tmpLahir', 'Tempat Lahir', '', 'id'], ['tglLahir', 'Tanggal Lahir', 'date', 'id'],
     ['hp', 'Nomor HP', '', 'kt'], ['wa', 'WhatsApp', '', 'kt'], ['tempatKerja', 'Tempat Bekerja', '', 'kt'],
     ['alamatDom', 'Alamat Domisili', 'long', 'kt'], ['alamat', 'Alamat Lengkap (KTP)', 'long', 'kt'],
     ['rek', 'No. Rekening', '', 'rk'], ['bank', 'Nama Bank', '', 'rk'], ['rekNama', 'Nama Pemilik Rekening', '', 'rk'],
@@ -28,7 +28,7 @@
   ];
   for (let n = 1; n <= 4; n++) PF.push([`sdr${n}`, `Saudara Kandung (${n})`, '', 'sd'], [`sdr${n}Jk`, `Jenis Kelamin (${n})`, 'jk', 'sd'], [`sdr${n}Tgl`, `Tanggal Lahir (${n})`, 'date', 'sd']);
   PF.push(['emNama', 'Nama', '', 'em'], ['emHub', 'Hubungan', '', 'em'], ['emHp', 'Nomor Telepon', '', 'em'], ['emWa', 'WhatsApp', '', 'em'],
-    ['status', 'Status', '', 'ms'], ['kamar', 'Blok Kamar', '', 'ms']);
+    ['kamar', 'Blok Kamar', '', 'ms']);
   const DATE_K = new Set(PF.filter((f) => f[2] === 'date').map((f) => f[0]));
   const PHONE_K = new Set(['hp', 'wa', 'emHp', 'emWa']);
 
@@ -94,7 +94,7 @@
     ['alamatDom', /domisili/], ['alamat', /^alamat/], ['tempatKerja', /^tempat.*bekerja/],
     ['rekNama', /pemilik/], ['bank', /bank/], ['rek', /rek/],
     ['bpjsTk', /bpjs.*(tk|ketenaga|tenaga kerja)/], ['bpjsKes', /bpjs/],
-    ['status', /^status$/], ['kamar', /kamar/],
+    ['status', /^status( perkawinan| pernikahan| nikah| kawin| ptkp)?$|perkawinan|^ptkp/], ['kamar', /kamar/],
   ];
   function headerMap(H, G, raw) {
     const map = [], used = new Set(); let sdr = 0, em = false;
@@ -106,7 +106,7 @@
       else if (em) {
         if (/hubungan/.test(h)) k = 'emHub'; else if (/wh?ats/.test(h)) k = 'emWa';
         else if (/telp|telf|telep|hp|nomor|no\./.test(h)) k = 'emHp'; else if (/nama/.test(h)) k = 'emNama';
-        else if (/^status$/.test(h)) k = 'status'; else if (/kamar/.test(h)) k = 'kamar';
+        else if (/^status( perkawinan| pernikahan| nikah| kawin| ptkp)?$|perkawinan|^ptkp/.test(h)) k = 'status'; else if (/kamar/.test(h)) k = 'kamar';
       } else if (/saudara/.test(h)) { const m = h.match(/(\d)/); sdr = m ? +m[1] : sdr + 1; k = 'sdr' + sdr; }
       else if (sdr && /kelamin/.test(h)) { const m = h.match(/(\d)/); k = `sdr${m ? +m[1] : sdr}Jk`; }
       else if (sdr && /lahir/.test(h)) { const m = h.match(/(\d)/); k = `sdr${m ? +m[1] : sdr}Tgl`; }
@@ -191,9 +191,12 @@
   // ---------- form data lengkap per karyawan ----------
   const AGAMA = [['', '—'], 'Islam', 'Kristen', 'Katolik', 'Hindu', 'Buddha', 'Konghucu'];
   const JK = [['', '—'], 'Laki - Laki', 'Perempuan'];
+  // Status perkawinan (kode PTKP): TK = Belum Kawin, K = Kawin, angka = jumlah anak/tanggungan.
+  const KAWIN = [['', '—']].concat([0, 1, 2, 3].map((n) => [`TK/${n}`, `TK/${n} · Belum Kawin · ${n} tanggungan`]), [0, 1, 2, 3, 4, 5].map((n) => [`K/${n}`, `K/${n} · Kawin · ${n} tanggungan`]));
+  const inOpt = (L, v) => L.some((o) => (Array.isArray(o) ? o[0] : o) === v);
   function privParts(cur) {
-    const fld = (f) => ({ k: f[0], label: f[1], type: f[2] === 'date' ? 'date' : f[2] === 'long' ? 'textarea' : (f[2] === 'agama' || f[2] === 'jk') ? 'select' : undefined,
-      options: f[2] === 'agama' ? AGAMA.concat(cur[f[0]] && !AGAMA.includes(cur[f[0]]) ? [cur[f[0]]] : []) : f[2] === 'jk' ? JK.concat(cur[f[0]] && !JK.includes(cur[f[0]]) ? [cur[f[0]]] : []) : undefined,
+    const fld = (f) => ({ k: f[0], label: f[1], type: f[2] === 'date' ? 'date' : f[2] === 'long' ? 'textarea' : (f[2] === 'agama' || f[2] === 'jk' || f[2] === 'kawin') ? 'select' : undefined,
+      options: f[2] === 'agama' ? AGAMA.concat(cur[f[0]] && !AGAMA.includes(cur[f[0]]) ? [cur[f[0]]] : []) : f[2] === 'jk' ? JK.concat(cur[f[0]] && !JK.includes(cur[f[0]]) ? [cur[f[0]]] : []) : f[2] === 'kawin' ? KAWIN.concat(cur[f[0]] && !inOpt(KAWIN, cur[f[0]]) ? [cur[f[0]]] : []) : undefined,
       rows: 2, full: f[2] === 'long', freeText: true, hint: f[0] === 'tglLahir' && umur(cur.tglLahir) ? 'Umur ' + umur(cur.tglLahir) : undefined });
     const sections = Object.keys(SEC).map((s) => ({ title: SEC[s], fields: PF.filter((f) => f[3] === s).map(fld) }));
     const x = cur._x || {}, xs = Object.keys(x);
@@ -353,7 +356,7 @@
         'Tanggal Masuk', 'Masa Kerja', 'Jenis Kelamin', 'Agama', 'Tempat Lahir', 'Tgl Lahir', 'Umur', 'Pendidikan Terakhir', 'Alamat Domisili', 'Alamat Lengkap', 'Keterangan', 'Tempat Bekerja', 'Site',
         'No Rekening', 'Nama Bank', 'Nama Pemilik Rekening', 'Nomor BPJS Kesehatan', 'Nomor BPJS Ketenagakerjaan', 'Nama Ibu', 'Pendidikan Terakhir Ibu', 'Pekerjaan Ibu', 'Nama Ayah', 'Pendidikan Terakhir Ayah', 'Pekerjaan Ayah'];
       for (let n = 1; n <= 4; n++) head.push(`Saudara Kandung (${n})`, `Jenis Kelamin (${n})`, `Tanggal Lahir (${n})`);
-      head.push('Emergency - Nama', 'Emergency - Hubungan', 'Emergency - Nomor Telepon', 'Emergency - WhatsApp', 'Status', 'Blok Kamar', 'Verifikasi Data', 'Catatan Kepegawaian');
+      head.push('Emergency - Nama', 'Emergency - Hubungan', 'Emergency - Nomor Telepon', 'Emergency - WhatsApp', 'Status Perkawinan', 'Blok Kamar', 'Verifikasi Data', 'Catatan Kepegawaian');
       if (PROJ.sites) head.push('Jobsite');
       if (kind === 'out') head.push('Tanggal Keluar', 'Alasan Keluar');
       const aoa = [head];
