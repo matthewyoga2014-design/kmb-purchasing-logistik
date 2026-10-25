@@ -168,7 +168,7 @@ function render() {
   $('prBtn').hidden = !S.user; $('setBtn').hidden = !S.user; $('saBtn').hidden = !S.user || !staffApps().length;
   const pc = Object.values(S.pend).reduce((a, b) => a + b, 0); $('setBtn').querySelector('.dot').hidden = !pc;
   if (!S.loaded) { $('tot').innerHTML = ''; $('grid').innerHTML = '<div class="lock"><span class="lg">M</span><p>Menyiapkan…</p></div>'; $('page').hidden = true; return; }
-  if (!S.user) { $('tot').innerHTML = ''; $('note').innerHTML = ''; $('page').hidden = true; $('grid').innerHTML = loginHtml(); return; }
+  if (!S.user) { $('tot').innerHTML = ''; $('note').innerHTML = ''; $('page').hidden = true; $('grid').innerHTML = loginHtml(); kotpPw($('lg_p')); return; }
   if (ui.page !== 'home') { $('page').hidden = false; $('page').innerHTML = ui.page === 'guide' ? pageGuide() : pageSet(); return; }
   $('page').hidden = true; $('page').innerHTML = '';
   $('note').innerHTML = resultBox() + (Object.keys(S.apps).length ? '' : '<div class="nb warn">Email ini belum punya akses ke portal mana pun. Minta Pemilik atau Editor mengirim <b>link undangan</b> ke email ini.</div>');
@@ -224,9 +224,10 @@ function inviteBox() {
   const v = ok[0];
   return `<div class="invite"><span class="chip ${v.role === 'viewer' ? 'vw' : ''}">Undangan ${ROLE_L[v.role]}</span><h3>${ok.length > 1 ? `${ok.length} web monitoring` : esc((subOf(v.app_id) || {}).portal + ' · ' + (subOf(v.app_id) || {}).name)}</h3>${ok.length > 1 ? `<p>${ok.map((x) => { const sb = subOf(x.app_id); return esc(sb ? sb.name : x.app_id) + ` (${ROLE_L[x.role]})`; }).join(' · ')}</p>` : ''}<p>Undangan ini untuk email <b>${esc(v.email_hint)}</b>. Masuk dengan email tersebut untuk menerima akses.${bad ? ` ${bad} link lain sudah tidak berlaku.` : ''}</p></div>`;
 }
+function kotpPw(i,s){if(!i)return;const go=()=>window.KMBOtp&&KMBOtp.hidePassword&&KMBOtp.hidePassword(i,{submit:s||(i.form&&i.form.querySelector('[type=submit]'))});if(window.KMBOtp)go();else window.addEventListener('load',go,{once:true});}
 function loginHtml() {
-  return `<div class="lock lgc"><span class="lg">M</span><h2>Masuk</h2><p>Gunakan email yang diundang atau didaftarkan Pemilik.</p>${inviteBox()}
-    <form id="lgForm" class="lf" novalidate><label for="lg_e">Email</label><input id="lg_e" type="email" autocomplete="email" required placeholder="nama@email.com"><label for="lg_p">Password (opsional)</label><input id="lg_p" type="password" autocomplete="current-password" placeholder="Kosongkan untuk menerima kode masuk lewat email"><button type="submit" class="btn btn-p">Masuk</button></form>
+  return `<div class="lock lgc"><span class="lg">M</span><h2>Masuk</h2><p>Ketik email Anda, lalu masukkan <b>kode 6 angka</b> yang kami kirim ke email itu.</p>${inviteBox()}
+    <form id="lgForm" class="lf" novalidate><label for="lg_e">Email</label><input id="lg_e" type="email" autocomplete="email" required placeholder="nama@email.com"><label for="lg_p">Password</label><input id="lg_p" type="password" autocomplete="current-password"><button type="submit" class="btn btn-p">Masuk</button></form>
     <p class="small">Belum punya akses? Minta Pemilik atau Editor membagikan link undangan ke email Anda.</p></div>`;
 }
 async function doLogin(e) {

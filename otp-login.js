@@ -91,5 +91,33 @@
     });
   }
 
-  window.KMBOtp = { prompt };
+  /* Login simpel: sembunyikan kolom password. Yang terlihat hanya Email + tombol "Kirim kode".
+   * Orang yang memang punya password bisa membukanya lewat link kecil "Pakai password".
+   * hidePassword(inputPassword, { submit: tombolSubmit }) — aman dipanggil berulang. */
+  function hidePassword(input, opts) {
+    if (!input || input.dataset.kotpPw) return;
+    input.dataset.kotpPw = '1';
+    if (!document.getElementById('kotp-pw-css')) {
+      const s = document.createElement('style'); s.id = 'kotp-pw-css';
+      s.textContent = '.kotp-pwt{display:block;background:none;border:0;padding:6px 0;margin:2px 0 4px;color:#6D28D9;font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:left}.kotp-pwt:hover{text-decoration:underline}@media (prefers-color-scheme:dark){.kotp-pwt{color:#c4b5fd}}';
+      document.head.appendChild(s);
+    }
+    const submit = opts && opts.submit;
+    const wrap = input.closest('.fld, .field, label');
+    const parts = wrap ? [wrap] : [input];
+    if (!wrap && input.id) { const l = document.querySelector('label[for="' + input.id + '"]'); if (l) parts.unshift(l); }
+    const btn = document.createElement('button'); btn.type = 'button'; btn.className = 'kotp-pwt';
+    parts[parts.length - 1].insertAdjacentElement('afterend', btn);
+    function set(show) {
+      parts.forEach((p) => { p.hidden = !show; p.style.display = show ? '' : 'none'; });
+      if (!show) input.value = '';
+      btn.textContent = show ? 'Tidak pakai password? Kirim kode ke email saja' : 'Punya password? Masuk dengan password';
+      if (submit) submit.textContent = show ? 'Masuk' : 'Kirim kode';
+      if (show) setTimeout(() => input.focus(), 20);
+    }
+    btn.addEventListener('click', () => set(parts[0].hidden));
+    set(false);
+  }
+
+  window.KMBOtp = { prompt, hidePassword };
 })();
