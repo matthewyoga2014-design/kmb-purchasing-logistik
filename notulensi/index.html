@@ -564,6 +564,11 @@ div.ksbig{cursor:default}
 .kstag.sm{margin:4px 0 0;font-size:11px;padding:1px 7px}.kstag small{margin-left:2px}
 .dragh{cursor:grab;display:inline-block;margin-right:4px;padding:2px 3px;border-radius:6px;color:#9A96B8;font-size:15px;line-height:1;user-select:none;vertical-align:-1px}.dragh:hover{background:#EFE9FE;color:#6D28D9}.dragh:active{cursor:grabbing}tr.dragging td{opacity:.45}tr.drop-b td{box-shadow:inset 0 3px 0 #6D28D9}tr.drop-a td{box-shadow:inset 0 -3px 0 #6D28D9}.mgc{margin-top:4px;display:flex;gap:6px}.mgb{border:1px dashed #C9C4E6;background:#fff;color:#6D28D9;border-radius:8px;padding:2px 8px;font-weight:600;font-size:11.5px;line-height:1.5;font-family:inherit;cursor:pointer;opacity:0;transition:opacity .12s}td:hover>.mgc .mgb,td:focus-within>.mgc .mgb,.mgb:focus-visible{opacity:1}.mgadd{display:block;margin-top:6px;border:0;background:none;color:#6D28D9;font-weight:700;font-size:12px;line-height:1.4;font-family:inherit;cursor:pointer;padding:2px 0;opacity:0;transition:opacity .12s}td:hover>.mgadd,td:focus-within>.mgadd,.mgadd:focus-visible{opacity:1}td.mgd{background:#FBFAFF;vertical-align:top}td.mgv{vertical-align:middle}@media (hover:none){.mgb,.mgadd{opacity:1}}
 
+/* tombol ⋮ selalu terlihat (kolom Aksi menempel di kanan) dan menu di panel Struktur */
+.ftbl tr:not(.grprow)>td:last-child{position:sticky;right:0;background:var(--card,#fff);z-index:1;box-shadow:-8px 0 10px -8px rgba(30,20,60,.18)}
+.tn{position:relative}.tn .tmenu{flex:none;width:28px;height:28px;opacity:0;margin-left:2px}.tn:hover .tmenu,.tn.on .tmenu,.tn .tmenu:focus-visible{opacity:1}
+@media (hover:none){.tn .tmenu{opacity:1}}
+
 /* ===== v3 skin: violet "Integrated Monitoring" look, matching the Monitoring Manpower portal ===== */
 :root{
   --bg:#EEF0F8; --surface:#FFFFFF; --sunk:#F3F2FA; --line:#E6E4F2; --line-2:#DCD9EC; --tile:#F6F6FC;
@@ -1822,7 +1827,7 @@ S.open=new Set(load("rn2-open",[]));
 function treeHTML(pid,d){return children(pid).map(f=>{const kids=children(f.id).length,op=S.open.has(f.id)||(S.cwd&&fPath(S.cwd).some(x=>x.id===f.id)&&f.id!==S.cwd);
   return `<li><div class="tn ${f.id===S.cwd?"on":""}" style="padding-left:${8+d*16}px" data-dropf="${f.id}" draggable="true" data-drag="folder:${f.id}">
     ${kids?`<button class="tg" type="button" data-tog="${f.id}" aria-label="${op?"Tutup":"Buka"} ${esc(f.name)}" aria-expanded="${op}">${op?"▾":"▸"}</button>`:`<span class="tg"></span>`}
-    <button class="tl2" type="button" data-act="openFolder" data-id="${f.id}">${IC.folder}<span class="nm">${esc(f.name)}</span><span class="lv">${lvlName(d)}</span><span class="ct">${folderCount(f.id)||""}</span></button></div>
+    <button class="tl2" type="button" data-act="openFolder" data-id="${f.id}">${IC.folder}<span class="nm">${esc(f.name)}</span><span class="lv">${lvlName(d)}</span><span class="ct">${folderCount(f.id)||""}</span></button><button class="ib tmenu ed-only" type="button" data-act="rowMenu" data-menu data-k="folder" data-id="${f.id}" aria-label="Menu ${esc(f.name)}" title="Ubah nama, pindah, hapus">${IC.kebab}</button></div>
     ${kids&&op?`<ul>${treeHTML(f.id,d+1)}</ul>`:""}</li>`;}).join("");}
 const FTYPES=[["folder","Folder"],["notulensi","Notulensi"],["pdf","PDF"],["word","Word"],["excel","Excel / CSV"],["ppt","PowerPoint"],["img","Gambar"],["video","Video"],["other","Lainnya"]];
 function ftypeOf(n){const e=(n.split(".").pop()||"").toLowerCase();if(e==="pdf")return"pdf";if(/^(docx?|rtf|odt)$/.test(e))return"word";if(/^(xlsx?|xlsm|xlsb|csv|ods)$/.test(e))return"excel";if(/^(pptx?|odp)$/.test(e))return"ppt";
@@ -1901,6 +1906,9 @@ function renderFiles(){
 
 const colOf=k=>({folder:"folders",series:"series",file:"files"})[k];
 function nameOf(k,id){const o=S[colOf(k)].find(x=>x.id===id);return o?(k==="series"?o.title:o.name):"";}
+/* klik kanan pada folder / notulensi / file = menu yang sama dengan tombol ⋮ */
+document.addEventListener("contextmenu",e=>{if(!S.canEdit)return;const el=e.target.closest("[data-drag]");if(!el||!el.closest("#v-files"))return;const[k,id]=String(el.dataset.drag).split(":");if(!k||!id)return;
+  e.preventDefault();const b=el.querySelector("[data-act=rowMenu]")||el;itemMenu(b,k==="file"?"file":k,id);});
 function itemMenu(btn,k,id){
   const items=[];
   if(k==="folder")items.push({label:"Buka",run:()=>{S.cwd=id;renderFiles();}},...(canHaveChild(id)?[{label:"Buat "+childKind(id)+" di dalamnya",run:()=>newFolder(id)}]:[]));
