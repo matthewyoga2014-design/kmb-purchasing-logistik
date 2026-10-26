@@ -2333,13 +2333,16 @@ function parseDoc(html){
   walk(doc.body);meta.outline=outline.filter(o=>o.bab||o.sub);
   return{meta,rows,text:lines.join("\n").replace(/\n{3,}/g,"\n\n").trim()};
 }
+/* baris dari file: tindak lanjut yang punya sel sendiri tetap baris sendiri (tidak digabung otomatis walau teksnya sama) */
+function sepRows(p){(p&&p.rows||[]).forEach(r=>{if(clean(r.tl))r.mg={...(r.mg||{}),tl:false};});return p;}
 async function readNotulensi(file){
-  if(/\.docx$/i.test(file.name)){const m=await loadMammoth();const r=await m.convertToHtml({arrayBuffer:await file.arrayBuffer()});return stripXl(parseDoc(r.value));}
+  if(/\.docx$/i.test(file.name)){const m=await loadMammoth();const r=await m.convertToHtml({arrayBuffer:await file.arrayBuffer()});return sepRows(stripXl(parseDoc(r.value)));}
   const X=await loadXlsx();const wb=X.read(await file.arrayBuffer(),{type:"array",cellDates:true});
   const HELP=/^(petunjuk|panduan|instruksi|cara|help|readme|keterangan|sd\b|sumber\s*data$|daftar$)/i,isSD=n=>{const c=(wb.Sheets[n]||{})["A1"];return c&&/^sumber data$/i.test(String(c.v||"").trim());},names=wb.SheetNames.filter(n=>!HELP.test(n)&&!isSD(n));
   const used=names.length?names:wb.SheetNames,start=used.map(n=>{const ws=wb.Sheets[n];return ws&&ws["!ref"]?X.utils.decode_range(ws["!ref"]).s.r:0;});
   const html=used.map(n=>{const ws=wb.Sheets[n];Object.keys(ws).forEach(a=>{const c=ws[a];if(a[0]!=="!"&&c&&c.t==="d"&&c.v instanceof Date&&!isNaN(c.v)){const d=c.v;c.w=d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}});if(ws["!ref"]){const r=X.utils.decode_range(ws["!ref"]);if(r.e.r>2000){r.e.r=2000;ws["!ref"]=X.utils.encode_range(r);}}return X.utils.sheet_to_html(ws,{header:"",footer:""});}).join("");
   const p=parseDoc(html);try{attachSdSheets(X,wb,used,start,p.rows);}catch(e){console.warn("SD",e);}stripXl(p);
+  sepRows(p);
   // Excel: date cells may come as m/d/yy strings; parse loosely
   return p;
 }
@@ -2417,7 +2420,7 @@ async function matchRows(prev,neu){
 }
 async function mergeRows(prev,neu){
   const map=await matchRows(prev,neu),pm=new Map(prev.map(p=>[p.k,p]));const out=[];
-  neu.forEach((r,i)=>{const k=map.get(i);if(k){const p=pm.get(k);out.push({...p,...(r.bab||p.bab?{bab:r.bab||p.bab}:{}),...(r.src||p.src?{src:r.src&&Array.isArray(r.src.items)?r.src:p.src&&srcItems(p.src).length>1?p.src:(r.src||p.src)}:{}),sec:r.sec||p.sec,topik:r.topik||p.topik,bahas:r.bahas||p.bahas,tl:r.tl||p.tl,pic:r.pic||p.pic,due:r.due||(r.dueText?"":p.due),dueText:r.due?"":(r.dueText||p.dueText||""),st:r.st||p.st||"open",ket:r.ket||p.ket||"",x:{...(p.x||{}),...Object.fromEntries(Object.entries(r.x||{}).filter(([,v])=>clean(v)))},k});}
+  neu.forEach((r,i)=>{const k=map.get(i);if(k){const p=pm.get(k);out.push({...p,...(r.bab||p.bab?{bab:r.bab||p.bab}:{}),...(r.src||p.src?{src:r.src&&Array.isArray(r.src.items)?r.src:p.src&&srcItems(p.src).length>1?p.src:(r.src||p.src)}:{}),sec:r.sec||p.sec,topik:r.topik||p.topik,bahas:r.bahas||p.bahas,tl:r.tl||p.tl,pic:r.pic||p.pic,due:r.due||(r.dueText?"":p.due),dueText:r.due?"":(r.dueText||p.dueText||""),st:r.st||p.st||"open",ket:r.ket||p.ket||"",...(r.mg?{mg:{...(p.mg||{}),...r.mg}}:{}),x:{...(p.x||{}),...Object.fromEntries(Object.entries(r.x||{}).filter(([,v])=>clean(v)))},k});}
     else out.push({...r,st:r.st||"open"});});
   // isi meeting = persis yang diupload/diperbarui; baris lama yang tidak ada lagi tidak dibawa (tidak dobel)
   out.forEach(r=>{delete r.key;});
@@ -3144,14 +3147,19 @@ async function tplBook(o){
 async function rematchAll(){
   if(!S.canEdit)return toast("Mode lihat: hanya editor yang bisa mengubah data");
   toast("Memeriksa semua notulensi…",true);const plan=[];let skip=0,fail=0;
+  const srcFile=v=>v.kind==="upload"&&v.source?S.files.filter(x=>x.versionId===v.id&&x.name===v.source&&x.kind!=="photo").sort((a,b)=>(b.at||0)-(a.at||0))[0]:null;
   for(const s of S.series){const vs=versionsOf(s.id);let prevRows=vs[0]?.rows||[];
+    // Meeting ke-1: hanya tandai baris yang punya sel tindak lanjut sendiri (kode baris tetap)
+    const f1=vs[0]&&srcFile(vs[0]);if(f1){try{const p=await readNotulensi(new File([await fileBytes(f1)],f1.name,{type:f1.type||""})),R=vs[0].rows||[];
+      if(p.rows.length===R.length&&p.rows.every((x,j)=>norm(x.tl)===norm(R[j].tl))){const nr=R.map((r,j)=>p.rows[j].mg?{...r,mg:{...(r.mg||{}),...p.rows[j].mg}}:r);
+        if(JSON.stringify(nr)!==JSON.stringify(R)){plan.push({s,v:vs[0],cols:vs[0].cols||[],merged:nr,before:R.length,after:nr.length});prevRows=nr;}}}catch(e){console.warn("rematch m1",e);}}
     for(let i=1;i<vs.length;i++){const v=vs[i];
-      const f=v.kind==="upload"&&v.source?S.files.filter(x=>x.versionId===v.id&&x.name===v.source&&x.kind!=="photo").sort((a,b)=>(b.at||0)-(a.at||0))[0]:null;
+      const f=srcFile(v);
       if(!f){skip++;prevRows=v.rows||[];continue;}
       try{const bytes=await fileBytes(f),file=new File([bytes],f.name,{type:f.type||""});const p=await readNotulensi(file);
         if(!p.rows.length)throw new Error("tabel kosong");
         const cols=mkColsFrom(v.cols||[],p.meta.cols||[]),merged=await mergeRows(prevRows,withXCols(p.rows,cols));
-        const sig=rs=>JSON.stringify(rs.map(r=>[r.sec,r.topik,r.bahas,r.tl,r.pic,r.due,r.dueText,r.st]));
+        const sig=rs=>JSON.stringify(rs.map(r=>[r.sec,r.topik,r.bahas,r.tl,r.pic,r.due,r.dueText,r.st,r.mg&&r.mg.tl]));
         if(sig(merged)!==sig(v.rows||[])||merged.some((r,j)=>r.k!==(v.rows||[])[j]?.k))plan.push({s,v,cols,merged,before:(v.rows||[]).length,after:merged.length});
         prevRows=merged;}
       catch(e){fail++;console.warn("rematch",s.title,v.no,e);prevRows=v.rows||[];}}}
