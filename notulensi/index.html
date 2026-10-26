@@ -2364,9 +2364,23 @@ async function matchRows(prev,neu){
     const p=r.key&&prev.find(p=>p.k===r.key);
     if(p&&!used.has(p.k)&&same(p,r)){map.set(i,p.k);used.add(p.k);}
   });
+  const nb=(a,b)=>{const x=norm(a.bahas),y=norm(b.bahas);return !x||!y||x===y||jac(x,y)>=0.6;};
+  // 1) tindak lanjut sama persis dan pembahasan (mis. posisi "1x Welder") juga sama
   neu.forEach((r,i)=>{
     if(map.has(i)||!norm(r.tl))return;
-    const p=prev.find(p=>!used.has(p.k)&&same(p,r)&&norm(p.tl)===norm(r.tl));
+    const p=prev.find(p=>!used.has(p.k)&&same(p,r)&&norm(p.tl)===norm(r.tl)&&norm(p.bahas)===norm(r.bahas));
+    if(p){map.set(i,p.k);used.add(p.k);}
+  });
+  // 2) baris berulang dengan Topik + Hasil Pembahasan sama (mis. 4 baris "1x Tyre Storing"): pasangkan berurutan
+  neu.forEach((r,i)=>{
+    if(map.has(i)||!norm(r.bahas))return;
+    const p=prev.find(p=>!used.has(p.k)&&same(p,r)&&norm(p.topik)===norm(r.topik)&&norm(p.bahas)===norm(r.bahas));
+    if(p){map.set(i,p.k);used.add(p.k);}
+  });
+  // 3) tindak lanjut sama, pembahasan mirip
+  neu.forEach((r,i)=>{
+    if(map.has(i)||!norm(r.tl))return;
+    const p=prev.find(p=>!used.has(p.k)&&same(p,r)&&norm(p.tl)===norm(r.tl)&&nb(p,r));
     if(p){map.set(i,p.k);used.add(p.k);}
   });
   neu.forEach((r,i)=>{
@@ -2384,6 +2398,13 @@ async function matchRows(prev,neu){
       if(score>bs){bs=score;best=p;}
     });
     if(best&&bs>=0.78){map.set(i,best.k);used.add(best.k);}
+  });
+  // 4) satu baris lama dipecah menjadi beberapa baris baru dengan Topik yang sama: baris lama = baris baru pertama
+  prev.forEach(p=>{
+    if(used.has(p.k)||!norm(p.topik))return;
+    const ps=prev.filter(q=>!used.has(q.k)&&norm(q.topik)===norm(p.topik)&&secN(q.sec)===secN(p.sec));
+    const i=neu.findIndex((n,j)=>!map.has(j)&&same(p,n)&&norm(n.topik)===norm(p.topik));
+    if(ps.length===1&&i>=0){map.set(i,p.k);used.add(p.k);}
   });
   return map;
 }
