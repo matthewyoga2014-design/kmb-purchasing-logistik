@@ -2746,7 +2746,8 @@ const SDMAX=50;
 function sdLinkText(t){t=clean(t).replace(/\s*›\s*SD\s*\d+\s*$/i,"").replace(/^lihat sheet SD\s*\d+$/i,"");return /^(\+\s*)?isi sumber data$/i.test(t)?"":t;}
 /* rumus kolom di sheet utama (sama dengan template): I Sumber Data (kode), J Lihat, K Hasil (%), L Nilai Sub Bab, M Nilai Bab, helper tersembunyi */
 const SSH="'Sumber Data'",SROWS=1000,NCODE=300;
-function xlCalc(X,ws,o){const L=c=>X.utils.encode_col(c),[B,C,D,H,I,J,K,LL,M,N,O]=[1,2,3,7,8,9,10,11,12,o.m,o.m+1].map(L),F=o.first,E=o.last;
+/* rumus diisi juga untuk 300 baris kosong di bawah data, supaya baris yang ditambah sendiri di Excel langsung ikut terhitung */
+function xlCalc(X,ws,o){if(!o.spared){o.last+=(o.spare??300);o.spared=1;}const L=c=>X.utils.encode_col(c),[B,C,D,H,I,J,K,LL,M,N,O]=[1,2,3,7,8,9,10,11,12,o.m,o.m+1].map(L),F=o.first,E=o.last;
   for(let r=F;r<=E;r++){const st=`IF(OR(UPPER(TRIM($${H}${r}))="CLOSE",UPPER(TRIM($${H}${r}))="CONTINUE"),1,0)`;
     ws[N+r]={t:"s",f:`IF(COUNTA($${D}${r}:$${H}${r})=0,"",IFERROR(LOOKUP(2,1/($${B}$${F}:$${B}${r}<>""),$${B}$${F}:$${B}${r}),"-"))`};
     ws[O+r]={t:"s",f:`IF($${N}${r}="","",$${N}${r}&"|"&IFERROR(LOOKUP(2,1/($${C}$${F}:$${C}${r}<>""),$${C}$${F}:$${C}${r}),"-"))`};
