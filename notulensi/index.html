@@ -1181,17 +1181,18 @@ const vById=id=>S.versions.find(v=>v.id===id);
 const versionsOf=sid=>S.versions.filter(v=>v.seriesId===sid).sort((a,b)=>(a.no||0)-(b.no||0));
 const latestV=sid=>{const vs=versionsOf(sid);return vs[vs.length-1]||null;};
 const prevOf=v=>{const vs=versionsOf(v.seriesId).filter(x=>(x.no||0)<(v.no||0));return vs[vs.length-1]||null;};
-function seriesRows(sid,upto){
+function seriesRows(sid,upto,maxNo){
   // Isi = meeting terakhir (sesuai upload/pembaruan) + tindak lanjut yang sudah CLOSE di meeting sebelumnya.
   const m=new Map();let current=null;
   for(const v of versionsOf(sid)){
     if(upto&&(v.date||"")>upto)continue;
+    if(maxNo&&(v.no||0)>maxNo)continue;
     current=v;
     const n=new Map();(v.rows||[]).forEach(r=>n.set(r.k,{...r,_v:v}));
     m.forEach((r,k)=>{if(!n.has(k)&&r.st==="close")n.set(k,r);});m.clear();n.forEach((r,k)=>m.set(k,r));
   }
   const en=sById(sid)?.ended,out=[...m.values()].map(r=>({...r,_v:current||r._v}));
-  return en&&(!upto||(en.date||"")<=upto)?out.map(r=>r.st==="close"?r:{...r,st:"close",auto:r.st||"open"}):out;
+  return en&&!maxNo&&(!upto||(en.date||"")<=upto)?out.map(r=>r.st==="close"?r:{...r,st:"close",auto:r.st||"open"}):out;
 }
 const sStatus=(sid,upto)=>vStatus({rows:seriesRows(sid,upto)});
 /* ---------- next meeting ---------- */
@@ -1510,6 +1511,7 @@ function renderSeries(){
   const groups=groupRows(rows);let no=0;const cols=v.cols||[];
   const cell=(r,f,html)=>{const ch=d&&d.rows[r.k]&&d.rows[r.k].ch&&d.rows[r.k].ch[f]!==undefined;return{cls:ch?" chg":"",pre:ch?`<span class="oldv">${esc(f==="st"?ST[d.rows[r.k].ch[f]]:d.rows[r.k].ch[f])||"(kosong)"}</span>`:"",html};};
   const td=(cls,c,rs)=>`<td class="${cls}${c.cls}"${rs?` rowspan="${rs}"`:""}>${c.pre}${c.html}</td>`;
+  S.ksAt=isLatest?null:{sid:s.id,no:v.no};
   const KS=isPersiapan(s)?kesiapan(s.id):null;let lastBab="";
   const body=groups.map(g=>`${g.bab&&g.bab!==lastBab?(lastBab=g.bab,`<tr class="babrow"><td colspan="${7+cols.length+(KS?1:0)}">${esc(g.bab)}${KS?ksBabTag(KS,g.bab,s.id):""}</td></tr>`):""}${g.sec?`<tr class="secrow"><td colspan="${7+cols.length+(KS?1:0)}"><span>${esc(g.sec)}</span>${KS?ksSubTag(KS,g.sec,s.id):""}</td></tr>`:""}${g.topics.map(t=>{no++;const n=t.rows.length;const gst=t.rows.every(r=>(r.st||"open")===(t.rows[0].st||"open"))?(t.rows[0].st||"open"):"";
     const TM=covMap(t.rows);
@@ -2877,8 +2879,10 @@ function fixFromFile(sid,vid){if(!S.canEdit)return toast("Mode lihat: hanya edit
 /* Hitung persentase bertingkat dengan bobot sama:
    Total 100% dibagi rata ke Bab -> bobot Bab dibagi rata ke Sub Bab (Sub Bab bernomor 1.1, atau Topik) -> dibagi rata ke tindak lanjut.
    Hasil tindak lanjut: sheet/rincian sumber data (Aktual ÷ Plan, maks. 100%), atau status (Close 100%, Open/Continue 0%). */
+/* saat melihat meeting lama di halaman notulensi, kesiapan dihitung pada posisi meeting itu (Meeting ke-1 semua Open = 0%) */
+const ksNo=sid=>S.view==="series"&&S.ksAt&&S.ksAt.sid===sid?S.ksAt.no:null;
 function kesiapan(sid){
-  const rows=seriesRows(sid),babs=new Map();let legacy=0;
+  const rows=seriesRows(sid,null,ksNo(sid)),babs=new Map();let legacy=0;
   const outline=S.versions.filter(v=>v.seriesId===sid).sort((a,b)=>(a.no||0)-(b.no||0)).flatMap(v=>v.outline||[]);
   const mode=rows.some(r=>subCode(r.sec))||outline.some(o=>subCode(o.sub))?"bab":"topik";
   const getBab=(key,no,title)=>{if(!babs.has(key))babs.set(key,{key,no,title:"",subs:new Map()});const b=babs.get(key);if(title&&!b.title)b.title=title;return b;};
@@ -2922,7 +2926,7 @@ function ksCard(sid){const s=sById(sid),K=kesiapan(sid),SW=subWord(K);
     +b.subs.map(x=>`<tr class="kss${x.warn.length?" kswarn":""}" data-bk="${bi}" hidden><td>${K.mode==="bab"?`<span class="kscode">${esc(x.code)}</span>${esc(subTitle(x.title)||x.title)}`:esc(x.label)}<div class="stamp">${esc(methodTxt(x))}</div>${x.warn.length?`<div class="kwt">⚠ ${esc(x.warn[0])}</div>`:""}</td>
       <td class="num">${x.w!=null?fmtPct(x.w):"—"}</td><td><button type="button" class="kspct" data-act="ksSub" data-id="${sid}" data-c="${esc(x.code)}">${fmtPct(x.pct)}</button>${ksBar(x.pct)}</td><td class="num">${x.val!=null?fmtPct(x.val):"—"}</td><td>${st(x.c)}</td></tr>`).join("")).join("");
   const chips=K.babs.map(b=>`<button type="button" data-act="ksCalc" data-id="${sid}" data-b="${b.no}"><span>${esc(b.title)}</span><b>${fmtPct(b.pct)}</b>${ksBar(b.pct)}<em>${b.w!=null?`Nilai ${fmtPct(b.val)} dari bobot ${fmtPct(b.w)}`:"Belum ada data"}</em></button>`).join("");
-  return `<div class="card cpad ks" id="ksBox"><div class="ch"><h2>${ksName(s)}</h2><span class="stamp">${esc(s.jenis)} · posisi terkini · klik angka untuk melihat perhitungannya</span></div>
+  return `<div class="card cpad ks" id="ksBox"><div class="ch"><h2>${ksName(s)}</h2><span class="stamp">${esc(s.jenis)} · ${ksNo(sid)?`posisi Meeting ke-${ksNo(sid)}`:"posisi terkini"} · klik angka untuk melihat perhitungannya</span></div>
     <div class="kstop"><button type="button" class="ksbig ks-${pctCls(K.pct)}" data-act="ksCalc" data-id="${sid}" title="Lihat perhitungan total"><small>${ksTot(s)}</small><b>${fmtPct(K.pct)}</b><small>target 100%</small></button>
       <div class="ksbabs">${chips||`<span class="stamp">Belum ada tindak lanjut</span>`}</div></div>
     ${K.warn?`<div class="note" style="margin-top:10px">${K.warn} peringatan perlu diverifikasi (bertanda ⚠).</div>`:""}
