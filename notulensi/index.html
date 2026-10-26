@@ -568,6 +568,13 @@ div.ksbig{cursor:default}
 .ftbl tr:not(.grprow)>td:last-child{position:sticky;right:0;background:var(--card,#fff);z-index:1;box-shadow:-8px 0 10px -8px rgba(30,20,60,.18)}
 .tn{position:relative}.tn .tmenu{flex:none;width:28px;height:28px;opacity:0;margin-left:2px}.tn:hover .tmenu,.tn.on .tmenu,.tn .tmenu:focus-visible{opacity:1}
 @media (hover:none){.tn .tmenu{opacity:1}}
+/* tandai beberapa item */
+.ftbl .fsel{width:17px;height:17px;margin:0 10px 0 2px;vertical-align:middle;accent-color:#6D28D9;cursor:pointer;flex:none}
+.ftbl td:first-child{white-space:nowrap}.ftbl td:first-child .fn{display:inline-flex;vertical-align:middle;white-space:normal}
+.ftbl tr.fpick td{background:#F1ECFE}
+.fselbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#F1ECFE;border:1px solid #D9CCFB;border-radius:12px;padding:8px 12px;margin:0 0 10px}
+.fselbar .grow{flex:1}
+.ftbl tr.fpick:not(.grprow)>td:last-child{background:#F1ECFE}
 
 /* ===== v3 skin: violet "Integrated Monitoring" look, matching the Monitoring Manpower portal ===== */
 :root{
@@ -3179,6 +3186,45 @@ async function rematchAll(){
       for(const x of plan){await S.db.collection("versions").doc(x.v.id).update({rows:x.merged,cols:x.cols,rematchedAt:Date.now(),...stamp()});}
       closeModal();toast(`${plan.length} meeting disamakan dengan file uploadnya`);render();}});
 }
+/* ================= Unit & File: tandai beberapa folder / notulensi / file sekaligus ================= */
+S.fsel=new Set();S.fselAt=undefined;
+const _renderFiles=renderFiles;
+renderFiles=function(){_renderFiles.apply(this,arguments);try{fselDecorate();}catch(e){console.warn("fsel",e);}};
+function fselDecorate(){
+  if(S.fselAt!==(S.cwd||null)){S.fsel.clear();S.fselAt=S.cwd||null;}
+  const dz=$("dz");if(!dz)return;const rows=[...dz.querySelectorAll("tbody tr[data-drag]")];
+  const ids=new Set(rows.map(tr=>tr.dataset.drag));[...S.fsel].forEach(x=>{if(!ids.has(x))S.fsel.delete(x);});
+  rows.forEach(tr=>{const td=tr.cells[0];if(!td||td.querySelector(".fsel"))return;const key=tr.dataset.drag;
+    td.insertAdjacentHTML("afterbegin",`<input type="checkbox" class="fsel ed-only" data-fsel="${esc(key)}" aria-label="Tandai" ${S.fsel.has(key)?"checked":""}>`);tr.classList.toggle("fpick",S.fsel.has(key));});
+  const th=dz.querySelector("thead th");if(th&&!th.querySelector(".fsel")&&rows.length)th.insertAdjacentHTML("afterbegin",`<input type="checkbox" class="fsel ed-only" data-fselall aria-label="Tandai semua" ${S.fsel.size&&S.fsel.size===rows.length?"checked":""}>`);
+  let bar=$("fselBar");if(!bar){dz.insertAdjacentHTML("beforebegin",'<div class="fselbar ed-only" id="fselBar" hidden></div>');bar=$("fselBar");}
+  const n=S.fsel.size;bar.hidden=!n;
+  bar.innerHTML=n?`<b>${n} dipilih</b><span class="grow"></span><button class="btn sm" type="button" data-fsact="move">Pindahkan</button><button class="btn sm" type="button" data-fsact="copy">Salin</button><button class="btn sm" type="button" data-fsact="del" style="color:#C93B36">Hapus</button><button class="btn sm" type="button" data-fsact="none">Batal</button>`:"";
+}
+const fselItems=()=>[...S.fsel].map(x=>{const[k,id]=x.split(":");return{k,id};}).filter(x=>nameOf(x.k,x.id));
+document.addEventListener("change",e=>{const c=e.target;if(!c.classList||!c.classList.contains("fsel"))return;
+  if(c.hasAttribute("data-fselall")){const rows=[...$("dz").querySelectorAll("tbody tr[data-drag]")];rows.forEach(tr=>c.checked?S.fsel.add(tr.dataset.drag):S.fsel.delete(tr.dataset.drag));}
+  else{const k=c.dataset.fsel;c.checked?S.fsel.add(k):S.fsel.delete(k);}
+  fselDecorate();$("dz").querySelectorAll(".fsel[data-fsel]").forEach(x=>{x.checked=S.fsel.has(x.dataset.fsel);x.closest("tr").classList.toggle("fpick",x.checked);});
+  const all=$("dz").querySelector("[data-fselall]");if(all){const n=$("dz").querySelectorAll("tbody tr[data-drag]").length;all.checked=S.fsel.size===n&&n>0;all.indeterminate=S.fsel.size>0&&S.fsel.size<n;}});
+document.addEventListener("click",e=>{const cb=e.target.closest(".fsel");if(cb){e.stopPropagation();return;}
+  const b=e.target.closest("[data-fsact]");if(!b)return;if(!S.canEdit)return toast("Mode lihat: hanya editor yang bisa mengubah data");
+  const act=b.dataset.fsact,items=fselItems();if(act==="none"){S.fsel.clear();renderFiles();return;}if(!items.length)return;
+  const folders=items.filter(x=>x.k==="folder"),inner=new Set(folders.flatMap(x=>[...descendants(x.id)]));
+  // abaikan isi folder yang juga dipilih
+  const top=items.filter(x=>x.k==="folder"?!folders.some(f=>f.id!==x.id&&descendants(f.id).has(x.id)):!inner.has((S[colOf(x.k)].find(o=>o.id===x.id)||{}).folderId));
+  if(act==="del"){let nf=0,ns=0,nfl=0;top.forEach(x=>{if(x.k==="folder"){const set=descendants(x.id);nf+=set.size;ns+=S.series.filter(s=>set.has(s.folderId)).length;nfl+=S.files.filter(f=>set.has(f.folderId)&&!f.seriesId).length;}else if(x.k==="series")ns++;else nfl++;});
+    openModal(mHead(`Hapus ${items.length} item yang dipilih?`)+`<div class="mb"><div class="warnbox">Ikut terhapus: ${nf} folder, ${ns} notulensi (beserta semua riwayat meeting), ${nfl} file. Tindakan ini tidak bisa dibatalkan.</div></div><div class="mf"><button class="btn" type="button" data-x>Batal</button><button class="btn pri" style="background:#C93B36;border-color:#C93B36" type="button" id="dy">Ya, hapus</button></div>`,
+      box=>box.querySelector("#dy").onclick=async()=>{box.querySelector("#dy").disabled=true;toast("Menghapus…",true);
+        try{for(const x of top){if(x.k==="folder"){const set=descendants(x.id);for(const s of S.series.filter(s=>set.has(s.folderId)))await delSeries(s.id);for(const f of S.files.filter(f=>set.has(f.folderId)&&!f.seriesId))await delFile(f);for(const f of S.folders.filter(f=>set.has(f.id)).reverse())await S.db.collection("folders").doc(f.id).delete();if(set.has(S.cwd))S.cwd=null;}
+            else if(x.k==="series")await delSeries(x.id);else{const f=S.files.find(o=>o.id===x.id);if(f)await delFile(f);}}
+          S.fsel.clear();closeModal();toast(`${items.length} item terhapus`);}catch(err){toast("Gagal menghapus: "+errMsg(err));}});return;}
+  const bad=new Set(folders.flatMap(x=>[...descendants(x.id),...S.folders.filter(f=>!fitsUnder(x.id,f.id)).map(f=>f.id)]));
+  const mv=act==="move";
+  openModal(mHead(`${mv?"Pindahkan":"Salin"} ${items.length} item`)+`<form class="mb" id="fsf"><label class="f">${mv?"Pindahkan":"Salin"} ke<select id="fst"><option value="">(Tingkat atas / di luar folder)</option>${folderOptions(S.cwd||null,bad)}</select></label>${mv?"":'<div class="stamp">Notulensi disalin beserta seluruh riwayat meeting dan lampirannya; folder beserta semua isinya.</div>'}</form><div class="mf"><button class="btn" type="button" data-x>Batal</button><button class="btn pri" type="submit" form="fsf">${mv?"Pindahkan":"Salin"}</button></div>`,
+    box=>box.querySelector("#fsf").onsubmit=async ev=>{ev.preventDefault();const v=box.querySelector("#fst").value||null;closeModal();toast(mv?"Memindahkan…":"Menyalin…",true);
+      for(const x of top){if(mv)await moveTo(x.k,x.id,v);else await copyTo(x.k,x.id,v);}S.fsel.clear();renderFiles();toast(`${top.length} item ${mv?"dipindahkan":"disalin"}`);});
+},true);
 
 /* ================= BOOT ================= */
 const _go=go;go=function(v,o={}){if((v==="series")&&S.view!=="series"&&S.view!=="edit")S.backTo=S.view;_go(v,o);};
