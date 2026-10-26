@@ -863,14 +863,28 @@ document.addEventListener('submit', (e) => { if (e.target.id === 'lgForm') doLog
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape') { if (!$('modal').hidden) closeModal(); $('menu').hidden = true; } });
 
 // ---------- start ----------
+// Nama portal MPP yang diubah Pemilik lewat tombol Edit (tabel portal_display_settings)
+// dipakai juga di beranda, dialog Bagikan, Akses, dan undangan.
+async function loadTitles() {
+  try {
+    const { data, error } = await S.sb.from('portal_display_settings').select('app_key,name,description');
+    if (error || !data) return;
+    for (const r of data) {
+      if (!r || !r.name) continue;
+      for (const x of MPP.concat(SUBS.filter((s) => s.portal === 'Monitoring MPP'))) if (x.key === r.app_key) { x.name = r.name; if (r.description) x.desc = r.description; }
+    }
+  } catch (e) {}
+}
 async function boot() {
+  const titles = loadTitles();
   // Shared access is already authorized by its signed server-side bearer token.
   // Never block no-login links on a Supabase email-session lookup.
-  if (PORTAL_SHARE) { await loadGuestPortal(); S.loaded = true; render(); return; }
+  if (PORTAL_SHARE) { await loadGuestPortal(); await titles; S.loaded = true; render(); return; }
   await peekInvite();
   await redeemInvite();
   await loadApps();
   if (PORTAL_SHARE) await loadGuestPortal();
+  await titles;
   S.loaded = true; render();
   const IR = S.inviteRes; if (IR && IR.length === 1 && IR[0].status === 'ok' && IR[0].sub) setTimeout(() => { if (S.inviteRes) location.href = IR[0].sub.url; }, 2500);
 }
