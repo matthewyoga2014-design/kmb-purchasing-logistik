@@ -735,6 +735,8 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .slotBox.editing .slotTbl table{min-width:1750px}
 .slotTbl tr.sl{display:table-row}.slotTbl tr.sl>td{display:table-cell}
 .slotTbl td.n{text-align:right;font-variant-numeric:tabular-nums}
+.slotHead .slotPrint{margin-left:auto}
+.slotHead .slotPrint svg.i{width:13px;height:13px}
 .slotTbl table{min-width:1700px}
 .slotBox.editing .slotTbl table{min-width:1980px}
 .slotTbl td.etd,.slotTbl td.eta{white-space:nowrap;font-weight:600;color:#1E3A8A}
@@ -2743,6 +2745,53 @@ function showUnitDocs(u){
       ${canWrite?`<button class="linkish danger" type="button" data-act="dokDel" data-id="${d.id}">Hapus bukti</button>`:""}</div></div>`).join("")}</div>`
     :`<div class="note" style="grid-column:1/-1">Belum ada bukti untuk unit ini.${canWrite?" Klik Upload bukti untuk menambahkan foto atau PDF (surat jalan, foto muat, foto tiba, BAST, dll).":""}</div>`);
 }
+function muCanPrint(){ return role==="owner"||role==="editor"||(typeof GUEST_SHARE!=="undefined"&&GUEST_SHARE&&role==="viewer"); }
+/* Print tabel unit satu item saja: semua kolom kecuali tombol aksi, kertas & orientasi bebas di jendela Print. */
+function printSlot(k){
+  if(!muCanPrint()){ toast("Print hanya untuk Pemilik, Editor, dan Pelihat yang memiliki link khusus."); return; }
+  const wasOpen=SLOT_OPEN.has(k.id); if(!wasOpen){ SLOT_OPEN.add(k.id); rk(); }
+  const btn=document.querySelector(`[data-act="slotPrint"][data-id="${k.id}"]`), box=btn&&btn.closest(".slotBox");
+  const tbl=box&&box.querySelector(".slotTbl table"); if(!tbl){ toast("Tabel unit tidak ditemukan."); return; }
+  const t=tbl.cloneNode(true);
+  t.querySelectorAll("tr").forEach(tr=>{ const last=tr.lastElementChild; if(last&&(last.classList.contains("act")||(!last.textContent.trim()&&tr.parentElement.tagName==="THEAD"))) last.remove(); });
+  t.querySelectorAll("button").forEach(b=>b.remove());
+  const P=projOf(k.projectId)||{}, us=slotUnits(k), r=Number(k.rencana)||0;
+  const cnt=ALL_STATUS.map(x=>({k:x.k,n:us.filter(u=>u.status===x.k).length})).filter(o=>o.n);
+  const sum=cnt.map(o=>`${o.k}: <b>${o.n}</b>`).join(" · ")+(Math.max(r,us.length)-us.length>0?` · Belum dijadwalkan: <b>${Math.max(r,us.length)-us.length}</b>`:"");
+  const css=[...document.querySelectorAll("style")].map(x=>x.textContent).join("\n");
+  const judul=`Unit ${k.tipe} · ${P.kode||""}`;
+  const html=`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>${esc(judul)} - ${todayStr()}</title><style>${css}
+    @page{margin:8mm}
+    html,body{background:#fff!important;margin:0}
+    body{padding:0;font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:#1E1B3A}
+    body::before{display:none!important}
+    .ph{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid #6D28D9;padding-bottom:8px;margin-bottom:10px}
+    .ph h1{font-size:18px;margin:0}.ph p{margin:2px 0 0;font-size:11px;color:#4B4868}.ph .r{text-align:right;font-size:10.5px;color:#4B4868}
+    .sm{font-size:11px;color:#4B4868;margin:0 0 8px}
+    table{width:100%!important;min-width:0!important;border-collapse:collapse}
+    th,td{border:1px solid #E6E4F2!important;padding:5px 6px!important;font-size:10px!important;vertical-align:middle}
+    th{background:#F4F1FD!important;text-transform:uppercase;font-size:8.5px!important;letter-spacing:.04em}
+    tr{break-inside:avoid}
+    .slotTbl{overflow:visible!important;border:0!important;box-shadow:none!important}
+    .mu-vendor-tag,.mu-brand-tag,.chip,.plate,.mu-cond{white-space:nowrap!important;overflow-wrap:normal!important;word-break:normal!important}
+    .mu-vendor-tag,.mu-brand-tag,.mu-cond{font-size:8.5px!important;padding:1px 5px!important}
+    .chip{font-size:8.5px!important;padding:1px 6px!important}
+    .plate{font-size:9px!important;padding:1px 5px!important}
+    td.cat{max-width:none!important}
+    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  </style></head><body>
+    <div class="ph"><div><h1>${esc(k.tipe)}</h1><p>${esc([P.kode,P.nama,P.lokasi].filter(Boolean).join(" · "))} · Rencana ${r} unit${k.moda?" · via "+esc(k.moda):""}</p></div>
+      <div class="r">Monitoring Unit · Rencana kirim<br>Dicetak ${esc(new Date().toLocaleString("id-ID",{dateStyle:"long",timeStyle:"short"}))}${meEmail?" · "+esc(meEmail):""}</div></div>
+    <p class="sm">${sum}</p>
+    <div class="slotTbl">${t.outerHTML}</div>
+  </body></html>`;
+  let fr=document.getElementById("muPrintFrame"); if(fr) fr.remove();
+  fr=document.createElement("iframe"); fr.id="muPrintFrame"; fr.setAttribute("aria-hidden","true");
+  fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
+  document.body.appendChild(fr);
+  const doc=fr.contentWindow.document; doc.open(); doc.write(html); doc.close();
+  setTimeout(()=>{ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){ toast("Gagal membuka jendela print."); } if(!wasOpen){ SLOT_OPEN.delete(k.id); rk(); } },350);
+}
 function slotRow(k){
   if(!SLOT_OPEN.has(k.id)) return "";
   const us=slotUnits(k), r=Number(k.rencana)||0, n=Math.max(r,us.length);
@@ -2770,6 +2819,7 @@ function slotRow(k){
       <td class="act">${canWrite?`${arrived(u)&&!nextMobOf(u)?`<button class="btn small" data-act="planUnit" data-id="${u.id}" type="button">Kirim lagi</button> `:""}<button class="btn small primary" data-act="slotEdit" data-id="${u.id}" type="button">Update</button>`:""}${buktiBtn(u)}</td></tr>`; }).join("");
   return `<tr class="slots"><td colspan="9"><div class="slotBox">
     <div class="slotHead"><div class="sum">${cnt.map(o=>`<span><i style="background:${statusOf(ALL_STATUS,o.k).col}"></i>${o.k} <b>${o.n}</b></span>`).join("")}${n-us.length>0?`<span><i style="background:#D9D6E8"></i>Belum dijadwalkan <b>${n-us.length}</b></span>`:""}</div>
+      ${muCanPrint()?`<button class="btn small slotPrint" data-act="slotPrint" data-id="${k.id}" type="button"><svg class="i"><use href="#i-print"/></svg>Print tabel</button>`:""}
       ${canWrite?(SLOT_EDIT.has(k.id)?`<span class="edbar"><span class="muted small">Mode edit: ubah langsung di tabel, lalu Simpan.</span><button class="btn small" data-act="slotEditCancel" data-id="${k.id}" type="button">Batal</button><button class="btn small primary" data-act="slotEditSave" data-id="${k.id}" type="button">Simpan semua</button></span>`:`<span class="edbar">${SRC==="sheet"?`<button class="btn small bukti" data-act="dokUp" data-id="${k.id}" type="button"><svg class="i"><use href="#i-cam"/></svg>Upload bukti</button>`:""}<button class="btn small" data-act="slotBulk" data-id="${k.id}" type="button">Jadwalkan beberapa unit</button><button class="btn small edit" data-act="slotEditOn" data-id="${k.id}" type="button"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit tabel</button></span>`):""}</div>
     <div class="slotTbl"><table><thead><tr><th>#</th><th>Rencana kirim</th><th>ETD</th><th>ETA</th><th>No. lambung</th><th>Vendor</th><th>Merek</th><th>Via</th><th>Tgl kirim</th><th>Status</th><th>Kondisi</th><th>Posisi</th><th>Tgl tiba</th><th class="n">HM</th><th>Kirim berikutnya</th><th>Catatan</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
   </div></td></tr>`;
@@ -3154,6 +3204,7 @@ document.addEventListener("click",e=>{
   if(act==="openProj"&&P){ openProject(P.id); }
   if(act==="slotTg"&&K){ SLOT_OPEN.has(K.id)?SLOT_OPEN.delete(K.id):SLOT_OPEN.add(K.id); try{ localStorage.setItem("mu_slot_open",JSON.stringify([...SLOT_OPEN])); }catch(e){} renderKirim(); }
   if(act==="slotBulk"&&K&&canWrite){ formSlotBulk(K); }
+  if(act==="slotPrint"&&K){ printSlot(K); }
   if(act==="tclAll"){ const bx=$("#f_checks"); if(bx){ const cs=[...bx.querySelectorAll("[data-tu]")], all=cs.every(c=>c.checked); cs.forEach(c=>c.checked=!all); } }
   if(act==="slotEditOn"&&K&&canWrite){ SLOT_EDIT.add(K.id); SLOT_OPEN.add(K.id); rk(); }
   if(act==="slotEditCancel"&&K){ SLOT_EDIT.delete(K.id); rk(); }
