@@ -702,7 +702,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .slotTbl th{background:#F4F1FD;font-size:10.5px;padding:8px 10px;position:static}
 .slotTbl td{padding:8px 10px;font-size:12.5px;vertical-align:middle}
 .slotTbl td.no{width:28px;font-weight:800;color:var(--pri-2,#5B21B6)}
-.slotTbl tr.empty td{color:var(--muted);background:repeating-linear-gradient(135deg,#fff 0 10px,#FAF9FD 10px 20px)}
+.slotTbl tr.sl-empty td{color:var(--muted);background:repeating-linear-gradient(135deg,#fff 0 10px,#FAF9FD 10px 20px)}
 .slotTbl tr.over td.no{color:var(--warn)}
 .slotTbl .tmp{color:var(--warn);font-weight:700;font-size:12px}
 .slotTbl td.cat{max-width:220px;color:var(--ink-2,#4B4868)}
@@ -731,6 +731,12 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .slotTbl tr.ed input[type=date]{min-width:128px}
 .slotTbl tr.ed input:focus,.slotTbl tr.ed select:focus{outline:2px solid #DDD0FC;border-color:var(--pri,#6D28D9)}
 .slotBox.editing .slotTbl table{min-width:1180px}
+.slotTbl table{min-width:1500px}
+.slotBox.editing .slotTbl table{min-width:1750px}
+.slotTbl tr.sl{display:table-row}.slotTbl tr.sl>td{display:table-cell}
+.slotTbl td.n{text-align:right;font-variant-numeric:tabular-nums}
+.slotTbl td.cat .sub{display:block;font-size:11px;color:var(--muted)}
+.slotTbl tr.ed input[type=number]{min-width:70px}
 
 /* bukti per unit */
 .btn.bukti{background:#fff;border-color:var(--line-2,#DCD9EC);color:var(--ink-2,#4B4868);font-weight:700}
@@ -2656,21 +2662,25 @@ const slotId = no => "u-"+Date.now().toString(36)+"-"+String(no).padStart(3,"0")
 function slotEditRows(k,us,n){
   const sel=(name,v,opts)=>`<select data-f="${name}">${opts.map(o=>`<option ${o===v?"selected":""}>${esc(o)}</option>`).join("")}</select>`;
   const inp=(name,v,type="text",ph="",list="")=>`<input data-f="${name}" type="${type}" value="${esc(v||"")}" placeholder="${esc(ph)}" ${list?`list="${list}"`:""}>`;
-  const rows=Array.from({length:n},(_,i)=>{ const u=us[i]||null;
+  const rows=Array.from({length:n},(_,i)=>{ const u=us[i]||null, md=u?muDetails(u):{};
     return `<tr class="sl ed" data-uid="${u?u.id:""}" data-no="${i+1}"><td class="no">${i+1}</td>
       <td>${inp("rencanaKirim",u&&u.rencanaKirim,"date")}</td>
       <td>${inp("kode",u&&!u.kodeSementara?u.kode:"","text",u&&u.kodeSementara?"belum diisi":"No. lambung")}</td>
+      <td>${inp("vendor",md.vendor,"text","Vendor","vendList")}</td>
+      <td>${inp("merk",md.merk,"text","Merek","merkList")}</td>
       <td>${inp("via",u?(u.via||""):"","text",k.moda||"Via","viaList")}</td>
       <td>${inp("tglKirim",u&&u.tglKirim,"date")}</td>
       <td>${sel("status",u?u.status:"",u?ALL_STATUS.map(x=>x.k):["",...ALL_STATUS.map(x=>x.k)])}</td>
+      <td>${sel("kondisi",md.kondisi||"",["",...MU_KOND])}</td>
       <td>${inp("lokasi",u&&u.lokasi,"text","Posisi","lokList")}</td>
       <td>${inp("tglTiba",u&&u.tglTiba,"date")}</td>
+      <td>${inp("hm",u?String(u.hm??""):"","number","0")}</td>
       <td class="muted small">${u?nextCell(u):""}</td>
-      <td colspan="2">${inp("catatan",u&&u.catatan,"text","Catatan")}</td></tr>`; }).join("");
+      <td colspan="2">${inp("catatan",md.catatan,"text","Catatan")}</td></tr>`; }).join("");
   return `<tr class="slots"><td colspan="9"><div class="slotBox editing">
     <div class="slotHead"><div class="sum"><b>Edit ${esc(k.tipe)}</b></div><span class="edbar"><span class="muted small">Ubah langsung di tabel, lalu Simpan semua. Baris kosong yang diisi akan ditambahkan.</span><button class="btn small" data-act="slotEditCancel" data-id="${k.id}" type="button">Batal</button><button class="btn small primary" data-act="slotEditSave" data-id="${k.id}" type="button">Simpan semua</button></span></div>
-    <datalist id="viaList">${VIA_LIST.map(o=>`<option value="${esc(o)}">`).join("")}</datalist><datalist id="lokList">${lokasiList().map(o=>`<option value="${esc(o)}">`).join("")}</datalist>
-    <div class="slotTbl"><table><thead><tr><th>#</th><th>Rencana kirim</th><th>No. lambung</th><th>Via</th><th>Tgl kirim</th><th>Status</th><th>Posisi</th><th>Tgl tiba</th><th>Kirim berikutnya</th><th colspan="2">Catatan</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <datalist id="viaList">${VIA_LIST.map(o=>`<option value="${esc(o)}">`).join("")}</datalist><datalist id="lokList">${lokasiList().map(o=>`<option value="${esc(o)}">`).join("")}</datalist><datalist id="vendList">${[...new Set(S.units.map(x=>muDetails(x).vendor).filter(Boolean))].map(o=>`<option value="${esc(o)}">`).join("")}</datalist><datalist id="merkList">${[...new Set(S.units.map(x=>muDetails(x).merk).filter(Boolean))].map(o=>`<option value="${esc(o)}">`).join("")}</datalist>
+    <div class="slotTbl"><table><thead><tr><th>#</th><th>Rencana kirim</th><th>No. lambung</th><th>Vendor</th><th>Merek</th><th>Via</th><th>Tgl kirim</th><th>Status</th><th>Kondisi</th><th>Posisi</th><th>Tgl tiba</th><th>HM</th><th>Kirim berikutnya</th><th colspan="2">Catatan</th></tr></thead><tbody>${rows}</tbody></table></div>
   </div></td></tr>`;
 }
 function saveSlotEdit(k){
@@ -2682,16 +2692,19 @@ function saveSlotEdit(k){
     let kode=f.kode.toUpperCase();
     if(kode){ if(seen.has(kode)) err=err||`No. lambung ${kode} diketik dua kali.`; seen.add(kode);
       if(S.units.some(x=>x.kode===kode&&(!u||x.id!==u.id))) err=err||`No. lambung ${kode} sudah terdaftar.`; }
-    if(!u){ const filled=f.rencanaKirim||kode||f.tglKirim||f.status||f.lokasi||f.tglTiba||f.catatan; if(!filled) return;
+    if(!u){ const filled=f.rencanaKirim||kode||f.tglKirim||f.status||f.lokasi||f.tglTiba||f.catatan||f.vendor||f.merk||f.kondisi||f.hm; if(!filled) return;
       const status=f.status||"Persiapan kirim", isArr=!PRE_STATUS.some(x=>x.k===status);
       let sem=false; if(!kode){ kode=tmpKode(k,no,used); sem=true; } used.add(kode);
-      ops.push({col:COL.units,action:"add",id:slotId(no),data:{kode,kodeSementara:sem,projectId:k.projectId,kirimId:k.id,tipe:k.tipe,rencanaKirim:f.rencanaKirim,via:f.via||k.moda||"",tglKirim:f.tglKirim||(status!=="Persiapan kirim"?todayStr():""),status,lokasi:f.lokasi,tglTiba:f.tglTiba||(isArr?todayStr():""),hm:0,catatan:f.catatan,updatedAt:nowIso()}});
+      ops.push({col:COL.units,action:"add",id:slotId(no),data:{kode,kodeSementara:sem,projectId:k.projectId,kirimId:k.id,tipe:k.tipe,rencanaKirim:f.rencanaKirim,via:f.via||k.moda||"",tglKirim:f.tglKirim||(status!=="Persiapan kirim"?todayStr():""),status,lokasi:f.lokasi,tglTiba:f.tglTiba||(isArr?todayStr():""),hm:f.hm===""?0:Number(f.hm),...muPrepareUnitData({catatan:f.catatan,vendor:f.vendor,merk:f.merk,kondisi:f.kondisi}),updatedAt:nowIso()}});
       return; }
-    const d={rencanaKirim:f.rencanaKirim,via:f.via,tglKirim:f.tglKirim,status:f.status,lokasi:f.lokasi,tglTiba:f.tglTiba,catatan:f.catatan};
+    const det=muDetails(u);
+    const d={rencanaKirim:f.rencanaKirim,via:f.via,tglKirim:f.tglKirim,status:f.status,lokasi:f.lokasi,tglTiba:f.tglTiba,hm:f.hm===""?0:Number(f.hm),
+      ...muPrepareUnitData({...det,catatan:f.catatan,vendor:f.vendor,merk:f.merk,kondisi:f.kondisi})};
     if(kode && kode!==u.kode){ d.kode=kode; d.kodeSementara=false; }
     const isArr=!PRE_STATUS.some(x=>x.k===d.status); if(isArr&&!d.tglTiba) d.tglTiba=todayStr();
     if(d.status!=="Persiapan kirim"&&!d.tglKirim) d.tglKirim=todayStr();
-    const changed=Object.keys(d).some(key=>String(d[key]??"")!==String(u[key]??""));
+    const changed=["rencanaKirim","via","tglKirim","status","lokasi","tglTiba","catatan","kode"].some(key=>key in d&&String(d[key]??"")!==String(u[key]??""))
+      ||Number(d.hm||0)!==Number(u.hm||0)||["vendor","merk","kondisi"].some(key=>String(d[key]||"")!==String(det[key]||""));
     if(changed){ d.updatedAt=nowIso(); ops.push({col:COL.units,action:"update",id:u.id,data:d}); }
   });
   if(err){ toast(err); return; }
@@ -2728,22 +2741,27 @@ function slotRow(k){
   const cnt=ALL_STATUS.map(x=>({k:x.k,n:us.filter(u=>u.status===x.k).length})).filter(o=>o.n);
   if(SLOT_EDIT.has(k.id)) return slotEditRows(k,us,n);
   const rows=Array.from({length:n},(_,i)=>{ const u=us[i], over=i>=r;
-    if(!u) return `<tr class="sl empty"><td class="no">${i+1}</td><td colspan="9" class="muted">Belum dijadwalkan / belum dikirim</td><td class="act">${canWrite?`<button class="btn small" data-act="slotNew" data-id="${k.id}" data-no="${i+1}" type="button">Isi</button>`:""}</td></tr>`;
+    if(!u) return `<tr class="sl sl-empty"><td class="no">${i+1}</td><td colspan="13" class="muted">Belum dijadwalkan / belum dikirim</td><td class="act">${canWrite?`<button class="btn small" data-act="slotNew" data-id="${k.id}" data-no="${i+1}" type="button">Isi</button>`:""}</td></tr>`;
+    const md=muDetails(u);
     return `<tr class="sl${over?" over":""}"><td class="no">${i+1}</td>
       <td>${u.rencanaKirim?`<b>${fmtDate(u.rencanaKirim)}</b>`:'<span class="muted">—</span>'}</td>
       <td>${u.kodeSementara?`<span class="tmp">belum diisi</span>`:`<span class="plate">${esc(u.kode)}</span>`}</td>
+      <td>${muVendorTag(md.vendor)}</td>
+      <td>${muBrandTag(md.merk)}</td>
       <td>${esc(u.via||k.moda||"—")}</td>
       <td>${u.tglKirim?fmtDate(u.tglKirim):'<span class="muted">—</span>'}</td>
       <td>${chip(ALL_STATUS,u.status)}</td>
+      <td>${md.kondisi?`<span class="mu-cond ${muKondCls(md.kondisi)}">${esc(md.kondisi)}</span>`:'<span class="muted">—</span>'}</td>
       <td>${esc(u.lokasi||"—")}</td>
       <td>${arrived(u)&&u.tglTiba?fmtDate(u.tglTiba):'<span class="muted">—</span>'}</td>
+      <td class="n">${Number(u.hm||0).toLocaleString("id-ID")}</td>
       <td class="nx">${nextCell(u)}</td>
-      <td class="cat">${esc(u.catatan||"")}</td>
+      <td class="cat">${esc(md.catatan||"")}${md.model||md.tahun||md.serial?`<span class="sub">${esc([md.model,md.tahun,md.serial?"SN "+md.serial:""].filter(Boolean).join(" · "))}</span>`:""}</td>
       <td class="act">${canWrite?`${arrived(u)&&!nextMobOf(u)?`<button class="btn small" data-act="planUnit" data-id="${u.id}" type="button">Kirim lagi</button> `:""}<button class="btn small primary" data-act="slotEdit" data-id="${u.id}" type="button">Update</button>`:""}${buktiBtn(u)}</td></tr>`; }).join("");
   return `<tr class="slots"><td colspan="9"><div class="slotBox">
     <div class="slotHead"><div class="sum">${cnt.map(o=>`<span><i style="background:${statusOf(ALL_STATUS,o.k).col}"></i>${o.k} <b>${o.n}</b></span>`).join("")}${n-us.length>0?`<span><i style="background:#D9D6E8"></i>Belum dijadwalkan <b>${n-us.length}</b></span>`:""}</div>
       ${canWrite?(SLOT_EDIT.has(k.id)?`<span class="edbar"><span class="muted small">Mode edit: ubah langsung di tabel, lalu Simpan.</span><button class="btn small" data-act="slotEditCancel" data-id="${k.id}" type="button">Batal</button><button class="btn small primary" data-act="slotEditSave" data-id="${k.id}" type="button">Simpan semua</button></span>`:`<span class="edbar">${SRC==="sheet"?`<button class="btn small bukti" data-act="dokUp" data-id="${k.id}" type="button"><svg class="i"><use href="#i-cam"/></svg>Upload bukti</button>`:""}<button class="btn small" data-act="slotBulk" data-id="${k.id}" type="button">Jadwalkan beberapa unit</button><button class="btn small edit" data-act="slotEditOn" data-id="${k.id}" type="button"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit tabel</button></span>`):""}</div>
-    <div class="slotTbl"><table><thead><tr><th>#</th><th>Rencana kirim</th><th>No. lambung</th><th>Via</th><th>Tgl kirim</th><th>Status</th><th>Posisi</th><th>Tgl tiba</th><th>Kirim berikutnya</th><th>Catatan</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="slotTbl"><table><thead><tr><th>#</th><th>Rencana kirim</th><th>No. lambung</th><th>Vendor</th><th>Merek</th><th>Via</th><th>Tgl kirim</th><th>Status</th><th>Kondisi</th><th>Posisi</th><th>Tgl tiba</th><th class="n">HM</th><th>Kirim berikutnya</th><th>Catatan</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
   </div></td></tr>`;
 }
 function tmpKode(k,no,taken){ const base=String(k.tipe).toUpperCase().replace(/[^A-Z0-9]+/g,"").slice(0,10)||"UNIT"; let i=no, c;
@@ -2752,7 +2770,7 @@ function formSlot(k,u,no){
   openForm({
     title:u?`Update unit #${no}${u.kodeSementara?"":" · "+u.kode}`:`Isi unit #${no}`,
     desc:`${projKode(k.projectId)} · ${k.tipe}. Update setiap kali unit ini bergerak: persiapan kirim → dalam perjalanan → tiba.`,
-    values:u?{...u,kode:u.kodeSementara?"":u.kode,via:u.via||k.moda||""}:{status:"Persiapan kirim",lokasi:k.asal||"",via:k.moda||"",rencanaKirim:k.eta||"",hm:0},
+    values:u?{...u,...muDetails(u),kode:u.kodeSementara?"":u.kode,via:u.via||k.moda||""}:{status:"Persiapan kirim",lokasi:k.asal||"",via:k.moda||"",rencanaKirim:k.eta||"",hm:0,kondisi:"Belum diverifikasi"},
     fields:[
       {key:"rencanaKirim",label:"Rencana kirim (tanggal)",type:"date"},
       {key:"kode",label:"Nomor lambung",ph:u&&u.kodeSementara?`Sementara: ${u.kode}`:"Contoh: DT375-01",hint:"Boleh dikosongkan dulu kalau belum tahu."},
@@ -2762,6 +2780,8 @@ function formSlot(k,u,no){
       {key:"lokasi",label:"Posisi sekarang",list:lokasiList(),ph:"Pelabuhan Banjarmasin / KM 45"},
       {key:"tglTiba",label:"Tanggal tiba",type:"date",hint:"Kosong = otomatis hari ini saat status Tiba."},
       {key:"hm",label:"Hour meter (HM)",type:"number",min:0,step:"0.1"},
+      muSection("Identitas unit","Vendor, merek, model, tahun, serial dan kondisi — sama seperti di Populasi Unit"),
+      ...muDetailInputs().filter(x=>x.key!=="foto"),
       {key:"catatan",label:"Catatan",type:"textarea",full:true,ph:"Nama kapal/trailer, sopir, kondisi unit, kendala di jalan…"}
     ],
     ok:u?"Simpan update":"Simpan",
@@ -2774,8 +2794,8 @@ function formSlot(k,u,no){
       if(isArr && !d.tglTiba) d.tglTiba=todayStr();
       if(d.status!=="Persiapan kirim" && !d.tglKirim) d.tglKirim=isArr?(d.tglTiba||todayStr()):todayStr();
       if(d.hm==="") d.hm=0;
-      const rec={...d,kode,kodeSementara:sem,projectId:k.projectId,kirimId:k.id,tipe:k.tipe,updatedAt:nowIso()};
-      if(u && /^Kode sementara/.test(rec.catatan||"") && !sem) rec.catatan="";
+      if(u && /^Kode sementara/.test(d.catatan||"") && !sem) d.catatan="";
+      const rec=muPrepareUnitData({...d,foto:u?muDetails(u).foto||"":"",kode,kodeSementara:sem,projectId:k.projectId,kirimId:k.id,tipe:k.tipe,updatedAt:nowIso()});
       if(u) store.update(COL.units,u.id,rec).then(()=>toast(`Unit #${no} diperbarui: ${d.status}.`)).catch(()=>{});
       else store.add(COL.units,{...rec,id:slotId(no)}).then(()=>toast(`Unit #${no} ${k.tipe} tersimpan.`)).catch(()=>{});
     }
