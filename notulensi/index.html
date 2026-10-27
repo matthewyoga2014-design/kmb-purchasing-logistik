@@ -1186,14 +1186,13 @@ const versionsOf=sid=>S.versions.filter(v=>v.seriesId===sid).sort((a,b)=>(a.no||
 const latestV=sid=>{const vs=versionsOf(sid);return vs[vs.length-1]||null;};
 const prevOf=v=>{const vs=versionsOf(v.seriesId).filter(x=>(x.no||0)<(v.no||0));return vs[vs.length-1]||null;};
 function seriesRows(sid,upto,maxNo){
-  // Isi = meeting terakhir (sesuai upload/pembaruan) + tindak lanjut yang sudah CLOSE di meeting sebelumnya.
+  // Isi = persis baris meeting terakhir (sama dengan tabel meeting, file upload, dan file unduhan).
   const m=new Map();let current=null;
   for(const v of versionsOf(sid)){
     if(upto&&(v.date||"")>upto)continue;
     if(maxNo&&(v.no||0)>maxNo)continue;
     current=v;
-    const n=new Map();(v.rows||[]).forEach(r=>n.set(r.k,{...r,_v:v}));
-    m.forEach((r,k)=>{if(!n.has(k)&&r.st==="close")n.set(k,r);});m.clear();n.forEach((r,k)=>m.set(k,r));
+    m.clear();(v.rows||[]).forEach(r=>m.set(r.k,{...r,_v:v}));
   }
   const en=sById(sid)?.ended,out=[...m.values()].map(r=>({...r,_v:current||r._v}));
   return en&&!maxNo&&(!upto||(en.date||"")<=upto)?out.map(r=>r.st==="close"?r:{...r,st:"close",auto:r.st||"open"}):out;
@@ -1592,7 +1591,7 @@ const blankRow=(sec,bab)=>({k:uid(),...(bab?{bab}:{}),sec:sec||"",topik:"",bahas
 function openEditor(mode,sid,vid,folderId){
   const s=sid?sById(sid):null;let base=null;
   if(mode==="next")base=latestV(sid);if(mode==="fix")base=vById(vid)||latestV(sid);
-  const rows=base?(base.rows||[]).filter(r=>mode!=="next"||r.st!=="close").map(r=>({...r})):[blankRow("")];
+  const rows=base?(base.rows||[]).filter(r=>mode!=="next"||r.st!=="close"||hasPct(s)).map(r=>({...r})):[blankRow("")];
   if(mode==="next"&&base&&!rows.length)rows.push(blankRow(""));
   const meta=base?{date:mode==="next"?iso(today()):base.date||"",time:mode==="next"?"":base.time||"",place:base.place||"",lead:base.lead||"",people:base.people||"",agenda:base.agenda||"",next:mode==="next"?"":base.next||"",purpose:base.purpose||""}
     :{date:iso(today()),time:"",place:"",lead:"",people:"",agenda:"",next:"",purpose:""};
@@ -2102,6 +2101,7 @@ const SECRE=/^([A-Z]|[IVX]{1,4})[\.\)]\s+\S/;
 function buildDocx(v,title,photos,opt={}){const FM=!!opt.form;
   const FILL={close:"D9EFE2",continue:"FFF2CC",open:""},NEWF="DCE9F7",UPD="2F6FB5";
   const cols=v.cols||[],d=FM?null:vDiff(v),body=[];const W=15398;
+  const SV=sById(v.seriesId),KS=!FM&&SV&&hasPct(SV)&&v.seriesId?kesiapan(v.seriesId,v.no):null;
   body.push(wP(wRun("NOTULENSI MEETING",{b:true,sz:28}),{al:"center",af:40}));
   body.push(wP(wRun(title,{b:true,sz:24}),{al:"center",af:40}));
   body.push(wP(wRun(FM?`FORM UPDATE · Meeting ke-${v.no} (lanjutan dari Meeting ke-${v.no-1}, ${fmtD(opt.prevDate)})`:`Meeting ke-${v.no}${d?` · update dari Meeting ke-${d.prev.no} (${fmtD(d.prev.date)})`:""}`,{sz:18,color:"5B6B66"}),{al:"center",af:FM?60:160}));
@@ -2111,14 +2111,17 @@ function buildDocx(v,title,photos,opt={}){const FM=!!opt.form;
   body.push(wTbl([wTr(hc("Tanggal",v.date?fmtD(v.date):"")+hc2("Agenda",v.agenda)),wTr(hc("Jam",v.time)+hc2("Next Meeting",v.next?fmtD(v.next):"")),wTr(hc("Peserta",v.people)+hc2("Lokasi",v.place)),wTr(hc("Pimpinan Rapat",v.lead)+hc2("Meeting ke-",String(v.no))),...((opt.jenis??sById(v.seriesId)?.jenis)?[wTr(hc("Jenis Notulensi",opt.jenis??sById(v.seriesId)?.jenis)+hc2("",FM?"":" "))]:[])],hw));
   let secN=1;
   if(v.purpose){body.push(wP(wRun(`${secN++}. Tujuan Meeting`,{b:true,sz:20}),{bf:200,af:60,keep:true}));body.push(wP(wRun(v.purpose)));}
+  if(KS){body.push(wP(wRun(`${secN++}. Kesiapan Project (posisi Meeting ke-${v.no})`,{b:true,sz:20}),{bf:200,af:60,keep:true}));
+    const kw=[7000,2800,2800,2798],kh=(t,i)=>wTc(wP(wRun(t,{b:true,color:"FFFFFF"}),{al:i?"center":"left"}),{w:kw[i],fill:"5B21B6"}),kc=(t,i,b)=>wTc(wP(wRun(t,{b:!!b}),{al:i?"center":"left"}),{w:kw[i],fill:b?"EDE7FD":""});
+    body.push(wTbl([wTr(["Bab","Nilai Bab","Bobot","Nilai × Bobot"].map(kh).join(""),true),...KS.babs.map(b=>wTr([b.title,fmtPct(b.pct),fmtPct(b.w),fmtPct(b.val)].map((t,i)=>kc(t,i)).join(""))),wTr(["Total kesiapan","","",fmtPct(KS.pct)].map((t,i)=>kc(t,i,1)).join(""))],kw));}
   body.push(wP(wRun(`${secN++}. Pokok Pembahasan, Kesepakatan dan Tindak Lanjut`,{b:true,sz:20}),{bf:200,af:60,keep:true}));
   if(d){const s=d.s,parts=[];if(s.closed)parts.push(s.closed+" menjadi Close");if(s.status)parts.push(s.status+" status berubah");if(s.added)parts.push(s.added+" tindak lanjut baru");if(s.due)parts.push(s.due+" due date diubah");if(s.content)parts.push(s.content+" isi diperbarui");if(s.removed)parts.push(s.removed+" dihapus");
     body.push(wP(wRun(`Perubahan dibanding Meeting ke-${d.prev.no}: `,{b:true,color:UPD})+wRun(parts.join(", ")||"tidak ada perubahan",{color:UPD})));
     body.push(wP(wRun("Keterangan warna: baris hijau = Close, baris kuning = Continue, sel biru = tindak lanjut baru, teks dicoret = nilai sebelumnya.",{i:true,sz:16,color:"5B6B66"}),{af:100}));}
   // column widths
-  const base=[520,2100,3900,3900,1700,1450,1100];const nExtra=cols.length;
+  const base=[520,2100,3900,3900,1700,1450,1100,...(KS?[900]:[])];const nExtra=cols.length;
   let widths=[...base,...Array(nExtra).fill(1600),...(FM?[900]:[])];{const tot=widths.reduce((a,b)=>a+b,0);widths=widths.map(w=>Math.floor(w*W/tot));}
-  const hdr=["No","Topik","Hasil Pembahasan","Tindak Lanjut","PIC","Due Date","Status",...cols.map(c=>c.name),...(FM?["Kode"]:[])];
+  const hdr=["No","Topik","Hasil Pembahasan","Tindak Lanjut","PIC","Due Date","Status",...(KS?["Hasil"]:[]),...cols.map(c=>c.name),...(FM?["Kode"]:[])];const XC=7+(KS?1:0);
   const hdrRow=wTr(hdr.map((h,i)=>wTc(wP(wRun(h,{b:true,color:"FFFFFF"}),{al:"center"}),{w:widths[i],fill:"1D5C45",va:"center"})).join(""),true);
   const chg=(r,f)=>d&&d.rows[r.k]&&d.rows[r.k].ch&&d.rows[r.k].ch[f]!==undefined?d.rows[r.k].ch[f]:undefined;
   const val=(r,f,txt)=>{const o=chg(r,f);return wP((o!==undefined?wRun((f==="st"?ST[o]:o)||"(kosong)",{strike:true,color:UPD,sz:16})+wRun("\n"):"")+wRun(txt||""));};
@@ -2132,7 +2135,7 @@ function buildDocx(v,title,photos,opt={}){const FM=!!opt.form;
       t.rows.forEach((r,i)=>{const st=r.st||"open",f=FILL[st],isNew=d&&d.rows[r.k]&&d.rows[r.k].isNew;const vm=t.rows.length>1?(i?"cont":"restart"):"";
         const cells=[wTc(i?"":wP(wRun(String(no),{b:true}),{al:"center"}),{w:widths[0],vm,fill:gf}),wTc(i?"":val(r,"topik",t.topik),{w:widths[1],vm,fill:gf}),wTc(WM.cov[i].bahas?"":val(r,"bahas",r.bahas),{w:widths[2],vm:vmf(i,"bahas"),fill:f}),
           wTc(WM.cov[i].tl?"":val(r,"tl",r.tl),{w:widths[3],vm:vmf(i,"tl"),fill:isNew?NEWF:f}),wTc(WM.cov[i].pic?"":val(r,"pic",r.pic),{w:widths[4],vm:vmf(i,"pic"),fill:f}),wTc(WM.cov[i].due?"":val(r,"due",dueLabel(r)==="—"?"":dueLabel(r)),{w:widths[5],vm:vmf(i,"due"),fill:f}),
-          wTc(WM.cov[i].st?"":val(r,"st",ST[st]),{w:widths[6],vm:vmf(i,"st"),fill:f}),...cols.map((c,ci)=>wTc(val(r,"x:"+c.id,(r.x||{})[c.id]),{w:widths[7+ci],fill:f})),...(FM?[wTc(wP(wRun(r.k,{sz:14,color:"8A9A94"})),{w:widths[7+cols.length]})]:[])];
+          wTc(WM.cov[i].st?"":val(r,"st",ST[st]),{w:widths[6],vm:vmf(i,"st"),fill:f}),...(KS?[wTc(wP(wRun(fmtPct(rowProg(v.seriesId,r).pct),{b:true,color:"5B21B6"}),{al:"center"}),{w:widths[7],fill:f})]:[]),...cols.map((c,ci)=>wTc(val(r,"x:"+c.id,(r.x||{})[c.id]),{w:widths[XC+ci],fill:f})),...(FM?[wTc(wP(wRun(r.k,{sz:14,color:"8A9A94"})),{w:widths[XC+cols.length]})]:[])];
         rows.push(wTr(cells.join("")));});});
     body.push(wTbl(rows,widths));
   });
@@ -2570,7 +2573,7 @@ async function exportXlsx(v){
       ["No","Bab","Topik","Hasil Pembahasan","Tindak Lanjut","PIC","Due Date","Status",...(hasPct(s)?["Sumber Data","","Hasil (%)","Nilai Sub Bab","Nilai Bab"]:[]),...(v.cols||[]).map(c=>c.name),"Perubahan"]];const lbl=f=>f.startsWith("x:")?((v.cols||[]).find(c=>c.id===f.slice(2))?.name||"Kolom"):FIELDS.find(x=>x[0]===f)[1];
     let no=0,lt=null,lb="";const sdRows=[];(v.rows||[]).forEach(r=>{if(r.bab&&r.bab!==lb){lb=r.bab;aoa.push([r.bab]);}const same=lt&&lt.sec===r.sec&&norm(lt.topik)===norm(r.topik)&&r.topik;if(!same)no++;lt=r;const dr=d&&d.rows[r.k];
       const chg=dr?(dr.isNew?"Baru":Object.entries(dr.ch).map(([f,o])=>`${lbl(f)}: ${f==="st"?ST[o]:o} → ${f==="due"?dueLabel(r):f==="st"?ST[r.st]:xv(r,f)}`).join("; ")):"";
-      aoa.push([same?"":no,r.sec||"",same?"":r.topik,same?"":r.bahas,r.tl,r.pic,dueLabel(r),ST[r.st||"open"],...(hasPct(s)?["","","","",""]:[]),...(v.cols||[]).map(c=>(r.x||{})[c.id]||""),chg]);if(hasPct(s))sdRows.push({ri:aoa.length-1,r,P:rowProg(v.seriesId,r)});});
+      aoa.push([same?"":no,r.sec||"",same?"":r.topik,r.bahas,r.tl,r.pic,dueLabel(r),ST[r.st||"open"],...(hasPct(s)?["","","","",""]:[]),...(v.cols||[]).map(c=>(r.x||{})[c.id]||""),chg]);if(hasPct(s))sdRows.push({ri:aoa.length-1,r,P:rowProg(v.seriesId,r)});});
     const ws=X.utils.aoa_to_sheet(aoa);ws["!cols"]=[{wch:5},{wch:26},{wch:24},{wch:46},{wch:46},{wch:18},{wch:14},{wch:11},{wch:30},{wch:40}];
     const wb=X.utils.book_new();X.utils.book_append_sheet(wb,ws,"Meeting "+v.no);if(hasPct(s)){const hi=aoa.findIndex(r=>r[0]==="No"&&r[1]==="Bab"),o={first:hi+2,last:aoa.length,m:14+(v.cols||[]).length,totLabel:ksTot(s).toUpperCase()};xlCalc(X,ws,o);addSdSheets(X,wb,ws,sdRows,8,"Meeting "+v.no,o);}
     if(d&&d.removed.length){const rs=X.utils.aoa_to_sheet([["Dihapus di Meeting ke-"+v.no],["Item","Topik","PIC","Status terakhir"],...d.removed.map(r=>[r.tl,r.topik,r.pic,ST[r.st||"open"]])]);X.utils.book_append_sheet(wb,rs,"Dihapus");}
@@ -2896,8 +2899,8 @@ function fixFromFile(sid,vid){if(!S.canEdit)return toast("Mode lihat: hanya edit
    Hasil tindak lanjut: sheet/rincian sumber data (Aktual ÷ Plan, maks. 100%), atau status (Close 100%, Open/Continue 0%). */
 /* saat melihat meeting lama di halaman notulensi, kesiapan dihitung pada posisi meeting itu (Meeting ke-1 semua Open = 0%) */
 const ksNo=sid=>S.view==="series"&&S.ksAt&&S.ksAt.sid===sid?S.ksAt.no:null;
-function kesiapan(sid){
-  const rows=seriesRows(sid,null,ksNo(sid)),babs=new Map();let legacy=0;
+function kesiapan(sid,atNo){
+  const rows=seriesRows(sid,null,atNo||ksNo(sid)),babs=new Map();let legacy=0;
   const outline=S.versions.filter(v=>v.seriesId===sid).sort((a,b)=>(a.no||0)-(b.no||0)).flatMap(v=>v.outline||[]);
   const mode=rows.some(r=>subCode(r.sec))||outline.some(o=>subCode(o.sub))?"bab":"topik";
   const getBab=(key,no,title)=>{if(!babs.has(key))babs.set(key,{key,no,title:"",subs:new Map()});const b=babs.get(key);if(title&&!b.title)b.title=title;return b;};
@@ -3149,18 +3152,20 @@ async function tplBook(o){
   const M=o.meta||{};const metaAt={3:o.title||"",4:M.tgl||"",5:M.jam||"",6:M.agenda||"",7:M.lokasi||"",8:M.lead||"",9:M.people||"",10:M.next||""};
   Object.entries(metaAt).forEach(([r,v])=>{x=x.replace(`<c r="B${r}" t="inlineStr"></c>`,`<c r="B${r}"/>`+cell("C"+r,String(v)));});
   x=x.replace("@@J@@",xe(M.jenis||""));
-  const merges=[],N0=13,sd=[];let bi=0,bStart=0,tStart=0,dStart=0;
+  const merges=[],N0=13,sd=[];let bi=0,ti=0,bStart=0,tStart=0,dStart=0;
+  // gabungan Hasil Pembahasan mengikuti tampilan web (covMap per topik)
+  const bahasCov=new Array(rows.length).fill(false);{let a=0;while(a<rows.length){let b=a;while(b+1<rows.length&&sameTopic(rows[a],rows[b+1]))b++;const C=covMap(rows.slice(a,b+1));for(let j=a;j<=b;j++)bahasCov[j]=!!C.cov[j-a].bahas;a=b+1;}}
   const key=r=>norm(r.sec||""),tk=r=>norm(r.topik||""),dk=r=>norm(r.bahas||"");
   const flush=(a,b,col)=>{if(b>a)merges.push(`${col}${N0+a}:${col}${N0+b}`);};
-  rows.forEach((r,i)=>{const p=rows[i-1],nb=!p||key(p)!==key(r),nt=nb||tk(p)!==tk(r)||!r.topik,nd=nt||dk(p)!==dk(r)||!r.bahas||String(r.bahas).length<30;
-    if(i&&nb){flush(bStart,i-1,"A");flush(bStart,i-1,"B");}if(i&&nt)flush(tStart,i-1,"C");if(i&&nd)flush(dStart,i-1,"D");
-    if(nb){bi++;bStart=i;}if(nt)tStart=i;if(nd)dStart=i;
+  rows.forEach((r,i)=>{const p=rows[i-1],nb=!p||key(p)!==key(r),nt=nb||tk(p)!==tk(r)||!r.topik,nd=nt||!bahasCov[i];
+    if(i&&nb)flush(bStart,i-1,"B");if(i&&nt){flush(tStart,i-1,"A");flush(tStart,i-1,"C");}if(i&&nd)flush(dStart,i-1,"D");
+    if(nb){bi++;bStart=i;}if(nt){ti++;tStart=i;}if(nd)dStart=i;
     let code="";if(o.sid){const P=rowProg(o.sid,r);if(!(P.m==="status"&&!(P.src&&P.src.name))&&sd.length<10){code="SD "+(sd.length+1);sd.push({code,r,P});}}
-    const n=N0+i,cs=[cell("A"+n,nb?bi:"",S_BAB),cell("B"+n,nb?(r.sec||""):"",S_BAB),cell("C"+n,nt?(r.topik||""):"",S_CTR),cell("D"+n,nd?(r.bahas||""):"",S_TXT),
+    const n=N0+i,cs=[cell("A"+n,nt?ti:"",S_BAB),cell("B"+n,nb?(r.sec||""):"",S_BAB),cell("C"+n,nt?(r.topik||""):"",S_CTR),cell("D"+n,nd?(mfv(r,"bahas")||r.bahas||""):"",S_TXT),
       cell("E"+n,r.tl||"",S_TXT),cell("F"+n,r.pic||"",S_CTR),cell("G"+n,r.due?fmtD(r.due):(r.dueText||""),S_CTR),cell("H"+n,ST[r.st||"open"]||"Open",S_CTR),cell("I"+n,code,S_CTR)];
     x=x.replace(new RegExp(`<row r="${n}"([^>]*)>([\\s\\S]*?)</row>`),(m,a,body)=>{body=body.replace(`<c r="J${n}" s="6">`,`<c r="J${n}" s="${S_J}">`).replace(`<c r="K${n}" s="11">`,`<c r="K${n}" s="${S_K}">`).replace(`<c r="L${n}" s="12">`,`<c r="L${n}" s="${S_L}">`).replace(`<c r="M${n}" s="13">`,`<c r="M${n}" s="${S_M}">`);
       return `<row r="${n}"${a}>${cs.join("")}${body}${o.keys&&r.k?cell("P"+n,r.k):""}</row>`;});});
-  if(rows.length){const z=rows.length-1;flush(bStart,z,"A");flush(bStart,z,"B");flush(tStart,z,"C");flush(dStart,z,"D");}
+  if(rows.length){const z=rows.length-1;flush(bStart,z,"B");flush(tStart,z,"A");flush(tStart,z,"C");flush(dStart,z,"D");}
   if(o.keys){x=x.replace('<c r="M12" s="10" t="inlineStr"><is><t>Nilai Bab</t></is></c></row>','<c r="M12" s="10" t="inlineStr"><is><t>Nilai Bab</t></is></c><c r="P12" t="inlineStr"><is><t>Kode</t></is></c></row>')
     .replace("</cols>",'<col hidden="1" width="12" customWidth="1" min="16" max="16"/></cols>').replace('<dimension ref="A1:O212"/>','<dimension ref="A1:P212"/>');}
   x=x.replace(/<mergeCells count="\d+">([\s\S]*?)<\/mergeCells>/,(m,a)=>`<mergeCells count="${1+merges.length}">${a}${merges.map(r=>`<mergeCell ref="${r}"/>`).join("")}</mergeCells>`);
