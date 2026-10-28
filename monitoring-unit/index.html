@@ -481,7 +481,7 @@ svg.i.up{transform:rotate(180deg)}
   .sync,.topbar,.hero,.crumbs,.hero-actions,nav.tabs,.tabs-wrap,.pfilter,.toast,dialog,.banner,.toolbar,
   td.act,.irow .acts,.dhead .btn,.tcard-head .btn,.card-head .btn,.sec-head .actions,.linkish{display:none!important}
   main.pad{padding:0!important}
-  .wrap{max-width:1180px!important;width:1180px!important}
+  .wrap{max-width:none!important;width:auto!important}
   .print-head{display:flex!important;justify-content:space-between;align-items:baseline;gap:16px;border-bottom:2px solid #6D28D9;padding:0 0 10px;margin:0 0 16px}
   .print-head b{font-size:22px;color:#1C1A33}.print-head span{font-size:12px;color:#4B4868;text-align:right}
   .kpi,.tcard,.card{transform:none!important}
@@ -740,7 +740,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
   .slotTbl{overflow:visible!important}
   .slotTbl table,.slotBox.editing .slotTbl table{min-width:0!important;width:100%!important}
   .slotTbl th,.slotTbl td{padding:4px 5px!important;font-size:9.5px!important}
-  .slotTbl td.cat{max-width:160px!important}
+  .slotTbl td.cat{max-width:none!important;min-width:140px}
   .slotTbl .mu-vendor-tag,.slotTbl .mu-brand-tag,.slotTbl .chip,.slotTbl .mu-cond,.slotTbl .plate{white-space:nowrap!important;font-size:8.5px!important;padding:1px 5px!important}
   .slotHead .btn,.slotHead .edbar{display:none!important}
 }
@@ -796,14 +796,18 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .sub.jalan{display:block;color:#C2410C;font-size:11px;font-weight:600}
 @media print{#kpis{grid-template-columns:repeat(5,minmax(0,1fr))!important}}
 /* tingkat perkecilan mengikuti lebar kertas (lebar desain 1180px) */
-@media print and (max-width:560px){ .wrap{zoom:.44} }
-@media print and (min-width:561px) and (max-width:680px){ .wrap{zoom:.54} }
-@media print and (min-width:681px) and (max-width:760px){ .wrap{zoom:.61} }
-@media print and (min-width:761px) and (max-width:860px){ .wrap{zoom:.69} }
-@media print and (min-width:861px) and (max-width:980px){ .wrap{zoom:.78} }
-@media print and (min-width:981px) and (max-width:1080px){ .wrap{zoom:.87} }
-@media print and (min-width:1081px) and (max-width:1180px){ .wrap{zoom:.95} }
-@media print and (min-width:1181px){ .wrap{zoom:1} }
+/* Print mengikuti lebar kertas & pilihan Skala (%) di jendela Print:
+   skala lebih kecil = tampilan lebih kecil, seperti memperkecil (zoom out) web.
+   Susunan desktop tetap dipakai walau kertas sempit. */
+@media print{
+  /* ukuran dasar di kertas (Skala 100%) ≈ tampilan desktop; Skala di jendela Print tetap memperkecil/memperbesar */
+  .wrap{zoom:.72!important}
+  main .wrap{padding:0!important}
+  #kpis{grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:10px!important}
+  .row2{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)!important}
+  .tbl-wrap table{min-width:0!important}
+  .tbl-wrap{overflow:visible!important}
+}
 
 
 /* Populasi Unit – mengikuti komposisi kartu + tabel ringkas pada portal MPP */
