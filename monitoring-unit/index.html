@@ -744,7 +744,14 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .slotTbl table.slotFixed td.act{white-space:normal;text-align:right}
 .slotTbl table.slotFixed .chip{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-sizing:border-box}
 .slotTbl table.slotFixed td.act .btn{margin:2px 0 2px 3px}
-@media print{.slotTbl table.slotFixed{min-width:0!important;table-layout:fixed!important}}
+@media print{
+  .slotTbl table.slotFixed{min-width:0!important;table-layout:fixed!important}
+  /* kolom tombol (Aksi) tidak dicetak: buang juga kepala & lebarnya supaya baris penuh sampai kanan */
+  .slotTbl table.slotFixed colgroup col:last-child{width:0!important}
+  .slotTbl table.slotFixed thead th:last-child{display:none!important}
+  table:has(> #tKirim) > thead > tr > th:last-child{display:none!important}
+  #tKirim tr.grp .actions,#tKirim .slotTg{display:none!important}
+}
 @media print{
   .slotTbl{overflow:visible!important}
   .slotTbl table,.slotBox.editing .slotTbl table{min-width:0!important;width:100%!important}
