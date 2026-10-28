@@ -1,0 +1,951 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>Monitoring Rekrutmen</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#6D28D9">
+<meta name="robots" content="noindex,nofollow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2716%27 fill=%27%237C3AED%27/%3E%3Ctext x=%2732%27 y=%2744%27 font-family=%27Arial%27 font-weight=%27700%27 font-size=%2734%27 fill=%27white%27 text-anchor=%27middle%27%3ER%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>
+/* Gaya mengikuti web Monitoring Unit: topbar putih, tab berisi angka, kartu KPI gradasi ungu/biru/hijau/merah/oranye */
+:root{
+  --bg:#F5F4FB; --surface:#FFFFFF; --tile:#F4F3FA; --line:#E8E6F2; --line-2:#DCD9EA;
+  --ink:#1C1A33; --muted:#6B6985; --accent:#6D28D9; --accent-soft:#EFE8FD;
+  --g-purple:linear-gradient(120deg,#7C3AED,#A78BFA); --g-blue:linear-gradient(120deg,#2563EB,#60A5FA);
+  --g-green:linear-gradient(120deg,#16A34A,#4ADE80); --g-red:linear-gradient(120deg,#E11D48,#F7949C); --g-orange:linear-gradient(120deg,#F97316,#FDBA74);
+  --ok:#15803D; --ok-soft:#DCF5E5; --warn:#B45309; --warn-soft:#FDEFD7; --bad:#E11D48; --bad-soft:#FDE2E7;
+  --shadow:0 1px 2px rgba(40,30,90,.05),0 8px 24px -12px rgba(60,40,140,.18);
+  --f:"Plus Jakarta Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --r:14px; --r-sm:10px; color-scheme:light;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{background:var(--bg);color:var(--ink);font-family:var(--f);font-size:14px;line-height:1.5;margin:0;padding-bottom:48px}
+h1,h2,h3{margin:0;line-height:1.15;letter-spacing:-.02em;text-wrap:balance}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.small{font-size:12px}
+.pad{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1240px;margin:0 auto}
+svg.i{width:18px;height:18px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+
+/* topbar */
+.topbar{background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:30}
+.topbar .wrap{display:flex;align-items:center;gap:12px;padding-block:10px;flex-wrap:wrap}
+.back{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);border-radius:10px;padding:8px 12px;text-decoration:none;color:var(--ink);font-weight:600;font-size:13px;background:#fff}
+.back:hover{border-color:var(--accent);color:var(--accent)}
+.logo{display:flex;align-items:center;gap:10px;min-width:0}
+.logo-mark{width:40px;height:40px;border-radius:12px;background:var(--g-purple);color:#fff;display:grid;place-items:center;font-weight:800;font-size:19px;box-shadow:0 4px 12px -4px rgba(124,58,237,.6);flex:none}
+.logo b{display:block;font-size:17px;line-height:1.2}
+.logo span{font-size:12px;color:var(--muted)}
+.tsp{flex:1}
+.search{position:relative;flex:0 1 300px;min-width:180px}
+.search input{width:100%;border:1px solid var(--line-2);border-radius:10px;padding:9px 12px 9px 36px;background:#fff}
+.search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted)}
+.sync{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;color:var(--muted);background:var(--tile);border-radius:999px;padding:6px 11px;white-space:nowrap}
+.sync i{width:8px;height:8px;border-radius:50%;background:#A8A5C4}
+.sync.on i{background:#22C55E;box-shadow:0 0 0 3px rgba(34,197,94,.18)}
+.sync.busy i{background:#F59E0B}
+.sync.err i{background:var(--bad)}
+.me{display:flex;align-items:center;gap:8px;border:1px solid var(--line-2);background:#fff;border-radius:999px;padding:4px 10px 4px 4px;cursor:pointer;max-width:240px}
+.me .av{width:30px;height:30px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-weight:800;font-size:12px;flex:none}
+.me .nm{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me .rl{font-size:10.5px;color:var(--muted);display:block;line-height:1.1}
+nav.tabs{display:flex;gap:4px;overflow-x:auto;padding:0 0 10px;scrollbar-width:none}
+nav.tabs button{background:none;border:0;padding:8px 14px;cursor:pointer;font-weight:600;font-size:13px;color:var(--muted);border-radius:10px;white-space:nowrap;display:flex;gap:7px;align-items:center}
+nav.tabs button:hover{color:var(--ink);background:var(--tile)}
+nav.tabs button[aria-selected="true"]{background:var(--accent-soft);color:var(--accent);box-shadow:inset 0 0 0 1px #DDD0FA}
+nav.tabs .count{font-size:11px;background:var(--tile);color:var(--muted);border-radius:10px;padding:1px 7px;font-weight:700}
+nav.tabs button[aria-selected="true"] .count{background:var(--accent);color:#fff}
+
+/* hero */
+.hero{background:linear-gradient(180deg,#EFE9FD 0%,var(--bg) 100%);border-bottom:1px solid var(--line)}
+.hero .wrap{padding-block:22px 20px;display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:flex-end}
+.eyebrow{font-size:11px;font-weight:700;letter-spacing:.18em;text-transform:uppercase;color:var(--accent)}
+.hero h1{font-size:clamp(24px,3.6vw,34px);font-weight:800;margin-top:4px}
+.hero p{margin:6px 0 0;color:var(--muted);max-width:66ch}
+
+main .wrap{padding-top:18px;display:flex;flex-direction:column;gap:16px}
+.banner{padding:10px 14px;border-radius:var(--r-sm);background:var(--warn-soft);font-size:13px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:space-between;border:1px solid #F5DDB0}
+.banner.info{background:var(--accent-soft);border-color:#DDD0FA}
+
+/* buttons & form */
+.btn{border:1px solid var(--line-2);background:var(--surface);padding:8px 13px;border-radius:9px;cursor:pointer;font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;color:var(--ink);text-decoration:none}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.pri{background:var(--g-purple);border-color:transparent;color:#fff;box-shadow:0 6px 16px -8px rgba(124,58,237,.8)}
+.btn.pri:hover{color:#fff;filter:brightness(1.05)}
+.btn.sm{padding:4px 9px;font-size:12px;border-radius:8px}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--muted)}
+.btn.ghost:hover{color:var(--ink);border-color:var(--line-2)}
+.btn.danger{color:var(--bad)}
+.btn.danger:hover{border-color:var(--bad)}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.f{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:600;color:var(--muted);min-width:0}
+.f input,.f select,.f textarea,.inp{border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;background:#fff;color:var(--ink);font-weight:500;font-size:13.5px;min-width:0;width:100%}
+.f textarea{min-height:70px;resize:vertical}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr));gap:12px}
+.fgrid .wide{grid-column:1/-1}
+
+/* card */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);min-width:0}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid var(--line)}
+.card-h h3{font-size:15px;font-weight:800}
+.card-h p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+.card-b{padding:14px 16px}
+.sec-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px}
+.sec-head h2{font-size:21px;font-weight:800}
+.sec-head p{margin:3px 0 0;color:var(--muted);font-size:13px;max-width:70ch}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px;align-items:start}
+
+/* KPI */
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+@media (max-width:1050px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:640px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.kpi{position:relative;color:#fff;border-radius:var(--r);padding:14px 14px 14px 14px;box-shadow:0 10px 24px -14px rgba(60,30,140,.55);overflow:hidden;min-width:0;border:0;text-align:left;cursor:pointer}
+.kpi.purple{background:var(--g-purple)}.kpi.blue{background:var(--g-blue)}.kpi.green{background:var(--g-green)}.kpi.red{background:var(--g-red)}.kpi.orange{background:var(--g-orange)}
+.kpi .lab{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.95}
+.kpi .val{font-size:30px;font-weight:800;line-height:1.1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.kpi .sub{font-size:12px;font-weight:600;opacity:.95;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi .kbar{height:5px;border-radius:3px;background:rgba(255,255,255,.35);overflow:hidden;margin-top:8px}
+.kpi .kbar i{display:block;height:100%;background:#fff;border-radius:3px}
+
+/* bars */
+.bars{display:flex;flex-direction:column;gap:7px}
+.bar{display:grid;grid-template-columns:minmax(110px,170px) minmax(0,1fr) 44px;gap:10px;align-items:center;font-size:13px;cursor:pointer;border:0;background:none;padding:2px 0;text-align:left}
+.bar:hover .track{background:#ECEAF6}
+.bar .track{height:22px;border-radius:7px;background:var(--tile);overflow:hidden}
+.bar .track i{display:block;height:100%;border-radius:7px;min-width:3px}
+.bar b{text-align:right;font-variant-numeric:tabular-nums}
+
+/* pill & colored select */
+.pill{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;white-space:nowrap;line-height:1.6}
+.csel{appearance:none;-webkit-appearance:none;border:1px solid rgba(0,0,0,.06);border-radius:999px;padding:3px 26px 3px 11px;font-size:12px;font-weight:700;cursor:pointer;max-width:190px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23444' stroke-width='1.6'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 9px center!important}
+.csel:disabled{cursor:default;opacity:1;background-image:none!important;padding-right:11px}
+.csel option{background:#fff;color:#1C1A33;font-weight:500}
+.csel.empty{background-color:#fff;color:var(--muted);border:1px dashed var(--line-2);font-weight:600}
+
+/* table */
+.tbl-wrap{overflow:auto;max-height:calc(100vh - 230px);border-top:1px solid var(--line)}
+table{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
+th{position:sticky;top:0;background:#FAF9FE;z-index:2;text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+th.sortable{cursor:pointer}
+th.sortable:hover{color:var(--ink)}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr.click td{cursor:pointer}
+tr.click:hover td{background:#FBFAFF}
+td.nm b{display:block;font-weight:700;white-space:nowrap}
+td.nm span{font-size:11.5px;color:var(--muted)}
+td.clip{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--muted)}
+td.nw,th.nw{white-space:nowrap}
+.empty-state{padding:36px 16px;text-align:center;color:var(--muted)}
+.filters{display:flex;gap:8px;flex-wrap:wrap;align-items:center;padding:12px 16px}
+.filters select,.filters input{border:1px solid var(--line-2);border-radius:9px;padding:7px 10px;background:#fff;font-size:13px;max-width:220px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 16px 12px}
+.chip{border:1px solid var(--line-2);background:#fff;border-radius:999px;padding:3px 10px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip .dot{width:9px;height:9px;border-radius:50%}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.chip small{color:var(--muted);font-weight:700}
+
+/* drawer */
+.drawer-bg{position:fixed;inset:0;background:rgba(20,14,45,.35);z-index:50}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(760px,100vw);background:var(--bg);z-index:51;display:flex;flex-direction:column;box-shadow:-20px 0 60px -30px rgba(40,20,100,.5)}
+.drawer-h{background:#fff;border-bottom:1px solid var(--line);padding:14px 18px;display:flex;gap:12px;align-items:flex-start}
+.drawer-h h2{font-size:19px;font-weight:800}
+.drawer-b{overflow:auto;padding:16px 18px 40px;display:flex;flex-direction:column;gap:14px}
+.x{border:0;background:var(--tile);width:34px;height:34px;border-radius:50%;cursor:pointer;font-size:20px;line-height:1;flex:none}
+.timeline{display:flex;flex-direction:column;gap:0}
+.tl{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;position:relative;padding-bottom:14px}
+.tl::before{content:"";position:absolute;left:10px;top:20px;bottom:0;width:2px;background:var(--line)}
+.tl:last-child::before{display:none}
+.tl .dot{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;border:2px solid #fff;box-shadow:0 0 0 1px var(--line)}
+.tl .meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--muted)}
+.tl p{margin:4px 0 0;font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere}
+.files{display:flex;flex-direction:column;gap:6px}
+.file{display:flex;gap:10px;align-items:center;background:#fff;border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.file .fi{width:34px;height:34px;border-radius:8px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-size:10px;font-weight:800;flex:none}
+.file .fn{min-width:0;flex:1}
+.file .fn b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file .fn span{font-size:11.5px;color:var(--muted)}
+.drop{border:2px dashed #CFC4F3;border-radius:12px;background:#FBF9FF;padding:16px;text-align:center;color:var(--muted);font-size:13px}
+.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+
+/* modal */
+.modal-bg{position:fixed;inset:0;background:rgba(20,14,45,.45);z-index:60;display:grid;place-items:center;padding:16px}
+.modal{background:#fff;border-radius:16px;width:min(560px,100%);max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 30px 80px -20px rgba(30,10,80,.5)}
+.modal.wide{width:min(900px,100%)}
+.modal-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:16px 18px 10px}
+.modal-h h3{font-size:18px;font-weight:800}
+.modal-b{padding:6px 18px 16px;display:flex;flex-direction:column;gap:12px}
+.modal-f{display:flex;justify-content:flex-end;gap:8px;padding:12px 18px 16px;border-top:1px solid var(--line);position:sticky;bottom:0;background:#fff}
+.swatches{display:flex;flex-wrap:wrap;gap:6px}
+.sw{width:30px;height:30px;border-radius:8px;border:2px solid transparent;cursor:pointer;display:grid;place-items:center;font-size:11px;font-weight:800}
+.sw[aria-pressed="true"]{border-color:var(--ink)}
+.optrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)}
+.optrow .cnt{font-size:12px;color:var(--muted);min-width:64px;text-align:right}
+.menu{position:fixed;z-index:70;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 40px -12px rgba(30,10,80,.35);padding:6px;min-width:220px}
+.menu button,.menu a{display:block;width:100%;text-align:left;border:0;background:none;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--ink);text-decoration:none}
+.menu button:hover,.menu a:hover{background:var(--tile)}
+.menu .hd{padding:8px 10px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line);margin-bottom:4px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1C1A33;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;z-index:90;max-width:calc(100vw - 32px);box-shadow:0 10px 30px rgba(0,0,0,.3)}
+.toast.err{background:#B4173A}
+.progress{height:8px;border-radius:4px;background:var(--tile);overflow:hidden}
+.progress i{display:block;height:100%;background:var(--g-purple);transition:width .2s}
+
+/* gate */
+.gate{min-height:100vh;display:grid;place-items:center;padding:20px;background:linear-gradient(160deg,#EFE9FD,#F5F4FB 60%)}
+.gate .box{background:#fff;border-radius:18px;box-shadow:var(--shadow);padding:26px 24px;width:min(420px,100%);display:flex;flex-direction:column;gap:14px}
+.gate h1{font-size:22px}
+.gate p{margin:0;color:var(--muted);font-size:13.5px}
+
+body.ro .w-only{display:none!important}
+@media (max-width:720px){
+  .topbar{position:static}
+  .topbar .wrap{gap:8px}
+  .back{padding:8px 10px;font-size:0}.back svg{font-size:13px}
+  .me{padding:3px}.me>span:last-child{display:none}
+  .sync{padding:6px 9px}
+  .search{order:5;flex:1 1 100%}
+  .logo span{display:none}
+  .hero .wrap{padding-block:16px}
+  .bar{grid-template-columns:110px minmax(0,1fr) 36px}
+  .tbl-wrap{max-height:none}
+}
+@media print{.topbar nav,.search,.sync,.me,.back,.btn,.filters,.chips{display:none!important}.tbl-wrap{max-height:none;overflow:visible}body{background:#fff}}
+</style>
+</head>
+<body>
+<div id="gate" class="gate"><div class="box" id="gBox"><div class="logo"><div class="logo-mark">R</div><div><b>Monitoring Rekrutmen</b><span>Memuat…</span></div></div></div></div>
+
+<div id="app" hidden>
+<header class="topbar pad">
+  <div class="wrap">
+    <a class="back" href="../?beranda"><svg class="i" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>Kembali</a>
+    <div class="logo"><div class="logo-mark">R</div><div><b>Monitoring Rekrutmen</b><span>Lowongan · Pelamar · Assessment · Berkas</span></div></div>
+    <div class="tsp"></div>
+    <label class="search"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" placeholder="Cari nama, posisi, telepon, catatan…" autocomplete="off"></label>
+    <span class="sync" id="sync"><i></i><span id="syncTxt">Memuat…</span></span>
+    <button class="me" id="me" type="button"><span class="av" id="meAv">?</span><span style="min-width:0"><span class="nm" id="meNm"></span><span class="rl" id="meRl"></span></span></button>
+  </div>
+  <div class="wrap"><nav class="tabs" id="tabs" role="tablist"></nav></div>
+</header>
+<section class="hero pad" id="hero"><div class="wrap"><div><div class="eyebrow">Human Resource · Recruitment</div><h1 id="heroT">Monitoring Rekrutmen</h1><p id="heroP"></p></div><div class="row" id="heroAct"></div></div></section>
+<main class="pad"><div class="wrap" id="view"></div></main>
+</div>
+
+<div id="drawer" hidden></div>
+<div id="modal" hidden></div>
+<div id="menu" class="menu" hidden></div>
+<div id="toast" class="toast" hidden></div>
+<input type="file" id="fileIn" multiple hidden>
+<input type="file" id="dirIn" webkitdirectory directory multiple hidden>
+<input type="file" id="xlsIn" accept=".xlsx,.xlsm,.xls" hidden>
+
+<script>
+(function(){
+"use strict";
+/* ===================== konfigurasi ===================== */
+const SUPA={url:"https://yoviojbfyvgpllxisjvy.supabase.co",key:"sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9"};
+const OWNER="matthewyoga2014@gmail.com", APP="rekrutmen";
+// URL /exec Apps Script. Setelah deploy, tempel di sini agar semua perangkat langsung tersambung.
+const GAS_DEFAULT="";
+const QS=new URLSearchParams(location.search);
+const DEMO=QS.has("demo");
+const GUEST_SHARE=QS.get("share")||"";
+const MAX_BYTES=20*1024*1024;
+const COLS=["jobs","applicants","assessments","files","options"];
+const FIELDS={phase:"Recruitment Phase",source:"Source",jobStatus:"Status Lowongan",priority:"Priority",docKind:"Jenis Berkas"};
+const FINAL=/hired|rejected|mengundurkan|withdraw|batal|cancel|gagal|tidak lolos/i;
+const PALETTE=[["#E2E8F0","#334155"],["#E0F2FE","#075985"],["#CFFAFE","#155E75"],["#EDE9FE","#5B21B6"],["#E0E7FF","#3730A3"],["#DBEAFE","#1E40AF"],
+ ["#CCFBF1","#115E59"],["#FEF3C7","#92400E"],["#ECFCCB","#3F6212"],["#DCFCE7","#166534"],["#16A34A","#FFFFFF"],["#FEE2E2","#991B1B"],
+ ["#FFEDD5","#9A3412"],["#FCE7F3","#9D174D"],["#F3E8FF","#6B21A8"],["#FEF9C3","#854D0E"],["#7C3AED","#FFFFFF"],["#2563EB","#FFFFFF"],["#E11D48","#FFFFFF"],["#F97316","#FFFFFF"]];
+const DEFAULT_OPTIONS=(()=>{const g={
+ phase:[["Application Received",0],["Screening CV",1],["Phone Screen",2],["Psikologi Test",3],["First Interview",4],["Final Interview",5],["Medical Check Up",6],["Offering Letter",7],["Onboarding",8],["Onsite",9],["Hired",10],["Rejected",11],["Mengundurkan Diri",12]],
+ source:[["Social Media",5],["Employee Referal",9],["Job Portal",3],["Walk-in",7],["Website Perusahaan",2],["Agency / Vendor",12],["Job Fair",13],["Internal",0]],
+ jobStatus:[["Open",5],["On Hold",7],["Closed-Filled",9],["Closed-Unfilled",0],["Cancel",11]],
+ priority:[["High",11],["Normal",1],["Low",0]],
+ docKind:[["CV",3],["KTP",1],["Ijazah",7],["Sertifikat",8],["Hasil Psikotes",13],["Hasil MCU",6],["Offering Letter",12],["Foto",0],["Lainnya",0]]};
+ const out=[];Object.entries(g).forEach(([f,l])=>l.forEach(([v,p],i)=>out.push({id:"o-"+f+"-"+(i+1),field:f,value:v,bg:PALETTE[p][0],fg:PALETTE[p][1],order:i+1})));return out;})();
+
+/* ===================== util ===================== */
+const $=id=>document.getElementById(id);
+const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const clone=o=>JSON.parse(JSON.stringify(o));
+const rid=p=>p+"-"+Math.random().toString(36).slice(2,8)+Date.now().toString(36).slice(-3);
+const norm=s=>String(s||"").toLowerCase().normalize("NFKD").replace(/[^a-z0-9]/g,"");
+const pad2=n=>String(n).padStart(2,"0");
+const today=()=>{const d=new Date();return d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());};
+const fmtD=s=>{if(!s)return"";const d=new Date(String(s).slice(0,10)+"T00:00:00");return isNaN(d)?esc(s):d.toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"});};
+const fmtTs=s=>{const d=new Date(s);return isNaN(d)?"":d.toLocaleString("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});};
+const daysBetween=(a,b)=>{const x=new Date(a+"T00:00:00"),y=new Date(b+"T00:00:00");return isNaN(x)||isNaN(y)?null:Math.round((y-x)/864e5);};
+const fmtSize=n=>!n?"":n<1024?n+" B":n<1048576?(n/1024).toFixed(0)+" KB":(n/1048576).toFixed(1)+" MB";
+const rupiah=n=>n===""||n==null||isNaN(Number(n))?"":Number(n).toLocaleString("id-ID");
+const IC={plus:'<svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',up:'<svg class="i" viewBox="0 0 24 24"><path d="M12 16V4M6 10l6-6 6 6M4 20h16"/></svg>',
+ down:'<svg class="i" viewBox="0 0 24 24"><path d="M12 4v12M6 10l6 6 6-6M4 20h16"/></svg>',folder:'<svg class="i" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+ clip:'<svg class="i" viewBox="0 0 24 24"><path d="M21 11l-8.5 8.5a5 5 0 0 1-7-7L14 4a3.5 3.5 0 0 1 5 5l-8.5 8.5a2 2 0 0 1-3-3L15 7"/></svg>',
+ edit:'<svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',trash:'<svg class="i" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg>',
+ eye:'<svg class="i" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',
+ refresh:'<svg class="i" viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7M20 4v7h-7"/></svg>',xls:'<svg class="i" viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 11l5 6M14 11l-5 6"/></svg>'};
+let toastT;function toast(m,err){const t=$("toast");t.textContent=m;t.className="toast"+(err?" err":"");t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,err?7000:3200);}
+function barColor(o){if(!o)return"#CBD5E1";return contrast(o.bg)==="#FFFFFF"?o.bg:o.fg;}
+function contrast(hex){const h=String(hex||"").replace("#","");if(h.length!==6)return"#111111";const r=parseInt(h.slice(0,2),16),g=parseInt(h.slice(2,4),16),b=parseInt(h.slice(4,6),16);return(r*299+g*587+b*114)/1000>150?"#1C1A33":"#FFFFFF";}
+
+/* ===================== state ===================== */
+const S={data:{jobs:[],applicants:[],assessments:[],files:[],options:[]},rev:"",role:"",email:"",links:null,
+  tab:"dash",q:"",f:{phase:"",source:"",job:"",year:"",jobStatus:"",aphase:""},sort:{k:"appDate",d:-1},limit:300,sel:null,dash:{job:"",year:""}};
+try{const v=JSON.parse(localStorage.getItem("rekrut-ui")||"{}");if(v.tab)S.tab=v.tab;}catch(e){}
+const saveUi=()=>{try{localStorage.setItem("rekrut-ui",JSON.stringify({tab:S.tab}));}catch(e){}};
+const canWrite=()=>S.role==="owner"||S.role==="editor";
+const D=()=>S.data;
+const opts=f=>D().options.filter(o=>o.field===f&&o.value).sort((a,b)=>(Number(a.order)||0)-(Number(b.order)||0));
+const optOf=(f,v)=>D().options.find(o=>o.field===f&&o.value===v)||null;
+const jobOf=id=>D().jobs.find(j=>String(j.id)===String(id));
+const apOf=id=>D().applicants.find(a=>String(a.id)===String(id));
+const jobLabel=id=>{const j=jobOf(id);return j?`${j.title} (${j.id})`:(id||"");};
+const asOf=apId=>D().assessments.filter(a=>String(a.applicantId)===String(apId)).sort((a,b)=>(Number(a.step)||0)-(Number(b.step)||0)||String(a.date).localeCompare(String(b.date)));
+const filesOf=apId=>D().files.filter(f=>String(f.applicantId)===String(apId));
+const isFinal=p=>FINAL.test(p||"");
+function pill(f,v){if(!v)return'<span class="muted">—</span>';const o=optOf(f,v);const bg=o?o.bg:"#F1F5F9",fg=o?o.fg:"#475569";return`<span class="pill" style="background:${esc(bg)};color:${esc(fg)}">${esc(v)}</span>`;}
+function csel(f,v,attrs){
+  const o=optOf(f,v),list=opts(f);const known=list.some(x=>x.value===v);
+  const st=v?`background-color:${esc(o?o.bg:"#F1F5F9")};color:${esc(o?o.fg:"#475569")}`:"";
+  return`<select class="csel${v?"":" empty"}" style="${st}" ${attrs} ${canWrite()?"":"disabled"} aria-label="${esc(FIELDS[f])}">
+    <option value="">${v?"— kosongkan —":"Pilih…"}</option>${list.map(x=>`<option value="${esc(x.value)}" ${x.value===v?"selected":""}>${esc(x.value)}</option>`).join("")}
+    ${v&&!known?`<option value="${esc(v)}" selected>${esc(v)}</option>`:""}${canWrite()?`<option value="__add__">＋ Tambah pilihan baru…</option>`:""}</select>`;}
+
+/* ===================== backend ===================== */
+const gasUrl=()=>{try{return localStorage.getItem("rekrut-gas")||GAS_DEFAULT;}catch(e){return GAS_DEFAULT;}};
+let SB=null;
+async function call(op,body){
+  if(DEMO)return mock(op,body||{});
+  const url=gasUrl();if(!url)throw Object.assign(new Error("Alamat Apps Script belum diisi"),{code:"nourl"});
+  const tok=GUEST_SHARE?null:(await SB.auth.getSession()).data.session?.access_token;
+  const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),op==="upload"||op==="download"?180000:60000);
+  try{
+    const r=await fetch(url,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({op,token:tok,share:GUEST_SHARE,...body}),redirect:"follow",signal:ctl.signal});
+    if(!r.ok)throw new Error("Google Apps Script tidak menjawab (HTTP "+r.status+")");
+    let j;try{j=await r.json();}catch(e){throw new Error("Respons Apps Script bukan JSON. Pastikan deployment Web App: Jalankan sebagai Saya, akses Siapa saja.");}
+    if(!j||!j.ok){const e=new Error(j?.error||"Ditolak Apps Script");e.code=j?.code;throw e;}
+    return j;
+  }catch(e){if(e.name==="AbortError")throw new Error("Google Drive terlalu lama menjawab. Periksa koneksi.");throw e;}
+  finally{clearTimeout(tm);}
+}
+/* aturan tulis yang sama dengan Code.gs (dipakai juga untuk tampilan instan) */
+function applyOps(data,ops){ops.forEach(o=>{
+  if(o.action==="replace"){data[o.col]=clone(o.rows||[]);return;}
+  const list=data[o.col]||(data[o.col]=[]);
+  if(o.action==="del"){data[o.col]=list.filter(x=>String(x.id)!==String(o.id));
+    if(o.col==="applicants"){data.assessments=data.assessments.filter(x=>String(x.applicantId)!==String(o.id));data.files=data.files.filter(x=>String(x.applicantId)!==String(o.id));}return;}
+  if(o.action==="put"){const rec={...clone(o.data||{}),id:String(o.id)};const i=list.findIndex(x=>String(x.id)===String(o.id));if(["jobs","applicants","assessments"].includes(o.col))rec.updatedAt=new Date().toISOString();
+    if(i>=0)list[i]={...list[i],...rec};else list.push(rec);}});return data;}
+
+/* mode demo: data hanya di browser ini (untuk mencoba tanpa Google Drive) */
+const MOCK_KEY="rekrut-demo-v1",MOCK_BLOBS={};
+function mockDb(){try{const d=JSON.parse(localStorage.getItem(MOCK_KEY)||"null");if(d)return d;}catch(e){}return{rev:1,data:{jobs:[],applicants:[],assessments:[],files:[],options:clone(DEFAULT_OPTIONS)}};}
+function mockSave(db){try{localStorage.setItem(MOCK_KEY,JSON.stringify(db));}catch(e){}}
+async function mock(op,b){
+  await new Promise(r=>setTimeout(r,120));const db=mockDb();
+  if(op==="whoami")return{ok:true,email:OWNER,role:"owner"};
+  if(op==="state")return b.rev&&String(b.rev)===String(db.rev)?{ok:true,same:true,rev:String(db.rev),role:"owner",email:OWNER}:{ok:true,rev:String(db.rev),role:"owner",email:OWNER,data:db.data,links:null};
+  if(op==="write"){applyOps(db.data,b.ops||[]);db.rev++;mockSave(db);return{ok:true,rev:String(db.rev),data:db.data};}
+  if(op==="upload"){const id="mf"+Date.now()+Math.random().toString(36).slice(2,5);MOCK_BLOBS[id]={b64:b.b64,mime:b.mime,name:b.name};
+    const rec={id:rid("f"),applicantId:b.applicantId,kind:b.kind||"Lainnya",name:b.name,fileId:id,url:"",size:Math.round((b.b64||"").length*.75),mime:b.mime,at:new Date().toISOString(),by:OWNER};
+    db.data.files.push(rec);db.rev++;mockSave(db);return{ok:true,rev:String(db.rev),file:rec};}
+  if(op==="download"){const x=MOCK_BLOBS[b.id];if(!x)throw new Error("Mode demo: berkas hanya tersedia selama halaman belum dimuat ulang.");return{ok:true,...x};}
+  if(op==="trash"){db.data.files=db.data.files.filter(f=>f.id!==b.id);db.rev++;mockSave(db);return{ok:true,rev:String(db.rev)};}
+  if(op==="roles"||op==="setRole")return{ok:true,roles:{}};
+  throw new Error("Mode demo: "+op);
+}
+
+/* sinkron */
+const queue=[];let flushing=false,pollT=null,pending=0;
+function setSync(t,cls){const s=$("sync");if(!s)return;s.className="sync "+(cls||"");$("syncTxt").textContent=t;}
+function cacheKey(){return"rekrut-cache-"+(DEMO?"demo":S.email);}
+function saveCache(){if(DEMO)return;try{localStorage.setItem(cacheKey(),JSON.stringify({rev:S.rev,role:S.role,data:S.data,links:S.links,at:Date.now()}));}catch(e){}}
+function setData(d){COLS.forEach(c=>S.data[c]=Array.isArray(d[c])?d[c]:[]);if(!S.data.options.length)S.data.options=clone(DEFAULT_OPTIONS);}
+async function pull(force){
+  if(queue.length||flushing)return;
+  try{setSync("Sinkron…","busy");const j=await call("state",{rev:force?"":S.rev});
+    if(j.role&&j.role!==S.role){S.role=j.role;applyRole();}
+    if(!j.same&&j.data){setData(j.data);S.rev=j.rev;if(j.links)S.links=j.links;saveCache();softRender();}
+    setSync(DEMO?"Mode demo":"Live · Google Drive","on");}
+  catch(e){setSync("Offline","err");if(force)throw e;}}
+function commit(ops,msg){
+  if(!canWrite()){toast("Mode lihat: hanya Pemilik/Editor yang bisa mengubah data.",1);return Promise.reject(new Error("readonly"));}
+  applyOps(S.data,ops);softRender();
+  return new Promise((res,rej)=>{queue.push({ops,res,rej,msg});flush();});}
+async function flush(){
+  if(flushing)return;flushing=true;
+  try{while(queue.length){const batch=queue.splice(0,queue.length);const ops=batch.flatMap(b=>b.ops);setSync("Menyimpan…","busy");
+      let tries=0;for(;;){try{const j=await call("write",{ops});S.rev=j.rev;if(!queue.length&&j.data){setData(j.data);softRender();}batch.forEach(b=>{b.res(j);if(b.msg)toast(b.msg);});break;}
+        catch(e){if(e.code==="readonly"||e.code==="forbidden"||++tries>2){batch.forEach(b=>b.rej(e));toast("Gagal menyimpan ke Google Drive: "+(e.message||e),1);setTimeout(()=>pull(true).catch(()=>{}),300);break;}
+          await new Promise(r=>setTimeout(r,1500*tries));}}}
+    setSync(DEMO?"Mode demo · tersimpan":"Tersimpan di Drive","on");saveCache();}
+  finally{flushing=false;}}
+window.addEventListener("beforeunload",e=>{if(queue.length||flushing||pending){e.preventDefault();e.returnValue="";}});
+
+/* ===================== render ===================== */
+const TABS=[["dash","Dashboard"],["applicants","Pelamar"],["jobs","Lowongan"],["assessments","Assessment"],["files","Berkas"],["settings","Pengaturan"]];
+let renderT;
+function drawerBusy(){const ae=document.activeElement;return !!($("stF")||S.formDirty||(ae&&ae.closest&&ae.closest("#drawer form")&&/INPUT|TEXTAREA|SELECT/.test(ae.tagName)));}
+function softRender(){clearTimeout(renderT);renderT=setTimeout(()=>{const ae=document.activeElement;if(ae&&ae.closest&&ae.closest("#view")&&/INPUT|TEXTAREA/.test(ae.tagName)&&ae.id!=="q"){S.dirty=true;return;}render();if(S.sel&&!$("drawer").hidden&&!drawerBusy())renderDrawer();},40);}
+document.addEventListener("input",e=>{if(e.target.closest&&e.target.closest("#apForm"))S.formDirty=true;});
+function render(){
+  S.dirty=false;
+  const n={applicants:D().applicants.length,jobs:D().jobs.length,assessments:D().assessments.length,files:D().files.length};
+  $("tabs").innerHTML=TABS.map(([k,l])=>`<button role="tab" data-tab="${k}" aria-selected="${S.tab===k}">${l}${n[k]!=null?` <span class="count">${n[k]}</span>`:""}</button>`).join("");
+  const H={dash:["Monitoring Rekrutmen","Pantau lowongan, pelamar, tahap rekrutmen, dan berkas pelamar. Data tersimpan di Google Drive Pemilik."],
+    applicants:["Data Pelamar","Ubah Source dan Recruitment Phase langsung dari dropdown berwarna. Klik baris untuk detail, assessment, dan berkas."],
+    jobs:["Lowongan (Job Openings)","Daftar posisi, hiring manager, status, dan jumlah pelamar per lowongan."],
+    assessments:["Assessment","Riwayat tahap tiap pelamar: tanggal, phase, dan hasil/feedback."],
+    files:["Berkas Pelamar","CV, KTP, hasil psikotes, MCU dan dokumen lain. Disimpan di Google Drive, folder per pelamar."],
+    settings:["Pengaturan","Isi dropdown & warnanya, import/export Excel, sambungan Google Drive, dan akses pengguna."]}[S.tab];
+  $("heroT").textContent=H[0];$("heroP").textContent=H[1];
+  $("heroAct").innerHTML=heroActions();
+  const v=$("view");
+  v.innerHTML=(DEMO?`<div class="banner info"><span><b>Mode demo.</b> Data hanya tersimpan di browser ini (tidak ke Google Drive). Coba <b>Import Excel</b> di Pengaturan untuk melihat data Anda.</span><a class="btn sm" href="./">Keluar dari demo</a></div>`:"")+
+    ({dash:vDash,applicants:vApplicants,jobs:vJobs,assessments:vAssess,files:vFiles,settings:vSettings}[S.tab]||vDash)();
+}
+function heroActions(){
+  const w=canWrite();
+  if(S.tab==="applicants"||S.tab==="dash")return w?`<button class="btn pri" data-act="newAp">${IC.plus}Pelamar baru</button>`:"";
+  if(S.tab==="jobs")return w?`<button class="btn pri" data-act="newJob">${IC.plus}Lowongan baru</button>`:"";
+  if(S.tab==="files")return w?`<button class="btn" data-act="pickDir">${IC.folder}Upload folder</button>`:"";
+  return"";}
+
+/* ---- dashboard ---- */
+function vDash(){
+  const years=[...new Set(D().applicants.map(a=>String(a.appDate||"").slice(0,4)).filter(Boolean))].sort().reverse();
+  const A=D().applicants.filter(a=>(!S.dash.job||String(a.jobId)===S.dash.job)&&(!S.dash.year||String(a.appDate||"").startsWith(S.dash.year)));
+  const open=D().jobs.filter(j=>/^open/i.test(j.status||""));
+  const hired=A.filter(a=>/hired/i.test(a.phase||"")).length,rej=A.filter(a=>/rejected|tidak lolos/i.test(a.phase||"")).length;
+  const proc=A.filter(a=>!isFinal(a.phase)).length;const tot=A.length||1;
+  const kp=(c,l,v,s,p,act)=>`<button class="kpi ${c}" data-act="${act}"><div class="lab">${l}</div><div class="val">${v}</div><div class="sub">${s}</div><div class="kbar"><i style="width:${Math.max(0,Math.min(100,p))}%"></i></div></button>`;
+  const phaseRows=[...opts("phase").map(o=>[o.value,A.filter(a=>a.phase===o.value).length,barColor(o)]),...[...new Set(A.map(a=>a.phase||"(kosong)"))].filter(p=>!optOf("phase",p)&&p!=="").map(p=>[p,A.filter(a=>(a.phase||"(kosong)")===p).length,"#CBD5E1"])].filter(r=>r[1]);
+  const maxP=Math.max(1,...phaseRows.map(r=>r[1]));
+  const srcRows=[...opts("source").map(o=>o.value),...new Set(A.map(a=>a.source).filter(s=>s&&!optOf("source",s)))].map(s=>{const L=A.filter(a=>a.source===s);return[s,L.length,L.filter(a=>/hired/i.test(a.phase||"")).length];}).filter(r=>r[1]);
+  const noSrc=A.filter(a=>!a.source).length;if(noSrc)srcRows.push(["(kosong)",noSrc,A.filter(a=>!a.source&&/hired/i.test(a.phase||"")).length]);
+  const maxS=Math.max(1,...srcRows.map(r=>r[1]));
+  const jobsRows=D().jobs.map(j=>{const L=A.filter(a=>String(a.jobId)===String(j.id));return{j,n:L.length,h:L.filter(a=>/hired/i.test(a.phase||"")).length,p:L.filter(a=>!isFinal(a.phase)).length};})
+    .filter(r=>r.n||/^open/i.test(r.j.status||"")).sort((a,b)=>(/^open/i.test(b.j.status||"")-/^open/i.test(a.j.status||""))||b.n-a.n);
+  const recent=D().assessments.filter(x=>x.date&&A.some(a=>String(a.id)===String(x.applicantId))).sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,8);
+  return`<div class="card"><div class="filters"><b style="font-size:13px">Filter dashboard</b>
+      <select data-dash="job"><option value="">Semua lowongan</option>${D().jobs.map(j=>`<option value="${esc(j.id)}" ${S.dash.job===String(j.id)?"selected":""}>${esc(j.title)} (${esc(j.id)})</option>`).join("")}</select>
+      <select data-dash="year"><option value="">Semua tahun</option>${years.map(y=>`<option ${S.dash.year===y?"selected":""}>${y}</option>`).join("")}</select>
+      <span class="muted small" style="margin-left:auto">${A.length} pelamar · ${D().jobs.length} lowongan</span></div></div>
+    <div class="kpis">
+      ${kp("purple","Lowongan open",open.length,`dari ${D().jobs.length} lowongan`,open.length/Math.max(1,D().jobs.length)*100,"goJobsOpen")}
+      ${kp("blue","Total pelamar",A.length,`${D().files.length} berkas tersimpan`,100,"goAll")}
+      ${kp("orange","Dalam proses",proc,`${Math.round(proc/tot*100)}% masih berjalan`,proc/tot*100,"goProc")}
+      ${kp("green","Hired",hired,`${Math.round(hired/tot*100)}% dari pelamar`,hired/tot*100,"goHired")}
+      ${kp("red","Rejected",rej,`${Math.round(rej/tot*100)}% dari pelamar`,rej/tot*100,"goRej")}
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-h"><div><h3>Pelamar per Recruitment Phase</h3><p>Klik bar untuk melihat daftar pelamarnya.</p></div></div>
+        <div class="card-b"><div class="bars">${phaseRows.length?phaseRows.map(([p,c,bg])=>`<button class="bar" data-go-phase="${esc(p)}"><span>${pill("phase",p)}</span><span class="track"><i style="width:${c/maxP*100}%;background:${esc(bg)}"></i></span><b>${c}</b></button>`).join(""):'<div class="empty-state">Belum ada pelamar.</div>'}</div></div></div>
+      <div class="card"><div class="card-h"><div><h3>Source pelamar</h3><p>Jumlah pelamar dan yang Hired per sumber.</p></div></div>
+        <div class="card-b"><div class="bars">${srcRows.length?srcRows.map(([s,c,h])=>{const o=optOf("source",s);return`<button class="bar" data-go-source="${esc(s==="(kosong)"?"__none__":s)}"><span>${pill("source",s)}</span><span class="track"><i style="width:${c/maxS*100}%;background:${esc(barColor(o))}"></i></span><b>${c}</b></button><div class="small muted" style="margin:-4px 0 4px;padding-left:2px">${h} hired · konversi ${c?Math.round(h/c*100):0}%</div>`;}).join(""):'<div class="empty-state">Belum ada data.</div>'}</div></div></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-h"><div><h3>Progres per lowongan</h3><p>Lowongan open & lowongan yang punya pelamar.</p></div><button class="btn sm" data-tab="jobs">Semua lowongan</button></div>
+        <div class="tbl-wrap" style="max-height:420px"><table><thead><tr><th>Posisi</th><th>Status</th><th class="num">Pelamar</th><th class="num">Proses</th><th class="num">Hired</th></tr></thead><tbody>
+        ${jobsRows.length?jobsRows.map(r=>`<tr class="click" data-go-job="${esc(r.j.id)}"><td class="nm"><b>${esc(r.j.title)}</b><span>${esc(r.j.id)} · ${esc(r.j.dept||"")}${r.j.notes?" · "+esc(r.j.notes):""}</span></td><td>${pill("jobStatus",r.j.status)}</td><td class="num">${r.n}</td><td class="num">${r.p}</td><td class="num"><b>${r.h}</b></td></tr>`).join(""):'<tr><td colspan="5" class="empty-state">Belum ada lowongan.</td></tr>'}
+        </tbody></table></div></div>
+      <div class="card"><div class="card-h"><div><h3>Aktivitas assessment terbaru</h3><p>Tahap terakhir yang dicatat.</p></div><button class="btn sm" data-tab="assessments">Semua assessment</button></div>
+        <div class="card-b">${recent.length?`<div class="timeline">${recent.map(x=>{const a=apOf(x.applicantId);return`<div class="tl"><span class="dot" style="background:${esc((optOf("phase",x.phase)||{}).bg||"#E2E8F0")}"></span><div><div class="meta"><b style="color:var(--ink);cursor:pointer" data-open-ap="${esc(x.applicantId)}">${esc(a?a.name:x.applicantId)}</b>${pill("phase",x.phase)}<span>${fmtD(x.date)}</span></div><p class="muted" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${esc(x.detail||"")}</p></div></div>`;}).join("")}</div>`:'<div class="empty-state">Belum ada assessment.</div>'}</div></div>
+    </div>`;}
+
+/* ---- pelamar ---- */
+function filteredAps(){
+  const q=norm(S.q),f=S.f;
+  let L=D().applicants.filter(a=>(!f.phase||(f.phase==="__proc__"?!isFinal(a.phase):a.phase===f.phase))&&(!f.source||(f.source==="__none__"?!a.source:a.source===f.source))&&(!f.job||String(a.jobId)===f.job)&&(!f.year||String(a.appDate||"").startsWith(f.year)));
+  if(q)L=L.filter(a=>norm([a.id,a.name,a.email,a.phone,jobLabel(a.jobId),a.notes,a.location].join(" ")).includes(q));
+  const k=S.sort.k,d=S.sort.d;
+  const val=a=>k==="id"?Number(a.id)||0:k==="job"?jobLabel(a.jobId):k==="last"?(lastStep(a)||{}).date||"":a[k]||"";
+  L.sort((x,y)=>{const a=val(x),b=val(y);return(typeof a==="number"?a-b:String(a).localeCompare(String(b)))*d||(Number(y.id)||0)-(Number(x.id)||0);});
+  return L;}
+const lastStep=a=>{const s=asOf(a.id);return s[s.length-1];};
+function vApplicants(){
+  const L=filteredAps(),f=S.f;
+  const years=[...new Set(D().applicants.map(a=>String(a.appDate||"").slice(0,4)).filter(Boolean))].sort().reverse();
+  const cnt=p=>D().applicants.filter(a=>a.phase===p).length;
+  const th=(k,l,c)=>`<th class="sortable ${c||""}" data-sort="${k}">${l}${S.sort.k===k?(S.sort.d>0?" ▲":" ▼"):""}</th>`;
+  const rows=L.slice(0,S.limit).map(a=>{const ls=lastStep(a),fc=filesOf(a.id).length;return`<tr class="click" data-open-ap="${esc(a.id)}">
+    <td class="num muted">${esc(a.id)}</td><td class="nm"><b>${esc(a.name)}</b><span>${esc(a.email||a.location||"")}</span></td>
+    <td class="nw">${esc(jobOf(a.jobId)?jobOf(a.jobId).title:a.jobId||"—")}<div class="small muted">${esc(a.jobId||"")}</div></td>
+    <td class="nw num">${esc(a.phone||"")}</td><td class="nw">${fmtD(a.appDate)}</td>
+    <td data-stop>${csel("source",a.source,`data-set="applicants|${esc(a.id)}|source"`)}</td>
+    <td data-stop>${csel("phase",a.phase,`data-set="applicants|${esc(a.id)}|phase"`)}</td>
+    <td class="nw small">${ls?`${pill("phase",ls.phase)}<div class="muted">${fmtD(ls.date)}</div>`:'<span class="muted">—</span>'}</td>
+    <td class="nw">${fmtD(a.decisionDate)}</td><td class="clip" title="${esc(a.notes||"")}">${esc(a.notes||"")}</td>
+    <td class="nw">${fc?`<span class="pill" style="background:var(--accent-soft);color:var(--accent)">${IC.clip.replace('class="i"','class="i" style="width:13px;height:13px"')} ${fc}</span>`:'<span class="muted small">—</span>'}</td></tr>`;}).join("");
+  return`<div class="card">
+    <div class="filters">
+      <select data-f="job"><option value="">Semua posisi</option>${D().jobs.map(j=>`<option value="${esc(j.id)}" ${f.job===String(j.id)?"selected":""}>${esc(j.title)} (${esc(j.id)})</option>`).join("")}</select>
+      <select data-f="source"><option value="">Semua source</option>${opts("source").map(o=>`<option ${f.source===o.value?"selected":""}>${esc(o.value)}</option>`).join("")}<option value="__none__" ${f.source==="__none__"?"selected":""}>(Source kosong)</option></select>
+      <select data-f="year"><option value="">Semua tahun</option>${years.map(y=>`<option ${f.year===y?"selected":""}>${y}</option>`).join("")}</select>
+      ${Object.values(f).some(Boolean)||S.q?`<button class="btn sm ghost" data-act="clearF">Reset filter</button>`:""}
+      <span class="muted small" style="margin-left:auto">${L.length} dari ${D().applicants.length} pelamar</span>
+      <button class="btn sm" data-act="exportXls">${IC.down}Excel</button>
+    </div>
+    <div class="chips"><button class="chip" data-chip="" aria-pressed="${!f.phase}">Semua <small>${D().applicants.length}</small></button>
+      <button class="chip" data-chip="__proc__" aria-pressed="${f.phase==="__proc__"}"><span class="dot" style="background:#F59E0B"></span>Dalam proses <small>${D().applicants.filter(a=>!isFinal(a.phase)).length}</small></button>
+      ${opts("phase").map(o=>`<button class="chip" data-chip="${esc(o.value)}" aria-pressed="${f.phase===o.value}"><span class="dot" style="background:${esc(barColor(o))}"></span>${esc(o.value)} <small>${cnt(o.value)}</small></button>`).join("")}</div>
+    <div class="tbl-wrap"><table><thead><tr>${th("id","ID")}${th("name","Nama")}${th("job","Posisi")}<th>Telepon</th>${th("appDate","Tgl melamar","nw")}${th("source","Source")}${th("phase","Recruitment Phase","nw")}${th("last","Tahap terakhir","nw")}${th("decisionDate","Hired/Rejected","nw")}<th>Catatan</th><th>Berkas</th></tr></thead>
+    <tbody>${rows||`<tr><td colspan="11" class="empty-state">${D().applicants.length?"Tidak ada pelamar yang cocok dengan filter.":"Belum ada pelamar. Tambah pelamar baru atau Import Excel di Pengaturan."}</td></tr>`}</tbody></table>
+    ${L.length>S.limit?`<div class="empty-state"><button class="btn" data-act="more">Tampilkan ${Math.min(300,L.length-S.limit)} lagi</button></div>`:""}</div></div>`;}
+
+/* ---- lowongan ---- */
+function vJobs(){
+  const q=norm(S.q),fs=S.f.jobStatus;
+  let L=D().jobs.filter(j=>(!fs||j.status===fs)&&(!q||norm([j.id,j.title,j.dept,j.manager,j.recruiter,j.notes].join(" ")).includes(q)));
+  L.sort((a,b)=>String(a.id).localeCompare(String(b.id),undefined,{numeric:true}));
+  return`<div class="card"><div class="filters"><select data-f="jobStatus"><option value="">Semua status</option>${opts("jobStatus").map(o=>`<option ${fs===o.value?"selected":""}>${esc(o.value)}</option>`).join("")}</select>
+     <span class="muted small" style="margin-left:auto">${L.length} lowongan</span></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Job ID</th><th>Posisi</th><th>Dept</th><th>Hiring Manager</th><th>Recruiter</th><th class="nw">Open</th><th class="nw">Close</th><th>Priority</th><th>Status</th><th class="num">Budget</th><th class="num">Pelamar</th><th class="num">Hired</th><th class="num nw">Hari open</th><th>Catatan</th></tr></thead><tbody>
+    ${L.map(j=>{const A=D().applicants.filter(a=>String(a.jobId)===String(j.id));const days=j.openDate?daysBetween(j.openDate,j.closeDate||today()):null;
+      return`<tr class="click" data-open-job="${esc(j.id)}"><td class="nw muted">${esc(j.id)}</td><td class="nm"><b>${esc(j.title)}</b></td><td>${esc(j.dept||"")}</td><td class="nw">${esc(j.manager||"")}</td><td class="nw">${esc(j.recruiter||"")}</td>
+      <td class="nw">${fmtD(j.openDate)}</td><td class="nw">${fmtD(j.closeDate)}</td>
+      <td data-stop>${csel("priority",j.priority,`data-set="jobs|${esc(j.id)}|priority"`)}</td><td data-stop>${csel("jobStatus",j.status,`data-set="jobs|${esc(j.id)}|status"`)}</td>
+      <td class="num">${rupiah(j.budget)}</td><td class="num"><button class="btn sm ghost" data-go-job="${esc(j.id)}">${A.length}</button></td><td class="num"><b>${A.filter(a=>/hired/i.test(a.phase||"")).length}</b></td><td class="num">${days==null?"":days}</td><td class="clip" title="${esc(j.notes||"")}">${esc(j.notes||"")}</td></tr>`;}).join("")||`<tr><td colspan="14" class="empty-state">Belum ada lowongan.</td></tr>`}
+    </tbody></table></div></div>`;}
+
+/* ---- assessment ---- */
+function vAssess(){
+  const q=norm(S.q),fp=S.f.aphase;
+  let L=D().assessments.filter(x=>(!fp||x.phase===fp));
+  if(q)L=L.filter(x=>{const a=apOf(x.applicantId);return norm([a&&a.name,x.phase,x.detail,x.recruiter,a&&jobLabel(a.jobId)].join(" ")).includes(q);});
+  L.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+  const used=[...new Set(D().assessments.map(x=>x.phase).filter(Boolean))];
+  return`<div class="card"><div class="filters"><select data-f="aphase"><option value="">Semua phase</option>${[...opts("phase").map(o=>o.value).filter(v=>used.includes(v)),...used.filter(v=>!optOf("phase",v))].map(v=>`<option ${fp===v?"selected":""}>${esc(v)}</option>`).join("")}</select>
+    <span class="muted small" style="margin-left:auto">${L.length} catatan assessment</span></div>
+    <div class="tbl-wrap"><table><thead><tr><th class="nw">Tanggal</th><th>Pelamar</th><th>Posisi</th><th class="num">Tahap</th><th>Phase</th><th>Recruiter</th><th>Details / Feedback / Outcome</th></tr></thead><tbody>
+    ${L.slice(0,600).map(x=>{const a=apOf(x.applicantId);return`<tr class="click" data-open-ap="${esc(x.applicantId)}"><td class="nw">${fmtD(x.date)}</td><td class="nm"><b>${esc(a?a.name:"(pelamar "+x.applicantId+")")}</b><span>ID ${esc(x.applicantId)}</span></td><td class="nw">${esc(a&&jobOf(a.jobId)?jobOf(a.jobId).title:"")}</td><td class="num">${esc(x.step||"")}</td><td>${pill("phase",x.phase)}</td><td class="nw">${esc(x.recruiter||"")}</td><td style="min-width:280px;max-width:520px;font-size:12.5px">${esc(x.detail||"")}</td></tr>`;}).join("")||`<tr><td colspan="7" class="empty-state">Belum ada assessment.</td></tr>`}
+    </tbody></table></div></div>`;}
+
+/* ---- berkas ---- */
+function vFiles(){
+  const q=norm(S.q);
+  const groups=D().applicants.map(a=>({a,f:filesOf(a.id)})).filter(g=>g.f.length&&(!q||norm(g.a.name+" "+g.f.map(x=>x.name+" "+x.kind).join(" ")).includes(q)));
+  const orphan=D().files.filter(f=>!apOf(f.applicantId));
+  return`<div class="card"><div class="card-h"><div><h3>Upload berkas pelamar</h3><p>Pilih folder dari laptop: tiap subfolder (mis. <b>Agus Prianto</b> atau <b>Agus Prianto (2)</b>) dicocokkan otomatis ke pelamarnya, lalu diunggah ke Google Drive › Web Rekrutmen › Berkas Pelamar. Maks 20 MB per file.</p></div>
+      <div class="row w-only"><button class="btn pri" data-act="pickDir">${IC.folder}Upload folder</button></div></div>
+      <div class="card-b small muted">Untuk satu pelamar saja: buka pelamarnya di tab <b>Pelamar</b> › bagian <b>Berkas</b>.</div></div>
+    <div class="card"><div class="card-h"><div><h3>${D().files.length} berkas · ${groups.length} pelamar</h3></div></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Pelamar</th><th>Jenis</th><th>Nama file</th><th class="num">Ukuran</th><th class="nw">Diunggah</th><th></th></tr></thead><tbody>
+    ${groups.flatMap(g=>g.f.map((x,i)=>`<tr><td class="nm">${i===0?`<b style="cursor:pointer" data-open-ap="${esc(g.a.id)}">${esc(g.a.name)}</b><span>${esc(jobLabel(g.a.jobId))}</span>`:""}</td><td>${pill("docKind",x.kind)}</td><td class="clip" style="color:var(--ink)" title="${esc(x.name)}">${esc(x.name)}</td><td class="num nw">${fmtSize(Number(x.size))}</td><td class="nw small">${fmtTs(x.at)}</td>
+      <td class="nw"><button class="btn sm" data-view="${esc(x.id)}">${IC.eye}Lihat</button> <button class="btn sm ghost" data-dl="${esc(x.id)}" title="Unduh">${IC.down}</button></td></tr>`)).join("")||`<tr><td colspan="6" class="empty-state">Belum ada berkas.</td></tr>`}
+    ${orphan.map(x=>`<tr><td class="muted">(pelamar ${esc(x.applicantId)} sudah dihapus)</td><td>${pill("docKind",x.kind)}</td><td>${esc(x.name)}</td><td class="num">${fmtSize(Number(x.size))}</td><td class="small">${fmtTs(x.at)}</td><td><button class="btn sm" data-view="${esc(x.id)}">Lihat</button></td></tr>`).join("")}
+    </tbody></table></div></div>`;}
+
+/* ---- pengaturan ---- */
+function vSettings(){
+  const w=canWrite(),own=S.role==="owner";
+  const block=f=>{const L=opts(f);const fld={phase:["applicants","phase"],source:["applicants","source"],jobStatus:["jobs","status"],priority:["jobs","priority"],docKind:["files","kind"]}[f];
+    const used=v=>D()[fld[0]].filter(r=>r[fld[1]]===v).length+(f==="phase"?D().assessments.filter(r=>r.phase===v).length:0);
+    return`<div class="card"><div class="card-h"><div><h3>${FIELDS[f]}</h3><p>${L.length} pilihan · urutan ini dipakai di dropdown & dashboard</p></div>${w?`<button class="btn sm pri" data-addopt="${f}">${IC.plus}Tambah</button>`:""}</div>
+      <div class="card-b" style="padding-top:4px">${L.map((o,i)=>`<div class="optrow"><span class="pill" style="background:${esc(o.bg)};color:${esc(o.fg)}">${esc(o.value)}</span><span></span>
+        <span class="cnt">${used(o.value)} dipakai</span><span class="row" style="gap:2px">${w?`<button class="btn sm ghost" data-mvopt="${esc(o.id)}|-1" ${i===0?"disabled":""} title="Naik">↑</button><button class="btn sm ghost" data-mvopt="${esc(o.id)}|1" ${i===L.length-1?"disabled":""} title="Turun">↓</button><button class="btn sm ghost" data-editopt="${esc(o.id)}" title="Ubah nama/warna">${IC.edit}</button>`:""}</span></div>`).join("")||'<p class="muted">Belum ada pilihan.</p>'}</div></div>`;};
+  return`<div class="grid2">
+      <div class="card"><div class="card-h"><div><h3>Import & export Excel</h3><p>Import file <b>Monitoring Rekrutmen</b> (sheet Jobs, Applicants, Assessments). Export menghasilkan Excel dari data web.</p></div></div>
+        <div class="card-b row">${w?`<button class="btn pri" data-act="pickXls">${IC.up}Import Excel</button>`:""}<button class="btn" data-act="exportAll">${IC.down}Download Excel</button></div></div>
+      <div class="card"><div class="card-h"><div><h3>Penyimpanan Google Drive</h3><p>${DEMO?"Mode demo: tidak tersambung ke Google Drive.":"Data di Google Sheet <b>Monitoring Rekrutmen</b>, berkas di folder <b>Web Rekrutmen › Berkas Pelamar</b> milik Pemilik."}</p></div></div>
+        <div class="card-b row">${S.links?`<a class="btn" href="${esc(S.links.sheet)}" target="_blank" rel="noopener">${IC.xls}Buka Google Sheet</a><a class="btn" href="${esc(S.links.folder)}" target="_blank" rel="noopener">${IC.folder}Buka folder Drive</a>`:""}
+          <button class="btn" data-act="refresh">${IC.refresh}Muat ulang data</button>${own&&!DEMO?`<button class="btn ghost" data-act="gasUrl">Ganti URL Apps Script</button>`:""}</div></div>
+      ${own&&!DEMO?`<div class="card"><div class="card-h"><div><h3>Akses pengguna</h3><p>Pemilik selalu penuh. Editor bisa mengubah, Viewer hanya melihat.</p></div><button class="btn sm" data-act="access">Atur akses</button></div></div>`:""}
+    </div>
+    <div class="grid2">${block("phase")}${block("source")}</div>
+    <div class="grid2">${block("jobStatus")}${block("priority")}${block("docKind")}</div>`;}
+
+/* ===================== drawer pelamar ===================== */
+function openAp(id){S.formDirty=false;S.sel=id;S.newAp=null;renderDrawer();}
+function closeDrawer(){if(S.formDirty&&!confirm("Perubahan data pelamar belum disimpan. Tutup tanpa menyimpan?"))return;S.formDirty=false;$("drawer").hidden=true;$("drawer").innerHTML="";S.sel=null;S.newAp=null;document.body.style.overflow="";if(S.dirty)render();}
+function apForm(a){const w=canWrite()?"":"disabled";
+  const inp=(k,l,t="text",c="")=>`<label class="f ${c}">${l}<input type="${t}" name="${k}" value="${esc(a[k]||"")}" ${w}></label>`;
+  return`<form id="apForm" class="fgrid">
+    <label class="f wide">Nama<input name="name" required value="${esc(a.name||"")}" ${w}></label>
+    <label class="f wide">Posisi dilamar (Job)<select name="jobId" ${w}><option value="">— pilih lowongan —</option>${D().jobs.slice().sort((x,y)=>String(x.title).localeCompare(y.title)).map(j=>`<option value="${esc(j.id)}" ${String(a.jobId)===String(j.id)?"selected":""}>${esc(j.title)} (${esc(j.id)}) · ${esc(j.status||"")}</option>`).join("")}${a.jobId&&!jobOf(a.jobId)?`<option selected value="${esc(a.jobId)}">${esc(a.jobId)}</option>`:""}</select></label>
+    ${inp("email","Email","email")}${inp("phone","Telepon","tel")}${inp("location","Lokasi")}${inp("appDate","Tgl melamar","date")}
+    <label class="f">Source${csel("source",a.source,'name="source" data-form="1"')}</label>
+    <label class="f">Recruitment Phase${csel("phase",a.phase,'name="phase" data-form="1"')}</label>
+    ${inp("offered","Kompensasi ditawarkan","number")}${inp("decisionDate","Tgl Hired / Rejected","date")}${inp("startDate","Tgl mulai kerja","date")}
+    <label class="f wide">Catatan<textarea name="notes" ${w}>${esc(a.notes||"")}</textarea></label>
+    ${canWrite()?`<div class="wide row" style="justify-content:space-between">${a.id&&!S.newAp?`<button type="button" class="btn danger" data-act="delAp">${IC.trash}Hapus pelamar</button>`:"<span></span>"}<button class="btn pri" type="submit">${S.newAp?"Simpan pelamar":"Simpan perubahan"}</button></div>`:""}
+  </form>`;}
+function renderDrawer(){
+  const a=S.newAp||apOf(S.sel);if(!a){closeDrawer();return;}
+  const dr=$("drawer");const scroll=dr.querySelector(".drawer-b")?.scrollTop||0;
+  const steps=S.newAp?[]:asOf(a.id),fl=S.newAp?[]:filesOf(a.id),w=canWrite();
+  dr.innerHTML=`<div class="drawer-bg" data-close-drawer></div><aside class="drawer" role="dialog" aria-modal="true" aria-label="Detail pelamar">
+    <div class="drawer-h"><div style="flex:1;min-width:0"><div class="eyebrow">${S.newAp?"Pelamar baru":"Pelamar · ID "+esc(a.id)}</div><h2>${esc(a.name||"Pelamar baru")}</h2>
+      <div class="row small muted" style="margin-top:4px">${a.jobId?esc(jobLabel(a.jobId)):""} ${a.phase?pill("phase",a.phase):""} ${a.source?pill("source",a.source):""}</div></div><button class="x" data-close-drawer aria-label="Tutup">×</button></div>
+    <div class="drawer-b">
+      <div class="card"><div class="card-h"><h3>Data pelamar</h3>${a.phone?`<a class="btn sm" target="_blank" rel="noopener" href="https://wa.me/${esc(waNum(a.phone))}">WhatsApp</a>`:""}</div><div class="card-b">${apForm(a)}</div></div>
+      ${S.newAp?"":`<div class="card"><div class="card-h"><div><h3>Assessment</h3><p>${steps.length} tahap tercatat</p></div>${w?`<button class="btn sm pri" data-act="addStep">${IC.plus}Tambah tahap</button>`:""}</div>
+        <div class="card-b"><div id="stepForm"></div>${steps.length?`<div class="timeline">${steps.map((x,i)=>`<div class="tl"><span class="dot" style="background:${esc((optOf("phase",x.phase)||{}).bg||"#E2E8F0")};color:${esc((optOf("phase",x.phase)||{}).fg||"#334155")}">${i+1}</span><div>
+          <div class="meta">${pill("phase",x.phase)}<span>${fmtD(x.date)}</span>${x.recruiter?`<span>· ${esc(x.recruiter)}</span>`:""}${w?`<span style="margin-left:auto"><button class="btn sm ghost" data-editstep="${esc(x.id)}">${IC.edit}</button><button class="btn sm ghost" data-delstep="${esc(x.id)}">${IC.trash}</button></span>`:""}</div>
+          ${x.detail?`<p>${esc(x.detail)}</p>`:""}</div></div>`).join("")}</div>`:'<p class="muted small" style="margin:0">Belum ada tahap assessment.</p>'}</div></div>
+      <div class="card"><div class="card-h"><div><h3>Berkas</h3><p>Tersimpan di Google Drive › Web Rekrutmen › Berkas Pelamar › ${esc(a.name)} (${esc(a.id)})</p></div></div>
+        <div class="card-b"><div class="files">${fl.map(x=>`<div class="file"><span class="fi">${esc((x.name.split(".").pop()||"").slice(0,4).toUpperCase())}</span><span class="fn"><b title="${esc(x.name)}">${esc(x.name)}</b><span>${pill("docKind",x.kind)} ${fmtSize(Number(x.size))} · ${fmtTs(x.at)}</span></span>
+          <button class="btn sm" data-view="${esc(x.id)}">${IC.eye}Lihat</button><button class="btn sm ghost" data-dl="${esc(x.id)}" title="Unduh">${IC.down}</button>${w?`<button class="btn sm ghost danger" data-delfile="${esc(x.id)}" title="Hapus">${IC.trash}</button>`:""}</div>`).join("")||'<p class="muted small" style="margin:0">Belum ada berkas.</p>'}</div>
+        ${w?`<div class="drop" id="drop" style="margin-top:10px"><div class="row" style="justify-content:center"><label class="f" style="flex-direction:row;align-items:center;gap:8px">Jenis berkas <select id="upKind" class="inp" style="width:auto">${opts("docKind").map(o=>`<option>${esc(o.value)}</option>`).join("")}</select></label>
+          <button class="btn pri" data-act="pickFiles">${IC.up}Pilih file</button></div><div style="margin-top:6px">atau tarik file ke sini · maks 20 MB per file</div><div id="upProg"></div></div>`:""}</div></div>`}
+    </div></aside>`;
+  dr.hidden=false;document.body.style.overflow="hidden";const b=dr.querySelector(".drawer-b");if(b)b.scrollTop=scroll;
+  const drop=$("drop");if(drop){["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over");}));["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over");}));
+    drop.addEventListener("drop",e=>{const fs=[...(e.dataTransfer?.files||[])];if(fs.length)uploadFor(a.id,fs.map(f=>({file:f,kind:$("upKind").value||guessKind(f.name)})));});}
+}
+const waNum=p=>{let d=String(p||"").replace(/\D/g,"");if(d.startsWith("0"))d="62"+d.slice(1);else if(d.startsWith("8"))d="62"+d;return d;};
+function stepForm(x){
+  const a=apOf(S.sel);const next=asOf(S.sel).length+1;x=x||{date:today(),step:next,recruiter:(jobOf(a.jobId)||{}).recruiter||""};
+  $("stepForm").innerHTML=`<form id="stF" class="fgrid" data-id="${esc(x.id||"")}" style="background:var(--tile);padding:12px;border-radius:12px;margin-bottom:12px">
+    <label class="f">Tanggal<input type="date" name="date" value="${esc(x.date||"")}"></label>
+    <label class="f">Phase${csel("phase",x.phase||"",'name="phase" data-form="1"')}</label>
+    <label class="f">Recruiter / PIC<input name="recruiter" value="${esc(x.recruiter||"")}"></label>
+    <label class="f">Tahap ke<input type="number" min="1" name="step" value="${esc(x.step||next)}"></label>
+    <label class="f wide">Details / Feedback / Outcome<textarea name="detail">${esc(x.detail||"")}</textarea></label>
+    <label class="wide row small" style="gap:6px"><input type="checkbox" name="sync" checked> Jadikan juga Recruitment Phase pelamar</label>
+    <div class="wide row" style="justify-content:flex-end"><button type="button" class="btn ghost" data-act="cancelStep">Batal</button><button class="btn pri" type="submit">Simpan tahap</button></div></form>`;
+  $("stF").querySelector("input").focus();}
+
+/* ===================== modal ===================== */
+function modal(html,wide){$("modal").innerHTML=`<div class="modal-bg" data-close-modal><div class="modal${wide?" wide":""}" role="dialog" aria-modal="true">${html}</div></div>`;$("modal").hidden=false;const f=$("modal").querySelector("input:not([type=hidden]):not([type=checkbox]),select");if(f)setTimeout(()=>f.focus(),30);}
+function closeModal(){$("modal").hidden=true;$("modal").innerHTML="";if(S.dirty)render();}
+const mh=(t,s)=>`<div class="modal-h"><div><h3>${t}</h3>${s?`<p class="muted small" style="margin:4px 0 0">${s}</p>`:""}</div><button class="x" data-close-modal aria-label="Tutup">×</button></div>`;
+
+function jobModal(j){const isNew=!j;j=j||{id:nextJobId(),status:"Open",priority:"Normal",openDate:today()};
+  const inp=(k,l,t="text",c="")=>`<label class="f ${c}">${l}<input type="${t}" name="${k}" value="${esc(j[k]??"")}"></label>`;
+  modal(mh(isNew?"Lowongan baru":"Ubah lowongan",isNew?"":esc(j.id))+`<form id="jobF" data-new="${isNew?1:""}"><div class="modal-b"><div class="fgrid">
+    <label class="f">Job ID<input name="id" value="${esc(j.id)}" ${isNew?"":"readonly"} required></label>${inp("title","Job Title","text","")}
+    ${inp("dept","Department")}${inp("manager","Hiring Manager")}${inp("recruiter","Recruiter")}${inp("budget","Compensation Budget","number")}
+    ${inp("openDate","Open Date","date")}${inp("closeDate","Close Date","date")}
+    <label class="f">Priority${csel("priority",j.priority||"",'name="priority" data-form="1"')}</label><label class="f">Status${csel("jobStatus",j.status||"",'name="status" data-form="1"')}</label>
+    <label class="f wide">Notes<textarea name="notes">${esc(j.notes||"")}</textarea></label></div></div>
+    <div class="modal-f">${isNew?"":`<button type="button" class="btn danger" data-deljob="${esc(j.id)}" style="margin-right:auto">${IC.trash}Hapus</button>`}<button type="button" class="btn" data-close-modal>Batal</button><button class="btn pri" type="submit">Simpan</button></div></form>`);
+  $("jobF").querySelector('[name=title]').required=true;}
+function nextJobId(){const n=D().jobs.map(j=>Number(String(j.id).replace(/\D/g,""))).filter(x=>!isNaN(x));return"JI "+((n.length?Math.max(...n):999)+1);}
+function nextApId(){const n=D().applicants.map(a=>Number(a.id)).filter(x=>!isNaN(x));return String((n.length?Math.max(...n):0)+1);}
+
+/* pilihan baru / ubah pilihan */
+function optModal(field,o,onDone){
+  const isNew=!o;o=o||{field,value:"",bg:PALETTE[(opts(field).length*3+1)%PALETTE.length][0],fg:PALETTE[(opts(field).length*3+1)%PALETTE.length][1]};
+  const cur={bg:o.bg,fg:o.fg};
+  const fld={phase:["applicants","phase"],source:["applicants","source"],jobStatus:["jobs","status"],priority:["jobs","priority"],docKind:["files","kind"]}[field];
+  const usedN=isNew?0:D()[fld[0]].filter(r=>r[fld[1]]===o.value).length+(field==="phase"?D().assessments.filter(r=>r.phase===o.value).length:0);
+  modal(mh(isNew?"Tambah pilihan "+esc(FIELDS[field]):"Ubah pilihan",isNew?"Pilihan baru langsung muncul di semua dropdown "+esc(FIELDS[field])+".":"")+`<form id="optF"><div class="modal-b">
+    <label class="f">Nama pilihan<input name="value" required maxlength="60" value="${esc(o.value)}" placeholder="mis. Interview User"></label>
+    <div class="f">Warna<div class="swatches" id="sws">${PALETTE.map(([b,f],i)=>`<button type="button" class="sw" data-sw="${i}" style="background:${b};color:${f}" aria-pressed="${b.toLowerCase()===String(cur.bg).toLowerCase()&&f.toLowerCase()===String(cur.fg).toLowerCase()}" aria-label="Warna ${i+1}">Aa</button>`).join("")}
+      <label class="sw" style="background:conic-gradient(red,yellow,lime,cyan,blue,magenta,red);position:relative" title="Warna lain"><input type="color" id="swc" value="${esc(cur.bg)}" style="opacity:0;position:absolute;inset:0;width:100%;height:100%;cursor:pointer"></label></div></div>
+    <div class="f">Contoh<div><span class="pill" id="optPrev" style="background:${esc(cur.bg)};color:${esc(cur.fg)}">${esc(o.value||"Contoh")}</span></div></div>
+    ${!isNew&&usedN?`<p class="small muted" style="margin:0">Dipakai di ${usedN} data. Mengganti nama akan ikut mengganti data tersebut.</p>`:""}</div>
+    <div class="modal-f">${isNew?"":`<button type="button" class="btn danger" id="optDel" style="margin-right:auto">${IC.trash}Hapus</button>`}<button type="button" class="btn" data-close-modal>Batal</button><button class="btn pri" type="submit">${isNew?"Tambah":"Simpan"}</button></div></form>`);
+  const F=$("optF"),prev=$("optPrev");
+  const paint=()=>{prev.style.background=cur.bg;prev.style.color=cur.fg;prev.textContent=F.value.value||"Contoh";};
+  F.value.addEventListener("input",paint);
+  $("sws").addEventListener("click",e=>{const b=e.target.closest("[data-sw]");if(!b)return;const p=PALETTE[+b.dataset.sw];cur.bg=p[0];cur.fg=p[1];$("sws").querySelectorAll("[data-sw]").forEach(x=>x.setAttribute("aria-pressed",x===b));paint();});
+  $("swc").addEventListener("input",e=>{cur.bg=e.target.value.toUpperCase();cur.fg=contrast(cur.bg);$("sws").querySelectorAll("[data-sw]").forEach(x=>x.setAttribute("aria-pressed","false"));paint();});
+  F.onsubmit=e=>{e.preventDefault();const v=F.value.value.trim();if(!v)return;
+    const dup=opts(field).find(x=>x.value.toLowerCase()===v.toLowerCase()&&x.id!==o.id);
+    if(dup&&(isNew||!confirm(`"${dup.value}" sudah ada. Gabungkan "${o.value}" ke "${dup.value}"? Semua data "${o.value}" diganti menjadi "${dup.value}".`))){if(isNew)toast("Pilihan \""+v+"\" sudah ada.",1);return;}
+    const ops=[];
+    if(dup){const w=dup.value;D()[fld[0]].filter(r=>r[fld[1]]===o.value).forEach(r=>ops.push({col:fld[0],action:"put",id:r.id,data:{[fld[1]]:w}}));
+      if(field==="phase")D().assessments.filter(r=>r.phase===o.value).forEach(r=>ops.push({col:"assessments",action:"put",id:r.id,data:{phase:w}}));
+      ops.push({col:"options",action:"del",id:o.id});closeModal();commit(ops,`"${o.value}" digabung ke "${w}".`).catch(()=>{});return;}
+    if(isNew){ops.push({col:"options",action:"put",id:rid("o"),data:{field,value:v,bg:cur.bg,fg:cur.fg,order:(Math.max(0,...opts(field).map(x=>Number(x.order)||0))+1)}});}
+    else{ops.push({col:"options",action:"put",id:o.id,data:{...o,value:v,bg:cur.bg,fg:cur.fg}});
+      if(v!==o.value){D()[fld[0]].filter(r=>r[fld[1]]===o.value).forEach(r=>ops.push({col:fld[0],action:"put",id:r.id,data:{[fld[1]]:v}}));
+        if(field==="phase")D().assessments.filter(r=>r.phase===o.value).forEach(r=>ops.push({col:"assessments",action:"put",id:r.id,data:{phase:v}}));}}
+    closeModal();commit(ops,isNew?"Pilihan \""+v+"\" ditambahkan.":"Pilihan disimpan.").catch(()=>{});if(onDone)onDone(v);};
+  const del=$("optDel");if(del)del.onclick=()=>{if(!confirm(usedN?`"${o.value}" dipakai di ${usedN} data. Data itu tetap menyimpan nilainya, tetapi pilihannya hilang dari dropdown. Hapus?`:`Hapus pilihan "${o.value}"?`))return;closeModal();commit([{col:"options",action:"del",id:o.id}],"Pilihan dihapus.").catch(()=>{});};
+}
+
+/* ===================== berkas: upload / lihat ===================== */
+const b64of=f=>new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(String(r.result).split(",")[1]||"");r.onerror=()=>rej(r.error);r.readAsDataURL(f);});
+function guessKind(n){const s=norm(n);const kinds=opts("docKind").map(o=>o.value);const pick=k=>kinds.find(x=>norm(x)===norm(k))||null;
+  if(/cv|resume|riwayat|curriculum/.test(s))return pick("CV")||kinds[0];if(/ktp|identitas|nik/.test(s))return pick("KTP")||"KTP";
+  if(/ijazah|transkrip/.test(s))return pick("Ijazah")||"Ijazah";if(/sertif|sio|simi|sim/.test(s))return pick("Sertifikat")||"Sertifikat";
+  if(/psiko|psikolog|psikotes|iq/.test(s))return pick("Hasil Psikotes")||"Hasil Psikotes";if(/mcu|medical|medis/.test(s))return pick("Hasil MCU")||"Hasil MCU";
+  if(/offer|ol/.test(s))return pick("Offering Letter")||"Offering Letter";if(/foto|photo|pasfoto/.test(s)||/\.(jpe?g|png|heic)$/i.test(n))return pick("Foto")||"Foto";
+  return pick("Lainnya")||kinds[kinds.length-1]||"Lainnya";}
+async function uploadFor(apId,items,progEl){
+  const big=items.filter(x=>x.file.size>MAX_BYTES);items=items.filter(x=>x.file.size<=MAX_BYTES);
+  if(big.length)toast(big.length+" file dilewati karena lebih dari 20 MB: "+big.map(x=>x.file.name).join(", "),1);
+  let done=0;pending++;const prog=progEl||$("upProg");
+  const show=()=>{if(prog)prog.innerHTML=items.length?`<div class="small" style="margin-top:8px">Mengunggah ${done}/${items.length}…</div><div class="progress"><i style="width:${done/items.length*100}%"></i></div>`:"";};
+  show();setSync("Mengunggah…","busy");let fail=0;
+  for(const it of items){try{const j=await call("upload",{applicantId:apId,kind:it.kind,name:it.file.name,mime:it.file.type||"application/octet-stream",b64:await b64of(it.file)});
+      if(j.file&&!D().files.some(f=>f.id===j.file.id))D().files.push(j.file);if(j.rev)S.rev=j.rev;}
+    catch(e){fail++;toast("Gagal unggah "+it.file.name+": "+e.message,1);}done++;show();}
+  pending--;setSync(DEMO?"Mode demo":"Tersimpan di Drive","on");saveCache();
+  if(items.length&&!fail)toast(items.length+" berkas tersimpan di Google Drive.");
+  if(S.sel===apId)renderDrawer();if(S.tab==="files")render();else softRender();return{done:items.length-fail,fail};}
+async function fileBlob(id){const f=D().files.find(x=>x.id===id);const j=await call("download",{id:f.fileId});const bin=atob(j.b64);const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return{blob:new Blob([u],{type:j.mime||f.mime||"application/octet-stream"}),name:j.name||f.name};}
+async function viewFile(id,download){
+  const w=download?null:window.open("","_blank");if(w)w.document.write('<p style="font-family:sans-serif;padding:20px">Membuka berkas dari Google Drive…</p>');
+  try{const {blob,name}=await fileBlob(id);const url=URL.createObjectURL(blob);
+    if(w&&!download){w.location.href=url;}else{const a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();}
+    setTimeout(()=>URL.revokeObjectURL(url),120000);}
+  catch(e){if(w)w.close();toast("Gagal membuka berkas: "+e.message,1);}}
+
+/* upload folder: subfolder → pelamar */
+function matchApplicant(name){
+  const idm=String(name).match(/\((\d+)\)\s*$/)||String(name).match(/^(\d+)[\s._-]/);
+  const byId=idm?apOf(String(Number(idm[1]))):null;
+  const byName=matchByName(String(name).replace(/\(\d+\)\s*$/,"").replace(/^\d+[\s._-]+/,""));
+  if(byId&&(!byName||byName.id===byId.id))return byId;return byName||byId;}
+function matchByName(name){const n=norm(name);if(!n)return null;
+  const L=D().applicants;let hit=L.find(a=>norm(a.name)===n);if(hit)return hit;
+  const nn=n.replace(/^\d+/,"");hit=L.find(a=>norm(a.name)===nn);if(hit)return hit;
+  const cands=L.filter(a=>{const an=norm(a.name);return an.length>=5&&(n.includes(an)||(nn.length>=5&&an.includes(nn)));});
+  return cands.length===1?cands[0]:cands.sort((x,y)=>norm(y.name).length-norm(x.name).length)[0]||null;}
+function dirModal(files){
+  files=files.filter(f=>!/^\./.test(f.name)&&!/thumbs\.db|desktop\.ini/i.test(f.name));
+  if(!files.length){toast("Folder kosong.",1);return;}
+  const groups={};files.forEach(f=>{const p=(f.webkitRelativePath||f.name).split("/");const key=p.length>2?p[1]:"__root__";(groups[key]=groups[key]||[]).push(f);});
+  const items=[];Object.entries(groups).forEach(([g,fs])=>{if(g==="__root__")fs.forEach(f=>items.push({label:f.name,files:[f],ap:matchApplicant(f.name.replace(/\.[^.]+$/,"").replace(/[_-]+/g," ").replace(/\b(cv|ktp|ijazah|mcu|psikotes|foto|sertifikat)\b/gi,"").trim())}));
+    else items.push({label:g,files:fs,ap:matchApplicant(g)});});
+  const apOptions=D().applicants.slice().sort((a,b)=>String(a.name).localeCompare(b.name));
+  const matched=items.filter(i=>i.ap).length;
+  modal(mh("Upload folder berkas pelamar",`${files.length} file dalam ${items.length} kelompok · ${matched} cocok otomatis. Periksa pasangan pelamarnya, lalu klik Unggah.`)+`<div class="modal-b"><div class="tbl-wrap" style="max-height:52vh;border:1px solid var(--line);border-radius:10px"><table><thead><tr><th>Folder / file</th><th>File</th><th>Pelamar</th></tr></thead><tbody>
+    ${items.map((it,i)=>`<tr><td><b>${esc(it.label)}</b><div class="small muted">${it.files.slice(0,4).map(f=>esc(f.name)+" · "+esc(guessKind(f.name))).join("<br>")}${it.files.length>4?"<br>…":""}</div></td><td class="num">${it.files.length}</td>
+      <td><select class="inp" data-dir="${i}" style="min-width:220px"><option value="">— lewati —</option>${apOptions.map(a=>`<option value="${esc(a.id)}" ${it.ap&&it.ap.id===a.id?"selected":""}>${esc(a.name)} (${esc(a.id)})</option>`).join("")}</select></td></tr>`).join("")}
+    </tbody></table></div><div id="dirProg"></div></div>
+    <div class="modal-f"><button type="button" class="btn" data-close-modal>Batal</button><button class="btn pri" id="dirGo">${IC.up}Unggah ke Google Drive</button></div>`,true);
+  $("dirGo").onclick=async()=>{const plan=items.map((it,i)=>({it,ap:$("modal").querySelector(`[data-dir="${i}"]`).value})).filter(x=>x.ap);
+    if(!plan.length){toast("Belum ada pelamar yang dipilih.",1);return;}
+    $("dirGo").disabled=true;let tot=0,fail=0;const all=plan.reduce((s,x)=>s+x.it.files.length,0);
+    for(const x of plan){const r=await uploadFor(x.ap,x.it.files.map(f=>({file:f,kind:guessKind(f.name)})),{set innerHTML(h){}});tot+=r.done;fail+=r.fail;
+      const p=$("dirProg");if(p)p.innerHTML=`<div class="small">Terunggah ${tot+fail}/${all} file…</div><div class="progress"><i style="width:${(tot+fail)/all*100}%"></i></div>`;}
+    closeModal();toast(`${tot} file terunggah ke Google Drive${fail?`, ${fail} gagal`:""}.`,fail>0);S.tab="files";render();};
+}
+
+/* ===================== Excel ===================== */
+let XLSXP=null;
+function loadXlsx(){return XLSXP||(XLSXP=new Promise((res,rej)=>{if(window.XLSX)return res(window.XLSX);const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";s.onload=()=>res(window.XLSX);s.onerror=()=>{XLSXP=null;rej(new Error("Gagal memuat pembaca Excel"));};document.head.appendChild(s);}));}
+const cellDate=v=>{if(v instanceof Date&&!isNaN(v)){return v.getFullYear()+"-"+pad2(v.getMonth()+1)+"-"+pad2(v.getDate());}if(typeof v==="number"&&v>20000&&v<80000){const d=new Date(Math.round((v-25569)*864e5));return d.getUTCFullYear()+"-"+pad2(d.getUTCMonth()+1)+"-"+pad2(d.getUTCDate());}
+  const s=String(v||"").trim();if(/^\d{4}-\d{2}-\d{2}/.test(s))return s.slice(0,10);return"";};
+const cellStr=v=>v==null?"":String(v).replace(/\s+/g," ").trim();
+const cellNum=v=>{if(v===""||v==null)return"";const n=Number(String(v).replace(/[^\d.-]/g,""));return isNaN(n)?"":n;};
+function phoneStr(v){let s=cellStr(v).replace(/\.0+$/,"");if(/^\d+$/.test(s)&&s.startsWith("8")&&s.length>=9&&s.length<=13)s="0"+s;return s;}
+function findHeader(rows,needle){for(let i=0;i<Math.min(rows.length,40);i++){const r=rows[i]||[];const idx=r.findIndex(c=>norm(c)===norm(needle));if(idx>=0)return{row:i,col:idx,head:r.map(c=>norm(c))};}return null;}
+async function parseWorkbook(file){
+  const X=await loadXlsx();const wb=X.read(await file.arrayBuffer(),{type:"array",cellDates:true});
+  const sheet=n=>{const k=wb.SheetNames.find(s=>norm(s)===norm(n));return k?X.utils.sheet_to_json(wb.Sheets[k],{header:1,raw:true,defval:""}):null;};
+  const out={jobs:[],applicants:[],assessments:[],warn:[]};
+  const J=sheet("Jobs")||sheet("Lowongan");
+  if(J){const h=findHeader(J,"Job ID");if(h){const c=k=>h.head.indexOf(norm(k));
+    for(let i=h.row+1;i<J.length;i++){const r=J[i];const id=cellStr(r[c("Job ID")]),title=cellStr(r[c("Job Title")]);if(!id||!title)continue;
+      out.jobs.push({id,title,dept:cellStr(r[c("Department")]),manager:cellStr(r[c("Hiring Manager")]),recruiter:cellStr(r[c("Recruiter")]),openDate:cellDate(r[c("Open Date")]),closeDate:cellDate(r[c("Close Date")]),priority:cellStr(r[c("Priority")]),budget:cellNum(r[c("Compensation Budget")]),status:cellStr(r[c("Status")]),notes:cellStr(r[c("Notes")])});}}}
+  const A=sheet("Applicants")||sheet("Pelamar");
+  if(A){const h=findHeader(A,"Applicant ID");if(h){const c=k=>h.head.findIndex(x=>x.startsWith(norm(k)));let last=0;
+    for(let i=h.row+1;i<A.length;i++){const r=A[i];const name=cellStr(r[c("Name")]);if(!name)continue;
+      let id=cellStr(r[c("Applicant ID")]);if(!id||isNaN(Number(id)))id=String(last+1);id=String(Number(id));last=Number(id);
+      const jf=cellStr(r[c("Job Applied For")]),jm=jf.match(/\(\s*(JI\s*\d+)\s*\)/i);
+      let jobId=jm?jm[1].replace(/\s+/," ").toUpperCase():"";if(!jobId&&jf){const j=out.jobs.find(x=>norm(x.title)===norm(jf));jobId=j?j.id:jf;}
+      out.applicants.push({id,name,jobId,email:cellStr(r[c("Email")]),phone:phoneStr(r[c("Phone")]),location:cellStr(r[c("Location")]),appDate:cellDate(r[c("Application Date")]),
+        source:cellStr(r[c("Source")]),phase:cellStr(r[c("Recruitment Phase")]),offered:cellNum(r[c("Compensation Offered")]),decisionDate:cellDate(r[c("Hired Date")]),startDate:cellDate(r[c("Start Date")]),notes:cellStr(r[c("Notes")])});}}}
+  const S2=sheet("Assessments")||sheet("Assessment");
+  if(S2){const h=findHeader(S2,"Applicant");if(h){const cnt={};const byName={};out.applicants.forEach(a=>byName[norm(a.name)]=a.id);
+    for(let i=h.row+1;i<S2.length;i++){const r=S2[i];const who=cellStr(r[h.col]);if(!who)continue;
+      const m=who.match(/\((\d+)\)\s*$/);let apId=m?String(Number(m[1])):byName[norm(who)];if(!apId){out.warn.push("Assessment untuk \""+who+"\" tidak menemukan pelamarnya");continue;}
+      const rec=cellStr(r[h.col+2]);
+      for(let g=0;g<10;g++){const base=h.col+3+g*3;if(base+2>=r.length&&!r[base])break;const date=cellDate(r[base]),phase=cellStr(r[base+1]),detail=cellStr(r[base+2]);if(!date&&!phase&&!detail)continue;
+        cnt[apId]=(cnt[apId]||0)+1;out.assessments.push({id:"as-"+apId+"-"+cnt[apId],applicantId:apId,step:cnt[apId],date,phase,recruiter:rec,detail});}}}}
+  return out;}
+function importModal(p){
+  const unknown={phase:new Set(),source:new Set(),jobStatus:new Set(),priority:new Set()};
+  p.applicants.forEach(a=>{if(a.phase&&!optOf("phase",a.phase))unknown.phase.add(a.phase);if(a.source&&!optOf("source",a.source))unknown.source.add(a.source);});
+  p.assessments.forEach(x=>{if(x.phase&&!optOf("phase",x.phase))unknown.phase.add(x.phase);});
+  p.jobs.forEach(j=>{if(j.status&&!optOf("jobStatus",j.status))unknown.jobStatus.add(j.status);if(j.priority&&!optOf("priority",j.priority))unknown.priority.add(j.priority);});
+  const unk=Object.entries(unknown).flatMap(([f,s])=>[...s].map(v=>[f,v]));
+  const has=D().applicants.length||D().jobs.length;
+  modal(mh("Import Excel",`Terbaca: <b>${p.jobs.length}</b> lowongan · <b>${p.applicants.length}</b> pelamar · <b>${p.assessments.length}</b> tahap assessment`)+`<form id="impF"><div class="modal-b">
+    ${has?`<div class="f">Cara import<label class="row small" style="color:var(--ink)"><input type="radio" name="mode" value="merge" checked> Gabungkan: data dengan ID sama diperbarui, yang baru ditambahkan (berkas tetap)</label>
+      <label class="row small" style="color:var(--ink)"><input type="radio" name="mode" value="replace"> Ganti semua lowongan, pelamar & assessment dengan isi Excel (berkas tetap)</label></div>`:`<input type="hidden" name="mode" value="replace">`}
+    ${unk.length?`<label class="row small" style="color:var(--ink);align-items:flex-start"><input type="checkbox" name="addopt" checked style="margin-top:3px"> <span>Tambahkan ${unk.length} nilai yang belum ada di daftar pilihan (bisa diubah warnanya nanti): ${unk.map(([f,v])=>`<span class="pill" style="background:#F1F5F9;color:#475569">${esc(v)}</span>`).join(" ")}</span></label>`:""}
+    ${p.warn.length?`<p class="small" style="color:var(--warn);margin:0">${p.warn.length} catatan: ${esc(p.warn.slice(0,4).join("; "))}${p.warn.length>4?"…":""}</p>`:""}
+    <p class="small muted" style="margin:0">Data disimpan ke Google Sheet <b>Monitoring Rekrutmen</b> di Drive Anda.</p></div>
+    <div class="modal-f"><button type="button" class="btn" data-close-modal>Batal</button><button class="btn pri" type="submit">${IC.up}Import</button></div></form>`);
+  $("impF").onsubmit=e=>{e.preventDefault();const mode=e.target.mode.value,ops=[];
+    if(mode==="replace"){ops.push({col:"jobs",action:"replace",rows:p.jobs},{col:"applicants",action:"replace",rows:p.applicants},{col:"assessments",action:"replace",rows:p.assessments});}
+    else{p.jobs.forEach(r=>ops.push({col:"jobs",action:"put",id:r.id,data:r}));p.applicants.forEach(r=>ops.push({col:"applicants",action:"put",id:r.id,data:r}));
+      const ids=new Set(p.applicants.map(a=>a.id));const keep=D().assessments.filter(x=>!ids.has(String(x.applicantId)));ops.push({col:"assessments",action:"replace",rows:[...keep,...p.assessments]});}
+    if(e.target.addopt&&e.target.addopt.checked){const n={};unk.forEach(([f,v])=>{n[f]=(n[f]||0)+1;const pal=PALETTE[(13+opts(f).length+n[f])%PALETTE.length];ops.push({col:"options",action:"put",id:rid("o"),data:{field:f,value:v,bg:pal[0],fg:pal[1],order:opts(f).length+n[f]}});});}
+    closeModal();commit(ops,"Import selesai: "+p.applicants.length+" pelamar tersimpan.").catch(()=>{});S.tab="applicants";saveUi();render();};
+}
+async function exportXls(all){
+  try{const X=await loadXlsx();const wb=X.utils.book_new();
+    const add=(name,rows)=>{const ws=X.utils.json_to_sheet(rows);ws["!cols"]=Object.keys(rows[0]||{}).map(k=>({wch:Math.min(50,Math.max(10,k.length+2))}));X.utils.book_append_sheet(wb,ws,name);};
+    add("Jobs",D().jobs.map(j=>({"Job ID":j.id,"Job Title":j.title,"Department":j.dept,"Hiring Manager":j.manager,"Recruiter":j.recruiter,"Open Date":j.openDate,"Close Date":j.closeDate,"Priority":j.priority,"Compensation Budget":j.budget,"Status":j.status,"Notes":j.notes,"Pelamar":D().applicants.filter(a=>String(a.jobId)===String(j.id)).length})));
+    add("Applicants",(all?D().applicants.slice().sort((a,b)=>(Number(a.id)||0)-(Number(b.id)||0)):filteredAps()).map(a=>({"Applicant ID":Number(a.id)||a.id,"Name":a.name,"Job Applied For":jobLabel(a.jobId),"Email":a.email,"Phone":a.phone,"Location":a.location,"Application Date":a.appDate,"Source":a.source,"Recruitment Phase":a.phase,"Compensation Offered":a.offered,"Hired Date / Rejected Date":a.decisionDate,"Start Date":a.startDate,"Notes":a.notes,"Berkas":filesOf(a.id).length})));
+    add("Assessments",D().assessments.slice().sort((x,y)=>(Number(x.applicantId)-Number(y.applicantId))||(x.step-y.step)).map(x=>{const a=apOf(x.applicantId);return{"Applicant":a?`${a.name} (${a.id})`:x.applicantId,"Job":a?jobLabel(a.jobId):"","Tahap":x.step,"Date":x.date,"Phase":x.phase,"Recruiter":x.recruiter,"Details / Feedback / Outcome":x.detail};}));
+    add("Pilihan",D().options.slice().sort((a,b)=>a.field.localeCompare(b.field)||a.order-b.order).map(o=>({"Kolom":FIELDS[o.field]||o.field,"Nilai":o.value,"Warna":o.bg})));
+    X.writeFile(wb,"Monitoring Rekrutmen "+today()+".xlsx");}catch(e){toast("Gagal membuat Excel: "+e.message,1);}}
+
+/* akses */
+async function accessModal(){
+  modal(mh("Akses pengguna","Pemilik ("+esc(OWNER)+") selalu penuh. Akun harus sudah bisa login di portal Monitoring.")+`<div class="modal-b"><form class="row" id="acF"><input class="inp" type="email" id="acE" placeholder="email@contoh.com" required style="flex:1;min-width:200px;width:auto"><select class="inp" id="acR" style="width:auto"><option value="editor">Editor</option><option value="viewer">Viewer</option></select><button class="btn pri" type="submit">Tambah</button></form><div id="acL" class="small muted">Memuat…</div></div><div class="modal-f"><button class="btn" data-close-modal>Tutup</button></div>`);
+  const show=r=>{const e=Object.entries(r||{});$("acL").innerHTML=e.length?e.map(([m,ro])=>`<div class="optrow" style="grid-template-columns:minmax(0,1fr) auto auto"><span style="color:var(--ink)">${esc(m)}</span><span class="pill" style="background:var(--accent-soft);color:var(--accent)">${ro==="editor"?"Editor":"Viewer"}</span><button class="btn sm ghost danger" data-unrole="${esc(m)}">Cabut</button></div>`).join(""):"Belum ada pengguna lain.";};
+  try{show((await call("roles",{})).roles);}catch(e){$("acL").textContent="Gagal memuat: "+e.message;}
+  $("acF").onsubmit=async e=>{e.preventDefault();try{show((await call("setRole",{email:$("acE").value,role:$("acR").value})).roles);$("acE").value="";toast("Akses disimpan.");}catch(er){toast(er.message,1);}};
+  $("acL").onclick=async e=>{const b=e.target.closest("[data-unrole]");if(!b)return;try{show((await call("setRole",{email:b.dataset.unrole,role:""})).roles);}catch(er){toast(er.message,1);}};}
+
+/* ===================== events ===================== */
+function onSelectSet(sel){
+  const [col,id,key]=sel.dataset.set.split("|");const field=col==="jobs"?(key==="status"?"jobStatus":"priority"):key;
+  const prev=(D()[col].find(r=>String(r.id)===id)||{})[key]||"";
+  if(sel.value==="__add__"){sel.value=prev;optModal(field,null,(v)=>{commit([{col,action:"put",id,data:{[key]:v}}]).catch(()=>{});});return;}
+  const v=sel.value;const data={[key]:v};
+  if(col==="applicants"&&key==="phase"&&isFinal(v)&&!(apOf(id)||{}).decisionDate)data.decisionDate=today();
+  commit([{col,action:"put",id,data}],(col==="applicants"?(apOf(id)||{}).name+": ":"")+(FIELDS[field]||key)+" → "+(v||"kosong")).catch(()=>{});}
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.matches("select.csel[data-set]"))return onSelectSet(t);
+  if(t.matches("select.csel[data-form]")){const f=t.closest("form");const field=t.name==="status"?"jobStatus":t.name==="priority"?(f&&f.id==="jobF"?"priority":"priority"):t.name;
+    if(t.value==="__add__"){t.value="";optModal(field,null,(v)=>{const o=document.createElement("option");o.value=v;o.textContent=v;t.insertBefore(o,t.lastElementChild);t.value=v;paintSel(t,field);});return;}paintSel(t,field);return;}
+  if(t.matches("[data-f]")){S.f[t.dataset.f]=t.value;S.limit=300;render();return;}
+  if(t.matches("[data-dash]")){S.dash[t.dataset.dash]=t.value;render();return;}
+  if(t.id==="fileIn"){const fs=[...t.files];t.value="";if(fs.length&&S.sel)uploadFor(S.sel,fs.map(f=>({file:f,kind:($("upKind")||{}).value||guessKind(f.name)})));return;}
+  if(t.id==="dirIn"){const fs=[...t.files];t.value="";dirModal(fs);return;}
+  if(t.id==="xlsIn"){const f=t.files[0];t.value="";if(!f)return;toast("Membaca "+f.name+"…");parseWorkbook(f).then(p=>{if(!p.applicants.length&&!p.jobs.length){toast("Sheet Jobs/Applicants tidak ditemukan di file ini.",1);return;}importModal(p);}).catch(er=>toast("Gagal membaca Excel: "+er.message,1));}
+});
+function paintSel(t,field){const o=optOf(field,t.value);t.classList.toggle("empty",!t.value);t.style.backgroundColor=t.value?(o?o.bg:"#F1F5F9"):"";t.style.color=t.value?(o?o.fg:"#475569"):"";}
+let qT;$("q").addEventListener("input",e=>{clearTimeout(qT);qT=setTimeout(()=>{S.q=e.target.value;if(!["applicants","jobs","assessments","files"].includes(S.tab)){S.tab="applicants";saveUi();}S.limit=300;render();},150);});
+document.addEventListener("click",e=>{
+  const t=e.target;
+  if(t.classList.contains("modal-bg")||t.closest("button[data-close-modal]")){closeModal();return;}
+  if(t.closest("[data-close-drawer]")){closeDrawer();return;}
+  if(!$("menu").hidden&&!t.closest("#menu")){$("menu").hidden=true;}
+  if(t.closest("[data-stop]")&&t.closest("select"))return;
+  const b=t.closest("[data-tab],[data-act],[data-open-ap],[data-open-job],[data-go-job],[data-go-phase],[data-go-source],[data-chip],[data-sort],[data-view],[data-dl],[data-delfile],[data-editstep],[data-delstep],[data-addopt],[data-editopt],[data-mvopt],[data-deljob]");
+  if(!b)return;
+  if(t.closest("[data-stop]")&&!b.matches("button"))return;
+  const d=b.dataset;
+  if(d.tab){S.tab=d.tab;saveUi();render();window.scrollTo({top:0});return;}
+  if(d.goJob!==undefined){e.stopPropagation();S.f={...S.f,job:d.goJob,phase:"",source:"",year:""};S.q="";$("q").value="";S.tab="applicants";render();return;}
+  if(d.openAp){openAp(d.openAp);return;}
+  if(d.openJob){if(canWrite())jobModal(jobOf(d.openJob));else{S.f.job=d.openJob;S.tab="applicants";render();}return;}
+  if(d.goPhase!==undefined){S.f={...S.f,phase:d.goPhase,source:"",job:S.dash.job,year:S.dash.year};S.tab="applicants";render();return;}
+  if(d.goSource!==undefined){S.f={...S.f,source:d.goSource,phase:"",job:S.dash.job,year:S.dash.year};S.tab="applicants";render();return;}
+  if(d.chip!==undefined){S.f.phase=d.chip;S.limit=300;render();return;}
+  if(d.sort){S.sort=S.sort.k===d.sort?{k:d.sort,d:-S.sort.d}:{k:d.sort,d:d.sort==="name"||d.sort==="job"?1:-1};render();return;}
+  if(d.view){viewFile(d.view);return;}
+  if(d.dl){viewFile(d.dl,true);return;}
+  if(d.delfile){const f=D().files.find(x=>x.id===d.delfile);if(!f||!confirm("Hapus berkas \""+f.name+"\"? Berkas dipindah ke Sampah Google Drive."))return;
+    pending++;call("trash",{id:f.id}).then(j=>{D().files=D().files.filter(x=>x.id!==f.id);if(j.rev)S.rev=j.rev;toast("Berkas dihapus.");renderDrawer();softRender();}).catch(er=>toast(er.message,1)).finally(()=>pending--);return;}
+  if(d.editstep){stepForm(D().assessments.find(x=>x.id===d.editstep));return;}
+  if(d.delstep){if(!confirm("Hapus tahap assessment ini?"))return;commit([{col:"assessments",action:"del",id:d.delstep}],"Tahap dihapus.").catch(()=>{});return;}
+  if(d.addopt){optModal(d.addopt);return;}
+  if(d.editopt){const o=D().options.find(x=>x.id===d.editopt);if(o)optModal(o.field,o);return;}
+  if(d.mvopt){const [id,dir]=d.mvopt.split("|");const o=D().options.find(x=>x.id===id);const L=opts(o.field);const i=L.indexOf(o),j=i+Number(dir);if(j<0||j>=L.length)return;
+    [L[i],L[j]]=[L[j],L[i]];commit(L.map((x,k)=>({col:"options",action:"put",id:x.id,data:{...x,order:k+1}}))).catch(()=>{});return;}
+  if(d.deljob){const n=D().applicants.filter(a=>String(a.jobId)===d.deljob).length;if(!confirm(n?`Lowongan ini punya ${n} pelamar. Pelamarnya tetap ada. Hapus lowongan?`:"Hapus lowongan ini?"))return;closeModal();commit([{col:"jobs",action:"del",id:d.deljob}],"Lowongan dihapus.").catch(()=>{});return;}
+  switch(d.act){
+    case"newAp":S.formDirty=false;S.sel=null;S.newAp={id:nextApId(),appDate:today(),phase:(opts("phase")[0]||{}).value||"",source:"",jobId:S.f.job||""};renderDrawer();break;
+    case"delAp":{const a=apOf(S.sel);if(!a||!confirm(`Hapus pelamar ${a.name}? Assessment dan berkasnya (di Google Drive) ikut terhapus.`))return;const id=a.id;closeDrawer();commit([{col:"applicants",action:"del",id}],"Pelamar dihapus.").catch(()=>{});break;}
+    case"newJob":jobModal();break;
+    case"addStep":stepForm();break;
+    case"cancelStep":$("stepForm").innerHTML="";renderDrawer();break;
+    case"pickFiles":$("fileIn").click();break;
+    case"pickDir":if(!D().applicants.length){toast("Belum ada pelamar. Import Excel atau tambah pelamar dulu.",1);return;}$("dirIn").click();break;
+    case"pickXls":$("xlsIn").click();break;
+    case"exportXls":exportXls(false);break;
+    case"exportAll":exportXls(true);break;
+    case"more":S.limit+=300;render();break;
+    case"clearF":S.f={phase:"",source:"",job:"",year:"",jobStatus:"",aphase:""};S.q="";$("q").value="";render();break;
+    case"refresh":pull(true).then(()=>toast("Data dimuat ulang.")).catch(er=>toast(er.message,1));break;
+    case"access":accessModal();break;
+    case"gasUrl":setupGate(true);break;
+    case"goJobsOpen":S.f.jobStatus=(opts("jobStatus").find(o=>/^open/i.test(o.value))||{}).value||"";S.tab="jobs";render();break;
+    case"goAll":S.f={...S.f,phase:"",source:"",job:S.dash.job,year:S.dash.year};S.tab="applicants";render();break;
+    case"goProc":S.f={...S.f,phase:"__proc__",source:"",job:S.dash.job,year:S.dash.year};S.tab="applicants";render();break;
+    case"goHired":S.f={...S.f,phase:(opts("phase").find(o=>/hired/i.test(o.value))||{}).value||"Hired",source:"",job:S.dash.job,year:S.dash.year};S.tab="applicants";render();break;
+    case"goRej":S.f={...S.f,phase:(opts("phase").find(o=>/rejected/i.test(o.value))||{}).value||"Rejected",source:"",job:S.dash.job,year:S.dash.year};S.tab="applicants";render();break;
+  }
+});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){if(!$("modal").hidden)closeModal();else if(!$("drawer").hidden)closeDrawer();}});
+document.addEventListener("submit",e=>{
+  const f=e.target;
+  if(f.id==="apForm"){e.preventDefault();const fd=Object.fromEntries(new FormData(f));const data={};
+    ["name","jobId","email","phone","location","appDate","source","phase","offered","decisionDate","startDate","notes"].forEach(k=>{let v=fd[k]==null?"":String(fd[k]).trim();if(v==="__add__")v="";if(k==="offered")v=v===""?"":Number(v);data[k]=v;});
+    if(!data.name){toast("Nama wajib diisi.",1);return;}
+    const isNew=!!S.newAp;const id=isNew?S.newAp.id:S.sel;
+    if(isNew&&apOf(id)){toast("ID "+id+" sudah dipakai.",1);return;}
+    commit([{col:"applicants",action:"put",id,data}],isNew?"Pelamar "+data.name+" ditambahkan.":"Data "+data.name+" disimpan.").catch(()=>{});
+    S.formDirty=false;if(isNew){S.newAp=null;S.sel=id;}renderDrawer();return;}
+  if(f.id==="stF"){e.preventDefault();const fd=Object.fromEntries(new FormData(f));const id=f.dataset.id||rid("as");
+    const phase=fd.phase==="__add__"?"":fd.phase;
+    const ops=[{col:"assessments",action:"put",id,data:{applicantId:S.sel,step:Number(fd.step)||1,date:fd.date||"",phase,recruiter:(fd.recruiter||"").trim(),detail:(fd.detail||"").trim()}}];
+    if(fd.sync&&phase){const ap={phase};if(isFinal(phase)&&!(apOf(S.sel)||{}).decisionDate)ap.decisionDate=fd.date||today();ops.push({col:"applicants",action:"put",id:S.sel,data:ap});}
+    $("stepForm").innerHTML="";commit(ops,"Tahap assessment disimpan.").catch(()=>{});renderDrawer();return;}
+  if(f.id==="jobF"){e.preventDefault();const fd=Object.fromEntries(new FormData(f));const id=String(fd.id||"").trim();if(!id||!fd.title){toast("Job ID dan Job Title wajib.",1);return;}
+    if(f.dataset.new&&jobOf(id)){toast("Job ID "+id+" sudah ada.",1);return;}
+    const data={};["title","dept","manager","recruiter","openDate","closeDate","priority","status","notes"].forEach(k=>{let v=String(fd[k]??"").trim();if(v==="__add__")v="";data[k]=v;});data.budget=fd.budget===""?"":Number(fd.budget);
+    closeModal();commit([{col:"jobs",action:"put",id,data}],"Lowongan "+data.title+" disimpan.").catch(()=>{});return;}
+});
+
+/* ===================== akun & masuk ===================== */
+function applyRole(){
+  document.body.classList.toggle("ro",!canWrite());
+  const RL={owner:"Pemilik",editor:"Editor",viewer:"Viewer"};
+  $("meNm").textContent=S.email||"";$("meRl").textContent=RL[S.role]||S.role;$("meAv").textContent=(S.email||"?").slice(0,2).toUpperCase();}
+$("me").addEventListener("click",e=>{e.stopPropagation();const m=$("menu"),r=$("me").getBoundingClientRect();
+  m.innerHTML=`<div class="hd">${esc(S.email)} · ${esc($("meRl").textContent)}</div>${S.links?`<a href="${esc(S.links.sheet)}" target="_blank" rel="noopener">Buka Google Sheet</a><a href="${esc(S.links.folder)}" target="_blank" rel="noopener">Buka folder Google Drive</a>`:""}
+    <button data-tab="settings">Pengaturan</button>${S.role==="owner"&&!DEMO?`<button data-act="access">Akses pengguna…</button>`:""}<button id="mRef">Muat ulang data</button>${DEMO||GUEST_SHARE?"":`<button id="mOut">Keluar</button>`}`;
+  m.style.top=(r.bottom+6)+"px";m.style.right=Math.max(8,innerWidth-r.right)+"px";m.style.left="auto";m.hidden=false;
+  m.querySelector("#mRef").onclick=()=>{m.hidden=true;pull(true).then(()=>toast("Data dimuat ulang.")).catch(er=>toast(er.message,1));};
+  const o=m.querySelector("#mOut");if(o)o.onclick=async()=>{try{localStorage.removeItem(cacheKey());}catch(_){ }await SB.auth.signOut();location.reload();};
+  m.querySelectorAll("[data-tab],[data-act]").forEach(x=>x.addEventListener("click",()=>m.hidden=true));});
+
+function gateHtml(body){$("gBox").innerHTML=`<div class="logo"><div class="logo-mark">R</div><div><b>Monitoring Rekrutmen</b><span>PT KMB · Human Resource</span></div></div>${body}`;$("gate").hidden=false;$("app").hidden=true;}
+function loginGate(msg){
+  gateHtml(`<h1>Masuk</h1><p>${msg||"Gunakan akun yang sama dengan portal Monitoring. Kosongkan password untuk menerima kode masuk lewat email."}</p>
+    <form id="gF" class="fgrid" style="grid-template-columns:1fr"><label class="f">Email<input type="email" id="gEm" required autocomplete="email" placeholder="nama@email.com"></label>
+    <label class="f">Password<input type="password" id="gPw" autocomplete="current-password"></label><button class="btn pri" type="submit" style="justify-content:center">Masuk</button><p class="small muted" id="gMsg" style="margin:0"></p></form>
+    <p class="small"><a href="?demo">Coba mode demo</a> · <a href="../?beranda">Kembali ke Beranda</a></p>`);
+  $("gF").onsubmit=async e=>{e.preventDefault();const email=$("gEm").value.trim().toLowerCase(),pw=$("gPw").value;$("gMsg").textContent="Memproses…";
+    const opt={emailRedirectTo:location.origin+location.pathname,shouldCreateUser:false};
+    const r=pw?await SB.auth.signInWithPassword({email,password:pw}):await SB.auth.signInWithOtp({email,options:opt});
+    $("gMsg").textContent=r.error?(/invalid login/i.test(r.error.message)?"Email atau password salah.":"Gagal masuk: "+r.error.message):pw?"Berhasil masuk…":"Kode masuk dikirim ke "+email+".";
+    if(!pw&&!r.error&&window.KMBOtp)KMBOtp.prompt(SB,email,opt);};}
+function setupGate(fromApp){
+  const own=S.email===OWNER;
+  if(fromApp){modal(mh("URL Apps Script")+`<form id="gS"><div class="modal-b"><label class="f">URL aplikasi web (berakhiran /exec)<input type="url" id="gUrl" required value="${esc(gasUrl())}" placeholder="https://script.google.com/macros/s/…/exec"></label></div><div class="modal-f"><button type="button" class="btn" data-close-modal>Batal</button><button class="btn pri">Simpan & muat ulang</button></div></form>`);}
+  else gateHtml(own?`<h1>Sambungkan Google Drive</h1><p>Sekali saja: pasang <b>apps-script/Code.gs</b> di <a href="https://script.google.com" target="_blank" rel="noopener">script.google.com</a>, jalankan <b>setup</b>, lalu Deploy sebagai Aplikasi web (Jalankan sebagai: Saya · Akses: Siapa saja). Tempel URL <b>/exec</b> di bawah.</p>
+      <form id="gS" class="fgrid" style="grid-template-columns:1fr"><label class="f">URL Apps Script<input type="url" id="gUrl" required placeholder="https://script.google.com/macros/s/…/exec"></label><button class="btn pri" style="justify-content:center">Simpan</button></form>
+      <p class="small"><a href="https://github.com/matthewyoga2014-design/kmb-purchasing-logistik/tree/main/rekrutmen" target="_blank" rel="noopener">Panduan pemasangan</a> · <a href="?demo">Coba mode demo dulu</a></p>`
+    :`<h1>Belum tersambung</h1><p>Web Rekrutmen belum disambungkan ke Google Drive oleh Pemilik. Hubungi Pemilik (${esc(OWNER)}).</p><p class="small"><a href="../?beranda">Kembali ke Beranda</a></p>`);
+  const F=$("gS");if(F)F.onsubmit=e=>{e.preventDefault();const u=$("gUrl").value.trim();if(!/^https:\/\/script\.google\.com\/macros\/s\/[^/]+\/exec$/.test(u)){toast("Tempel URL Apps Script yang berakhiran /exec.",1);return;}try{localStorage.setItem("rekrut-gas",u);}catch(_){ }location.reload();};}
+function errorGate(msg){gateHtml(`<h1>Belum bisa dibuka</h1><p>${esc(msg)}</p><div class="row"><button class="btn pri" onclick="location.reload()">Coba lagi</button>${S.email===OWNER?`<button class="btn" id="gChg">Ganti URL Apps Script</button>`:""}<button class="btn ghost" id="gOut">Keluar</button></div>`);
+  const c=$("gChg");if(c)c.onclick=()=>setupGate(false);$("gOut").onclick=async()=>{await SB.auth.signOut();location.reload();};}
+function openApp(){$("gate").hidden=true;$("app").hidden=false;applyRole();render();
+  if(!pollT){pollT=setInterval(()=>{if(!document.hidden&&$("modal").hidden&&!pending)pull(false);},45000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)pull(false);});}}
+
+async function start(){
+  if(DEMO){S.email=OWNER;S.role="owner";const j=await call("state",{});setData(j.data);S.rev=j.rev;openApp();setSync("Mode demo","on");return;}
+  if(!window.supabase?.createClient){gateHtml("<p>Tidak bisa memuat layanan login. Periksa koneksi lalu muat ulang.</p>");return;}
+  SB=window.supabase.createClient(SUPA.url,SUPA.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:"kta-web-auth"}});
+  let session=GUEST_SHARE?null:(await SB.auth.getSession()).data.session;
+  let first=true;SB.auth.onAuthStateChange((ev,s)=>{if(first){first=false;return;}if((ev==="SIGNED_IN"&&!session)||ev==="SIGNED_OUT")location.reload();session=s;});
+  if(!GUEST_SHARE&&!session){loginGate();return;}
+  S.email=GUEST_SHARE?"Link berbagi":String(session.user.email||"").toLowerCase();
+  if(!gasUrl()){setupGate(false);return;}
+  let cached=null;try{cached=JSON.parse(localStorage.getItem(cacheKey())||"null");}catch(e){}
+  if(cached&&cached.data){S.role=cached.role;setData(cached.data);S.rev=cached.rev;S.links=cached.links;openApp();setSync("Sinkron…","busy");
+    pull(false).catch(e=>{if(e.code==="forbidden"){try{localStorage.removeItem(cacheKey());}catch(_){ }location.reload();}});return;}
+  gateHtml(`<p>Menghubungkan ke Google Drive… (pertama kali bisa 5–15 detik)</p><div class="progress"><i style="width:60%"></i></div>`);
+  try{const j=await call("state",{});S.role=j.role;S.email=j.email&&!GUEST_SHARE?j.email:S.email;setData(j.data||{});S.rev=j.rev;S.links=j.links;saveCache();openApp();setSync("Live · Google Drive","on");}
+  catch(e){errorGate(e.code==="forbidden"?"Akun "+S.email+" belum diberi akses ke Web Rekrutmen. Minta Pemilik menambahkan email Anda (Pengaturan › Akses pengguna).":"Tidak bisa terhubung ke Google Drive: "+(e.message||e));}
+}
+start();
+})();
+</script>
+<script src="../otp-login.js?v=20261025"></script>
+</body>
+</html>

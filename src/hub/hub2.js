@@ -21,6 +21,7 @@ const I = {
   vest: '<svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 11.5a7 7 0 0 1 14 0"/><path d="M3.5 12h17v2.2h-17z"/><path d="M12 4.5v3"/><path d="M7 17.5h10l-1 3.5H8z"/><path d="M9.5 17.5V16M14.5 17.5V16"/></svg>',
   hat: '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 15a8 8 0 0 1 16 0" stroke="#fff" stroke-width="2"/><path d="M2.5 16h19v2.5h-19zM12 5v4" stroke="#fff" stroke-width="2" stroke-linejoin="round"/></svg>',
   truck: '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M2 16h13l3-5h3v5h-1M4 16V9h7l3 3" stroke="#fff" stroke-width="1.9" stroke-linejoin="round"/><circle cx="7" cy="17.5" r="1.8" stroke="#fff" stroke-width="1.8"/><circle cx="17" cy="17.5" r="1.8" stroke="#fff" stroke-width="1.8"/></svg>',
+  user: '<svg width="30" height="30" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="9" cy="8" r="3.5" stroke="#fff" stroke-width="2"/><path d="M2.5 20c.6-3.6 3.2-5.6 6.5-5.6s5.9 2 6.5 5.6" stroke="#fff" stroke-width="2" stroke-linecap="round"/><path d="M16 11.5l2 2 3.5-4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   note: '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7" stroke="#fff" stroke-width="1.9" stroke-linejoin="round"/></svg>',
 };
 // sub-portal MPP (satu kartu per jobsite) + APD + tahap 2
@@ -42,10 +43,12 @@ const WEBS = [
   { key: 'apd', title: 'Monitoring APD', url: 'monitoring-apd-kmb/', icon: 'vest', tile: 't2', show: () => !!roleOf('apd') },
   { key: 'unit', title: 'Monitoring Unit & Mobilisasi', url: 'monitoring-unit/', icon: 'truck', tile: 't3', show: () => !!roleOf('unit-monitoring') },
   { key: 'notulensi', title: 'Notulensi Meeting', url: 'notulensi/', icon: 'note', tile: 't4', show: () => !!roleOf('notulensi') },
+  { key: 'rekrutmen', title: 'Monitoring Rekrutmen', url: 'rekrutmen/', icon: 'user', tile: 't3', show: () => isOwner() || !!roleOf('rekrutmen') },
 ];
 const SUBS = [...MPP.map((s) => ({ ...s, portal: 'Monitoring MPP' })), { ...APD, portal: 'Monitoring APD' },
   { app: 'unit-monitoring', key: 'unit', name: 'Monitoring Unit', url: 'monitoring-unit/', portal: 'Monitoring Unit' },
-  { app: 'notulensi', key: 'notulensi', name: 'Notulensi', url: 'notulensi/', portal: 'Notulensi' }];
+  { app: 'notulensi', key: 'notulensi', name: 'Notulensi', url: 'notulensi/', portal: 'Notulensi' },
+  { app: 'rekrutmen', key: 'rekrutmen', name: 'Rekrutmen', url: 'rekrutmen/', portal: 'Monitoring Rekrutmen' }];
 const subOf = (app) => SUBS.find((s) => s.app === app);
 const MENUS = {
   mpp: [['dashboard', 'Dashboard', 1], ['mpp', 'MPP (Manpower Planning)'], ['pelamar', 'Data Pelamar'], ['org', 'Struktur Organisasi'], ['karyawan', 'MP Aktif & MP Out'], ['unit', 'Populasi Unit'], ['excel', 'Download Excel (tombol Excel di atas)', 'x'], ['setting', 'Pengaturan (sinkron Excel, backup, akses)', 's']],

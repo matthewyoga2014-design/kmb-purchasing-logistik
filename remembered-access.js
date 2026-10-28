@@ -5,7 +5,7 @@
   const SEGMENTS={
     'manpower-kta-tra':'kta-tra','manpower-bupr':'bupr-ampah',
     'manpower-mbj':'mbj','manpower-kmb':'kmb',
-    'monitoring-apd-kmb':'apd','monitoring-unit':'unit-monitoring','notulensi':'notulensi'
+    'monitoring-apd-kmb':'apd','monitoring-unit':'unit-monitoring','notulensi':'notulensi','rekrutmen':'rekrutmen'
   };
   const parts=location.pathname.split('/').filter(Boolean);
   const app=parts.map(s=>SEGMENTS[s]).find(Boolean);
