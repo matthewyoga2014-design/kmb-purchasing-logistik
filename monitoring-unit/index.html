@@ -1241,6 +1241,15 @@ border:1px solid transparent;background:var(--unit-soft);border-radius:7px;color
 /* Identitas vendor: konsisten berdasarkan nama di sheet Populasi Unit. */
 .mu-vendor-tag{display:inline-flex;align-items:center;max-width:100%;box-sizing:border-box;padding:3px 8px;border-radius:6px;border:1px solid var(--mu-vendor-bd,#CBD5E1);background:var(--mu-vendor-bg,#F1F5F9);color:var(--mu-vendor-fg,#334155);font-size:10px;font-weight:800;line-height:1.4;letter-spacing:.01em;white-space:normal;overflow-wrap:anywhere;text-align:center}
 .mu-pop-vendor-head .mu-vendor-tag{font-size:9px;padding:2px 6px;vertical-align:middle}
+/* Kotak pilih + ketik (Status) */
+input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236B6985' stroke-width='2.5'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E")!important;background-repeat:no-repeat!important;background-position:right 10px center!important;padding-right:28px!important}
+.mu-combo-pop{position:absolute;z-index:9999;max-height:260px;overflow-y:auto;background:#fff;border:1px solid #DCD9EC;border-radius:10px;box-shadow:0 12px 30px rgba(30,27,58,.18);padding:4px;font-size:13px}
+.mu-combo-opt{padding:8px 10px;border-radius:7px;cursor:pointer;color:#1E1B3A;white-space:nowrap}
+.mu-combo-opt:hover,.mu-combo-opt.hi{background:#F1ECFE;color:#5B21B6}
+.mu-combo-opt.on{font-weight:800;color:#5B21B6}
+.mu-combo-opt.on::after{content:" ✓"}
+.mu-combo-new{padding:7px 10px;font-size:12px;color:#6B6985;border-top:1px dashed #E6E4F2;margin-top:2px}
+@media print{.mu-combo-pop{display:none!important}}
 /* Filter per kolom di kepala tabel Detail Unit */
 .mu-mpp-detail-table tr.mu-colf th{background:#fff;padding:5px 6px!important;border-bottom:2px solid #E4DCFB!important;text-transform:none;vertical-align:middle}
 .mu-colf select,.mu-colf input{width:100%;min-width:72px;box-sizing:border-box;height:28px;border:1px solid #DCD9EC;border-radius:7px;padding:0 6px;font:inherit;font-size:10px!important;font-weight:600;color:#3b3558;background:#fff;text-transform:none}
@@ -1463,6 +1472,41 @@ const arrived = u => { const st=String(u.status||"").trim(); if(!st) return true
   if(PRE_STATUS.some(x=>x.k===st)) return false; if(UNIT_STATUS.some(x=>x.k===st)) return true; return !!u.tglTiba; };
 const muIsArrSt = (st,tgl) => arrived({status:st,tglTiba:tgl});
 const muStatusList = () => [...new Set([...ALL_STATUS.map(x=>x.k),...S.units.map(u=>String(u.status||"").trim()).filter(Boolean)])];
+/* Kotak pilihan + ketik (combobox): klik/fokus menampilkan SEMUA pilihan, mengetik menyaring daftar. */
+const MU_COMBO_SRC={status:()=>muStatusList()};
+function muComboize(el,src){ if(!el) return; el.removeAttribute("list"); el.dataset.combo=src; el.setAttribute("autocomplete","off"); }
+let MU_COMBO=null;
+function muComboClose(){ if(MU_COMBO){ MU_COMBO.box.remove(); MU_COMBO=null; } }
+function muComboOpen(el,filter){
+  const src=MU_COMBO_SRC[el.dataset.combo]; if(!src) return;
+  const all=src(), q=filter?String(el.value||"").trim().toLowerCase():"";
+  const list=q?all.filter(o=>o.toLowerCase().includes(q)):all;
+  if(!MU_COMBO||MU_COMBO.el!==el){ muComboClose(); const box=document.createElement("div"); box.className="mu-combo-pop"; box.setAttribute("role","listbox");
+    (el.closest("dialog")||document.body).appendChild(box); MU_COMBO={el,box,i:-1}; }
+  const box=MU_COMBO.box, r=el.getBoundingClientRect(), host=box.parentElement.getBoundingClientRect?box.parentElement:null;
+  const inDlg=box.parentElement.tagName==="DIALOG", hr=inDlg?box.parentElement.getBoundingClientRect():{left:0,top:0};
+  box.style.left=(r.left-hr.left+(inDlg?box.parentElement.scrollLeft:window.scrollX))+"px";
+  box.style.top=(r.bottom-hr.top+(inDlg?box.parentElement.scrollTop:window.scrollY)+2)+"px";
+  box.style.minWidth=Math.max(r.width,180)+"px"; box.style.position=inDlg?"absolute":"absolute";
+  const cur=String(el.value||"").trim();
+  box.innerHTML=(list.length?list:[]).map((o,i)=>`<div class="mu-combo-opt${o===cur?" on":""}" data-combo-v="${esc(o)}" role="option">${esc(o)}</div>`).join("")+
+    (cur&&!all.includes(cur)?`<div class="mu-combo-new">Pakai ketikan: <b>${esc(cur)}</b></div>`:"")+(list.length||cur?"":`<div class="mu-combo-new">Ketik status baru…</div>`);
+  MU_COMBO.i=-1;
+}
+document.addEventListener("focusin",e=>{ const el=e.target.closest&&e.target.closest("input[data-combo]"); if(el){ muComboOpen(el,false); try{ el.select(); }catch(err){} } });
+document.addEventListener("mousedown",e=>{ const o=e.target.closest&&e.target.closest(".mu-combo-opt");
+  if(o&&MU_COMBO){ e.preventDefault(); const el=MU_COMBO.el; el.value=o.dataset.comboV; el.dispatchEvent(new Event("input",{bubbles:true})); el.dispatchEvent(new Event("change",{bubbles:true})); muComboClose(); return; }
+  const el=e.target.closest&&e.target.closest("input[data-combo]"); if(el){ if(!MU_COMBO||MU_COMBO.el!==el) setTimeout(()=>muComboOpen(el,false),0); return; }
+  if(MU_COMBO&&!e.target.closest(".mu-combo-pop")) muComboClose(); });
+document.addEventListener("input",e=>{ const el=e.target.closest&&e.target.closest("input[data-combo]"); if(el&&MU_COMBO&&MU_COMBO.el===el&&!e.isTrusted===false) muComboOpen(el,true); });
+document.addEventListener("keydown",e=>{ if(!MU_COMBO||e.target!==MU_COMBO.el) return; const opts=[...MU_COMBO.box.querySelectorAll(".mu-combo-opt")];
+  if(e.key==="ArrowDown"||e.key==="ArrowUp"){ e.preventDefault(); MU_COMBO.i=Math.max(0,Math.min(opts.length-1,MU_COMBO.i+(e.key==="ArrowDown"?1:-1))); opts.forEach((o,i)=>o.classList.toggle("hi",i===MU_COMBO.i)); if(opts[MU_COMBO.i]) opts[MU_COMBO.i].scrollIntoView({block:"nearest"}); }
+  else if(e.key==="Enter"&&MU_COMBO.i>=0&&opts[MU_COMBO.i]){ e.preventDefault(); MU_COMBO.el.value=opts[MU_COMBO.i].dataset.comboV; MU_COMBO.el.dispatchEvent(new Event("input",{bubbles:true})); muComboClose(); }
+  else if(e.key==="Escape"){ e.stopPropagation(); e.preventDefault(); muComboClose(); }
+  else if(e.key==="Tab") muComboClose(); },true);
+document.addEventListener("focusout",e=>{ if(MU_COMBO&&e.target===MU_COMBO.el) setTimeout(()=>{ if(MU_COMBO&&document.activeElement!==MU_COMBO.el) muComboClose(); },120); });
+window.addEventListener("resize",muComboClose);
+document.addEventListener("scroll",e=>{ if(MU_COMBO&&!(e.target.closest&&e.target.closest(".mu-combo-pop"))) muComboOpen(MU_COMBO.el,false); },true);
 const muStatCol = k => (ALL_STATUS.find(x=>x.k===k)||{}).col||"#94A3B8";
 // Penanda sumber unit existing disimpan pada kolom "Via" yang sudah tersedia.
 // Tidak membutuhkan perubahan skema ataupun deploy ulang Apps Script.
@@ -1799,6 +1843,7 @@ function openForm({title,desc="",fields,values={},ok="Simpan",onSubmit,live,dang
   if(dlgLive) dlgLive(readForm(fields),null);
   body.oninput=e=>{ if(dlgLive) dlgLive(readForm(fields),e.target); };
   body.onchange=e=>{ if(dlgLive) dlgLive(readForm(fields),e.target); };
+  fields.forEach(f=>{ if(f.combo) muComboize(document.getElementById("f_"+f.key),f.combo); });
   $("#dlg").showModal();
 }
 function readForm(fields){ const o={}; fields.forEach(f=>{ if(f.type==="html") return; const el=document.getElementById("f_"+f.key); if(el) o[f.key]=el.value; }); return o; }
@@ -2726,7 +2771,7 @@ function slotEditRows(k,us,n){
       <td>${inp("merk",md.merk,"text","Merek","merkList")}</td>
       <td>${inp("via",u?(u.via||""):"","text",k.moda||"Via","viaList")}</td>
       <td>${inp("tglKirim",u&&u.tglKirim,"date")}</td>
-      <td>${inp("status",u?u.status:"","text","Status","statList")}</td>
+      <td><input data-f="status" data-combo="status" type="text" value="${esc(u?u.status:"")}" placeholder="Status" autocomplete="off"></td>
       <td>${sel("kondisi",md.kondisi||"",["",...MU_KOND])}</td>
       <td>${inp("lokasi",u&&u.lokasi,"text","Posisi","lokList")}</td>
       <td>${inp("tglTiba",u&&u.tglTiba,"date")}</td>
@@ -2885,7 +2930,7 @@ function formSlot(k,u,no){
       {key:"eta",label:"ETA (perkiraan tiba)",type:"date"},
       {key:"via",label:"Via",list:VIA_LIST,ph:"Perjalanan darat"},
       {key:"tglKirim",label:"Tanggal kirim (berangkat)",type:"date",hint:"Kosong = otomatis hari ini saat status Dalam perjalanan."},
-      {key:"status",label:"Status",list:muStatusList(),ph:"Pilih atau ketik status",hint:"Pilih dari daftar atau ketik sendiri. Status ketikan sendiri dihitung tiba bila Tanggal tiba diisi."},
+      {key:"status",label:"Status",combo:"status",list:muStatusList(),ph:"Pilih atau ketik status",hint:"Pilih dari daftar atau ketik sendiri. Status ketikan sendiri dihitung tiba bila Tanggal tiba diisi."},
       {key:"lokasi",label:"Posisi sekarang",list:lokasiList(),ph:"Pelabuhan Banjarmasin / KM 45"},
       {key:"tglTiba",label:"Tanggal tiba",type:"date",hint:"Kosong = otomatis hari ini saat status Tiba."},
       {key:"hm",label:"Hour meter (HM)",type:"number",min:0,step:"0.1"},
@@ -2925,7 +2970,7 @@ function formSlotBulk(k){
       {key:"via",label:"Via",list:VIA_LIST,ph:"Perjalanan darat"},
       {key:"etd",label:"ETD (perkiraan berangkat)",type:"date"},
       {key:"eta",label:"ETA (perkiraan tiba)",type:"date"},
-      {key:"status",label:"Status",list:muStatusList(),ph:"Pilih atau ketik status"},
+      {key:"status",label:"Status",combo:"status",list:muStatusList(),ph:"Pilih atau ketik status"},
       {key:"lokasi",label:"Posisi sekarang",list:lokasiList(),ph:k.asal||"Pelabuhan / pool asal"},
       {key:"catatan",label:"Catatan",type:"textarea",full:true,ph:"Contoh: trip minggu ke-2 Oktober"}
     ],
