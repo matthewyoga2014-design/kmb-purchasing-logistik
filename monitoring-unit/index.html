@@ -2858,7 +2858,7 @@ function printSlot(k){
   const t=tbl.cloneNode(true);
   t.querySelectorAll("tr").forEach(tr=>{ const last=tr.lastElementChild; if(last&&(last.classList.contains("act")||(!last.textContent.trim()&&tr.parentElement.tagName==="THEAD"))) last.remove(); });
   t.querySelectorAll("button").forEach(b=>b.remove());
-  { const cg=t.querySelector("colgroup"); if(cg) cg.remove(); t.style.tableLayout="auto"; }
+  { const cg=t.querySelector("colgroup"); if(cg) cg.remove(); t.classList.remove("slotFixed"); t.style.tableLayout="auto"; }
   const P=projOf(k.projectId)||{}, us=slotUnits(k), r=Number(k.rencana)||0;
   const cnt=[...new Set([...ALL_STATUS.map(x=>x.k),...us.map(u=>u.status).filter(Boolean)])].map(k=>({k,n:us.filter(u=>u.status===k).length})).filter(o=>o.n);
   const sum=cnt.map(o=>`${o.k}: <b>${o.n}</b>`).join(" · ")+(Math.max(r,us.length)-us.length>0?` · Belum dijadwalkan: <b>${Math.max(r,us.length)-us.length}</b>`:"");
