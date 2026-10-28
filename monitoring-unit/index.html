@@ -736,6 +736,14 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .slotTbl tr.sl{display:table-row}.slotTbl tr.sl>td{display:table-cell}
 .slotTbl td.n{text-align:right;font-variant-numeric:tabular-nums}
 .slotHead .slotPrint{margin-left:auto}
+@media print{
+  .slotTbl{overflow:visible!important}
+  .slotTbl table,.slotBox.editing .slotTbl table{min-width:0!important;width:100%!important}
+  .slotTbl th,.slotTbl td{padding:4px 5px!important;font-size:9.5px!important}
+  .slotTbl td.cat{max-width:160px!important}
+  .slotTbl .mu-vendor-tag,.slotTbl .mu-brand-tag,.slotTbl .chip,.slotTbl .mu-cond,.slotTbl .plate{white-space:nowrap!important;font-size:8.5px!important;padding:1px 5px!important}
+  .slotHead .btn,.slotHead .edbar{display:none!important}
+}
 .slotTbl .overtag{display:block;font-size:9px;font-weight:800;color:#C2410C;text-transform:uppercase;letter-spacing:.03em}
 .slotHead .slotPrint svg.i{width:13px;height:13px}
 .slotTbl table{min-width:1700px}
@@ -1498,7 +1506,34 @@ const projOf = id => S.projects.find(p=>p.id===id);
 const projColor = id => { const i=projects().findIndex(p=>p.id===id); return COLORS[(i<0?0:i)%COLORS.length]; };
 const projKode = id => (projOf(id)||{}).kode || "—";
 const itemsOf = pid => S.kirim.filter(k=>k.projectId===pid).sort((a,b)=>(Number(a.urut)||99)-(Number(b.urut)||99)||String(a.tipe).localeCompare(b.tipe));
-const unitsOfItem = k => S.units.filter(u=>!isExistingUnit(u) && (u.kirimId===k.id || (!u.kirimId && u.projectId===k.projectId && u.tipe===k.tipe)));
+// Item dengan nama sama di satu project (mis. "Volvo FMX 440" trip ke-2 & ke-4) dianggap satu kelompok:
+// unitnya dibagi berurutan sesuai kapasitas rencana tiap item, sisa lebihnya ke item terakhir.
+// (Di Google Sheet, unit tercatat berdasarkan nama item, jadi item bernama sama tidak bisa dibedakan.)
+const muItemKey = k => k.projectId+"|"+String(k.tipe||"").trim().replace(/\s+/g," ").toLowerCase();
+let MU_ALLOC={u:null,k:null,map:null};
+function muAlloc(){
+  if(MU_ALLOC.u===S.units && MU_ALLOC.k===S.kirim && MU_ALLOC.map) return MU_ALLOC.map;
+  const map=new Map(), groups=new Map();
+  S.kirim.forEach(k=>{ const g=muItemKey(k); if(!groups.has(g)) groups.set(g,[]); groups.get(g).push(k); });
+  groups.forEach(items=>{
+    items.sort((a,b)=>(Number(a.urut)||99)-(Number(b.urut)||99)||String(a.id).localeCompare(String(b.id)));
+    const ids=new Set(items.map(k=>k.id)), k0=items[0], key=muItemKey(k0);
+    const pool=S.units.filter(u=>!isExistingUnit(u) && (ids.has(u.kirimId) || (!u.kirimId && u.projectId===k0.projectId && muItemKey({projectId:u.projectId,tipe:u.tipe})===key)))
+      .sort((a,b)=>String(a.id).localeCompare(String(b.id),"en",{numeric:true}));
+    items.forEach(k=>map.set(k.id,[]));
+    if(items.length===1){ map.set(k0.id,pool); return; }
+    const left=[];
+    // 1) unit yang memang tercatat di item itu, sampai kapasitasnya penuh
+    pool.forEach(u=>{ const own=items.find(k=>k.id===u.kirimId); const cap=own?(Number(own.rencana)||0):0;
+      if(own && map.get(own.id).length<cap) map.get(own.id).push(u); else left.push(u); });
+    // 2) sisanya mengisi item lain berurutan; kelebihan masuk item terakhir
+    left.forEach(u=>{ const k=items.find(x=>map.get(x.id).length<(Number(x.rencana)||0))||items[items.length-1]; map.get(k.id).push(u); });
+    items.forEach(k=>map.get(k.id).sort((a,b)=>String(a.id).localeCompare(String(b.id),"en",{numeric:true})));
+  });
+  MU_ALLOC={u:S.units,k:S.kirim,map};
+  return map;
+}
+const unitsOfItem = k => (muAlloc().get(k.id)||[]).slice();
 const tibaItem = k => unitsOfItem(k).filter(arrived).length;
 const unitOfMob = m => S.units.find(u=>u.id===m.unitId) || S.units.find(u=>u.kode===m.unitKode);
 const mobProj = m => { const u=unitOfMob(m); return (u&&u.projectId) || m.projectId || ""; };
@@ -1540,7 +1575,7 @@ function projStats(pid){
   const revs=S.revisi.filter(r=>r.projectId===pid);
   const times=[...items.map(k=>k.updatedAt),...S.units.filter(u=>u.projectId===pid).map(u=>u.updatedAt),...revs.map(r=>r.waktu)].filter(Boolean).sort();
   const jalan=items.reduce((a,k)=>a+jalanItem(k),0);
-  return {items,rencana,tiba,jalan,sisa:items.reduce((a,k)=>a+sisaItem(k),0),unitCount,mob,revs,last:times[times.length-1]};
+  return {items,rencana,tiba,jalan,sisa:Math.max(0,rencana-tiba-jalan),unitCount,mob,revs,last:times[times.length-1]};
 }
 function projIcon(pid){
   const t=itemsOf(pid).map(k=>k.tipe.toLowerCase()).join(" ");
@@ -2252,7 +2287,7 @@ function totals(P){
   const mobAll=S.mobs.filter(m=>pids.includes(mobProj(m)));
   const jalan=items.reduce((a,k)=>a+jalanItem(k),0), keluar=keluarMobs(pids);
   return {items,rencana,tiba,jalan,keluar:keluar.length,keluarJalan:keluar.filter(isAktif).length,keluarDone:keluar.filter(m=>m.status==="Selesai").length,
-    sisa:items.reduce((a,k)=>a+sisaItem(k),0),mob:mobAll.filter(isAktif).length,mobDone:mobAll.filter(m=>m.status==="Selesai").length,mobAll:mobAll.length,
+    sisa:Math.max(0,rencana-tiba-jalan),mob:mobAll.filter(isAktif).length,mobDone:mobAll.filter(m=>m.status==="Selesai").length,mobAll:mobAll.length,
     revs:S.revisi.filter(r=>pids.includes(r.projectId)).length,units:S.units.filter(u=>arrived(u)&&pids.includes(u.projectId))};
 }
 function renderKpi(){
