@@ -751,6 +751,36 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
   .slotTbl table.slotFixed thead th:last-child{display:none!important}
   table:has(> #tKirim) > thead > tr > th:last-child{display:none!important}
   #tKirim tr.grp .actions,#tKirim .slotTg{display:none!important}
+  /* kolom Keterangan item lurus dengan kolom Catatan tabel unit di bawahnya */
+  #kirimTbl{table-layout:fixed!important;width:100%!important;min-width:0!important}
+  #kirimTbl col.kc0{width:26%!important}
+  #kirimTbl col.kc1{width:9.5%!important}
+  #kirimTbl col.kc2{width:9.5%!important}
+  #kirimTbl col.kc3{width:9.5%!important}
+  #kirimTbl col.kc4{width:11%!important}
+  #kirimTbl col.kc5{width:10%!important}
+  #kirimTbl col.kc6{width:9.5%!important}
+  #kirimTbl col.kc7{width:15%!important}
+  #kirimTbl col.kc8{width:0!important}
+  .slotTbl table.slotFixed colgroup col:nth-child(1){width:2.2%!important}
+  .slotTbl table.slotFixed colgroup col:nth-child(2){width:5.5%!important}
+  .slotTbl table.slotFixed colgroup col:nth-child(3){width:5%!important}
+  .slotTbl table.slotFixed colgroup col:nth-child(4){width:5.5%!important}
+  .slotTbl table.slotFixed colgroup col:nth-child(5){width:7.5%!important}
+  .slotTbl table.slotFixed colgroup col:nth-child(6){width:6%!important}
+  .slotTbl table.slotFixed colgroup col:nth-child(7){width:7.5%!important}
+  .slotTbl table.slotFixed colgroup col:nth-child(8){width:5.5%!important}
+  .slotTbl table.slotFixed colgroup col:nth-child(9){width:5%!important}
+  .slotTbl table.slotFixed colgroup col:nth-child(10){width:8.5%!important}
+  .slotTbl table.slotFixed colgroup col:nth-child(11){width:7%!important}
+  .slotTbl table.slotFixed colgroup col:nth-child(12){width:6%!important}
+  .slotTbl table.slotFixed colgroup col:nth-child(13){width:5%!important}
+  .slotTbl table.slotFixed colgroup col:nth-child(14){width:3%!important}
+  .slotTbl table.slotFixed colgroup col:nth-child(15){width:6.3%!important}
+  .slotTbl table.slotFixed colgroup col:nth-child(16){width:15%!important}
+  #tKirim tr.slots>td{padding-left:0!important;padding-right:0!important}
+  #tKirim tr:has(+ tr.slots){break-after:avoid}
+  #tKirim tr.slots{break-before:avoid}
 }
 @media print{
   .slotTbl{overflow:visible!important}
@@ -1385,8 +1415,8 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
       <div><h2>Rencana kirim unit</h2><p>Jumlah unit yang direncanakan dikirim ke tiap project. Pakai <b>Ubah jumlah</b> setiap ada revisi supaya alasan dan selisihnya tercatat di riwayat.</p></div>
       <div class="actions"><button class="btn" id="addProj" type="button">+ Project</button><button class="btn primary" id="addKirim" type="button">+ Item unit</button></div>
     </div>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Item unit</th><th class="n">Rencana awal</th><th class="n">Rencana kini</th><th class="n">Perubahan</th><th class="n">Tiba</th><th class="n">Sisa kirim</th><th>ETA</th><th>Keterangan</th><th></th></tr></thead>
+    <div class="tbl-wrap"><table id="kirimTbl">
+      <colgroup class="kirimCols"><col class="kc0"><col class="kc1"><col class="kc2"><col class="kc3"><col class="kc4"><col class="kc5"><col class="kc6"><col class="kc7"><col class="kc8"></colgroup><thead><tr><th>Item unit</th><th class="n">Rencana awal</th><th class="n">Rencana kini</th><th class="n">Perubahan</th><th class="n">Tiba</th><th class="n">Sisa kirim</th><th>ETA</th><th>Keterangan</th><th></th></tr></thead>
       <tbody id="tKirim"></tbody>
     </table></div>
     <div class="card pcard">
