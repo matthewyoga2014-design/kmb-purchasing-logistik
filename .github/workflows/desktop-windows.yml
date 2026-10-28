@@ -1,0 +1,87 @@
+name: Aplikasi Windows (offline)
+
+on:
+  push:
+    branches: [desktop-offline]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: desktop-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: desktop
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Pasang dependensi
+        run: npm install --no-audit --no-fund
+
+      - name: Siapkan file web & pustaka offline
+        run: node scripts/prepare-web.js
+
+      - name: Uji aplikasi (buka semua halaman tanpa internet)
+        timeout-minutes: 6
+        env:
+          MONITORING_SMOKE: ${{ github.workspace }}\smoke
+          ELECTRON_ENABLE_LOGGING: '1'
+        run: |
+          npx electron . || true
+          cat ../smoke/report.json
+          node -e "
+            const r = require('../smoke/report.json');
+            const bad = r.report.filter(p => !p.offline || p.errors.some(e => !/ERR_FAILED|ERR_BLOCKED|fonts\.g/.test(e)));
+            bad.forEach(p => console.log('MASALAH', p.page, JSON.stringify(p.errors)));
+            if (!r.saved || r.saved.n !== 1) { console.log('Uji simpan gagal'); process.exit(1); }
+            if (!r.backup) { console.log('Backup gagal'); process.exit(1); }
+            if (!/^completed:.*Excel/.test(r.download)) { console.log('Unduhan Excel gagal: ' + r.download); process.exit(1); }
+            if (r.report.some(p => !p.offline)) process.exit(1);
+            console.log('Uji lulus');
+          "
+
+      - name: Simpan screenshot uji
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hasil-uji
+          path: smoke
+          if-no-files-found: ignore
+
+      - name: Buat installer .exe
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: npx electron-builder --win nsis --x64 --publish never
+
+      - name: Simpan installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Monitoring-Setup
+          path: desktop/dist/*.exe
+
+      - name: Terbitkan unduhan
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: monitoring-windows-v1.0.0-b${{ github.run_number }}
+          name: Monitoring untuk Windows (offline) — build ${{ github.run_number }}
+          target_commitish: ${{ github.sha }}
+          prerelease: true
+          files: desktop/dist/*.exe
+          body: |
+            Aplikasi **Monitoring** versi offline untuk Windows.
+
+            1. Unduh `Monitoring-Setup-1.0.0.exe` di bawah.
+            2. Jalankan. Bila muncul "Windows protected your PC", klik **More info → Run anyway**.
+            3. Semua data tersimpan di `Documents\Monitoring` (Excel, Backup Excel, Berkas).

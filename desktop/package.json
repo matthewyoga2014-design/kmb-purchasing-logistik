@@ -1,0 +1,51 @@
+{
+  "name": "monitoring-desktop",
+  "productName": "Monitoring",
+  "version": "1.0.0",
+  "description": "Monitoring offline untuk Windows",
+  "main": "main.js",
+  "author": "Monitoring",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "node scripts/prepare-web.js && electron .",
+    "prepare-web": "node scripts/prepare-web.js",
+    "test": "node test/smoke.js && node test/queries.js",
+    "dist:win": "node scripts/prepare-web.js && electron-builder --win nsis --x64 --publish never"
+  },
+  "dependencies": {
+    "jszip": "3.10.1"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8",
+    "html-to-image": "1.11.11",
+    "html2canvas": "1.4.1",
+    "jspdf": "2.5.1",
+    "mammoth": "1.6.0",
+    "pdfjs-dist": "3.11.174",
+    "xlsx": "0.18.5"
+  },
+  "build": {
+    "appId": "id.monitoring.offline",
+    "productName": "Monitoring",
+    "copyright": "Monitoring",
+    "directories": { "output": "dist", "buildResources": "build" },
+    "files": ["main.js", "preload.js", "core/**", "offline/**", "web/**", "build/icon.png", "package.json"],
+    "asar": true,
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "build/icon.png",
+      "artifactName": "Monitoring-Setup-${version}.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Monitoring",
+      "deleteAppDataOnUninstall": false
+    }
+  }
+}
