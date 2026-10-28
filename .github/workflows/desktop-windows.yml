@@ -76,7 +76,7 @@ jobs:
       - name: Terbitkan unduhan
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: monitoring-windows-v1.0.0-b${{ github.run_number }}
+          tag_name: monitoring-windows-v1.1.0-b${{ github.run_number }}
           name: Monitoring untuk Windows (offline) — build ${{ github.run_number }}
           target_commitish: ${{ github.sha }}
           prerelease: true
@@ -86,8 +86,8 @@ jobs:
           body: |
             Aplikasi **Monitoring** versi offline untuk Windows.
 
-            **Cara 1 — installer:** unduh `Monitoring-Setup-1.0.0.exe`, jalankan. Bila muncul "Windows protected your PC", klik **More info → Run anyway**.
+            **Cara 1 — installer:** unduh `Monitoring-Setup-1.1.0.exe`, jalankan. Bila muncul "Windows protected your PC", klik **More info → Run anyway**.
 
-            **Cara 2 — tanpa install (bila installer diblokir browser):** unduh `Monitoring-Portable-1.0.0.zip`, klik kanan → **Extract All**, lalu buka `Monitoring.exe` di folder hasil ekstrak.
+            **Cara 2 — tanpa install (bila installer diblokir browser):** unduh `Monitoring-Portable-1.1.0.zip`, klik kanan → **Extract All**, lalu buka `Monitoring.exe` di folder hasil ekstrak.
 
-            Semua data tersimpan di `Documents\Monitoring` (Excel, Backup Excel, Berkas).
+            Semua data tersimpan di `Documents\Monitoring` (Excel, Backup Excel, Berkas). Untuk menyimpannya di Google Drive: menu **Monitoring → Simpan Data di Google Drive…**

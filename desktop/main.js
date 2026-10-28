@@ -24,34 +24,150 @@ protocol.registerSchemesAsPrivileged([
 if (!SMOKE && !app.requestSingleInstanceLock()) { app.quit(); }
 
 // ---------- folder data ----------
-const ROOT = SMOKE ? fs.mkdtempSync(path.join(os.tmpdir(), 'monitoring-smoke-')) : path.join(app.getPath('documents'), 'Monitoring');
-const DIRS = {
-  root: ROOT,
-  data: path.join(ROOT, 'data'),
-  files: path.join(ROOT, 'Berkas'),
-  excel: path.join(ROOT, 'Excel'),
-  downloads: path.join(ROOT, 'Unduhan'),
-  backupExcel: path.join(ROOT, 'Backup Excel'),
-  backupData: path.join(ROOT, 'Backup Data'),
-};
-for (const d of Object.values(DIRS)) fs.mkdirSync(d, { recursive: true });
-const README = path.join(ROOT, 'BACA SAYA.txt');
-if (!fs.existsSync(README)) {
-  fs.writeFileSync(README, [
-    'Folder data aplikasi Monitoring (offline)',
-    '',
-    'Excel          : file Excel yang Anda unduh dari tombol "Unduh Excel" di aplikasi.',
-    'Backup Excel   : backup otomatis semua data dalam bentuk Excel (satu file per hari).',
-    'Backup Data    : cadangan lengkap (.json) untuk dipulihkan lewat menu Monitoring > Impor Data.',
-    'Berkas         : lampiran yang diunggah (dokumen pelamar, berkas & foto notulensi).',
-    'Unduhan        : unduhan lain (PDF, Word, gambar).',
-    'data           : database aplikasi. Jangan diubah manual.',
-    '',
-  ].join('\r\n'));
+// Bawaan: Documents\Monitoring. Bisa dipindah (mis. ke Google Drive) lewat menu;
+// lokasinya disimpan di monitoring-config.json di folder profil aplikasi.
+const CONFIG_FILE = path.join(app.getPath('userData'), 'monitoring-config.json');
+const DEFAULT_ROOT = path.join(app.getPath('documents'), 'Monitoring');
+function readConfig() { try { return JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')) || {}; } catch (e) { return {}; } }
+function writeConfig(c) { fs.mkdirSync(path.dirname(CONFIG_FILE), { recursive: true }); fs.writeFileSync(CONFIG_FILE, JSON.stringify(c, null, 1)); }
+
+let ROOT = null, DIRS = null, store = null;
+let backupDirty = false;
+function openRoot(root) {
+  ROOT = root;
+  DIRS = {
+    root: ROOT,
+    data: path.join(ROOT, 'data'),
+    files: path.join(ROOT, 'Berkas'),
+    excel: path.join(ROOT, 'Excel'),
+    downloads: path.join(ROOT, 'Unduhan'),
+    backupExcel: path.join(ROOT, 'Backup Excel'),
+    backupData: path.join(ROOT, 'Backup Data'),
+  };
+  for (const d of Object.values(DIRS)) fs.mkdirSync(d, { recursive: true });
+  const README = path.join(ROOT, 'BACA SAYA.txt');
+  if (!fs.existsSync(README)) {
+    fs.writeFileSync(README, [
+      'Folder data aplikasi Monitoring (offline)',
+      '',
+      'Excel          : file Excel yang Anda unduh dari tombol "Unduh Excel" di aplikasi.',
+      'Backup Excel   : backup otomatis semua data dalam bentuk Excel (satu file per hari).',
+      'Backup Data    : cadangan lengkap (.json) untuk dipulihkan lewat menu Monitoring > Impor Data.',
+      'Berkas         : lampiran yang diunggah (dokumen pelamar, berkas & foto notulensi).',
+      'Unduhan        : unduhan lain (PDF, Word, gambar).',
+      'data           : database aplikasi. Jangan diubah manual.',
+      '',
+      'Bila folder ini ada di Google Drive: buka aplikasi Monitoring di satu laptop saja pada satu waktu,',
+      'supaya perubahan tidak saling menimpa.',
+      '',
+    ].join('\r\n'));
+  }
+  store = new Store({ dataDir: DIRS.data, filesDir: DIRS.files, onChange: () => { backupDirty = true; } });
 }
 
-let backupDirty = false;
-const store = new Store({ dataDir: DIRS.data, filesDir: DIRS.files, onChange: () => { backupDirty = true; } });
+// Cari folder Google Drive for desktop (G:\My Drive, G:\Drive Saya, dst.).
+function findGoogleDrive() {
+  const names = ['My Drive', 'Drive Saya', 'Mi unidad', 'Meine Ablage'];
+  const out = [];
+  if (process.platform === 'win32') {
+    for (const L of 'GHIJKLMNOPQRSTUVWXYZDEF') for (const n of names) {
+      const p = `${L}:\\${n}`;
+      try { if (fs.existsSync(p) && fs.statSync(p).isDirectory()) out.push(p); } catch (e) {}
+    }
+  }
+  const home = app.getPath('home');
+  for (const p of [path.join(home, 'Google Drive', 'My Drive'), path.join(home, 'Google Drive'), path.join(home, 'My Drive')]) {
+    try { if (fs.existsSync(p) && fs.statSync(p).isDirectory() && !out.includes(p)) out.push(p); } catch (e) {}
+  }
+  return out;
+}
+
+// Lokasi tersimpan belum tersedia (mis. Google Drive belum menyala): tunggu / kembali ke Documents.
+async function resolveRoot() {
+  if (SMOKE) return fs.mkdtempSync(path.join(os.tmpdir(), 'monitoring-smoke-'));
+  const cfg = readConfig();
+  if (!cfg.root) return DEFAULT_ROOT;
+  for (;;) {
+    if (fs.existsSync(path.dirname(cfg.root))) return cfg.root;
+    const r = await dialog.showMessageBox({
+      type: 'warning', title: 'Folder data tidak ditemukan',
+      message: 'Folder data Monitoring belum bisa dibuka.',
+      detail: `${cfg.root}\n\nBila folder ini ada di Google Drive, pastikan aplikasi Google Drive sudah menyala dan selesai login, lalu klik Coba Lagi.`,
+      buttons: ['Coba Lagi', 'Pakai Documents\\Monitoring', 'Keluar'], defaultId: 0, cancelId: 2,
+    });
+    if (r.response === 2) { app.exit(0); return null; }
+    if (r.response === 1) { writeConfig({ ...cfg, root: null }); return DEFAULT_ROOT; }
+    await new Promise((ok) => setTimeout(ok, 1500));
+  }
+}
+
+async function moveDataTo(parentDir) {
+  const target = path.join(parentDir, 'Monitoring');
+  if (path.resolve(target).toLowerCase() === path.resolve(ROOT).toLowerCase()) {
+    dialog.showMessageBox(mainWin, { type: 'info', title: 'Folder data', message: 'Data Monitoring sudah disimpan di folder ini.', detail: target });
+    return;
+  }
+  let useExisting = false;
+  if (fs.existsSync(path.join(target, 'data', 'meta.json'))) {
+    const r = await dialog.showMessageBox(mainWin, {
+      type: 'question', title: 'Sudah ada data di sana',
+      message: 'Di folder tujuan sudah ada data Monitoring.',
+      detail: `${target}\n\nPakai data yang sudah ada di sana, atau timpa dengan data dari laptop ini?`,
+      buttons: ['Batal', 'Pakai Data di Sana', 'Timpa dengan Data Laptop Ini'], defaultId: 1, cancelId: 0,
+    });
+    if (r.response === 0) return;
+    useExisting = r.response === 1;
+  } else {
+    const r = await dialog.showMessageBox(mainWin, {
+      type: 'question', title: 'Pindahkan folder data',
+      message: 'Pindahkan semua data Monitoring ke folder ini?',
+      detail: `${target}\n\nSemua data, Excel, backup, dan berkas akan disalin ke sana, lalu aplikasi dibuka ulang.`,
+      buttons: ['Batal', 'Pindahkan'], defaultId: 1, cancelId: 0,
+    });
+    if (r.response !== 1) return;
+  }
+  try {
+    store.flush();
+    if (backupDirty) await runBackup('move');
+    if (!useExisting) {
+      if (fs.existsSync(path.join(target, 'data'))) fs.renameSync(path.join(target, 'data'), path.join(target, `data-lama-${Date.now()}`));
+      fs.cpSync(ROOT, target, { recursive: true, force: true });
+    }
+    writeConfig({ ...readConfig(), root: target });
+    const old = ROOT;
+    try { fs.writeFileSync(path.join(old, 'SUDAH DIPINDAH.txt'), `Data Monitoring sekarang disimpan di:\r\n${target}\r\n\r\nFolder ini adalah salinan lama dan boleh dihapus.\r\n`); } catch (e) {}
+    await dialog.showMessageBox(mainWin, {
+      type: 'info', title: 'Selesai', message: 'Folder data berhasil dipindah.',
+      detail: `Lokasi baru:\n${target}\n\nFolder lama (${old}) masih ada sebagai salinan dan boleh dihapus. Aplikasi akan dibuka ulang.`,
+    });
+    quitting = true;
+    app.relaunch();
+    app.exit(0);
+  } catch (e) {
+    dialog.showErrorBox('Gagal memindah folder data', e.message);
+  }
+}
+
+async function saveToGoogleDrive() {
+  const found = findGoogleDrive();
+  if (found.length) return moveDataTo(found[0]);
+  const r = await dialog.showMessageBox(mainWin, {
+    type: 'info', title: 'Google Drive belum terpasang',
+    message: 'Aplikasi Google Drive for desktop belum ditemukan di laptop ini.',
+    detail: 'Pasang dan login Google Drive for desktop dulu (muncul sebagai drive G: "My Drive"), lalu pilih menu ini lagi.\n\nAtau pilih folder Google Drive secara manual.',
+    buttons: ['Batal', 'Unduh Google Drive for desktop', 'Pilih Folder Sendiri…'], defaultId: 1, cancelId: 0,
+  });
+  if (r.response === 1) shell.openExternal('https://www.google.com/drive/download/');
+  if (r.response === 2) chooseDataFolder();
+}
+
+async function chooseDataFolder() {
+  const r = await dialog.showOpenDialog(mainWin, { title: 'Pilih tempat folder data Monitoring', properties: ['openDirectory', 'createDirectory'] });
+  if (r.canceled || !r.filePaths[0]) return;
+  let p = r.filePaths[0];
+  if (path.basename(p).toLowerCase() === 'monitoring' && fs.existsSync(path.join(p, 'data'))) p = path.dirname(p);
+  moveDataTo(p);
+}
 
 const webRoot = path.join(__dirname, 'web');
 const offlineDir = path.join(__dirname, 'offline');
@@ -128,6 +244,8 @@ function buildMenu() {
         { label: 'Buka Folder Monitoring', click: () => shell.openPath(ROOT) },
         { label: 'Buka Folder Excel', click: () => shell.openPath(DIRS.excel) },
         { label: 'Buka Folder Backup Excel', click: () => shell.openPath(DIRS.backupExcel) },
+        { label: 'Simpan Data di Google Drive…', click: () => saveToGoogleDrive() },
+        { label: 'Pindahkan Folder Data…', click: () => chooseDataFolder() },
         { type: 'separator' },
         {
           label: 'Backup Sekarang', accelerator: 'CmdOrCtrl+B', click: async () => {
@@ -165,7 +283,7 @@ function buildMenu() {
         {
           label: 'Tentang Monitoring', click: () => dialog.showMessageBox(focused(), {
             type: 'info', title: 'Tentang Monitoring', message: `Monitoring ${app.getVersion()} — versi offline`,
-            detail: `Semua data tersimpan di laptop ini:\n${ROOT}\n\nBackup Excel dibuat otomatis setiap ada perubahan (paling lambat tiap 2 menit) dan saat aplikasi ditutup.`,
+            detail: `Semua data tersimpan di:\n${ROOT}\n\nBackup Excel dibuat otomatis setiap ada perubahan (paling lambat tiap 2 menit) dan saat aplikasi ditutup.`,
           }),
         },
       ],
@@ -261,6 +379,9 @@ ipcMain.handle('mon:open-folder', (e, which) => { guard(e); return shell.openPat
 app.on('second-instance', () => { if (mainWin) { if (mainWin.isMinimized()) mainWin.restore(); mainWin.focus(); } });
 
 app.whenReady().then(async () => {
+  const root = await resolveRoot();
+  if (!root) return;
+  openRoot(root);
   app.setAppUserModelId('id.monitoring.offline');
   protocol.handle('app', (req) => {
     const u = new URL(req.url);
@@ -309,6 +430,7 @@ app.on('before-quit', (e) => {
   if (quitting || SMOKE) return;
   e.preventDefault();
   quitting = true;
+  if (!store) { app.exit(0); return; }
   store.flush();
   const done = () => app.exit(0);
   const t = setTimeout(done, 15000);

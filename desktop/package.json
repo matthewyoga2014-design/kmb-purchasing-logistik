@@ -1,7 +1,7 @@
 {
   "name": "monitoring-desktop",
   "productName": "Monitoring",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Monitoring offline untuk Windows",
   "main": "main.js",
   "author": "Monitoring",
