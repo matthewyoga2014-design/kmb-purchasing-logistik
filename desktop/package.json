@@ -11,7 +11,7 @@
     "start": "node scripts/prepare-web.js && electron .",
     "prepare-web": "node scripts/prepare-web.js",
     "test": "node test/smoke.js && node test/queries.js",
-    "dist:win": "node scripts/prepare-web.js && electron-builder --win nsis --x64 --publish never"
+    "dist:win": "node scripts/prepare-web.js && electron-builder --win --x64 --publish never"
   },
   "dependencies": {
     "jszip": "3.10.1"
@@ -30,13 +30,37 @@
     "appId": "id.monitoring.offline",
     "productName": "Monitoring",
     "copyright": "Monitoring",
-    "directories": { "output": "dist", "buildResources": "build" },
-    "files": ["main.js", "preload.js", "core/**", "offline/**", "web/**", "build/icon.png", "package.json"],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "core/**",
+      "offline/**",
+      "web/**",
+      "build/icon.png",
+      "package.json"
+    ],
     "asar": true,
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "build/icon.png",
-      "artifactName": "Monitoring-Setup-${version}.exe"
+      "artifactName": "Monitoring-Portable-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -45,7 +69,8 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "Monitoring",
-      "deleteAppDataOnUninstall": false
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "Monitoring-Setup-${version}.${ext}"
     }
   }
 }

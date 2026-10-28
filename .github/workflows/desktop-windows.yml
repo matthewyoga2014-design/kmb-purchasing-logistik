@@ -63,13 +63,15 @@ jobs:
       - name: Buat installer .exe
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: npx electron-builder --win nsis --x64 --publish never
+        run: npx electron-builder --win --x64 --publish never
 
       - name: Simpan installer
         uses: actions/upload-artifact@v4
         with:
           name: Monitoring-Setup
-          path: desktop/dist/*.exe
+          path: |
+            desktop/dist/*.exe
+            desktop/dist/*.zip
 
       - name: Terbitkan unduhan
         uses: softprops/action-gh-release@v2
@@ -78,10 +80,14 @@ jobs:
           name: Monitoring untuk Windows (offline) — build ${{ github.run_number }}
           target_commitish: ${{ github.sha }}
           prerelease: true
-          files: desktop/dist/*.exe
+          files: |
+            desktop/dist/*.exe
+            desktop/dist/*.zip
           body: |
             Aplikasi **Monitoring** versi offline untuk Windows.
 
-            1. Unduh `Monitoring-Setup-1.0.0.exe` di bawah.
-            2. Jalankan. Bila muncul "Windows protected your PC", klik **More info → Run anyway**.
-            3. Semua data tersimpan di `Documents\Monitoring` (Excel, Backup Excel, Berkas).
+            **Cara 1 — installer:** unduh `Monitoring-Setup-1.0.0.exe`, jalankan. Bila muncul "Windows protected your PC", klik **More info → Run anyway**.
+
+            **Cara 2 — tanpa install (bila installer diblokir browser):** unduh `Monitoring-Portable-1.0.0.zip`, klik kanan → **Extract All**, lalu buka `Monitoring.exe` di folder hasil ekstrak.
+
+            Semua data tersimpan di `Documents\Monitoring` (Excel, Backup Excel, Berkas).
