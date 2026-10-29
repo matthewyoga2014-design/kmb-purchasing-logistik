@@ -3846,6 +3846,9 @@ window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,la
     return pk;
   }
   function open(i) {
+    // Di dalam jendela form (dialog modal), popup "Sisipkan file" tertutup oleh dialog dan tidak bisa diklik.
+    // Untuk input di dalam dialog, langsung buka jendela pilih file dari komputer/HP.
+    if (i.closest && i.closest('dialog[open]')) { nativeClick.call(i); return; }
     const pk = build();
     if (pk._inp && pk._inp._upkH) pk._inp.removeEventListener('change', pk._inp._upkH);
     pk._inp = i; i._upkH = () => close(); i.addEventListener('change', i._upkH, { once: true });
