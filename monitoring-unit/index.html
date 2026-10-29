@@ -3575,7 +3575,313 @@ let xlsxLoading=null;
 function loadXlsx(){ if(window.XLSX) return Promise.resolve(); if(xlsxLoading) return xlsxLoading;
   xlsxLoading=new Promise((res,rej)=>{ const sc=document.createElement("script"); sc.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; sc.onload=()=>res(); sc.onerror=()=>{ xlsxLoading=null; rej(new Error("load")); }; document.head.appendChild(sc); });
   return xlsxLoading; }
+/* ---------- Excel bergaya web: file .xlsx disusun langsung di browser (tanpa library) ---------- */
+const MUX=(()=>{
+  const enc=new TextEncoder();
+  const CRC=(()=>{ const t=new Uint32Array(256); for(let n=0;n<256;n++){ let c=n; for(let k=0;k<8;k++) c=c&1?0xEDB88320^(c>>>1):c>>>1; t[n]=c>>>0; } return t; })();
+  const crc32=b=>{ let c=0xFFFFFFFF; for(let i=0;i<b.length;i++) c=CRC[(c^b[i])&255]^(c>>>8); return (c^0xFFFFFFFF)>>>0; };
+  function zip(files){
+    const parts=[], central=[]; let off=0;
+    const d=new Date(), tm=((d.getHours()<<11)|(d.getMinutes()<<5)|(d.getSeconds()>>1))&0xFFFF, dt=(((d.getFullYear()-1980)<<9)|((d.getMonth()+1)<<5)|d.getDate())&0xFFFF;
+    files.forEach(f=>{ const nm=enc.encode(f.name), data=enc.encode(f.data), crc=crc32(data);
+      const h=new DataView(new ArrayBuffer(30));
+      h.setUint32(0,0x04034b50,true); h.setUint16(4,20,true); h.setUint16(6,0x0800,true); h.setUint16(8,0,true); h.setUint16(10,tm,true); h.setUint16(12,dt,true);
+      h.setUint32(14,crc,true); h.setUint32(18,data.length,true); h.setUint32(22,data.length,true); h.setUint16(26,nm.length,true); h.setUint16(28,0,true);
+      parts.push(new Uint8Array(h.buffer),nm,data);
+      const c=new DataView(new ArrayBuffer(46));
+      c.setUint32(0,0x02014b50,true); c.setUint16(4,20,true); c.setUint16(6,20,true); c.setUint16(8,0x0800,true); c.setUint16(10,0,true); c.setUint16(12,tm,true); c.setUint16(14,dt,true);
+      c.setUint32(16,crc,true); c.setUint32(20,data.length,true); c.setUint32(24,data.length,true); c.setUint16(28,nm.length,true); c.setUint32(42,off,true);
+      central.push(new Uint8Array(c.buffer),nm);
+      off+=30+nm.length+data.length; });
+    const size=central.reduce((a,b)=>a+b.length,0), e=new DataView(new ArrayBuffer(22));
+    e.setUint32(0,0x06054b50,true); e.setUint16(8,files.length,true); e.setUint16(10,files.length,true); e.setUint32(12,size,true); e.setUint32(16,off,true);
+    return new Blob([...parts,...central,new Uint8Array(e.buffer)],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+  }
+  const x=v=>String(v).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F￾￿]/g,"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  const colL=c=>{ let s=""; c++; while(c){ const m=(c-1)%26; s=String.fromCharCode(65+m)+s; c=Math.floor((c-1)/26); } return s; };
+  const ref=(r,c)=>colL(c)+(r+1);
+  const hex=c=>"FF"+String(c||"#000000").replace("#","").toUpperCase();
+  const serial=s=>{ const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(s||"")); if(!m) return null; return (Date.UTC(+m[1],+m[2]-1,+m[3])-Date.UTC(1899,11,30))/86400000; };
+  function book(){
+    const fonts=[], fills=['<fill><patternFill patternType="none"/></fill>','<fill><patternFill patternType="gray125"/></fill>'], borders=['<border><left/><right/><top/><bottom/><diagonal/></border>'], xfs=[], fmts=[];
+    const fi=new Map(), fl=new Map(), bo=new Map(), xf=new Map(), nf=new Map(), sheets=[];
+    const idx=(arr,map,s)=>{ if(!map.has(s)){ map.set(s,arr.length); arr.push(s); } return map.get(s); };
+    function style(s){ s=s||{}; const key=JSON.stringify(s); if(xf.has(key)) return xf.get(key);
+      const fontId=idx(fonts,fi,`<font>${s.b?"<b/>":""}${s.i?"<i/>":""}${s.u?"<u/>":""}<sz val="${s.sz||10}"/><color rgb="${hex(s.color||"#1C1A33")}"/><name val="${x(s.font||"Calibri")}"/><family val="2"/></font>`);
+      const fillId=s.fill?idx(fills,fl,`<fill><patternFill patternType="solid"><fgColor rgb="${hex(s.fill)}"/><bgColor indexed="64"/></patternFill></fill>`):0;
+      let borderId=0;
+      if(s.bd){ const B=s.bd===true?{l:1,r:1,t:1,b:1}:s.bd, col=s.bc||"#E2DFEE";
+        const side=(n,on)=>on?`<${n} style="${typeof on==="object"&&on.w||"thin"}"><color rgb="${hex(typeof on==="object"&&on.c||col)}"/></${n}>`:`<${n}/>`;
+        borderId=idx(borders,bo,`<border>${side("left",B.l)}${side("right",B.r)}${side("top",B.t)}${side("bottom",B.b)}<diagonal/></border>`); }
+      let numFmtId=0;
+      if(s.fmt){ if(s.fmt==="0%") numFmtId=9; else if(s.fmt==="#,##0") numFmtId=3; else { if(!nf.has(s.fmt)){ const id=164+fmts.length; nf.set(s.fmt,id); fmts.push(`<numFmt numFmtId="${id}" formatCode="${x(s.fmt)}"/>`); } numFmtId=nf.get(s.fmt); } }
+      const al=`<alignment${s.h?` horizontal="${s.h}"`:""} vertical="${s.v||"center"}"${s.wrap?' wrapText="1"':""}${s.ind?` indent="${s.ind}"`:""}/>`;
+      const id=xfs.length;
+      xfs.push(`<xf numFmtId="${numFmtId}" fontId="${fontId}" fillId="${fillId}" borderId="${borderId}" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"${numFmtId?' applyNumberFormat="1"':""}>${al}</xf>`);
+      xf.set(key,id); return id; }
+    style({});
+    function sheet(name,o){ o=o||{};
+      let nm=String(name).replace(/[\\\/?*\[\]:]/g," ").slice(0,31)||"Sheet"; while(sheets.some(s=>s.name===nm)) nm=nm.slice(0,28)+" "+sheets.length;
+      const sh={name:nm,rows:[],merges:[],cols:o.cols||[],freeze:o.freeze||0,filter:null,titles:o.titles||null,ht:{}};
+      sh.put=(r,c,v,s)=>{ (sh.rows[r]||(sh.rows[r]=[]))[c]={v,s:style(s),sz:(s&&s.sz)||10,w:!!(s&&s.wrap)}; };
+      sh.merge=(r,c1,c2,v,s,r2)=>{ r2=r2||r; for(let i=r;i<=r2;i++) for(let c=c1;c<=c2;c++) sh.put(i,c,i===r&&c===c1?v:null,s); if(c2>c1||r2>r) sh.merges.push([r,c1,r2,c2]); };
+      sh.height=(r,h)=>{ sh.ht[r]=h; };
+      sheets.push(sh); return sh; }
+    function cellXml(r,c,cell){ const a=`r="${ref(r,c)}" s="${cell.s}"`, v=cell.v;
+      if(v===null||v===undefined||v==="") return `<c ${a}/>`;
+      if(typeof v==="number") return isFinite(v)?`<c ${a}><v>${v}</v></c>`:`<c ${a}/>`;
+      if(typeof v==="object"&&v.d!==undefined){ const n=serial(v.d); return n===null?`<c ${a} t="inlineStr"><is><t>${x(v.d)}</t></is></c>`:`<c ${a}><v>${n}</v></c>`; }
+      if(typeof v==="object"&&v.f) return `<c ${a} t="str"><f>${x(v.f)}</f><v>${x(v.v||"")}</v></c>`;
+      return `<c ${a} t="inlineStr"><is><t xml:space="preserve">${x(v)}</t></is></c>`; }
+    // tinggi baris dihitung dari panjang teks & lebar kolom (Excel tidak menyesuaikan sendiri saat file dibuka)
+    function fitRow(sh,r){ const row=sh.rows[r]; if(!row) return 0; let h=0;
+      row.forEach((cell,c)=>{ if(!cell||cell.v===null||cell.v===undefined||cell.v==="") return;
+        const m=sh.merges.find(m=>m[0]<=r&&m[2]>=r&&m[1]<=c&&m[3]>=c); if(m&&(m[0]!==r||m[1]!==c)) return;
+        let w=0; for(let i=c;i<=(m?m[3]:c);i++) w+=sh.cols[i]||9;
+        const txt=typeof cell.v==="object"?String(cell.v.v||cell.v.d||""):String(cell.v);
+        const cpl=Math.max(4,w*1.2*10/cell.sz);
+        const lines=cell.w?txt.split("\n").reduce((a,t)=>a+Math.max(1,Math.ceil(t.length/cpl)),0):1;
+        h=Math.max(h,lines*cell.sz*1.32+7); });
+      return Math.round(h*10)/10; }
+    function sheetXml(sh){
+      sh.rows.forEach((row,r)=>{ const f=fitRow(sh,r); if(f>15 && f>(sh.ht[r]||0)) sh.ht[r]=f; });
+      const rows=sh.rows.map((row,r)=>row?`<row r="${r+1}"${sh.ht[r]?` ht="${sh.ht[r]}" customHeight="1"`:""}>${row.map((cell,c)=>cell?cellXml(r,c,cell):"").join("")}</row>`:
+        (sh.ht[r]?`<row r="${r+1}" ht="${sh.ht[r]}" customHeight="1"/>`:"")).join("");
+      const pane=sh.freeze?`<pane ySplit="${sh.freeze}" topLeftCell="A${sh.freeze+1}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A${sh.freeze+1}" sqref="A${sh.freeze+1}"/>`:"";
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">`+
+        `<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0">${pane}</sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/>`+
+        (sh.cols.length?`<cols>${sh.cols.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("")}</cols>`:"")+
+        `<sheetData>${rows}</sheetData>`+
+        (sh.filter?`<autoFilter ref="${ref(sh.filter[0],sh.filter[1])}:${ref(sh.filter[2],sh.filter[3])}"/>`:"")+
+        (sh.merges.length?`<mergeCells count="${sh.merges.length}">${sh.merges.map(m=>`<mergeCell ref="${ref(m[0],m[1])}:${ref(m[2],m[3])}"/>`).join("")}</mergeCells>`:"")+
+        `<printOptions horizontalCentered="1"/><pageMargins left="0.3" right="0.3" top="0.45" bottom="0.45" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/>`+
+        `<headerFooter><oddFooter>&amp;L&amp;8${x(sh.name)}&amp;R&amp;8Halaman &amp;P dari &amp;N</oddFooter></headerFooter></worksheet>`; }
+    function blob(){
+      const qn=n=>"'"+n.replace(/'/g,"''")+"'";
+      const names=sheets.map((s,i)=>[s.filter?`<definedName name="_xlnm._FilterDatabase" localSheetId="${i}" hidden="1">${x(qn(s.name))}!$${colL(s.filter[1])}$${s.filter[0]+1}:$${colL(s.filter[3])}$${s.filter[2]+1}</definedName>`:"",
+        s.titles?`<definedName name="_xlnm.Print_Titles" localSheetId="${i}">${x(qn(s.name))}!$${s.titles[0]+1}:$${s.titles[1]+1}</definedName>`:""].join("")).join("");
+      const files=[
+        {name:"[Content_Types].xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>`},
+        {name:"_rels/.rels",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
+        {name:"xl/workbook.xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView activeTab="0"/></bookViews><sheets>${sheets.map((s,i)=>`<sheet name="${x(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets>${names?`<definedNames>${names}</definedNames>`:""}</workbook>`},
+        {name:"xl/_rels/workbook.xml.rels",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}<Relationship Id="rId${sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
+        {name:"xl/styles.xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${fmts.length?`<numFmts count="${fmts.length}">${fmts.join("")}</numFmts>`:""}<fonts count="${fonts.length}">${fonts.join("")}</fonts><fills count="${fills.length}">${fills.join("")}</fills><borders count="${borders.length}">${borders.join("")}</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${xfs.length}">${xfs.join("")}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`},
+        ...sheets.map((s,i)=>({name:`xl/worksheets/sheet${i+1}.xml`,data:sheetXml(s)}))
+      ];
+      return zip(files); }
+    return {sheet,blob}; }
+  return {book};
+})();
+
+/* warna sama dengan label di web */
+const MUX_CHIP={"s-accent":["#6D28D9","#EFE8FD"],"s-idle":["#64748B","#EDEFF4"],"s-info":["#2563EB","#DFEAFE"],"s-ok":["#15803D","#DCF5E5"],"s-warn":["#B45309","#FDEFD7"],"s-bad":["#E11D48","#FDE2E7"]};
+const MUX_KOND={"k-ok":["#15803D","#DCFCE7"],"k-prog":["#B45309","#FEF3C7"],"k-bad":["#B91C1C","#FEE2E2"],"k-none":["#64748B","#F1F5F9"],"k-etc":["#1D4ED8","#DBEAFE"]};
+function muxVendorC(name){ const key=(String(name||"").trim()||"Belum diisi").replace(/\s+/g," ").toUpperCase(); let i=MU_VENDOR_FIXED[key];
+  if(i===undefined){ let h=0; for(let j=0;j<key.length;j++) h=((h*31)+key.charCodeAt(j))>>>0; i=2+(h%(MU_VENDOR_COLORS.length-2)); } return MU_VENDOR_COLORS[i]; }
+function muxBrandC(name){ const key=String(name||"").trim().replace(/\s+/g," ").toUpperCase(); if(!key) return {fg:"#64748B",bg:"#F1F5F9"};
+  let c=MU_BRAND_COLORS[key]||MU_BRAND_COLORS[key.split(/[\s/(-]/)[0]]; if(!c){ let h=0; for(let j=0;j<key.length;j++) h=((h*31)+key.charCodeAt(j))>>>0; c=MU_BRAND_PALETTE[h%MU_BRAND_PALETTE.length]; } return c; }
+
+function buildStyledExcel(P,ps){
+  const B=MUX.book(), pids=ps.map(p=>p.id), pset=new Set(pids);
+  const INK="#1C1A33", MUTED="#6B6985", ACC="#6D28D9", SOFT="#EFE8FD", HEAD="#F4F1FD", LINE="#E2DFEE";
+  const DATE="[$-421]d mmm yyyy";
+  const td={bd:true,wrap:true,sz:10}, tdc={...td,h:"center"}, tdn={...td,h:"center"};
+  const th={bd:true,wrap:true,b:true,sz:9.5,color:"#4B4868",fill:HEAD,h:"center"};
+  const thL={...th,h:"left"};
+  const dash={...tdc,color:"#A3A1B8"};
+  const dateSt={...tdc,fmt:DATE};
+  const plate={...tdc,b:true,font:"Consolas",sz:9.5,color:"#FFFFFF",fill:INK};
+  const ptag={...tdc,b:true,color:ACC,fill:SOFT};
+  const chipSt=(list,k)=>{ const c=MUX_CHIP[statusOf(list,k).cls]||MUX_CHIP["s-idle"]; return {...tdc,b:true,color:c[0],fill:c[1]}; };
+  const kondSt=k=>{ const c=MUX_KOND[muKondCls(k)]; return {...tdc,b:true,color:c[0],fill:c[1]}; };
+  const vendSt=v=>{ const c=muxVendorC(v); return {...tdc,b:true,color:c.fg,fill:c.bg}; };
+  const brandSt=v=>{ if(!String(v||"").trim()) return {...tdc,i:true,color:"#94A3B8"}; const c=muxBrandC(v); return {...tdc,b:true,color:c.fg,fill:c.bg}; };
+  const dv=(sh,r,c,s,st)=>{ if(s) sh.put(r,c,{d:String(s).slice(0,10)},st||dateSt); else sh.put(r,c,"—",dash); };
+  const scopeTxt=P?`${P.kode}${P.nama?" · "+P.nama:""}`:"Semua project";
+  const printed=new Date().toLocaleString("id-ID",{dateStyle:"long",timeStyle:"short"});
+  function head(sh,n,judul,ket){
+    sh.merge(0,0,n-1,`Monitoring Unit  ·  ${judul}`,{b:true,sz:15,color:"#FFFFFF",fill:ACC,ind:1}); sh.height(0,30);
+    sh.merge(1,0,n-1,`${scopeTxt}  ·  Diunduh ${printed}${meEmail?" · "+meEmail:""}${ket?"  ·  "+ket:""}`,{sz:9,color:"#4B4868",fill:SOFT,ind:1}); sh.height(1,18);
+    sh.height(2,8); return 3; }
+  function header(sh,r,labels,lefts){ labels.forEach((t,c)=>{ if(t===null) return; sh.put(r,c,t,(lefts||[]).includes(c)?thL:th); }); sh.height(r,30); }
+  function emptyRow(sh,r,n,t){ sh.merge(r,0,n-1,t,{...td,i:true,color:"#8F8DA6",h:"center"}); sh.height(r,22); }
+  function section(sh,r,n,t,sub){ sh.merge(r,0,n-1,t+(sub?"   "+sub:""),{b:true,sz:12,color:ACC,bd:{b:{w:"medium",c:ACC}}}); sh.height(r,22); }
+
+  /* 1. Dashboard */
+  { const sh=B.sheet("Dashboard",{cols:[20,24,18,13,13,11,11,10,14,40]}); const N=10; let r=head(sh,N,"Dashboard");
+    const t=totals(P), q=pct(t.tiba,t.rencana);
+    const kpis=[["Rencana kirim",t.rencana,`${t.items.length} item unit${P?"":` · ${ps.length} project`} · ${t.revs}× revisi`,"#7C3AED"],
+      ["Sisa kirim",t.sisa,`${pct(t.sisa,t.rencana)}% belum berangkat`,"#EF4F5F"],
+      ["Dalam perjalanan",t.jalan,`${pct(t.jalan,t.rencana)}% sedang menuju site`,"#F7871F"],
+      ["Unit di lokasi",t.units.length,`${t.units.filter(isExistingUnit).length} existing · ${t.tiba} tiba dari rencana (${q}%)`,"#16A34A"],
+      ["Dikirim ke site lain",t.keluar,t.keluar?`${t.keluarJalan} di jalan · ${t.keluarDone} sudah sampai`:"Belum ada unit dipindah","#2563EB"]];
+    kpis.forEach((k,i)=>{ const c=i*2, bdr={l:{c:"#FFFFFF",w:"medium"},r:{c:"#FFFFFF",w:"medium"}};
+      sh.merge(r,c,c+1,k[0].toUpperCase(),{b:true,sz:9.5,color:"#FFFFFF",fill:k[3],ind:1,bd:bdr});
+      sh.merge(r+1,c,c+1,k[1],{b:true,sz:26,color:"#FFFFFF",fill:k[3],h:"left",ind:1,bd:bdr});
+      sh.merge(r+2,c,c+1,k[2],{sz:9,color:"#FFFFFF",fill:k[3],ind:1,wrap:true,v:"top",bd:bdr}); });
+    sh.height(r,20); sh.height(r+1,40); sh.height(r+2,30); r+=4;
+    section(sh,r++,N,"Ringkasan per project");
+    header(sh,r,["Project","Nama","Lokasi","Rencana kirim","Dalam perjalanan","Tiba","Sisa kirim","% tiba","Dikirim ke site lain","Catatan"],[1,2,9]); r++;
+    const tot={r:0,j:0,t:0,s:0,k:0};
+    ps.forEach(p=>{ const s=projStats(p.id), kel=keluarMobs([p.id]).length;
+      tot.r+=s.rencana; tot.j+=s.jalan; tot.t+=s.tiba; tot.s+=s.sisa; tot.k+=kel;
+      sh.put(r,0,p.kode,ptag); sh.put(r,1,p.nama||"—",{...td,b:true}); sh.put(r,2,p.lokasi||"—",td);
+      sh.put(r,3,s.rencana,{...tdn,b:true}); sh.put(r,4,s.jalan,{...tdn,b:!!s.jalan,color:s.jalan?"#C2410C":MUTED});
+      sh.put(r,5,s.tiba,{...tdn,b:true,color:"#15803D"}); sh.put(r,6,s.sisa,{...tdn,b:true,color:s.sisa?"#E11D48":MUTED});
+      sh.put(r,7,s.rencana?s.tiba/s.rencana:0,{...tdn,fmt:"0%",b:true,color:ACC}); sh.put(r,8,kel,{...tdn,color:kel?"#2563EB":MUTED});
+      sh.put(r,9,p.catatan||"",{...td,color:MUTED,sz:9}); r++; });
+    if(!ps.length) emptyRow(sh,r++,N,"Belum ada project");
+    else { const ts={...tdn,b:true,fill:HEAD}; sh.put(r,0,"TOTAL",{...ts,color:ACC}); sh.merge(r,1,2,`${ps.length} project`,{...ts,h:"left",color:MUTED});
+      sh.put(r,3,tot.r,ts); sh.put(r,4,tot.j,{...ts,color:"#C2410C"}); sh.put(r,5,tot.t,{...ts,color:"#15803D"}); sh.put(r,6,tot.s,{...ts,color:"#E11D48"});
+      sh.put(r,7,tot.r?tot.t/tot.r:0,{...ts,fmt:"0%",color:ACC}); sh.put(r,8,tot.k,{...ts,color:"#2563EB"}); sh.put(r,9,"",ts); r++; }
+    r++; section(sh,r++,N,"Rencana kirim per item");
+    header(sh,r,["Project","Item unit",null,"Rencana kirim","Dalam perjalanan","Tiba","Sisa kirim","Status",null,"ETA"],[1]); sh.merge(r,1,2,"Item unit",thL); sh.merge(r,7,8,"Status",th); r++;
+    let any=false;
+    ps.forEach(p=>itemsOf(p.id).forEach(k=>{ any=true; const n=tibaItem(k), rr=Number(k.rencana)||0, jl=jalanItem(k), sk=sisaItem(k);
+      sh.put(r,0,p.kode,ptag); sh.merge(r,1,2,k.tipe,{...td,b:true});
+      sh.put(r,3,rr,{...tdn,b:true}); sh.put(r,4,jl,{...tdn,color:jl?"#C2410C":MUTED,b:!!jl}); sh.put(r,5,n,{...tdn,b:true,color:"#15803D"}); sh.put(r,6,sk,{...tdn,b:true,color:sk?"#E11D48":MUTED});
+      const st=n>rr?["Lebih "+(n-rr),"s-warn"]:sk?[`${sk} sisa${jl?` · ${jl} jalan`:""}`,"s-bad"]:jl?[`${jl} dalam perjalanan`,"s-warn"]:["Lengkap","s-ok"];
+      const c=MUX_CHIP[st[1]]; sh.merge(r,7,8,st[0],{...tdc,b:true,color:c[0],fill:c[1]}); dv(sh,r,9,k.eta); r++; }));
+    if(!any) emptyRow(sh,r++,N,"Belum ada rencana kirim");
+  }
+
+  /* 2. Rencana Kirim: project → item → tabel unit (sama dengan tampilan web) */
+  { const sh=B.sheet("Rencana Kirim",{cols:[6,14,13,13,13,16,14,14,16,13,17,19,16,24,40],freeze:4}); const N=15; let r=head(sh,N,"Rencana Kirim","Setiap item diikuti tabel unitnya");
+    header(sh,r,["Item unit",null,null,null,"Rencana awal","Rencana kini","Perubahan","Tiba","Dlm perjalanan","Sisa kirim","ETA","Keterangan",null,null,null]);
+    sh.merge(r,0,3,"Item unit",thL); sh.merge(r,11,14,"Keterangan",thL); sh.titles=[r,r]; r++;
+    const subH=["#","Rencana kirim","ETD","ETA","Actual","No. lambung","Vendor","Merek","Via","Tgl kirim","Status","Kondisi","Posisi","Kirim berikutnya","Catatan"];
+    const sth={bd:true,b:true,sz:8.5,color:"#6B6985",fill:"#F7F6FC",h:"center",wrap:true};
+    if(!ps.length) emptyRow(sh,r++,N,"Belum ada rencana kirim");
+    ps.forEach(p=>{ const s=projStats(p.id);
+      r++; sh.merge(r,0,N-1,`${p.kode}${[p.nama,p.lokasi].filter(Boolean).length?"   ·   "+[p.nama,p.lokasi].filter(Boolean).join(" · "):""}`,{b:true,sz:13,color:ACC,fill:SOFT,ind:1,bd:{t:{w:"medium",c:ACC}}}); sh.height(r,24); r++;
+      sh.merge(r,0,N-1,`${s.rencana} unit rencana  ·  ${s.jalan} dlm perjalanan  ·  ${s.tiba} tiba  ·  ${s.sisa} sisa kirim${p.catatan?"  ·  "+p.catatan:""}`,{sz:9.5,color:"#4B4868",fill:SOFT,ind:1}); sh.height(r,18); r++;
+      if(!s.items.length){ emptyRow(sh,r++,N,"Belum ada item unit di project ini."); return; }
+      s.items.forEach(k=>{ const n=tibaItem(k), rr=Number(k.rencana)||0, aw=Number(k.rencanaAwal)||0, sisa=rr-n, revs=S.revisi.filter(x=>x.kirimId===k.id).length, jl=jalanItem(k), sk=sisaItem(k);
+        const it={...td,fill:"#FFFFFF",bd:{l:1,r:1,t:{w:"medium",c:"#C9BEEA"},b:1},sz:10.5};
+        sh.merge(r,0,3,k.tipe+(revs?`   (${revs}× direvisi)`:""),{...it,b:true,sz:11.5,ind:1});
+        sh.put(r,4,aw,{...it,h:"center"}); sh.put(r,5,rr,{...it,h:"center",b:true,sz:12});
+        const d=rr-aw, dc=d>0?MUX_CHIP["s-info"]:d<0?MUX_CHIP["s-bad"]:MUX_CHIP["s-idle"];
+        sh.put(r,6,(d>0?"+":"")+d,{...it,h:"center",b:true,color:dc[0],fill:dc[1]});
+        sh.put(r,7,n,{...it,h:"center",b:true,color:"#15803D"});
+        sh.put(r,8,jl?`${jl} dlm perjalanan`:0,{...it,h:"center",b:!!jl,color:jl?"#C2410C":MUTED});
+        if(sisa>=0) sh.put(r,9,sk,{...it,h:"center",b:true,sz:12,color:sk?"#E11D48":MUTED}); else sh.put(r,9,`lebih ${-sisa}`,{...it,h:"center",b:true,color:"#C2410C"});
+        if(k.eta) sh.put(r,10,{d:k.eta},{...it,h:"center",fmt:DATE}); else if(sisa>0) sh.put(r,10,"—",{...it,h:"center",color:"#A3A1B8"}); else sh.put(r,10,"Lengkap",{...it,h:"center",b:true,color:"#15803D",fill:"#DCF5E5"});
+        const via=[k.moda?"Via "+k.moda:"",k.asal?"dari "+k.asal:""].filter(Boolean).join(" · ");
+        sh.merge(r,11,14,[k.catatan||"",via].filter(Boolean).join("\n"),{...it,sz:9.5,color:"#4B4868"});
+        sh.height(r,26); r++;
+        // tabel unit
+        const us=slotUnits(k), tot=Math.max(rr,us.length);
+        subH.forEach((t,c)=>sh.put(r,c,t,sth)); sh.height(r,20); r++;
+        for(let i=0;i<tot;i++){ const u=us[i], over=i>=rr;
+          if(!u){ sh.put(r,0,i+1,{...tdc,color:MUTED,sz:9}); sh.merge(r,1,N-1,"Belum dijadwalkan / belum dikirim",{...td,i:true,color:"#A3A1B8",sz:9,ind:1}); r++; continue; }
+          const md=muDetails(u), sz=9.5, c0={...tdc,sz};
+          sh.put(r,0,over?`${i+1} (lebih)`:i+1,{...c0,color:over?"#C2410C":MUTED,b:over});
+          dv(sh,r,1,u.rencanaKirim,{...dateSt,sz,b:true}); dv(sh,r,2,md.etd,{...dateSt,sz});
+          const late=md.eta&&!arrived(u)&&md.eta<todayStr();
+          dv(sh,r,3,md.eta,{...dateSt,sz,...(late?{color:"#E11D48",b:true}:{})});
+          if(arrived(u)&&u.tglTiba) sh.put(r,4,{d:u.tglTiba},{...dateSt,sz,b:true,color:"#15803D"}); else sh.put(r,4,"—",{...dash,sz});
+          if(u.kodeSementara) sh.put(r,5,"belum diisi",{...c0,i:true,color:"#B45309"}); else sh.put(r,5,u.kode,{...plate,sz:9});
+          sh.put(r,6,String(md.vendor||"").trim()||"Belum diisi",{...vendSt(md.vendor),sz:9});
+          sh.put(r,7,String(md.merk||"").trim()||"Belum diisi",{...brandSt(md.merk),sz:9});
+          sh.put(r,8,u.via||k.moda||"—",{...c0});
+          dv(sh,r,9,u.tglKirim,{...dateSt,sz});
+          sh.put(r,10,u.status||"—",{...chipSt(ALL_STATUS,u.status),sz:9});
+          if(md.kondisi) sh.put(r,11,md.kondisi,{...kondSt(md.kondisi),sz:9}); else sh.put(r,11,"—",{...dash,sz});
+          sh.put(r,12,u.lokasi||"—",c0);
+          const nx=nextMobOf(u), done=mobsOfUnit(u).filter(m=>m.status==="Selesai");
+          const hist=done.length?[done[0].dari,...done.map(m=>m.ke)].join(" → "):"";
+          const nxt=nx?`→ ${nx.ke}${projByName(nx.ke)&&projByName(nx.ke).id!==u.projectId?" (site lain)":""}\n${fmtD(nx.tanggal)}${nx.jam?" "+nx.jam:""} · ${nx.status}${hist?"\n"+hist:""}`:(hist||(arrived(u)?"Belum ada":"—"));
+          sh.put(r,13,nxt,{...td,sz:9,color:nx?"#C2410C":MUTED,b:!!nx});
+          const sub=[md.model,md.tahun,md.serial?"SN "+md.serial:""].filter(Boolean).join(" · ");
+          sh.put(r,14,[String(md.catatan||"").trim(),sub].filter(Boolean).join("\n"),{...td,sz:9,color:"#4B4868"});
+          sh.height(r,20); r++; }
+        r++; });
+    });
+  }
+
+  /* 3. Populasi Unit: rekap jenis + detail (sama dengan sheet Populasi Unit di web) */
+  { const sh=B.sheet("Populasi Unit",{cols:[6,17,22,14,14,20,18,16,20,9,13,40]}); const N=12; let r=head(sh,N,"Populasi Unit","Unit yang sudah tiba / di lokasi");
+    const rows=S.units.filter(u=>arrived(u)&&pset.has(u.projectId)).sort((a,b)=>String(a.tipe||"").localeCompare(String(b.tipe||""),"id")||String(a.kode||"").localeCompare(String(b.kode||""),"id",{numeric:true}));
+    const kinds=new Map(); rows.forEach(u=>{ const key=MU_TYPE_KEY(u.tipe); if(!kinds.has(key)) kinds.set(key,{name:String(u.tipe||"Jenis belum diisi").trim(),n:0}); kinds.get(key).n++; });
+    const groups=[...kinds.values()].sort((a,b)=>a.name.localeCompare(b.name,"id",{numeric:true}));
+    section(sh,r++,N,"Rekap jenis unit",`${rows.length} unit · ${groups.length} jenis`);
+    sh.put(r,0,"No",th); sh.merge(r,1,2,"Jenis Unit",thL); sh.put(r,3,"Jumlah",th); sh.merge(r,4,6,"Porsi",thL); sh.height(r,22); r++;
+    groups.forEach((g,i)=>{ const c=MU_UNIT_COLORS[i%MU_UNIT_COLORS.length], share=rows.length?g.n/rows.length:0, bar=Math.round(share*20);
+      sh.put(r,0,i+1,{...tdc,color:MUTED}); sh.merge(r,1,2,g.name,{...td,b:true,color:c}); sh.put(r,3,g.n,{...tdn,b:true,sz:11});
+      sh.merge(r,4,5,"█".repeat(bar)+"░".repeat(20-bar),{...td,color:c,font:"Consolas",sz:9}); sh.put(r,6,share,{...tdn,b:true,fmt:"0%",color:c}); r++; });
+    if(!groups.length) emptyRow(sh,r++,7,"Belum ada unit di lokasi");
+    else { const ts={...tdn,b:true,fill:HEAD}; sh.put(r,0,"",ts); sh.merge(r,1,2,"Total",{...ts,h:"left"}); sh.put(r,3,rows.length,{...ts,sz:11,color:ACC}); sh.merge(r,4,5,"",ts); sh.put(r,6,1,{...ts,fmt:"0%",color:ACC}); r++; }
+    r++; section(sh,r++,N,"Detail unit di lokasi");
+    const h0=r; header(sh,r,["No","Nomor lambung","Jenis Unit","Vendor","Merek","Project","Posisi","Status Operasional","Kondisi","HM","Tanggal tiba","Keterangan"],[2,11]); r++;
+    rows.forEach((u,i)=>{ const m=muDetails(u), mob=S.mobs.find(x=>(x.unitId===u.id||x.unitKode===u.kode)&&isAktif(x));
+      sh.put(r,0,i+1,{...tdc,color:MUTED});
+      if(u.kodeSementara) sh.put(r,1,u.kode+" (sementara)",{...tdc,i:true,color:"#B45309"}); else sh.put(r,1,u.kode,{...plate,sz:9});
+      sh.put(r,2,u.tipe||"—",{...td,b:true}); sh.put(r,3,String(m.vendor||"").trim()||"Belum diisi",{...vendSt(m.vendor),sz:9});
+      sh.put(r,4,String(m.merk||"").trim()||"Belum diisi",{...brandSt(m.merk),sz:9}); sh.put(r,5,projKode(u.projectId),ptag);
+      sh.put(r,6,(u.lokasi||"—")+(mob?`\n→ ${mob.ke} (${mob.status})`:""),tdc);
+      sh.put(r,7,u.status||"—",{...chipSt(UNIT_STATUS,u.status),sz:9.5}); sh.put(r,8,m.kondisi||"Belum diverifikasi",{...kondSt(m.kondisi),sz:9});
+      sh.put(r,9,Number(u.hm)||0,{...tdn,fmt:"#,##0"}); dv(sh,r,10,u.tglTiba);
+      const ket=[isExistingUnit(u)?"Existing":"",String(m.catatan||"").trim(),[m.model,m.tahun,m.serial?"SN "+m.serial:""].filter(Boolean).join(" · ")].filter(Boolean).join("\n");
+      sh.put(r,11,ket,{...td,sz:9,color:"#4B4868"}); sh.height(r,20); r++; });
+    if(!rows.length) emptyRow(sh,r++,N,"Belum ada unit di lokasi");
+    else sh.filter=[h0,0,r-1,N-1];
+    sh.titles=[h0,h0];
+  }
+
+  /* 4. Mobilisasi */
+  { const sh=B.sheet("Mobilisasi",{cols:[13,8,15,20,18,18,10,18,14,14,16,14,36],freeze:4}); const N=13; let r=head(sh,N,"Rencana Mobilisasi");
+    const h0=r; header(sh,r,["Tanggal","Jam","Unit","Project","Dari","Ke","Jarak (km)","Moda","Estimasi tempuh","Pengawalan","PIC","Status","Catatan"],[12]); sh.titles=[r,r]; r++;
+    const mobs=S.mobs.filter(m=>pset.has(mobProj(m))).sort((a,b)=>(a.tanggal+(a.jam||"")).localeCompare(b.tanggal+(b.jam||"")));
+    mobs.forEach(m=>{ const e=estimasi(m), T=projByName(m.ke);
+      dv(sh,r,0,m.tanggal,{...dateSt,b:true}); sh.put(r,1,m.jam||"—",m.jam?tdc:dash); sh.put(r,2,m.unitKode||"—",{...plate,sz:9}); sh.put(r,3,projKode(mobProj(m)),ptag);
+      sh.put(r,4,m.dari||"—",tdc); sh.put(r,5,(m.ke||"—")+(T&&T.id!==mobProj(m)?"\n(site lain)":""),{...tdc,b:true});
+      sh.put(r,6,Number(m.jarak)||0,{...tdn,fmt:"#,##0"}); sh.put(r,7,m.moda||"—",tdc); sh.put(r,8,e?e.durasi+(e.tiba?` · tiba ${e.tiba}`:""):"—",e?tdc:dash);
+      sh.put(r,9,m.escort||"—",tdc); sh.put(r,10,m.pic||"—",tdc); sh.put(r,11,m.status||"—",chipSt(MOB_STATUS,m.status)); sh.put(r,12,m.catatan||"",{...td,sz:9,color:"#4B4868"}); sh.height(r,22); r++; });
+    if(!mobs.length) emptyRow(sh,r++,N,"Belum ada mobilisasi"); else sh.filter=[h0,0,r-1,N-1];
+  }
+
+  /* 5. Dokumentasi */
+  { const sh=B.sheet("Dokumentasi",{cols:[20,13,20,20,15,16,34,28,12,24],freeze:4}); const N=10; let r=head(sh,N,"Dokumentasi");
+    const h0=r; header(sh,r,["Tahap","Tanggal","Project","Item unit","No. lambung","Lokasi","Keterangan","Nama file","File","Oleh"],[6,7]); sh.titles=[r,r]; r++;
+    const TC={purple:["#6D28D9","#EFE8FD"],blue:["#2563EB","#DFEAFE"],red:["#E11D48","#FDE2E7"],orange:["#C2410C","#FFF1E2"],teal:["#0F766E","#DDF5F1"]};
+    const ds=(S.dok||[]).filter(d=>pset.has(d.projectId)).sort((a,b)=>String(b.tanggal||b.waktu||"").localeCompare(String(a.tanggal||a.waktu||"")));
+    ds.forEach(d=>{ const tc=TC[(TAHAP.find(t=>t.k===d.tahap)||{}).c]||MUX_CHIP["s-idle"];
+      sh.put(r,0,d.tahap||"—",{...tdc,b:true,color:tc[0],fill:tc[1]}); dv(sh,r,1,d.tanggal||String(d.waktu||"").slice(0,10)); sh.put(r,2,projKode(d.projectId),ptag);
+      sh.put(r,3,d.tipe||"—",{...td,b:true}); if(d.unitKode) sh.put(r,4,d.unitKode,{...plate,sz:9}); else sh.put(r,4,"—",dash);
+      sh.put(r,5,d.lokasi||"—",tdc); sh.put(r,6,d.catatan||"",{...td,sz:9}); sh.put(r,7,d.fileName||"",{...td,sz:9,color:MUTED});
+      if(d.fileUrl) sh.put(r,8,{f:`HYPERLINK("${String(d.fileUrl).replace(/"/g,"%22")}","Buka file")`,v:"Buka file"},{...tdc,u:true,b:true,color:"#2563EB"}); else sh.put(r,8,"—",dash);
+      sh.put(r,9,d.oleh||"",{...td,sz:9,color:MUTED}); sh.height(r,22); r++; });
+    if(!ds.length) emptyRow(sh,r++,N,"Belum ada dokumentasi"); else sh.filter=[h0,0,r-1,N-1];
+  }
+
+  /* 6. Riwayat Perubahan */
+  { const sh=B.sheet("Riwayat Perubahan",{cols:[19,20,24,11,11,10,13,13,40,26],freeze:4}); const N=10; let r=head(sh,N,"Riwayat Perubahan Rencana");
+    const h0=r; header(sh,r,["Waktu","Project","Item unit","Jumlah lama","Jumlah baru","Selisih","ETA lama","ETA baru","Alasan","Oleh"],[2,8]); sh.titles=[r,r]; r++;
+    const rv=S.revisi.filter(x=>pset.has(x.projectId));
+    rv.forEach(x=>{ const d=(Number(x.baru)||0)-(Number(x.lama)||0), dc=d>0?MUX_CHIP["s-info"]:d<0?MUX_CHIP["s-bad"]:MUX_CHIP["s-idle"];
+      sh.put(r,0,fmtTime(x.waktu),{...tdc,sz:9}); sh.put(r,1,projKode(x.projectId),ptag); sh.put(r,2,x.tipe||"—",{...td,b:true});
+      sh.put(r,3,Number(x.lama)||0,tdn); sh.put(r,4,Number(x.baru)||0,{...tdn,b:true}); sh.put(r,5,(d>0?"+":"")+d,{...tdc,b:true,color:dc[0],fill:dc[1]});
+      dv(sh,r,6,x.etaLama); dv(sh,r,7,x.etaBaru,{...dateSt,b:(x.etaBaru||"")!==(x.etaLama||"")});
+      sh.put(r,8,x.alasan||"",{...td,sz:9.5}); sh.put(r,9,x.oleh||"",{...td,sz:9,color:MUTED}); sh.height(r,22); r++; });
+    if(!rv.length) emptyRow(sh,r++,N,"Belum ada perubahan rencana"); else sh.filter=[h0,0,r-1,N-1];
+  }
+  return B.blob();
+}
 async function downloadExcel(){
+  if(!(role==="owner"||role==="editor")){ toast("Unduh hanya untuk Pemilik dan Editor."); return; }
+  const btn=$("#btnDownload"); btn.disabled=true;
+  try{
+    const P=curProj(), ps=P?[P]:projects();
+    const blob=buildStyledExcel(P,ps);
+    const scope=P?P.kode.replace(/[^\w-]+/g,"-"):"All-Project";
+    const url=URL.createObjectURL(blob), a=document.createElement("a");
+    a.href=url; a.download=`Monitoring-Unit_${scope}_${todayStr()}.xlsx`; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),4000);
+    toast("File Excel diunduh.");
+    btn.disabled=false;
+  }catch(e){ console.error("Excel bergaya gagal, pakai versi sederhana",e); btn.disabled=false; return downloadExcelPlain(); }
+}
+async function downloadExcelPlain(){
   if(!(role==="owner"||role==="editor")){ toast("Unduh hanya untuk Pemilik dan Editor."); return; }
   const btn=$("#btnDownload"); btn.disabled=true;
   try{
