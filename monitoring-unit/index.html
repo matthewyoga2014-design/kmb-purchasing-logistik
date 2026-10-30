@@ -844,8 +844,8 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 @media print{#kpis{grid-template-columns:repeat(5,minmax(0,1fr))!important}}
 
 /* dashboard ringkas */
-#p-ringkasan > :not(#dashNew){display:none!important}
-#dashNew{display:flex;flex-direction:column;gap:18px}
+#dashNew{display:flex;flex-direction:column;gap:18px;margin-bottom:18px}
+.mu-old-head{margin:8px 2px 0;font-size:13px;font-weight:700;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
 .dn-card{padding:0;overflow:hidden}
 .dn-h{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px 16px;padding:16px 20px}
 .dn-h h2{margin:0;font-size:17px;font-weight:800}
@@ -861,7 +861,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .dn-t th:last-child,.dn-t td:last-child{padding-right:20px}
 .dn-t .n{text-align:right}
 .dn-t tfoot td{border-top:2px solid var(--line-2);background:#FBFAFE}
-.dn-t .c-go,.dn-t b.c-go{color:#C2410C}.dn-t .c-sisa,.dn-t b.c-sisa{color:#BE123C}.dn-t .c-tiba,.dn-t b.c-tiba{color:#15803D}
+.dn-t .c-go,.dn-t b.c-go{color:#0369A1}.dn-t .c-sisa,.dn-t b.c-sisa{color:#BE123C}.dn-t .c-tiba,.dn-t b.c-tiba{color:#15803D}
 .dn-t td b{font-weight:800}
 .dn-z{color:#B4B2C6}
 .dn-sub{display:block;font-size:11.5px;color:var(--muted);font-weight:500;margin-top:1px}
@@ -873,13 +873,13 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .dn-bw{width:200px}
 .dn-bar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:#F1EFF8;min-width:120px}
 .dn-bar i,.dn-leg i{display:block;height:100%}
-.dn-bar i.t,.dn-leg i.t{background:#16A34A}.dn-bar i.j,.dn-leg i.j{background:#F7871F}
+.dn-bar i.t,.dn-leg i.t{background:#16A34A}.dn-bar i.j,.dn-leg i.j{background:#0A8FD6}
 .dn-leg{font-size:11.5px;color:var(--muted);white-space:nowrap}
 .dn-leg span{display:inline-flex;align-items:center;gap:5px;margin-right:10px}
 .dn-leg i{width:10px;height:10px;border-radius:3px}
 .dn-upd{font-size:12px;color:var(--muted);white-space:nowrap}
 .dn-g td{font-size:11.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;padding-top:8px;padding-bottom:8px}
-.dn-g.s td{background:#FFF5F6;color:#BE123C}.dn-g.j td{background:#FFF7ED;color:#C2410C}.dn-g.l td{background:#F2FBF5;color:#15803D}
+.dn-g.s td{background:#FFF5F6;color:#BE123C}.dn-g.j td{background:#EFF8FF;color:#0369A1}.dn-g.l td{background:#F2FBF5;color:#15803D}
 .dn-g.l .linkish{font:inherit;color:inherit;text-transform:uppercase}
 .dn-k td:nth-child(2){width:90px}.dn-k td:nth-child(3){width:230px}.dn-k td:nth-child(4),.dn-k td:nth-child(5){width:110px}
 .dn-ket{font-size:12.5px;color:var(--muted);max-width:380px}
@@ -892,7 +892,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .dn-d{white-space:nowrap}
 .dn-late b,.dn-late .dn-sub{color:#BE123C}
 .dn-st{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap}
-.dn-st.go{color:#C2410C;background:#FFF1E2}.dn-st.prep{color:#5B21B6;background:#EFE8FD}.dn-st.etc{color:#475569;background:#EDEFF4}
+.dn-st.go{color:#0369A1;background:#E0F2FE}.dn-st.prep{color:#5B21B6;background:#EFE8FD}.dn-st.etc{color:#475569;background:#EDEFF4}
 .dn-rem{color:#BE123C;font-weight:600;font-size:12.5px;max-width:260px}
 .dn-f{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:11px 20px;border-top:1px solid #EEECF5;font-size:13px}
 .dn-f .linkish{font-weight:700}
@@ -936,6 +936,28 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .kpt b{font-size:34px!important}
 .wrap{max-width:1440px!important}
 @media print{.dn-row3{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+
+/* mengikuti contoh: kotak angka 6 warna, judul kartu besar, tabel kepala biasa */
+#kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:14px!important}
+@media (max-width:1300px){#kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+@media (max-width:700px){#kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}}
+#kpis .kpt{padding:16px 20px!important;align-items:flex-start!important}
+.hero .eyebrow,.hero .sub{display:none!important}
+.hero{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
+.hero h1{font-size:24px!important;margin:0!important}
+.hero .crumbs{flex-basis:100%;margin:0!important}
+.hero .hero-actions{margin:0!important}
+.top .btn.tb{height:38px!important}
+#kpis .kpt1{background:var(--kt-k1,linear-gradient(100deg,#5326C2,#6D5BE0))!important}
+#kpis .kpt3{background:var(--kt-k3,linear-gradient(100deg,#0A6FC6,#09A3D8))!important}
+#kpis .kpt2{background:var(--kt-k5,linear-gradient(100deg,#E64A6D,#F17C69))!important}
+#kpis .kpt4{background:var(--kt-k4,linear-gradient(100deg,#0FB39A,#21C45E))!important}
+#kpis .kpt5{background:var(--kt-k2,linear-gradient(100deg,#1C3A9A,#1F4FB8))!important}
+#kpis .kpt6{background:var(--kt-k6,linear-gradient(100deg,#7238C6,#A04FD2))!important}
+.dn-h h2,.dn-c3 h2{font-size:20px!important;font-weight:600!important}
+.dn-t th{background:#fff!important;color:#16182B!important;font-size:14px!important;font-weight:600!important;text-transform:none!important;letter-spacing:0!important;border-bottom:1px solid #E2E8F0}
+.dn-t td{font-size:14px}
+.dn-t td.hm{color:#16182B}
 /* tingkat perkecilan mengikuti lebar kertas (lebar desain 1180px) */
 /* Print mengikuti lebar kertas & pilihan Skala (%) di jendela Print:
    skala lebih kecil = tampilan lebih kecil, seperti memperkecil (zoom out) web.
@@ -2505,11 +2527,12 @@ function renderKpi(){
   const L=!S.ready, P=curProj(), t=totals(P), v=x=>L?"–":x, q=pct(t.tiba,t.rencana);
   const nP=projects().length, diLokasi=t.units.length, existing=t.units.filter(isExistingUnit).length;
   const cards=[
-    {c:"kpt1",go:"pengiriman",goName:"Rencana kirim",lab:"Rencana kirim",icon:"box",val:v(t.rencana),sub:L?"Memuat…":`${t.items.length} item unit${P?"":` · ${nP} project`}`,bar:100},
+    {c:"kpt1",go:"pengiriman",goName:"Rencana kirim",lab:"Rencana kirim",icon:"box",val:v(t.rencana),sub:L?"Memuat…":`${t.items.length} item unit${P?"":` · ${nP} project`} · ${t.revs}× revisi`,bar:100},
     {c:"kpt3",go:"pengiriman",goName:"Rencana kirim",lab:"Dalam pengiriman",icon:"ship",val:v(t.jalan),sub:L?"":`${pct(t.jalan,t.rencana)}% menuju site`,bar:pct(t.jalan,t.rencana)},
     {c:"kpt2",go:"pengiriman",goName:"Rencana kirim",lab:"Sisa kirim",icon:"hourglass",val:v(t.sisa),sub:L?"":`${pct(t.sisa,t.rencana)}% belum berangkat`,bar:pct(t.sisa,t.rencana)},
     {c:"kpt4",go:"pengiriman",goName:"Rencana kirim",lab:"Sudah tiba",icon:"check",val:v(t.tiba),sub:L?"":`${q}% dari rencana`,bar:q},
-    {c:"kpt5",go:"unit",goName:"Populasi Unit",lab:"Populasi di lokasi",icon:"pin",val:v(diLokasi),sub:L?"":(existing?`${diLokasi-existing} tiba · ${existing} existing`:`${diLokasi} unit di lokasi`),bar:t.rencana?Math.min(100,pct(diLokasi,t.rencana)):100}
+    {c:"kpt5",go:"unit",goName:"Populasi Unit",lab:"Populasi di lokasi",icon:"pin",val:v(diLokasi),sub:L?"":(existing?`${diLokasi-existing} tiba · ${existing} existing`:`${diLokasi} unit di lokasi`),bar:t.rencana?Math.min(100,pct(diLokasi,t.rencana)):100},
+    {c:"kpt6",go:"mobilisasi",goName:"Mobilisasi",lab:"Dikirim ke site lain",icon:"route",val:v(t.keluar),sub:L?"":(t.keluar?`${t.keluarJalan} di jalan · ${t.keluarDone} sudah sampai`:"Belum ada unit dipindah"),bar:t.keluar?pct(t.keluarDone,t.keluar):0}
   ];
   $("#kpis").innerHTML=cards.map(kpiCard).join("");
 }
@@ -3740,13 +3763,13 @@ function dnWeekly(units){
   const lab=i=>{ const d=new Date(weeks[i]+"T00:00:00"); return d.toLocaleDateString("id-ID",{day:"numeric",month:"short"}); };
   const sum=go.reduce((a,b)=>a+b,0)+tb.reduce((a,b)=>a+b,0);
   return `<div class="card dn-c3"><h2>Unit dikirim &amp; tiba per minggu</h2>
-    <div class="dn-lg"><span><i style="background:#F7871F"></i>Dikirim ${go.reduce((a,b)=>a+b,0)}</span><span><i style="background:#16A34A"></i>Tiba ${tb.reduce((a,b)=>a+b,0)}</span><span class="dn-meta">9 minggu terakhir</span></div>
+    <div class="dn-lg"><span><i style="background:#0A8FD6"></i>Dikirim ${go.reduce((a,b)=>a+b,0)}</span><span><i style="background:#16A34A"></i>Tiba ${tb.reduce((a,b)=>a+b,0)}</span><span class="dn-meta">9 minggu terakhir</span></div>
     <svg viewBox="0 0 420 210" role="img" aria-label="Unit dikirim dan tiba per minggu, 9 minggu terakhir">
       <g stroke="#ECEAF4"><line x1="34" y1="20" x2="410" y2="20"/><line x1="34" y1="100" x2="410" y2="100"/><line x1="34" y1="180" x2="410" y2="180"/></g>
       <g fill="#8F8DA6" font-size="11" text-anchor="end"><text x="28" y="24">${top}</text><text x="28" y="104">${Math.round(top/2)}</text><text x="28" y="184">0</text></g>
-      <polygon points="${area(go)}" fill="#F7871F" fill-opacity=".12"/><polyline points="${line(go)}" fill="none" stroke="#F7871F" stroke-width="2.5" stroke-linejoin="round"/>
+      <polygon points="${area(go)}" fill="#0A8FD6" fill-opacity=".12"/><polyline points="${line(go)}" fill="none" stroke="#0A8FD6" stroke-width="2.5" stroke-linejoin="round"/>
       <polygon points="${area(tb)}" fill="#16A34A" fill-opacity=".12"/><polyline points="${line(tb)}" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linejoin="round"/>
-      ${go.map((v,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="3" fill="#F7871F"><title>${lab(i)}: ${v} dikirim</title></circle><circle cx="${X(i).toFixed(1)}" cy="${Y(tb[i]).toFixed(1)}" r="3" fill="#16A34A"><title>${lab(i)}: ${tb[i]} tiba</title></circle>`).join("")}
+      ${go.map((v,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="3" fill="#0A8FD6"><title>${lab(i)}: ${v} dikirim</title></circle><circle cx="${X(i).toFixed(1)}" cy="${Y(tb[i]).toFixed(1)}" r="3" fill="#16A34A"><title>${lab(i)}: ${tb[i]} tiba</title></circle>`).join("")}
       <g fill="#8F8DA6" font-size="11" text-anchor="middle">${[0,2,4,6,8].map(i=>`<text x="${X(i).toFixed(1)}" y="202">${lab(i)}</text>`).join("")}</g>
     </svg>${sum?"":`<p class="dn-meta dn-note">Grafik terisi dari Tanggal kirim dan Tanggal tiba setiap unit.</p>`}</div>`; }
 function dnStatusCard(pop){
@@ -3776,7 +3799,7 @@ function renderDashNew(){
       tot.r+=st.rencana; tot.j+=st.jalan; tot.s+=st.sisa; tot.t+=st.tiba; tot.p+=np;
       const tw=st.rencana?Math.round(st.tiba/st.rencana*100):0, jw=st.rencana?Math.round(st.jalan/st.rencana*100):0;
       return `<tr><td><button type="button" class="dn-pn" data-proj="${p.id}">${esc(p.kode)}</button><small class="dn-sub">${esc([p.nama,p.lokasi].filter(Boolean).join(" · "))}</small></td>
-        <td class="n hm" style="${dnHeat(st.rencana,MX.r,"139,92,246")}"><b>${st.rencana}</b></td><td class="n hm" style="${dnHeat(st.jalan,MX.j,"247,135,31")}">${dnNum(st.jalan,"c-go")}</td><td class="n hm" style="${dnHeat(st.sisa,MX.s,"239,79,95")}">${dnNum(st.sisa,"c-sisa")}</td><td class="n hm" style="${dnHeat(st.tiba,MX.t,"22,163,74")}">${dnNum(st.tiba,"c-tiba")}</td>
+        <td class="n hm" style="${dnHeat(st.rencana,MX.r,"139,92,246")}"><b>${st.rencana}</b></td><td class="n hm" style="${dnHeat(st.jalan,MX.j,"10,143,214")}">${dnNum(st.jalan,"c-go")}</td><td class="n hm" style="${dnHeat(st.sisa,MX.s,"239,79,95")}">${dnNum(st.sisa,"c-sisa")}</td><td class="n hm" style="${dnHeat(st.tiba,MX.t,"22,163,74")}">${dnNum(st.tiba,"c-tiba")}</td>
         <td><div class="dn-bar" role="img" aria-label="${st.tiba} tiba, ${st.jalan} dalam pengiriman dari ${st.rencana}"><i class="t" style="width:${tw}%"></i><i class="j" style="width:${jw}%"></i></div></td>
         <td class="n hm" style="${dnHeat(np,MX.p,"37,99,235")}">${dnNum(np,"")}</td><td class="n dn-upd">${st.last?fmtTime(st.last):"—"}</td></tr>`; }).join("");
     main=`<section class="card dn-card"><div class="dn-h"><div><h2>Ringkasan per project</h2><p>Rencana = Dalam pengiriman + Sisa kirim + Sudah tiba. Klik nama project untuk melihat rinciannya.</p></div></div>
@@ -3789,7 +3812,7 @@ function renderDashNew(){
     const MXI={r:Math.max(0,...st.items.map(k=>Number(k.rencana)||0)),j:Math.max(0,...st.items.map(jalanItem)),s:Math.max(0,...st.items.map(sisaItem)),t:Math.max(0,...st.items.map(k=>Math.min(tibaItem(k),Number(k.rencana)||0)))};
     const row=k=>{ const n=tibaItem(k), r=Number(k.rencana)||0, jl=jalanItem(k), sk=sisaItem(k), eta=jl?dnItemEta(k):"", lebih=n>r?n-r:0;
       return `<tr><td><button type="button" class="dn-in" data-dn="item" data-id="${k.id}" title="Lihat unit ${esc(k.tipe)} di Rencana kirim">${esc(k.tipe)}</button></td>
-        <td class="n hm" style="${dnHeat(r,MXI.r,"139,92,246")}"><b>${r}</b></td><td class="hm" style="${dnHeat(jl,MXI.j,"247,135,31")}">${jl?`<b class="c-go">${jl} unit</b>${eta?` <span class="dn-meta">· ETA ${fmtD(eta)}</span>`:""}`:'<span class="dn-z">–</span>'}</td>
+        <td class="n hm" style="${dnHeat(r,MXI.r,"139,92,246")}"><b>${r}</b></td><td class="hm" style="${dnHeat(jl,MXI.j,"10,143,214")}">${jl?`<b class="c-go">${jl} unit</b>${eta?` <span class="dn-meta">· ETA ${fmtD(eta)}</span>`:""}`:'<span class="dn-z">–</span>'}</td>
         <td class="n hm" style="${dnHeat(sk,MXI.s,"239,79,95")}">${lebih?`<b class="c-go">lebih ${lebih}</b>`:dnNum(sk,"c-sisa")}</td><td class="n hm" style="${dnHeat(Math.min(n,r),MXI.t,"22,163,74")}">${dnNum(Math.min(n,r),"c-tiba")}</td>
         <td class="dn-ket">${esc([k.catatan,k.asal?"dari "+k.asal:""].filter(Boolean).join(" · "))}</td></tr>`; };
     const its=st.items, gS=its.filter(k=>sisaItem(k)>0), gJ=its.filter(k=>!sisaItem(k)&&jalanItem(k)), gL=its.filter(k=>!sisaItem(k)&&!jalanItem(k));
@@ -4449,6 +4472,6 @@ window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,la
     e.preventDefault(); open(i);
   }, true);
 })();
-</script><!--/uppick--><script src="../activity-log.js?v=20261024" data-kind="unit"></script><script src="../otp-login.js?v=20261025"></script><link rel="stylesheet" href="../kmb-theme.css?v=20261030"><script src="../kmb-theme.js?v=20261030"></script>
+</script><!--/uppick--><script src="../activity-log.js?v=20261024" data-kind="unit"></script><script src="../otp-login.js?v=20261025"></script><link rel="stylesheet" href="../kmb-theme.css?v=20261030b"><script src="../kmb-theme.js?v=20261030b"></script>
 </body>
 </html>
