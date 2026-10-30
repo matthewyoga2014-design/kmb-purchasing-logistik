@@ -903,61 +903,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .dn-pop button{font:inherit;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;text-align:left}
 .dn-pop button:hover{border-color:var(--accent-2)}
 .dn-pop span{font-size:13.5px;font-weight:600}.dn-pop b{font-size:20px;color:var(--accent)}
-.kpt em{white-space:normal!important;overflow:visible!important}
 @media print{.dn-chips,.dn-f .linkish,.dn-h .btn{display:none!important}.dn-u{min-width:0}.dn-t{font-size:10px}.dn-t td,.dn-t th{padding:5px 7px}}
-
-/* gaya baru: pita, kartu tiga, corong, heatmap */
-.dn-row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
-@media (max-width:1100px){.dn-row3{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:720px){.dn-row3{grid-template-columns:minmax(0,1fr)}}
-.dn-c3{padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
-.dn-c3 h2{margin:0;font-size:16.5px;font-weight:800}
-.dn-c3h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-.dn-c3 svg{width:100%;height:auto;display:block}
-.dn-lg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--ink-2,#4B4868);align-items:center}
-.dn-lg span{display:inline-flex;align-items:center;gap:6px}
-.dn-lg i{width:10px;height:10px;border-radius:50%;display:block}
-.dn-note{margin:0}
-.dn-sb{display:flex;flex-direction:column;gap:8px}
-.dn-sb button{all:unset;cursor:pointer;display:grid;grid-template-columns:92px minmax(0,1fr) 34px;align-items:center;gap:10px;font-size:13.5px;font-weight:600;border-radius:8px}
-.dn-sb button:hover .tr{background:#E9E5F6}
-.dn-sb button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.dn-sb .tr{height:20px;border-radius:6px;background:#F1EFF8;overflow:hidden;display:block}
-.dn-sb .tr i{display:block;height:100%;border-radius:6px;min-width:2px}
-.dn-sb b{text-align:right;font-size:15px}
-.dn-e2{margin:0!important;flex:1;display:flex;align-items:center;justify-content:center}
-.dn-fn{display:flex;flex-direction:column;gap:6px}
-.dn-fn .fr{display:grid;grid-template-columns:minmax(0,1fr) 128px;align-items:center;gap:12px}
-.dn-fn .fb{display:flex;justify-content:center}
-.dn-fn .fb span{height:44px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;clip-path:polygon(0 0,100% 0,94% 100%,6% 100%)}
-.dn-fn b{display:block;font-size:14px}.dn-fn small{display:block;font-size:12px;color:var(--muted)}
-.dn-t td.hm{border-top-color:#fff}
-#kpis{gap:16px!important}
-.kpt b{font-size:34px!important}
-.wrap{max-width:1440px!important}
-@media print{.dn-row3{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
-
-/* mengikuti contoh: kotak angka 6 warna, judul kartu besar, tabel kepala biasa */
-#kpis{grid-template-columns:repeat(6,minmax(0,1fr))!important;gap:14px!important}
-@media (max-width:1300px){#kpis{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
-@media (max-width:700px){#kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}}
-#kpis .kpt{padding:16px 20px!important;align-items:flex-start!important}
-.hero .eyebrow,.hero .sub{display:none!important}
-.hero{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px}
-.hero h1{font-size:24px!important;margin:0!important}
-.hero .crumbs{flex-basis:100%;margin:0!important}
-.hero .hero-actions{margin:0!important}
-.top .btn.tb{height:38px!important}
-#kpis .kpt1{background:var(--kt-k1,linear-gradient(100deg,#5326C2,#6D5BE0))!important}
-#kpis .kpt3{background:var(--kt-k3,linear-gradient(100deg,#0A6FC6,#09A3D8))!important}
-#kpis .kpt2{background:var(--kt-k5,linear-gradient(100deg,#E64A6D,#F17C69))!important}
-#kpis .kpt4{background:var(--kt-k4,linear-gradient(100deg,#0FB39A,#21C45E))!important}
-#kpis .kpt5{background:var(--kt-k2,linear-gradient(100deg,#1C3A9A,#1F4FB8))!important}
-#kpis .kpt6{background:var(--kt-k6,linear-gradient(100deg,#7238C6,#A04FD2))!important}
-.dn-h h2,.dn-c3 h2{font-size:20px!important;font-weight:600!important}
-.dn-t th{background:#fff!important;color:#16182B!important;font-size:14px!important;font-weight:600!important;text-transform:none!important;letter-spacing:0!important;border-bottom:1px solid #E2E8F0}
-.dn-t td{font-size:14px}
-.dn-t td.hm{color:#16182B}
 
 /* tabel unit belum tiba: format seperti Excel */
 .dn-xl{width:100%;border-collapse:collapse;font-size:14.5px;min-width:980px;font-family:Calibri,"Segoe UI",system-ui,sans-serif}
@@ -972,6 +918,29 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .dn-xl .dn-pl:hover{text-decoration:underline}
 .dn-xl .dn-z{color:#BDBDBD}
 @media print{.dn-xl{min-width:0;font-size:10px}.dn-xl td,.dn-xl th{padding:3px 5px!important}}
+
+/* rangkuman rencana kirim per unit */
+.rk-total{font-size:14px;color:var(--ink-2,#4B4868);background:#F7F6FC;border-radius:12px;padding:10px 14px;margin-bottom:12px}
+.rk-total b{color:var(--fg)}
+.rk-list{display:flex;flex-direction:column}
+.rk-row{padding:11px 2px;border-top:1px solid var(--line)}
+.rk-row:first-child{border-top:0}
+.rk-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:6px}
+.rk-nm{font-size:14px;font-weight:700;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rk-n{font-size:14px;font-weight:800;flex:none}
+.rk-bar{display:flex;height:12px;border-radius:7px;overflow:hidden;background:#E5E7EB}
+.rk-bar i{display:block;height:100%}
+.rk-bar i.t,.rk-leg i.t{background:#16A34A}.rk-bar i.j,.rk-leg i.j{background:#2563EB}.rk-leg i.b{background:#E5E7EB}
+.rk-tx{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 12px;margin-top:6px;font-size:12.5px;color:var(--muted)}
+.rk-tx b,.rk-total b{font-weight:800}
+b.j{color:#1D4ED8}b.t{color:#15803D}b.b{color:#64748B}b.o{color:#B45309}
+.rk-act{display:flex;gap:12px}.rk-act .linkish{font-weight:700;font-size:12.5px}
+.rk-leg{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:10px;font-size:12px;color:var(--muted)}
+.rk-leg span{display:inline-flex;align-items:center;gap:6px}.rk-leg i{width:12px;height:12px;border-radius:3px;display:block}
+@media print{.rk-act{display:none}}
+/* tanpa gambar lanskap di beranda */
+.scene,.side-l,.side-r{display:none!important}
+.hero{padding-left:0!important}
 /* tingkat perkecilan mengikuti lebar kertas (lebar desain 1180px) */
 /* Print mengikuti lebar kertas & pilihan Skala (%) di jendela Print:
    skala lebih kecil = tampilan lebih kecil, seperti memperkecil (zoom out) web.
@@ -1517,7 +1486,6 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
 
   <!-- RINGKASAN -->
   <section class="panel" id="p-ringkasan" role="tabpanel">
-    <div id="dashNew"></div>
     <div id="dashControls" class="mu-dashboard-controls"></div>
     <div id="popDash"></div>
     <div id="projDash" hidden></div>
@@ -2494,7 +2462,7 @@ function render(){
   $("#cMob").textContent=S.mobs.filter(m=>isAktif(m)&&inFilter(mobProj(m))).length;
   $("#cRev").textContent=S.revisi.filter(r=>inFilter(r.projectId)).length;
   ["addUnit","addExisting","addMob","addKirim"].forEach(id=>$("#"+id).hidden=!canWrite); $("#addProj").hidden=true;
-  renderBanner(); renderSummary(); renderKpi(); renderFbar(); renderCharts(); renderPFilter(); renderRingkasan(); renderPopDash(); muDashboardControls(); renderDashNew(); renderKirim(); renderUnit(); renderMob(); renderDok();
+  renderBanner(); renderSummary(); renderKpi(); renderFbar(); renderCharts(); renderPFilter(); renderRingkasan(); renderPopDash(); muDashboardControls(); renderKirim(); renderUnit(); renderMob(); renderDok();
 }
 function renderBanner(){
   const b=$("#banner");
@@ -2542,11 +2510,10 @@ function renderKpi(){
   const nP=projects().length, diLokasi=t.units.length, existing=t.units.filter(isExistingUnit).length;
   const cards=[
     {c:"kpt1",go:"pengiriman",goName:"Rencana kirim",lab:"Rencana kirim",icon:"box",val:v(t.rencana),sub:L?"Memuat…":`${t.items.length} item unit${P?"":` · ${nP} project`} · ${t.revs}× revisi`,bar:100},
-    {c:"kpt3",go:"pengiriman",goName:"Rencana kirim",lab:"Dalam pengiriman",icon:"ship",val:v(t.jalan),sub:L?"":`${pct(t.jalan,t.rencana)}% menuju site`,bar:pct(t.jalan,t.rencana)},
     {c:"kpt2",go:"pengiriman",goName:"Rencana kirim",lab:"Sisa kirim",icon:"hourglass",val:v(t.sisa),sub:L?"":`${pct(t.sisa,t.rencana)}% belum berangkat`,bar:pct(t.sisa,t.rencana)},
-    {c:"kpt4",go:"pengiriman",goName:"Rencana kirim",lab:"Sudah tiba",icon:"check",val:v(t.tiba),sub:L?"":`${q}% dari rencana`,bar:q},
-    {c:"kpt5",go:"unit",goName:"Populasi Unit",lab:"Populasi di lokasi",icon:"pin",val:v(diLokasi),sub:L?"":(existing?`${diLokasi-existing} tiba · ${existing} existing`:`${diLokasi} unit di lokasi`),bar:t.rencana?Math.min(100,pct(diLokasi,t.rencana)):100},
-    {c:"kpt6",go:"mobilisasi",goName:"Mobilisasi",lab:"Dikirim ke site lain",icon:"route",val:v(t.keluar),sub:L?"":(t.keluar?`${t.keluarJalan} di jalan · ${t.keluarDone} sudah sampai`:"Belum ada unit dipindah"),bar:t.keluar?pct(t.keluarDone,t.keluar):0}
+    {c:"kpt3",go:"pengiriman",goName:"Rencana kirim",lab:"Dalam perjalanan",icon:"ship",val:v(t.jalan),sub:L?"":`${pct(t.jalan,t.rencana)}% sedang menuju site`,bar:pct(t.jalan,t.rencana)},
+    {c:"kpt4",go:"unit",goName:"Unit di lokasi",lab:"Unit di lokasi",icon:"pin",val:v(diLokasi),sub:L?"":`${existing} existing · ${t.tiba} tiba dari rencana`,bar:t.rencana?q:100},
+    {c:"kpt5",go:"mobilisasi",goName:"Mobilisasi",lab:"Dikirim ke site lain",icon:"route",val:v(t.keluar),sub:L?"":(t.keluar?`${t.keluarJalan} di jalan · ${t.keluarDone} sudah sampai`:"Belum ada unit dipindah"),bar:t.keluar?pct(t.keluarDone,t.keluar):0}
   ];
   $("#kpis").innerHTML=cards.map(kpiCard).join("");
 }
@@ -2673,24 +2640,25 @@ function unitLocationMini(pid, compact=false){
 }
 function renderProjDash(P){
   const st=projStats(P.id), us=S.units.filter(u=>arrived(u)&&u.projectId===P.id);
-  const head=`<div class="irow head"><span>Item unit</span><span>Progres</span><span style="text-align:right">Tiba</span><span>Status</span><span></span></div>`;
-  const rows=st.items.filter(itemOk).map(k=>{ const n=tibaItem(k), r=Number(k.rencana)||0, sisa=r-n, q=r?Math.min(100,pct(n,r)):0, aw=Number(k.rencanaAwal)||0;
-    const ket=[k.eta?`ETA ${fmtDate(k.eta)}`:"",k.catatan&&!/^Jadwal/.test(k.catatan)?k.catatan:"",r!==aw?`direvisi ${r-aw>0?"+":""}${r-aw}`:""].filter(Boolean).join(" · ");
-    const nl=unitsOfItem(k).filter(x=>!x.kodeSementara).map(x=>x.kode).sort((a,b)=>a.localeCompare(b,"id",{numeric:true})), nk=unitsOfItem(k).filter(x=>x.kodeSementara).length;
-    const nd=(S.dok||[]).filter(d=>d.kirimId===k.id), ndT=new Set(nd.map(d=>d.tahap)).size;
-    const lamb0=nl.length||nk?`<small class="lamb">No. lambung: ${nl.length?esc(nl.join(", ")):""}${nk?`${nl.length?" · ":""}<span style="color:var(--warn)">${nk} belum diisi</span>`:""}</small>`:"";
-    const lamb=lamb0+(nd.length?`<small class="lamb">Bukti: ${nd.length} file · ${ndT}/5 tahap</small>`:"");
-    const jl=jalanItem(k), sk=sisaItem(k);
-    const pill=jl&&sisa>0?`<span class="st jalan">${jl} jalan</span>${sk?`<span class="st todo">${sk} sisa</span>`:""}`:sisa>0?`<span class="st todo">${sisa} sisa</span>`:sisa<0?`<span class="st over">+${-sisa}</span>`:`<span class="st done">Lengkap</span>`;
-    return `<div class="irow"><span class="nm"><b title="${esc(k.tipe)}">${esc(k.tipe)}</b>${ket?`<small title="${esc(ket)}">${esc(ket)}</small>`:""}${lamb}</span><span class="ibar${q>=100?" full":""}"><i style="width:${q}%"></i></span><span class="ct">${n}/${r}</span>${pill}<span class="acts">${canWrite?`${sisa>0?`<button class="btn small" data-act="tibaItem" data-id="${k.id}" type="button">+ Tiba</button>`:""}<button class="btn small ghost" data-act="jumlah" data-id="${k.id}" type="button">Ubah jumlah</button>`:""}</span></div>`; }).join("");
+  const SUMI=st.items.filter(itemOk);
+  const seg=k=>{ const r=Number(k.rencana)||0, t=Math.min(tibaItem(k),r), j=jalanItem(k), b=sisaItem(k), lebih=Math.max(0,tibaItem(k)-r); return {r,t,j,b,lebih}; };
+  const tot=SUMI.reduce((a,k)=>{ const x=seg(k); a.r+=x.r; a.t+=x.t; a.j+=x.j; a.b+=x.b; return a; },{r:0,t:0,j:0,b:0});
+  const bar=x=>{ const w=n=>x.r?(n/x.r*100).toFixed(2)+"%":"0%"; return `<span class="rk-bar" role="img" aria-label="${x.j} sedang dikirim, ${x.b} belum dikirim, ${x.t} sudah tiba dari ${x.r}"><i class="t" style="width:${w(x.t)}"></i><i class="j" style="width:${w(x.j)}"></i></span>`; };
+  const txt=x=>`<b class="j">${x.j}</b> sedang dikirim · <b class="b">${x.b}</b> belum dikirim · <b class="t">${x.t}</b> sudah tiba${x.lebih?` · <b class="o">+${x.lebih}</b> lebih`:""}`;
+  const rows=SUMI.map(k=>{ const x=seg(k), sisa=x.r-tibaItem(k);
+    return `<div class="rk-row"><div class="rk-top"><b class="rk-nm" title="${esc(k.tipe)}">${esc(k.tipe)}</b><span class="rk-n">${x.r} unit</span></div>${bar(x)}
+      <div class="rk-tx"><span>${txt(x)}</span>${canWrite?`<span class="rk-act">${sisa>0?`<button class="linkish" data-act="tibaItem" data-id="${k.id}" type="button">+ Tiba</button>`:""}<button class="linkish" data-act="jumlah" data-id="${k.id}" type="button">Ubah jumlah</button></span>`:""}</div></div>`; }).join("");
+  const head="";
   const sc=UNIT_STATUS.map(x=>({x,n:us.filter(u=>u.status===x.k).length}));
   const stack=us.length?sc.filter(o=>o.n).map(o=>`<i style="width:${o.n/us.length*100}%;background:${o.x.col}" title="${o.x.k}: ${o.n}"></i>`).join(""):"";
   const c=projColor(P.id);
 
-  const progress='<div class="card pcard"><div class="card-head"><h3><span class="tile-ic" style="background:var(--g-'+c+')">'+ic(projIcon(P.id))+'</span>Progres kedatangan per item</h3>'+
+  const progress='<div class="card pcard"><div class="card-head"><h3><span class="tile-ic" style="background:var(--g-'+c+')">'+ic(projIcon(P.id))+'</span>Rencana kirim per unit</h3>'+
     (canWrite?'<button class="btn small primary" data-act="addItem" data-id="'+esc(P.id)+'" type="button">+ Item unit</button>':'')+
     muDashboardCollapseButton("progress")+'</div>'+
-    '<div class="irows">'+(rows?head+rows:'<div class="muted">'+(st.items.length?"Tidak ada item di filter ini.":"Belum ada item unit di project ini.")+'</div>')+'</div></div>';
+    (rows?'<div class="rk-total">Total <b>'+tot.r+' unit</b>: <b class="j">'+tot.j+'</b> sedang dikirim · <b class="b">'+tot.b+'</b> belum dikirim · <b class="t">'+tot.t+'</b> sudah tiba</div>'+
+      '<div class="rk-list">'+rows+'</div><div class="rk-leg"><span><i class="j"></i>sedang dikirim</span><span><i class="t"></i>sudah tiba</span><span><i class="b"></i>belum dikirim</span></div>'
+      :'<div class="muted">'+(st.items.length?"Tidak ada item di filter ini.":"Belum ada item unit di project ini.")+'</div>')+'</div>';
   const status='<div class="card pcard"><div class="card-head"><h3><span class="tile-ic" style="background:var(--g-teal)">'+ic("truck")+'</span>Status unit di lokasi</h3>'+
     '<button class="btn open small" data-goto="unit" type="button">Lihat unit →</button>'+muDashboardCollapseButton("status")+'</div>'+
     (us.length?'<div class="stackbar">'+stack+'</div><div class="slist">'+sc.map(o=>'<div><i style="background:'+o.x.col+'"></i>'+o.x.k+'<b>'+o.n+'</b><span class="p">'+pct(o.n,us.length)+'%</span></div>').join("")+'</div>':
@@ -4488,6 +4456,5 @@ window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,la
     e.preventDefault(); open(i);
   }, true);
 })();
-</script><!--/uppick--><script src="../activity-log.js?v=20261024" data-kind="unit"></script><script src="../otp-login.js?v=20261025"></script><link rel="stylesheet" href="../kmb-theme.css?v=20261030b"><script src="../kmb-theme.js?v=20261030b"></script>
-</body>
+</script><!--/uppick--><script src="../activity-log.js?v=20261024" data-kind="unit"></script><script src="../otp-login.js?v=20261025"></script></body>
 </html>
