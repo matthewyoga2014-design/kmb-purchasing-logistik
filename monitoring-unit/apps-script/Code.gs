@@ -48,7 +48,7 @@ const SHEETS = {
   units:      { name: 'Unit', prefix: 'u', cols: { id: 'ID', kode: 'No. lambung', sementara: 'Kode sementara', project: 'Project', item: 'Item rencana kirim', lokasi: 'Posisi', tglTiba: 'Tanggal tiba', hm: 'HM', status: 'Status', catatan: 'Catatan', updatedAt: 'Diperbarui', rencanaKirim: 'Rencana kirim', via: 'Via', tglKirim: 'Tanggal kirim', vendor: 'Vendor', merk: 'Merek', model: 'Model/Tipe', tahun: 'Tahun', serial: 'Serial/Chassis', kondisi: 'Kondisi', foto: 'Foto Unit (URL)', etd: 'ETD', eta: 'ETA', kategori: 'Kategori', kepemilikan: 'Kepemilikan', pic: 'PIC' } },
   mobilisasi: { name: 'Mobilisasi', prefix: 'm', cols: { id: 'ID', unitKode: 'No. lambung', project: 'Project', tanggal: 'Tanggal', jam: 'Jam', dari: 'Dari', ke: 'Ke', jarak: 'Jarak (km)', moda: 'Moda', escort: 'Pengawalan', pic: 'PIC', status: 'Status', catatan: 'Catatan' } },
   dokumentasi:{ name: 'Dokumentasi', prefix: 'd', cols: { id: 'ID', waktu: 'Waktu upload', tahap: 'Tahap', project: 'Project', item: 'Item unit', unitKode: 'No. lambung', tanggal: 'Tanggal', lokasi: 'Lokasi', catatan: 'Keterangan', fileName: 'Nama file', fileUrl: 'Link file', fileId: 'File ID', mime: 'Jenis file', oleh: 'Oleh' } },
-  revisi:     { name: 'Riwayat Perubahan', prefix: 'r', cols: { id: 'ID', waktu: 'Waktu', project: 'Project', tipe: 'Item unit', lama: 'Jumlah lama', baru: 'Jumlah baru', etaLama: 'ETA lama', etaBaru: 'ETA baru', alasan: 'Alasan', oleh: 'Oleh' } }
+  revisi:     { name: 'Riwayat Perubahan', prefix: 'r', cols: { id: 'ID', waktu: 'Waktu', project: 'Project', tipe: 'Item unit', lama: 'Jumlah lama', baru: 'Jumlah baru', etaLama: 'ETA lama', etaBaru: 'ETA baru', alasan: 'Alasan', oleh: 'Oleh', jenis: 'Jenis' } }
 };
 const DATE_KEYS = { eta: 1, etd: 1, tglTiba: 1, tanggal: 1, etaLama: 1, etaBaru: 1, rencanaKirim: 1, tglKirim: 1 };
 const TIME_KEYS = { jam: 1 };
@@ -215,7 +215,7 @@ function buildState_() {
   const unitByKode = {};
   units.forEach(function (u) { unitByKode[u.kode] = u; });
   const mobilisasi = M.map(function (m) { const u = unitByKode[m.unitKode]; return { id: m.id, unitKode: m.unitKode, unitId: u ? u.id : '', projectId: pid(m.project) || (u ? u.projectId : ''), tanggal: m.tanggal, jam: m.jam, dari: m.dari, ke: m.ke, jarak: m.jarak === '' ? 0 : m.jarak, moda: m.moda, escort: m.escort, pic: m.pic, status: m.status || 'Direncanakan', catatan: m.catatan }; });
-  const revisi = R.map(function (r) { const p = pid(r.project); return { id: r.id, waktu: r.waktu, projectId: p, kirimId: kirimOf(p, r.tipe), tipe: r.tipe, lama: r.lama, baru: r.baru, etaLama: r.etaLama, etaBaru: r.etaBaru, alasan: r.alasan, oleh: r.oleh }; });
+  const revisi = R.map(function (r) { const p = pid(r.project); return { id: r.id, waktu: r.waktu, projectId: p, kirimId: kirimOf(p, r.tipe), tipe: r.tipe, lama: r.lama, baru: r.baru, etaLama: r.etaLama, etaBaru: r.etaBaru, alasan: r.alasan, oleh: r.oleh, jenis: r.jenis }; });
   const dokumentasi = D.map(function (d) { const p = pid(d.project), u = unitByKode[d.unitKode]; return { id: d.id, waktu: d.waktu, tahap: d.tahap, projectId: p, kirimId: kirimOf(p, d.item), tipe: d.item, unitKode: d.unitKode, unitId: u ? u.id : '', tanggal: d.tanggal, lokasi: d.lokasi, catatan: d.catatan, fileName: d.fileName, fileUrl: d.fileUrl, fileId: d.fileId, mime: d.mime, oleh: d.oleh }; });
   return { rev: getRev_(), projects: projects, pengiriman: pengiriman, units: units, mobilisasi: mobilisasi, revisi: revisi, dokumentasi: dokumentasi };
 }
@@ -238,7 +238,7 @@ function toSheetRec_(col, rec, st) {
       const k = st.pengiriman.filter(function (x) { return x.id === rec.kirimId; })[0];
       return { id: rec.id, waktu: rec.waktu, tahap: rec.tahap, project: projKode(rec.projectId), item: k ? k.tipe : (rec.tipe || ''), unitKode: rec.unitKode || '', tanggal: rec.tanggal, lokasi: rec.lokasi, catatan: rec.catatan, fileName: rec.fileName, fileUrl: rec.fileUrl, fileId: rec.fileId, mime: rec.mime, oleh: rec.oleh };
     }
-    case 'revisi': return { id: rec.id, waktu: rec.waktu, project: projKode(rec.projectId), tipe: rec.tipe, lama: rec.lama, baru: rec.baru, etaLama: rec.etaLama, etaBaru: rec.etaBaru, alasan: rec.alasan, oleh: rec.oleh };
+    case 'revisi': return { id: rec.id, waktu: rec.waktu, project: projKode(rec.projectId), tipe: rec.tipe, lama: rec.lama, baru: rec.baru, etaLama: rec.etaLama, etaBaru: rec.etaBaru, alasan: rec.alasan, oleh: rec.oleh, jenis: rec.jenis };
   }
   throw new Error('Koleksi tidak dikenal: ' + col);
 }
