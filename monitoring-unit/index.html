@@ -842,6 +842,68 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .st.jalan{background:#FFF1E2;color:#C2410C}
 .sub.jalan{display:block;color:#C2410C;font-size:11px;font-weight:600}
 @media print{#kpis{grid-template-columns:repeat(5,minmax(0,1fr))!important}}
+
+/* dashboard ringkas */
+#p-ringkasan > :not(#dashNew){display:none!important}
+#dashNew{display:flex;flex-direction:column;gap:18px}
+.dn-card{padding:0;overflow:hidden}
+.dn-h{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px 16px;padding:16px 20px}
+.dn-h h2{margin:0;font-size:17px;font-weight:800}
+.dn-h p{margin:3px 0 0;font-size:12.5px;color:var(--muted)}
+.dn-meta{font-size:12.5px;color:var(--muted)}
+.dn-meta b{color:var(--ink)}
+.dn-tw{overflow-x:auto}
+.dn-t{width:100%;border-collapse:collapse;font-size:13.5px}
+.dn-t th{background:#F7F6FC;color:var(--muted);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;text-align:left;padding:10px 12px;white-space:nowrap}
+.dn-t td{padding:10px 12px;border-top:1px solid #EEECF5;vertical-align:middle}
+.dn-t th:first-child,.dn-t td:first-child{padding-left:20px}
+.dn-t th:last-child,.dn-t td:last-child{padding-right:20px}
+.dn-t .n{text-align:right}
+.dn-t tfoot td{border-top:2px solid var(--line-2);background:#FBFAFE}
+.dn-t .c-go,.dn-t b.c-go{color:#C2410C}.dn-t .c-sisa,.dn-t b.c-sisa{color:#BE123C}.dn-t .c-tiba,.dn-t b.c-tiba{color:#15803D}
+.dn-t td b{font-weight:800}
+.dn-z{color:#B4B2C6}
+.dn-sub{display:block;font-size:11.5px;color:var(--muted);font-weight:500;margin-top:1px}
+.dn-pn,.dn-in{all:unset;cursor:pointer;font-weight:800;color:var(--accent)}
+.dn-in{color:var(--ink);font-weight:700}
+.dn-pn:hover,.dn-in:hover{text-decoration:underline;color:var(--accent)}
+.dn-pn:focus-visible,.dn-in:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:4px}
+.dn-pl{border:0;cursor:pointer;font:inherit;font-size:11px}
+.dn-bw{width:200px}
+.dn-bar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:#F1EFF8;min-width:120px}
+.dn-bar i,.dn-leg i{display:block;height:100%}
+.dn-bar i.t,.dn-leg i.t{background:#16A34A}.dn-bar i.j,.dn-leg i.j{background:#F7871F}
+.dn-leg{font-size:11.5px;color:var(--muted);white-space:nowrap}
+.dn-leg span{display:inline-flex;align-items:center;gap:5px;margin-right:10px}
+.dn-leg i{width:10px;height:10px;border-radius:3px}
+.dn-upd{font-size:12px;color:var(--muted);white-space:nowrap}
+.dn-g td{font-size:11.5px;font-weight:800;letter-spacing:.03em;text-transform:uppercase;padding-top:8px;padding-bottom:8px}
+.dn-g.s td{background:#FFF5F6;color:#BE123C}.dn-g.j td{background:#FFF7ED;color:#C2410C}.dn-g.l td{background:#F2FBF5;color:#15803D}
+.dn-g.l .linkish{font:inherit;color:inherit;text-transform:uppercase}
+.dn-k td:nth-child(2){width:90px}.dn-k td:nth-child(3){width:230px}.dn-k td:nth-child(4),.dn-k td:nth-child(5){width:110px}
+.dn-ket{font-size:12.5px;color:var(--muted);max-width:380px}
+.dn-chips{display:flex;flex-wrap:wrap;gap:6px}
+.dn-chips button{font:inherit;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:999px;border:1px solid var(--line-2);background:#fff;color:var(--ink-2,#4B4868);cursor:pointer}
+.dn-chips button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:700}
+.dn-u{min-width:1050px}
+.dn-u td{font-size:13px}
+.dn-no{color:var(--muted);width:40px}
+.dn-d{white-space:nowrap}
+.dn-late b,.dn-late .dn-sub{color:#BE123C}
+.dn-st{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap}
+.dn-st.go{color:#C2410C;background:#FFF1E2}.dn-st.prep{color:#5B21B6;background:#EFE8FD}.dn-st.etc{color:#475569;background:#EDEFF4}
+.dn-rem{color:#BE123C;font-weight:600;font-size:12.5px;max-width:260px}
+.dn-f{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;padding:11px 20px;border-top:1px solid #EEECF5;font-size:13px}
+.dn-f .linkish{font-weight:700}
+.dn-empty{margin:0 20px 18px;border:1px dashed var(--line-2);border-radius:12px;padding:18px;font-size:13.5px;color:var(--muted);text-align:center}
+.dn-card > .dn-empty:first-child{margin-top:18px}
+.dn-empty-c{text-align:center;color:var(--muted);padding:18px!important}
+.dn-pop{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;padding:0 20px 18px}
+.dn-pop button{font:inherit;display:flex;justify-content:space-between;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;text-align:left}
+.dn-pop button:hover{border-color:var(--accent-2)}
+.dn-pop span{font-size:13.5px;font-weight:600}.dn-pop b{font-size:20px;color:var(--accent)}
+.kpt em{white-space:normal!important;overflow:visible!important}
+@media print{.dn-chips,.dn-f .linkish,.dn-h .btn{display:none!important}.dn-u{min-width:0}.dn-t{font-size:10px}.dn-t td,.dn-t th{padding:5px 7px}}
 /* tingkat perkecilan mengikuti lebar kertas (lebar desain 1180px) */
 /* Print mengikuti lebar kertas & pilihan Skala (%) di jendela Print:
    skala lebih kecil = tampilan lebih kecil, seperti memperkecil (zoom out) web.
@@ -1387,6 +1449,7 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
 
   <!-- RINGKASAN -->
   <section class="panel" id="p-ringkasan" role="tabpanel">
+    <div id="dashNew"></div>
     <div id="dashControls" class="mu-dashboard-controls"></div>
     <div id="popDash"></div>
     <div id="projDash" hidden></div>
@@ -2063,7 +2126,7 @@ function tibaChecklist(kid){
 // Nilai juga dipertahankan sebagai teks terstruktur di "Catatan" untuk
 // kompatibilitas dengan Apps Script lama yang belum menambah kolom baru.
 const MU_DETAIL_TAG="\n\n--- DETAIL POPULASI UNIT ---\n";
-const MU_DETAIL_NAMES={etd:"ETD",eta:"ETA",vendor:"Vendor",merk:"Merek",model:"Model/Tipe",tahun:"Tahun",serial:"Serial/Chassis",kondisi:"Kondisi",foto:"Foto Unit (URL)"};
+const MU_DETAIL_NAMES={kategori:"Kategori",kepemilikan:"Kepemilikan",pic:"PIC",etd:"ETD",eta:"ETA",vendor:"Vendor",merk:"Merek",model:"Model/Tipe",tahun:"Tahun",serial:"Serial/Chassis",kondisi:"Kondisi",foto:"Foto Unit (URL)"};
 function muDetails(u){
   const raw=String((u&&u.catatan)||"");
   // Sumber lama kadang memiliki beberapa blok DETAIL, bahkan tanpa baris kosong.
@@ -2108,6 +2171,14 @@ function muPrepareUnitData(d){
 function muSection(label,hint){
   return {key:"head_"+label.replace(/\W/g,""),type:"html",
     html:'<div class="mu-form-section"><b>'+esc(label)+'</b><span>'+esc(hint||"")+'</span></div>'};
+}
+function muPlanInputs(){
+  const uniq=key=>[...new Set(S.units.map(u=>muDetails(u)[key]).filter(Boolean))].sort();
+  return [
+    {key:"kategori",label:"Kategori",ph:"Contoh: Excavator 50 Ton",list:uniq("kategori")},
+    {key:"kepemilikan",label:"Kepemilikan",ph:"Owned / Rental",list:[...new Set(["Owned","Rental","Leasing",...uniq("kepemilikan")])]},
+    {key:"pic",label:"PIC",ph:"Nama penanggung jawab",list:uniq("pic")}
+  ];
 }
 function muDetailInputs(){
   return [
@@ -2241,6 +2312,7 @@ function formUnit(u,presetItem){
     ...(!existing?[{key:"kirimId",label:"Item rencana kirim",type:"select",options:itemOpts(pid0)}]:[]),
     {key:"kode",label:"Nomor lambung",req:true,full:true,ph:"Contoh: DLCD50001",hint:u.kodeSementara?"Nomor saat ini sementara. Ganti dengan nomor lambung asli jika sudah tersedia.":""},
     {key:"tipe",label:"Jenis unit",req:true,ph:"Dolly, Vessel, Dump Truck…"},
+    ...muPlanInputs(),
     {key:"vendor",label:"Vendor / pemilik unit",ph:"KMB, NUSATAMA, TRINANDA…"},
     {key:"merk",label:"Merek",ph:"Volvo, Sandin, Sany…"},
     {key:"model",label:"Model / tipe",ph:"Contoh: Dolly 50T"},
@@ -2354,7 +2426,7 @@ function render(){
   $("#cMob").textContent=S.mobs.filter(m=>isAktif(m)&&inFilter(mobProj(m))).length;
   $("#cRev").textContent=S.revisi.filter(r=>inFilter(r.projectId)).length;
   ["addUnit","addExisting","addMob","addKirim"].forEach(id=>$("#"+id).hidden=!canWrite); $("#addProj").hidden=true;
-  renderBanner(); renderSummary(); renderKpi(); renderFbar(); renderCharts(); renderPFilter(); renderRingkasan(); renderPopDash(); muDashboardControls(); renderKirim(); renderUnit(); renderMob(); renderDok();
+  renderBanner(); renderSummary(); renderKpi(); renderFbar(); renderCharts(); renderPFilter(); renderRingkasan(); renderPopDash(); muDashboardControls(); renderDashNew(); renderKirim(); renderUnit(); renderMob(); renderDok();
 }
 function renderBanner(){
   const b=$("#banner");
@@ -2401,11 +2473,11 @@ function renderKpi(){
   const L=!S.ready, P=curProj(), t=totals(P), v=x=>L?"–":x, q=pct(t.tiba,t.rencana);
   const nP=projects().length, diLokasi=t.units.length, existing=t.units.filter(isExistingUnit).length;
   const cards=[
-    {c:"kpt1",go:"pengiriman",goName:"Rencana kirim",lab:"Rencana kirim",icon:"box",val:v(t.rencana),sub:L?"Memuat…":`${t.items.length} item unit${P?"":` · ${nP} project`} · ${t.revs}× revisi`,bar:100},
+    {c:"kpt1",go:"pengiriman",goName:"Rencana kirim",lab:"Rencana kirim",icon:"box",val:v(t.rencana),sub:L?"Memuat…":`${t.items.length} item unit${P?"":` · ${nP} project`}`,bar:100},
+    {c:"kpt3",go:"pengiriman",goName:"Rencana kirim",lab:"Dalam pengiriman",icon:"ship",val:v(t.jalan),sub:L?"":`${pct(t.jalan,t.rencana)}% menuju site`,bar:pct(t.jalan,t.rencana)},
     {c:"kpt2",go:"pengiriman",goName:"Rencana kirim",lab:"Sisa kirim",icon:"hourglass",val:v(t.sisa),sub:L?"":`${pct(t.sisa,t.rencana)}% belum berangkat`,bar:pct(t.sisa,t.rencana)},
-    {c:"kpt3",go:"pengiriman",goName:"Rencana kirim",lab:"Dalam perjalanan",icon:"ship",val:v(t.jalan),sub:L?"":`${pct(t.jalan,t.rencana)}% sedang menuju site`,bar:pct(t.jalan,t.rencana)},
-    {c:"kpt4",go:"unit",goName:"Unit di lokasi",lab:"Unit di lokasi",icon:"pin",val:v(diLokasi),sub:L?"":`${existing} existing · ${t.tiba} tiba dari rencana`,bar:t.rencana?q:100},
-    {c:"kpt5",go:"mobilisasi",goName:"Mobilisasi",lab:"Dikirim ke site lain",icon:"route",val:v(t.keluar),sub:L?"":(t.keluar?`${t.keluarJalan} di jalan · ${t.keluarDone} sudah sampai`:"Belum ada unit dipindah"),bar:t.keluar?pct(t.keluarDone,t.keluar):0}
+    {c:"kpt4",go:"pengiriman",goName:"Rencana kirim",lab:"Sudah tiba",icon:"check",val:v(t.tiba),sub:L?"":`${q}% dari rencana`,bar:q},
+    {c:"kpt5",go:"unit",goName:"Populasi Unit",lab:"Populasi di lokasi",icon:"pin",val:v(diLokasi),sub:L?"":(existing?`${diLokasi-existing} tiba · ${existing} existing`:`${diLokasi} unit di lokasi`),bar:t.rencana?Math.min(100,pct(diLokasi,t.rencana)):100}
   ];
   $("#kpis").innerHTML=cards.map(kpiCard).join("");
 }
@@ -2986,7 +3058,8 @@ function formSlot(k,u,no){
       {key:"lokasi",label:"Posisi sekarang",list:lokasiList(),ph:"Pelabuhan Banjarmasin / KM 45"},
       {key:"tglTiba",label:"Tanggal tiba",type:"date",hint:"Kosong = otomatis hari ini saat status Tiba."},
       {key:"hm",label:"Hour meter (HM)",type:"number",min:0,step:"0.1"},
-      muSection("Identitas unit","Vendor, merek, model, tahun, serial dan kondisi — sama seperti di Populasi Unit"),
+      muSection("Identitas unit","Kategori, kepemilikan, PIC, vendor, merek, model, tahun, serial dan kondisi"),
+      ...muPlanInputs(),
       ...muDetailInputs().filter(x=>x.key!=="foto"),
       {key:"catatan",label:"Catatan",type:"textarea",full:true,ph:"Nama kapal/trailer, sopir, kondisi unit, kendala di jalan…"}
     ],
@@ -3575,6 +3648,102 @@ let xlsxLoading=null;
 function loadXlsx(){ if(window.XLSX) return Promise.resolve(); if(xlsxLoading) return xlsxLoading;
   xlsxLoading=new Promise((res,rej)=>{ const sc=document.createElement("script"); sc.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"; sc.onload=()=>res(); sc.onerror=()=>{ xlsxLoading=null; rej(new Error("load")); }; document.head.appendChild(sc); });
   return xlsxLoading; }
+
+/* ---------- Dashboard ringkas: rencana kirim · dalam pengiriman · sisa · tiba · populasi ---------- */
+const DN={f:"all",all:false,done:false};
+const dnNum=(n,cls)=>n?`<b class="${cls}">${n}</b>`:`<span class="dn-z">–</span>`;
+function dnStatus(u){ const st=String(u.status||"").trim();
+  if(st==="Dalam perjalanan") return {t:"Dalam pengiriman",c:"go"};
+  if(st==="Persiapan kirim"||!st) return {t:"Persiapan kirim",c:"prep"};
+  return {t:st,c:"etc"}; }
+function dnUnitName(u){ const m=muDetails(u); const base=String(m.model||"").trim()||String(u.tipe||"").trim()||"Unit";
+  return base+(m.merk&&!base.toUpperCase().includes(String(m.merk).toUpperCase())?" · "+m.merk:""); }
+function dnPending(items){ const rows=[]; let empty=0;
+  items.forEach(k=>{ const us=slotUnits(k); us.forEach(u=>{ if(!arrived(u)) rows.push({u,k,m:muDetails(u)}); }); empty+=Math.max(0,(Number(k.rencana)||0)-us.length); });
+  rows.sort((a,b)=>(a.m.eta||"9999").localeCompare(b.m.eta||"9999")||(a.m.etd||"9999").localeCompare(b.m.etd||"9999")||String(a.u.id).localeCompare(String(b.u.id),"en",{numeric:true}));
+  return {rows,empty}; }
+function dnItemEta(k){ const e=unitsOfItem(k).filter(u=>u.status==="Dalam perjalanan").map(u=>muDetails(u).eta).filter(Boolean).sort(); return e[0]||k.eta||""; }
+function dnPopulasi(units){
+  const kinds=new Map(); units.forEach(u=>{ const key=MU_TYPE_KEY(u.tipe); if(!kinds.has(key)) kinds.set(key,{key,name:String(u.tipe||"Jenis belum diisi").trim(),n:0}); kinds.get(key).n++; });
+  const g=[...kinds.values()].sort((a,b)=>b.n-a.n||a.name.localeCompare(b.name,"id"));
+  return `<section class="card dn-card"><div class="dn-h"><div><h2>Populasi unit di lokasi</h2></div><span class="dn-meta"><b>${units.length} unit</b>${g.length?` · ${g.length} jenis`:""}</span></div>
+    ${g.length?`<div class="dn-pop">${g.map(x=>`<button type="button" data-dn="pop" data-key="${esc(encodeURIComponent(x.key))}" title="Lihat ${esc(x.name)} di Populasi Unit"><span>${esc(x.name)}</span><b>${x.n}</b></button>`).join("")}</div>`
+      :`<div class="dn-empty">Belum ada unit di lokasi. Unit otomatis muncul di sini setelah statusnya Tiba, atau saat unit existing ditambahkan.</div>`}</section>`; }
+function dnPendingTable(items,withProj){
+  const {rows,empty}=dnPending(items);
+  const nGo=rows.filter(r=>r.u.status==="Dalam perjalanan").length, nPrep=rows.length-nGo;
+  const list=rows.filter(r=>DN.f==="all"||(DN.f==="go")===(r.u.status==="Dalam perjalanan"));
+  const LIM=15, show=DN.all?list:list.slice(0,LIM), today=todayStr();
+  const chipB=(f,t,n)=>`<button type="button" data-dn="f" data-f="${f}" aria-pressed="${DN.f===f}">${t} <b>${n}</b></button>`;
+  const body=show.map((r,i)=>{ const {u,k,m}=r, st=dnStatus(u), late=m.eta&&m.eta<today;
+    return `<tr><td class="dn-no">${i+1}</td>${withProj?`<td><button type="button" class="ptag dn-pl" data-proj="${u.projectId}">${esc(projKode(u.projectId))}</button></td>`:""}
+      <td>${m.kategori?esc(m.kategori):'<span class="dn-z">–</span>'}</td>
+      <td><b>${esc(dnUnitName(u))}</b>${u.kodeSementara?"":`<small class="dn-sub">${esc(u.kode)}</small>`}</td>
+      <td>${m.kepemilikan?esc(m.kepemilikan):'<span class="dn-z">–</span>'}</td>
+      <td>${u.lokasi?esc(u.lokasi):'<span class="dn-z">–</span>'}</td>
+      <td class="dn-d">${m.etd?fmtD(m.etd):'<span class="dn-z">–</span>'}</td>
+      <td class="dn-d${late?" dn-late":""}">${m.eta?`<b>${fmtD(m.eta)}</b>${late?'<small class="dn-sub">lewat ETA</small>':""}`:'<span class="dn-z">–</span>'}</td>
+      <td><span class="dn-st ${st.c}">${esc(st.t)}</span></td>
+      <td class="dn-rem">${esc(m.catatan||"")}</td>
+      <td>${m.pic?esc(m.pic):'<span class="dn-z">–</span>'}</td></tr>`; }).join("");
+  const cols=withProj?11:10;
+  return `<section class="card dn-card"><div class="dn-h"><div><h2>Unit yang belum tiba</h2><p>Urut ETA terdekat. Unit yang sudah tiba otomatis pindah ke Populasi.</p></div>
+      <div class="dn-chips">${chipB("all","Semua",rows.length)}${chipB("go","Dalam pengiriman",nGo)}${chipB("prep","Belum berangkat",nPrep)}</div></div>
+    <div class="dn-tw"><table class="dn-t dn-u"><thead><tr><th>No</th>${withProj?"<th>Project</th>":""}<th>Kategori</th><th>Unit</th><th>Kepemilikan</th><th>Lokasi</th><th>ETD</th><th>ETA</th><th>Status kirim</th><th>Remarks</th><th>PIC</th></tr></thead>
+    <tbody>${body||`<tr><td colspan="${cols}" class="dn-empty-c">${rows.length?"Tidak ada unit untuk pilihan ini.":"Semua unit yang sudah didata sudah tiba."}</td></tr>`}</tbody></table></div>
+    <div class="dn-f">${list.length>LIM?`<button type="button" class="linkish" data-dn="all">${DN.all?"Tampilkan lebih sedikit":`Lihat semua ${list.length} unit`}</button>`:"<span></span>"}
+      ${empty?`<span class="dn-meta">+ ${empty} unit rencana belum didata (belum dijadwalkan) · <button type="button" class="linkish" data-goto="pengiriman">isi di Rencana kirim</button></span>`:""}</div></section>`; }
+function renderDashNew(){
+  const el=$("#dashNew"); if(!el) return;
+  if(!S.ready){ el.innerHTML=`<section class="card dn-card"><div class="dn-empty">Memuat data…</div></section>`; return; }
+  const P=curProj(), ps=P?[P]:projects(), pids=ps.map(p=>p.id);
+  const items=S.kirim.filter(k=>pids.includes(k.projectId));
+  const pop=S.units.filter(u=>arrived(u)&&pids.includes(u.projectId));
+  let main="";
+  if(!P){
+    const tot={r:0,j:0,s:0,t:0,p:0};
+    const rows=ps.map(p=>{ const st=projStats(p.id), np=S.units.filter(u=>arrived(u)&&u.projectId===p.id).length;
+      tot.r+=st.rencana; tot.j+=st.jalan; tot.s+=st.sisa; tot.t+=st.tiba; tot.p+=np;
+      const tw=st.rencana?Math.round(st.tiba/st.rencana*100):0, jw=st.rencana?Math.round(st.jalan/st.rencana*100):0;
+      return `<tr><td><button type="button" class="dn-pn" data-proj="${p.id}">${esc(p.kode)}</button><small class="dn-sub">${esc([p.nama,p.lokasi].filter(Boolean).join(" · "))}</small></td>
+        <td class="n"><b>${st.rencana}</b></td><td class="n">${dnNum(st.jalan,"c-go")}</td><td class="n">${dnNum(st.sisa,"c-sisa")}</td><td class="n">${dnNum(st.tiba,"c-tiba")}</td>
+        <td><div class="dn-bar" role="img" aria-label="${st.tiba} tiba, ${st.jalan} dalam pengiriman dari ${st.rencana}"><i class="t" style="width:${tw}%"></i><i class="j" style="width:${jw}%"></i></div></td>
+        <td class="n">${dnNum(np,"")}</td><td class="n dn-upd">${st.last?fmtTime(st.last):"—"}</td></tr>`; }).join("");
+    main=`<section class="card dn-card"><div class="dn-h"><div><h2>Ringkasan per project</h2><p>Rencana = Dalam pengiriman + Sisa kirim + Sudah tiba. Klik nama project untuk melihat rinciannya.</p></div></div>
+      <div class="dn-tw"><table class="dn-t"><thead><tr><th>Project</th><th class="n">Rencana</th><th class="n c-go">Dalam pengiriman</th><th class="n c-sisa">Sisa kirim</th><th class="n c-tiba">Sudah tiba</th><th class="dn-bw">Progres</th><th class="n">Populasi</th><th class="n">Update terakhir</th></tr></thead>
+      <tbody>${rows||`<tr><td colspan="8" class="dn-empty-c">Belum ada project.${canWrite?" Tambahkan lewat tombol + Project.":""}</td></tr>`}</tbody>
+      ${ps.length?`<tfoot><tr><td><b>Total · ${ps.length} project</b></td><td class="n"><b>${tot.r}</b></td><td class="n">${dnNum(tot.j,"c-go")}</td><td class="n">${dnNum(tot.s,"c-sisa")}</td><td class="n">${dnNum(tot.t,"c-tiba")}</td>
+        <td class="dn-leg"><span><i class="t"></i>tiba</span><span><i class="j"></i>dalam pengiriman</span></td><td class="n"><b>${tot.p}</b></td><td></td></tr></tfoot>`:""}</table></div></section>`;
+  } else {
+    const st=projStats(P.id);
+    const row=k=>{ const n=tibaItem(k), r=Number(k.rencana)||0, jl=jalanItem(k), sk=sisaItem(k), eta=jl?dnItemEta(k):"", lebih=n>r?n-r:0;
+      return `<tr><td><button type="button" class="dn-in" data-dn="item" data-id="${k.id}" title="Lihat unit ${esc(k.tipe)} di Rencana kirim">${esc(k.tipe)}</button></td>
+        <td class="n"><b>${r}</b></td><td>${jl?`<b class="c-go">${jl} unit</b>${eta?` <span class="dn-meta">· ETA ${fmtD(eta)}</span>`:""}`:'<span class="dn-z">–</span>'}</td>
+        <td class="n">${lebih?`<b class="c-go">lebih ${lebih}</b>`:dnNum(sk,"c-sisa")}</td><td class="n">${dnNum(Math.min(n,r),"c-tiba")}</td>
+        <td class="dn-ket">${esc([k.catatan,k.asal?"dari "+k.asal:""].filter(Boolean).join(" · "))}</td></tr>`; };
+    const its=st.items, gS=its.filter(k=>sisaItem(k)>0), gJ=its.filter(k=>!sisaItem(k)&&jalanItem(k)), gL=its.filter(k=>!sisaItem(k)&&!jalanItem(k));
+    gS.sort((a,b)=>sisaItem(b)-sisaItem(a));
+    const grp=(t,c,list,open=true)=>list.length?`<tr class="dn-g ${c}"><td colspan="6">${t} · ${list.length} item</td></tr>`+(open?list.map(row).join(""):""):"";
+    main=`<section class="card dn-card"><div class="dn-h"><div><h2>Rencana kirim per unit</h2><p>Rencana = Dalam pengiriman + Sisa kirim + Sudah tiba. Klik nama unit untuk melihat daftar unitnya.${st.last?` Diupdate ${fmtTime(st.last)}.`:""}</p></div>
+        <button type="button" class="btn small" data-goto="pengiriman">${canWrite?"Edit di Rencana kirim →":"Buka Rencana kirim →"}</button></div>
+      <div class="dn-tw"><table class="dn-t dn-k"><thead><tr><th>Unit</th><th class="n">Rencana</th><th class="c-go">Dalam pengiriman</th><th class="n c-sisa">Sisa kirim</th><th class="n c-tiba">Sudah tiba</th><th>Keterangan</th></tr></thead>
+      <tbody>${its.length?grp("Masih ada sisa kirim","s",gS)+grp("Sudah dikirim semua, menunggu tiba","j",gJ)+
+        (gL.length?`<tr class="dn-g l"><td colspan="6"><button type="button" class="linkish" data-dn="done">${DN.done?"▾":"▸"} Sudah lengkap · ${gL.length} item</button></td></tr>`+(DN.done?gL.map(row).join(""):""):"")
+        :`<tr><td colspan="6" class="dn-empty-c">Belum ada rencana kirim di project ini.</td></tr>`}</tbody>
+      ${its.length?`<tfoot><tr><td><b>Total · ${its.length} item</b></td><td class="n"><b>${st.rencana}</b></td><td>${dnNum(st.jalan,"c-go")}</td><td class="n">${dnNum(st.sisa,"c-sisa")}</td><td class="n">${dnNum(st.tiba,"c-tiba")}</td><td></td></tr></tfoot>`:""}</table></div></section>`;
+  }
+  el.innerHTML=main+dnPendingTable(items,!P)+dnPopulasi(pop);
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("#dashNew [data-dn]"); if(!b) return;
+  const a=b.dataset.dn;
+  if(a==="f"){ DN.f=b.dataset.f; DN.all=false; renderDashNew(); }
+  else if(a==="all"){ DN.all=!DN.all; renderDashNew(); }
+  else if(a==="done"){ DN.done=!DN.done; renderDashNew(); }
+  else if(a==="pop"){ S.unitGroup=decodeURIComponent(b.dataset.key); setTab("unit"); render(); }
+  else if(a==="item"){ SLOT_OPEN.add(b.dataset.id); try{ localStorage.setItem("mu_slot_open",JSON.stringify([...SLOT_OPEN])); }catch(err){} setTab("pengiriman"); render();
+    setTimeout(()=>{ const t=document.querySelector(`.itemTg[data-id="${b.dataset.id}"]`); if(t) t.scrollIntoView({block:"center"}); },80); }
+});
 /* ---------- Excel bergaya web: file .xlsx disusun langsung di browser (tanpa library) ---------- */
 const MUX=(()=>{
   const enc=new TextEncoder();
@@ -3710,39 +3879,48 @@ function buildStyledExcel(P,ps){
   /* 1. Dashboard */
   { const sh=B.sheet("Dashboard",{cols:[20,24,18,13,13,11,11,10,14,40]}); const N=10; let r=head(sh,N,"Dashboard");
     const t=totals(P), q=pct(t.tiba,t.rencana);
-    const kpis=[["Rencana kirim",t.rencana,`${t.items.length} item unit${P?"":` · ${ps.length} project`} · ${t.revs}× revisi`,"#7C3AED"],
+    const diL=t.units.length, ex=t.units.filter(isExistingUnit).length;
+    const kpis=[["Rencana kirim",t.rencana,`${t.items.length} item unit${P?"":` · ${ps.length} project`}`,"#7C3AED"],
+      ["Dalam pengiriman",t.jalan,`${pct(t.jalan,t.rencana)}% menuju site`,"#F7871F"],
       ["Sisa kirim",t.sisa,`${pct(t.sisa,t.rencana)}% belum berangkat`,"#EF4F5F"],
-      ["Dalam perjalanan",t.jalan,`${pct(t.jalan,t.rencana)}% sedang menuju site`,"#F7871F"],
-      ["Unit di lokasi",t.units.length,`${t.units.filter(isExistingUnit).length} existing · ${t.tiba} tiba dari rencana (${q}%)`,"#16A34A"],
-      ["Dikirim ke site lain",t.keluar,t.keluar?`${t.keluarJalan} di jalan · ${t.keluarDone} sudah sampai`:"Belum ada unit dipindah","#2563EB"]];
+      ["Sudah tiba",t.tiba,`${q}% dari rencana`,"#16A34A"],
+      ["Populasi di lokasi",diL,ex?`${diL-ex} tiba · ${ex} existing`:`${diL} unit di lokasi`,"#2563EB"]];
     kpis.forEach((k,i)=>{ const c=i*2, bdr={l:{c:"#FFFFFF",w:"medium"},r:{c:"#FFFFFF",w:"medium"}};
       sh.merge(r,c,c+1,k[0].toUpperCase(),{b:true,sz:9.5,color:"#FFFFFF",fill:k[3],ind:1,bd:bdr});
       sh.merge(r+1,c,c+1,k[1],{b:true,sz:26,color:"#FFFFFF",fill:k[3],h:"left",ind:1,bd:bdr});
       sh.merge(r+2,c,c+1,k[2],{sz:9,color:"#FFFFFF",fill:k[3],ind:1,wrap:true,v:"top",bd:bdr}); });
     sh.height(r,20); sh.height(r+1,40); sh.height(r+2,30); r+=4;
     section(sh,r++,N,"Ringkasan per project");
-    header(sh,r,["Project","Nama","Lokasi","Rencana kirim","Dalam perjalanan","Tiba","Sisa kirim","% tiba","Dikirim ke site lain","Catatan"],[1,2,9]); r++;
+    header(sh,r,["Project","Nama","Lokasi","Rencana kirim","Dalam pengiriman","Sisa kirim","Sudah tiba","% tiba","Populasi","Update terakhir"],[1,2]); r++;
     const tot={r:0,j:0,t:0,s:0,k:0};
-    ps.forEach(p=>{ const s=projStats(p.id), kel=keluarMobs([p.id]).length;
+    ps.forEach(p=>{ const s=projStats(p.id), kel=S.units.filter(u=>arrived(u)&&u.projectId===p.id).length;
       tot.r+=s.rencana; tot.j+=s.jalan; tot.t+=s.tiba; tot.s+=s.sisa; tot.k+=kel;
       sh.put(r,0,p.kode,ptag); sh.put(r,1,p.nama||"—",{...td,b:true}); sh.put(r,2,p.lokasi||"—",td);
       sh.put(r,3,s.rencana,{...tdn,b:true}); sh.put(r,4,s.jalan,{...tdn,b:!!s.jalan,color:s.jalan?"#C2410C":MUTED});
-      sh.put(r,5,s.tiba,{...tdn,b:true,color:"#15803D"}); sh.put(r,6,s.sisa,{...tdn,b:true,color:s.sisa?"#E11D48":MUTED});
-      sh.put(r,7,s.rencana?s.tiba/s.rencana:0,{...tdn,fmt:"0%",b:true,color:ACC}); sh.put(r,8,kel,{...tdn,color:kel?"#2563EB":MUTED});
-      sh.put(r,9,p.catatan||"",{...td,color:MUTED,sz:9}); r++; });
+      sh.put(r,6,s.tiba,{...tdn,b:true,color:s.tiba?"#15803D":MUTED}); sh.put(r,5,s.sisa,{...tdn,b:true,color:s.sisa?"#E11D48":MUTED});
+      sh.put(r,7,s.rencana?s.tiba/s.rencana:0,{...tdn,fmt:"0%",b:true,color:ACC}); sh.put(r,8,kel,{...tdn,b:!!kel,color:kel?"#1D4ED8":MUTED});
+      sh.put(r,9,s.last?fmtTime(s.last):"—",{...tdc,color:MUTED,sz:9}); r++; });
     if(!ps.length) emptyRow(sh,r++,N,"Belum ada project");
     else { const ts={...tdn,b:true,fill:HEAD}; sh.put(r,0,"TOTAL",{...ts,color:ACC}); sh.merge(r,1,2,`${ps.length} project`,{...ts,h:"left",color:MUTED});
-      sh.put(r,3,tot.r,ts); sh.put(r,4,tot.j,{...ts,color:"#C2410C"}); sh.put(r,5,tot.t,{...ts,color:"#15803D"}); sh.put(r,6,tot.s,{...ts,color:"#E11D48"});
-      sh.put(r,7,tot.r?tot.t/tot.r:0,{...ts,fmt:"0%",color:ACC}); sh.put(r,8,tot.k,{...ts,color:"#2563EB"}); sh.put(r,9,"",ts); r++; }
+      sh.put(r,3,tot.r,ts); sh.put(r,4,tot.j,{...ts,color:"#C2410C"}); sh.put(r,6,tot.t,{...ts,color:"#15803D"}); sh.put(r,5,tot.s,{...ts,color:"#E11D48"});
+      sh.put(r,7,tot.r?tot.t/tot.r:0,{...ts,fmt:"0%",color:ACC}); sh.put(r,8,tot.k,{...ts,color:"#1D4ED8"}); sh.put(r,9,"",ts); r++; }
     r++; section(sh,r++,N,"Rencana kirim per item");
-    header(sh,r,["Project","Item unit",null,"Rencana kirim","Dalam perjalanan","Tiba","Sisa kirim","Status",null,"ETA"],[1]); sh.merge(r,1,2,"Item unit",thL); sh.merge(r,7,8,"Status",th); r++;
+    header(sh,r,["Project","Item unit",null,"Rencana kirim","Dalam pengiriman","Sisa kirim","Sudah tiba","Status",null,"ETA"],[1]); sh.merge(r,1,2,"Item unit",thL); sh.merge(r,7,8,"Status",th); r++;
     let any=false;
     ps.forEach(p=>itemsOf(p.id).forEach(k=>{ any=true; const n=tibaItem(k), rr=Number(k.rencana)||0, jl=jalanItem(k), sk=sisaItem(k);
       sh.put(r,0,p.kode,ptag); sh.merge(r,1,2,k.tipe,{...td,b:true});
-      sh.put(r,3,rr,{...tdn,b:true}); sh.put(r,4,jl,{...tdn,color:jl?"#C2410C":MUTED,b:!!jl}); sh.put(r,5,n,{...tdn,b:true,color:"#15803D"}); sh.put(r,6,sk,{...tdn,b:true,color:sk?"#E11D48":MUTED});
-      const st=n>rr?["Lebih "+(n-rr),"s-warn"]:sk?[`${sk} sisa${jl?` · ${jl} jalan`:""}`,"s-bad"]:jl?[`${jl} dalam perjalanan`,"s-warn"]:["Lengkap","s-ok"];
+      sh.put(r,3,rr,{...tdn,b:true}); sh.put(r,4,jl,{...tdn,color:jl?"#C2410C":MUTED,b:!!jl}); sh.put(r,6,n,{...tdn,b:true,color:n?"#15803D":MUTED}); sh.put(r,5,sk,{...tdn,b:true,color:sk?"#E11D48":MUTED});
+      const st=n>rr?["Lebih "+(n-rr),"s-warn"]:sk?[`${sk} sisa${jl?` · ${jl} dlm pengiriman`:""}`,"s-bad"]:jl?[`${jl} dalam pengiriman`,"s-warn"]:["Lengkap","s-ok"];
       const c=MUX_CHIP[st[1]]; sh.merge(r,7,8,st[0],{...tdc,b:true,color:c[0],fill:c[1]}); dv(sh,r,9,k.eta); r++; }));
     if(!any) emptyRow(sh,r++,N,"Belum ada rencana kirim");
+    const pend=dnPending(S.kirim.filter(k=>pset.has(k.projectId)));
+    r++; section(sh,r++,N,"Unit yang belum tiba",`${pend.rows.length} unit · urut ETA terdekat${pend.empty?` · ${pend.empty} unit rencana belum didata`:""}`);
+    header(sh,r,["Project","Kategori","Unit","Kepemilikan","Lokasi","ETD","ETA","Status kirim","Remarks","PIC"],[1,2,8]); r++;
+    pend.rows.forEach(({u,m})=>{ const st=dnStatus(u), sc=st.c==="go"?["#C2410C","#FFF1E2"]:st.c==="prep"?["#5B21B6","#EFE8FD"]:["#475569","#EDEFF4"], late=m.eta&&m.eta<todayStr();
+      sh.put(r,0,projKode(u.projectId),ptag); sh.put(r,1,m.kategori||"—",m.kategori?td:dash); sh.put(r,2,dnUnitName(u)+(u.kodeSementara?"":"\n"+u.kode),{...td,b:true});
+      sh.put(r,3,m.kepemilikan||"—",m.kepemilikan?tdc:dash); sh.put(r,4,u.lokasi||"—",tdc); dv(sh,r,5,m.etd); dv(sh,r,6,m.eta,{...dateSt,b:true,...(late?{color:"#E11D48"}:{})});
+      sh.put(r,7,st.t,{...tdc,b:true,color:sc[0],fill:sc[1]}); sh.put(r,8,m.catatan||"",{...td,sz:9,b:true,color:"#BE123C"}); sh.put(r,9,m.pic||"—",m.pic?tdc:dash); r++; });
+    if(!pend.rows.length) emptyRow(sh,r++,N,"Tidak ada unit dalam pengiriman / persiapan kirim");
   }
 
   /* 2. Rencana Kirim: project → item → tabel unit (sama dengan tampilan web) */
