@@ -919,6 +919,43 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .dn-xl .dn-z{color:#BDBDBD}
 @media print{.dn-xl{min-width:0;font-size:10px}.dn-xl td,.dn-xl th{padding:3px 5px!important}}
 
+
+/* tabel rencana kirim per unit (format laporan Excel) */
+.rk-tw{overflow-x:auto;border:1px solid #ECE8F7;border-radius:14px}
+.rk-t{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px;min-width:980px}
+.rk-t th{background:linear-gradient(180deg,#F6F2FF,#EFE8FD);color:#5B21B6;font-size:12.5px;font-weight:800;text-align:center;padding:11px 12px;border-bottom:1px solid #E4DCFA;white-space:nowrap}
+.rk-t td{padding:10px 12px;border-bottom:1px solid #F1EEF8;color:var(--fg);vertical-align:middle;white-space:nowrap}
+.rk-t tbody tr:nth-child(even) td{background:#FCFBFF}
+.rk-t tbody tr:hover td{background:#F5F1FF}
+.rk-t tbody tr:last-child td{border-bottom:0}
+.rk-t tr.go td:first-child{box-shadow:inset 4px 0 0 #2563EB}
+.rk-t tr.prep td:first-child{box-shadow:inset 4px 0 0 #A78BFA}
+.rk-t td.c{text-align:center}
+.rk-no{color:var(--muted);font-weight:700;width:44px}
+.rk-t td.d{text-align:center;font-variant-numeric:tabular-nums}
+.rk-t td.late{color:#E11D48;font-weight:700}
+.rk-t td.late small{display:block;font-size:10.5px;font-weight:600}
+.rk-z{color:#C4C1D6}
+.rk-eq{all:unset;display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
+button.rk-eq{cursor:pointer;border-radius:6px}
+button.rk-eq:hover b{color:var(--accent);text-decoration:underline}
+button.rk-eq:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.rk-q{color:var(--muted);font-weight:700}.rk-dash{color:#C4C1D6}
+.rk-own{display:inline-block;font-size:12px;font-weight:800;border-radius:999px;padding:3px 12px}
+.rk-own.o{background:#EFE8FD;color:#6D28D9}.rk-own.r{background:#E0F2FE;color:#0369A1}.rk-own.l{background:#FFF1E2;color:#C2410C}.rk-own.x{background:#EDEFF4;color:#475569}
+.rk-pic{display:inline-flex;align-items:center;gap:7px;font-weight:600}
+.rk-pic i{font-style:normal;width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#7C3AED,#A78BFA);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:800}
+.rk-t td.rk-rem{color:#E11D48;font-weight:700;white-space:normal;min-width:150px}
+.rk-empty{text-align:center;color:var(--muted);padding:22px!important}
+.rk-foot{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 16px;margin-top:10px;font-size:12.5px;color:var(--muted)}
+.rk-lg{display:flex;flex-wrap:wrap;gap:6px 16px}.rk-lg span{display:inline-flex;align-items:center;gap:6px}
+.rk-lg i{width:4px;height:14px;border-radius:2px;display:block}.rk-lg i.go{background:#2563EB}.rk-lg i.prep{background:#A78BFA}
+.rk-acts{margin-top:10px;font-size:12.5px}
+.rk-acts summary{cursor:pointer;color:var(--accent);font-weight:700}
+.rk-acts > div{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.rk-ai{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:#fff}
+.rk-ai small{color:var(--muted)}
+@media print{.rk-acts{display:none}.rk-t{min-width:0;font-size:9.5px}.rk-t td,.rk-t th{padding:4px 6px}}
 /* rangkuman rencana kirim per unit */
 .rk-total{font-size:14px;color:var(--ink-2,#4B4868);background:#F7F6FC;border-radius:12px;padding:10px 14px;margin-bottom:12px}
 .rk-total b{color:var(--fg)}
@@ -2642,19 +2679,32 @@ function renderProjDash(P){
   const tot=SUMI.reduce((a,k)=>{ const x=seg(k); a.r+=x.r; a.t+=x.t; a.j+=x.j; a.b+=x.b; return a; },{r:0,t:0,j:0,b:0});
   const bar=x=>{ const w=n=>x.r?(n/x.r*100).toFixed(2)+"%":"0%"; return `<span class="rk-bar" role="img" aria-label="${x.j} sedang dikirim, ${x.b} belum dikirim, ${x.t} sudah tiba dari ${x.r}"><i class="t" style="width:${w(x.t)}"></i><i class="j" style="width:${w(x.j)}"></i></span>`; };
   const txt=x=>`<b class="j">${x.j}</b> sedang dikirim · <b class="b">${x.b}</b> belum dikirim · <b class="t">${x.t}</b> sudah tiba${x.lebih?` · <b class="o">+${x.lebih}</b> lebih`:""}`;
-  const rows=SUMI.map(k=>{ const x=seg(k), sisa=x.r-tibaItem(k);
-    return `<div class="rk-row"><div class="rk-top"><b class="rk-nm" title="${esc(k.tipe)}">${esc(k.tipe)}</b><span class="rk-n">${x.r} unit</span></div>${bar(x)}
-      <div class="rk-tx"><span>${txt(x)}</span>${canWrite?`<span class="rk-act">${sisa>0?`<button class="linkish" data-act="tibaItem" data-id="${k.id}" type="button">+ Tiba</button>`:""}<button class="linkish" data-act="jumlah" data-id="${k.id}" type="button">Ubah jumlah</button></span>`:""}</div></div>`; }).join("");
+  const PD=dnPending(SUMI), today=todayStr(), z='<span class="rk-z">–</span>';
+  const own=v=>{ const t=String(v||"").trim(); if(!t) return z; const c=/own/i.test(t)?"o":/rent|sewa/i.test(t)?"r":/leas/i.test(t)?"l":"x"; return `<span class="rk-own ${c}">${esc(t)}</span>`; };
+  const pic=v=>{ const t=String(v||"").trim(); return t?`<span class="rk-pic"><i>${esc(t.charAt(0).toUpperCase())}</i>${esc(t)}</span>`:""; };
+  const eqp=u=>{ const m=muDetails(u), mdl=String(m.model||"").trim()||String(u.tipe||"").trim()||"Unit", mk=String(m.merk||"").trim();
+    const inner=`<span class="rk-q">1x</span> <b>${esc(mdl)}</b>${mk&&!mdl.toUpperCase().includes(mk.toUpperCase())?` <span class="rk-dash">-</span> ${muBrandTag(mk.charAt(0).toUpperCase()+mk.slice(1).toLowerCase())}`:""}`;
+    return canWrite?`<button type="button" class="rk-eq" data-act="slotEdit" data-id="${u.id}" title="Edit unit ini${u.kodeSementara?"":" · "+esc(u.kode)}">${inner}</button>`:`<span class="rk-eq" title="${u.kodeSementara?"":esc(u.kode)}">${inner}</span>`; };
+  const trs=PD.rows.map((r,i)=>{ const {u,m}=r, go=u.status==="Dalam perjalanan", late=m.eta&&m.eta<today;
+    return `<tr class="${go?"go":"prep"}" title="${go?"Sedang dikirim":esc(u.status||"Persiapan kirim")}"><td class="c rk-no">${i+1}</td><td>${m.kategori?esc(m.kategori):z}</td><td>${eqp(u)}</td>
+      <td class="c">${own(m.kepemilikan)}</td><td>${u.lokasi?esc(u.lokasi):z}</td>
+      <td class="d">${m.etd?fmtD(m.etd):""}</td><td class="d${late?" late":""}">${m.eta?`${fmtD(m.eta)}${late?'<small>lewat ETA</small>':""}`:""}</td>
+      <td>${pic(m.pic)}</td><td class="rk-rem">${esc(m.catatan||"")}</td></tr>`; }).join("");
+  const acts=canWrite&&SUMI.length?`<details class="rk-acts"><summary>Aksi per item (+ Tiba / Ubah jumlah)</summary><div>${SUMI.map(k=>{ const x=seg(k), sisa=x.r-tibaItem(k);
+    return `<span class="rk-ai"><b>${esc(k.tipe)}</b> <small>${x.r} unit</small>${sisa>0?`<button class="linkish" data-act="tibaItem" data-id="${k.id}" type="button">+ Tiba</button>`:""}<button class="linkish" data-act="jumlah" data-id="${k.id}" type="button">Ubah jumlah</button></span>`; }).join("")}</div></details>`:"";
+  const rows=SUMI.length?`<div class="rk-tw"><table class="rk-t"><thead><tr><th>No</th><th>Category</th><th>Equipment</th><th>Status</th><th>Location</th><th>ETD</th><th>ETA</th><th>PIC</th><th>Remarks</th></tr></thead>
+    <tbody>${trs||`<tr><td colspan="9" class="rk-empty">Belum ada unit yang dijadwalkan kirim.${canWrite?" Isi unitnya di tab Rencana kirim.":""}</td></tr>`}</tbody></table></div>
+    <div class="rk-foot"><span class="rk-lg"><span><i class="go"></i>sedang dikirim</span><span><i class="prep"></i>persiapan / belum berangkat</span></span>${PD.empty?`<span>+ ${PD.empty} unit rencana belum didata · <button type="button" class="linkish" data-goto="pengiriman">isi di Rencana kirim</button></span>`:""}</div>${acts}`:"";
   const head="";
   const sc=UNIT_STATUS.map(x=>({x,n:us.filter(u=>u.status===x.k).length}));
   const stack=us.length?sc.filter(o=>o.n).map(o=>`<i style="width:${o.n/us.length*100}%;background:${o.x.col}" title="${o.x.k}: ${o.n}"></i>`).join(""):"";
   const c=projColor(P.id);
 
-  const progress='<div class="card pcard"><div class="card-head"><h3><span class="tile-ic" style="background:var(--g-'+c+')">'+ic(projIcon(P.id))+'</span>Rencana kirim per unit</h3>'+
+  const progress='<div class="card pcard rk-card"><div class="card-head"><h3><span class="tile-ic" style="background:var(--g-'+c+')">'+ic(projIcon(P.id))+'</span>Rencana kirim per unit</h3>'+
     (canWrite?'<button class="btn small primary" data-act="addItem" data-id="'+esc(P.id)+'" type="button">+ Item unit</button>':'')+
     muDashboardCollapseButton("progress")+'</div>'+
     (rows?'<div class="rk-total">Total <b>'+tot.r+' unit</b>: <b class="j">'+tot.j+'</b> sedang dikirim · <b class="b">'+tot.b+'</b> belum dikirim · <b class="t">'+tot.t+'</b> sudah tiba</div>'+
-      '<div class="rk-list">'+rows+'</div><div class="rk-leg"><span><i class="j"></i>sedang dikirim</span><span><i class="t"></i>sudah tiba</span><span><i class="b"></i>belum dikirim</span></div>'
+      rows
       :'<div class="muted">'+(st.items.length?"Tidak ada item di filter ini.":"Belum ada item unit di project ini.")+'</div>')+'</div>';
   const status='<div class="card pcard"><div class="card-head"><h3><span class="tile-ic" style="background:var(--g-teal)">'+ic("truck")+'</span>Status unit di lokasi</h3>'+
     '<button class="btn open small" data-goto="unit" type="button">Lihat unit →</button>'+muDashboardCollapseButton("status")+'</div>'+
@@ -2671,7 +2721,7 @@ function renderProjDash(P){
   // Kartu ringkas diletakkan berpasangan. Nomor lambung yang panjang
   // melebar di seluruh dashboard agar tidak menyisakan kolom kosong.
   $("#projDash").innerHTML='<div class="dash mu-project-layout">'+
-    muDashboardWrap("progress","Progres kedatangan",progress)+
+    '<div class="mu-layout-wide">'+muDashboardWrap("progress","Rencana kirim per unit",progress)+'</div>'+
     muDashboardWrap("status","Status unit di lokasi",status)+
     muDashboardWrap("mobilization","Jadwal mobilisasi",mob)+
     muDashboardWrap("revision","Perubahan rencana",revision)+
