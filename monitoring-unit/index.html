@@ -927,7 +927,9 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .rk-tot2 i,.rk-lg i{width:10px;height:10px;border-radius:3px;display:block}
 i.j{background:#2563EB}i.p{background:#A78BFA}i.k{background:#CBD5E1}i.t{background:#16A34A}
 b.p{color:#5B21B6}
-.rk-t2{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13.5px;min-width:1240px}
+.rk-t2{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13.5px;min-width:1040px}
+.rk-t2 tbody + tbody .rk-gh td{border-top:10px solid #fff;box-shadow:inset 0 2px 0 #E4DCFA}
+.rk-t2 .rk-ch th{padding:9px 14px;font-size:12px}
 .rk-t2 th{background:#F3EEFE;color:#5B21B6;font-size:12.5px;font-weight:800;text-align:left;text-transform:none;letter-spacing:0;padding:12px 14px;border-bottom:1px solid #E4DCFA;white-space:nowrap}
 .rk-t2 th.c{text-align:center}
 .rk-t2 td{padding:10px 14px;vertical-align:top;overflow-wrap:anywhere;border-bottom:1px solid #F1EEF8;color:var(--fg)}
@@ -2719,6 +2721,7 @@ function renderProjDash(P){
   const T={jalan:0,prep:0,kosong:0,tiba:0};
   const kls=u=>!u?"kosong":arrived(u)?"tiba":u.status==="Dalam perjalanan"?"jalan":"prep";
   const chipU=u=>{ const c=u.status==="Dalam perjalanan"?["#1D4ED8","#DFEAFE"]:u.status==="Persiapan kirim"||!u.status?["#5B21B6","#EFE8FD"]:MUX_CHIP[statusOf(ALL_STATUS,u.status).cls]||MUX_CHIP["s-idle"]; return `<span class="rk-st" style="color:${c[0]};background:${c[1]}">${esc(u.status||"Persiapan kirim")}</span>`; };
+  const COLH='<tr class="rk-ch"><th class="c">No</th><th>No. lambung</th><th>Vendor</th><th>Merek</th><th>Status kirim</th><th>Via</th><th>Posisi</th><th class="c">ETD</th><th class="c">ETA</th><th>Catatan</th></tr>';
   const groups=SUMI.map(k=>{
     const us=slotUnits(k), r=Number(k.rencana)||0, n=Math.max(r,us.length);
     const cnt={jalan:0,prep:0,kosong:0,tiba:0};
@@ -2737,9 +2740,8 @@ function renderProjDash(P){
         <span class="rk-gbar" role="img" aria-label="${cnt.jalan} dalam perjalanan, ${cnt.tiba} tiba dari ${n}"><i class="j" style="width:${w(cnt.jalan)}"></i><i class="p" style="width:${w(cnt.prep)}"></i><i class="t" style="width:${w(cnt.tiba)}"></i></span>
         <span class="rk-gs">${cnt.jalan} dalam perjalanan · ${cnt.prep} persiapan · ${cnt.kosong} belum dijadwalkan · ${cnt.tiba} tiba</span></div>
       <div class="rk-ghr">ETA <b>${k.eta?fmtD(k.eta):"–"}</b>${canWrite?`${sisa>0?`<button class="linkish" data-act="tibaItem" data-id="${k.id}" type="button">+ Tiba</button>`:""}<button class="linkish" data-act="jumlah" data-id="${k.id}" type="button">Ubah jumlah</button>`:""}</div></div></td></tr>`;
-    return `<tbody>${head}${trs}</tbody>`; }).join("");
-  const rows=SUMI.length?`<div class="rk-tw"><table class="rk-t2"><colgroup><col style="width:56px"><col style="width:132px"><col style="width:112px"><col style="width:112px"><col style="width:150px"><col style="width:150px"><col style="width:170px"><col style="width:112px"><col style="width:112px"><col></colgroup>
-    <thead><tr><th class="c">No</th><th>No. lambung</th><th>Vendor</th><th>Merek</th><th>Status kirim</th><th>Via</th><th>Posisi</th><th class="c">ETD</th><th class="c">ETA</th><th>Catatan</th></tr></thead>${groups}</table></div>
+    return `<tbody>${head}${COLH}${trs}</tbody>`; }).join("");
+  const rows=SUMI.length?`<div class="rk-tw"><table class="rk-t2"><colgroup><col style="width:4.5%"><col style="width:10%"><col style="width:9%"><col style="width:9%"><col style="width:13%"><col style="width:10%"><col style="width:12%"><col style="width:8.5%"><col style="width:8.5%"><col style="width:15.5%"></colgroup>${groups}</table></div>
     <div class="rk-foot"><span class="rk-lg"><span><i class="j"></i>dalam perjalanan</span><span><i class="p"></i>persiapan kirim</span><span><i class="k"></i>belum dijadwalkan</span><span><i class="t"></i>sudah tiba</span></span></div>`:"";
   const totLine=`<span>Total <b>${tot.r} unit</b> dari ${SUMI.length} item</span><span><i class="j"></i><b class="j">${T.jalan}</b> dalam perjalanan</span><span><i class="p"></i><b class="p">${T.prep}</b> persiapan kirim</span><span><i class="k"></i><b class="b">${T.kosong}</b> belum dijadwalkan</span><span><i class="t"></i><b class="t">${T.tiba}</b> sudah tiba</span>`;
   const head="";
