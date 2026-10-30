@@ -3684,12 +3684,12 @@ function dnPendingTable(items,withProj){
       <td class="dn-d">${m.etd?fmtD(m.etd):'<span class="dn-z">–</span>'}</td>
       <td class="dn-d${late?" dn-late":""}">${m.eta?`<b>${fmtD(m.eta)}</b>${late?'<small class="dn-sub">lewat ETA</small>':""}`:'<span class="dn-z">–</span>'}</td>
       <td><span class="dn-st ${st.c}">${esc(st.t)}</span></td>
-      <td class="dn-rem">${esc(m.catatan||"")}</td>
-      <td>${m.pic?esc(m.pic):'<span class="dn-z">–</span>'}</td></tr>`; }).join("");
+      <td>${m.pic?esc(m.pic):'<span class="dn-z">–</span>'}</td>
+      <td class="dn-rem">${esc(m.catatan||"")}</td></tr>`; }).join("");
   const cols=withProj?11:10;
   return `<section class="card dn-card"><div class="dn-h"><div><h2>Unit yang belum tiba</h2><p>Urut ETA terdekat. Unit yang sudah tiba otomatis pindah ke Populasi.</p></div>
       <div class="dn-chips">${chipB("all","Semua",rows.length)}${chipB("go","Dalam pengiriman",nGo)}${chipB("prep","Belum berangkat",nPrep)}</div></div>
-    <div class="dn-tw"><table class="dn-t dn-u"><thead><tr><th>No</th>${withProj?"<th>Project</th>":""}<th>Kategori</th><th>Unit</th><th>Kepemilikan</th><th>Lokasi</th><th>ETD</th><th>ETA</th><th>Status kirim</th><th>Remarks</th><th>PIC</th></tr></thead>
+    <div class="dn-tw"><table class="dn-t dn-u"><thead><tr><th>No</th>${withProj?"<th>Project</th>":""}<th>Kategori</th><th>Unit</th><th>Kepemilikan</th><th>Lokasi</th><th>ETD</th><th>ETA</th><th>Status kirim</th><th>PIC</th><th>Remarks</th></tr></thead>
     <tbody>${body||`<tr><td colspan="${cols}" class="dn-empty-c">${rows.length?"Tidak ada unit untuk pilihan ini.":"Semua unit yang sudah didata sudah tiba."}</td></tr>`}</tbody></table></div>
     <div class="dn-f">${list.length>LIM?`<button type="button" class="linkish" data-dn="all">${DN.all?"Tampilkan lebih sedikit":`Lihat semua ${list.length} unit`}</button>`:"<span></span>"}
       ${empty?`<span class="dn-meta">+ ${empty} unit rencana belum didata (belum dijadwalkan) · <button type="button" class="linkish" data-goto="pengiriman">isi di Rencana kirim</button></span>`:""}</div></section>`; }
@@ -3915,11 +3915,11 @@ function buildStyledExcel(P,ps){
     if(!any) emptyRow(sh,r++,N,"Belum ada rencana kirim");
     const pend=dnPending(S.kirim.filter(k=>pset.has(k.projectId)));
     r++; section(sh,r++,N,"Unit yang belum tiba",`${pend.rows.length} unit · urut ETA terdekat${pend.empty?` · ${pend.empty} unit rencana belum didata`:""}`);
-    header(sh,r,["Project","Kategori","Unit","Kepemilikan","Lokasi","ETD","ETA","Status kirim","Remarks","PIC"],[1,2,8]); r++;
+    header(sh,r,["Project","Kategori","Unit","Kepemilikan","Lokasi","ETD","ETA","Status kirim","PIC","Remarks"],[1,2,9]); r++;
     pend.rows.forEach(({u,m})=>{ const st=dnStatus(u), sc=st.c==="go"?["#C2410C","#FFF1E2"]:st.c==="prep"?["#5B21B6","#EFE8FD"]:["#475569","#EDEFF4"], late=m.eta&&m.eta<todayStr();
       sh.put(r,0,projKode(u.projectId),ptag); sh.put(r,1,m.kategori||"—",m.kategori?td:dash); sh.put(r,2,dnUnitName(u)+(u.kodeSementara?"":"\n"+u.kode),{...td,b:true});
       sh.put(r,3,m.kepemilikan||"—",m.kepemilikan?tdc:dash); sh.put(r,4,u.lokasi||"—",tdc); dv(sh,r,5,m.etd); dv(sh,r,6,m.eta,{...dateSt,b:true,...(late?{color:"#E11D48"}:{})});
-      sh.put(r,7,st.t,{...tdc,b:true,color:sc[0],fill:sc[1]}); sh.put(r,8,m.catatan||"",{...td,sz:9,b:true,color:"#BE123C"}); sh.put(r,9,m.pic||"—",m.pic?tdc:dash); r++; });
+      sh.put(r,7,st.t,{...tdc,b:true,color:sc[0],fill:sc[1]}); sh.put(r,8,m.pic||"—",m.pic?tdc:dash); sh.put(r,9,m.catatan||"",{...td,sz:9,b:true,color:"#BE123C"}); r++; });
     if(!pend.rows.length) emptyRow(sh,r++,N,"Tidak ada unit dalam pengiriman / persiapan kirim");
   }
 
