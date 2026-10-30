@@ -276,6 +276,7 @@ table.mt tr:hover td { background: var(--card-2); }
 .ptkc { min-width: 140px; }
 td .pg { min-width: 130px; }
 .pgl { font-size: 11px; color: var(--ink-2); margin-top: 4px; white-space: nowrap; }
+.pg.done .tr i { background: var(--good); } .pg.done b, .pgl.done { color: var(--good); } .pgl.done { font-weight: 700; } .pg.none b, .pgl.none { color: var(--muted); }
 .kp { display: inline-block; font-size: 11px; font-weight: 800; padding: 5px 10px; border-radius: 14px; line-height: 1.25; max-width: 110px; }
 .kp.crit { background: #FDEBD3; color: #9A4A0B; } .kp.warn { background: var(--warn-soft); color: var(--warn); } .kp.good { background: var(--good-soft); color: var(--good); } .kp.mute { background: var(--card-2); color: var(--ink-2); }
 .cm-h { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
@@ -1771,6 +1772,12 @@ function candStatusText(c, p) {
 const inFlight = (c) => c.st === 'pr' || c.st === 'hd' || c.status === 'No Response';
 // Progress posisi = tahap terakhir yang sudah diisi, baik di data posisi maupun di pelamar yang masih aktif / diterima (walau berkas belum diupload)
 function progIdx(p) { let k = stageIdx(p); try { candidates(p).forEach((c) => { if (c.st !== 'no' && !c.fromHist) k = Math.max(k, Math.min(7, Number(c.stage) || 0)); }); } catch (e) {} return k; }
+// Label progress di tabel MPP: posisi terisi tanpa PTK / PTK close = TERPENUHI; vacant tanpa PTK & tanpa progres = BELUM ADA PTK
+function progView(p, si) {
+  if (hasPTK(p) ? /close/i.test(p.status || '') : !isVacant(p)) return { pct: 100, lbl: 'TERPENUHI', cls: 'done' };
+  if (!hasPTK(p) && !si) return { pct: 0, lbl: 'BELUM ADA PTK', cls: 'none' };
+  return { pct: STAGE_PCT[si], lbl: STAGE_UP[si], cls: '' };
+}
 function topStage(p) { const a = candidates(p).filter((c) => c.st === 'pr' || c.st === 'hd'); return a.length ? Math.max(...a.map((c) => c.stage)) : stageIdx(p); }
 
 function derive() {
@@ -1837,7 +1844,7 @@ function pageMPP(D) {
         <td class="ket">${esc(p.ket || '-')}</td>
         <td class="ptkc">${esc(p.ptk || '-')}</td>
         <td>${hasPTK(p) ? `<span class="stt ${/close/i.test(p.status) ? 'close' : /continue/i.test(p.status) ? 'cont' : 'open'}">${esc(p.status)}</span>` : '<span class="dash">-</span>'}</td>
-        <td><div class="pg"><span class="tr"><i style="width:${STAGE_PCT[si]}%"></i></span><b>${STAGE_PCT[si]}%</b></div><div class="pgl">${STAGE_UP[si]}</div></td>
+        <td>${(() => { const v = progView(p, si); return `<div class="pg ${v.cls}"><span class="tr"><i style="width:${v.pct}%"></i></span><b>${v.pct}%</b></div><div class="pgl ${v.cls}">${v.lbl}</div>`; })()}</td>
         <td class="nw">${p.due ? fmt(p.due) : '-'}</td>
         <td><span class="kp ${kc(k)}">${esc(k)}</span></td>
         <td><div class="acts">${CAN_EDIT ? `<button type="button" class="btn btn-g btn-sm" data-epos="${i}">Edit</button>` : ''}${hasPTK(p) || cs.length ? `<button type="button" class="btn btn-y btn-sm" data-cands="${i}">Pelamar</button>` : ''}${CAN_EDIT ? `<button type="button" class="btn btn-g btn-sm red" data-delpos="${i}">Hapus</button>` : ''}</div></td>
