@@ -854,6 +854,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .dn-meta b{color:var(--ink)}
 .dn-tw{overflow-x:auto}
 .dn-t{width:100%;border-collapse:collapse;font-size:13.5px}
+.dn-t:not(.dn-u){min-width:820px}
 .dn-t th{background:#F7F6FC;color:var(--muted);font-size:11.5px;font-weight:700;text-transform:uppercase;letter-spacing:.03em;text-align:left;padding:10px 12px;white-space:nowrap}
 .dn-t td{padding:10px 12px;border-top:1px solid #EEECF5;vertical-align:middle}
 .dn-t th:first-child,.dn-t td:first-child{padding-left:20px}
@@ -904,6 +905,37 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .dn-pop span{font-size:13.5px;font-weight:600}.dn-pop b{font-size:20px;color:var(--accent)}
 .kpt em{white-space:normal!important;overflow:visible!important}
 @media print{.dn-chips,.dn-f .linkish,.dn-h .btn{display:none!important}.dn-u{min-width:0}.dn-t{font-size:10px}.dn-t td,.dn-t th{padding:5px 7px}}
+
+/* gaya baru: pita, kartu tiga, corong, heatmap */
+.dn-row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+@media (max-width:1100px){.dn-row3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:720px){.dn-row3{grid-template-columns:minmax(0,1fr)}}
+.dn-c3{padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.dn-c3 h2{margin:0;font-size:16.5px;font-weight:800}
+.dn-c3h{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.dn-c3 svg{width:100%;height:auto;display:block}
+.dn-lg{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;color:var(--ink-2,#4B4868);align-items:center}
+.dn-lg span{display:inline-flex;align-items:center;gap:6px}
+.dn-lg i{width:10px;height:10px;border-radius:50%;display:block}
+.dn-note{margin:0}
+.dn-sb{display:flex;flex-direction:column;gap:8px}
+.dn-sb button{all:unset;cursor:pointer;display:grid;grid-template-columns:92px minmax(0,1fr) 34px;align-items:center;gap:10px;font-size:13.5px;font-weight:600;border-radius:8px}
+.dn-sb button:hover .tr{background:#E9E5F6}
+.dn-sb button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.dn-sb .tr{height:20px;border-radius:6px;background:#F1EFF8;overflow:hidden;display:block}
+.dn-sb .tr i{display:block;height:100%;border-radius:6px;min-width:2px}
+.dn-sb b{text-align:right;font-size:15px}
+.dn-e2{margin:0!important;flex:1;display:flex;align-items:center;justify-content:center}
+.dn-fn{display:flex;flex-direction:column;gap:6px}
+.dn-fn .fr{display:grid;grid-template-columns:minmax(0,1fr) 128px;align-items:center;gap:12px}
+.dn-fn .fb{display:flex;justify-content:center}
+.dn-fn .fb span{height:44px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:22px;font-weight:800;clip-path:polygon(0 0,100% 0,94% 100%,6% 100%)}
+.dn-fn b{display:block;font-size:14px}.dn-fn small{display:block;font-size:12px;color:var(--muted)}
+.dn-t td.hm{border-top-color:#fff}
+#kpis{gap:16px!important}
+.kpt b{font-size:34px!important}
+.wrap{max-width:1440px!important}
+@media print{.dn-row3{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
 /* tingkat perkecilan mengikuti lebar kertas (lebar desain 1180px) */
 /* Print mengikuti lebar kertas & pilihan Skala (%) di jendela Print:
    skala lebih kecil = tampilan lebih kecil, seperti memperkecil (zoom out) web.
@@ -3693,6 +3725,42 @@ function dnPendingTable(items,withProj){
     <tbody>${body||`<tr><td colspan="${cols}" class="dn-empty-c">${rows.length?"Tidak ada unit untuk pilihan ini.":"Semua unit yang sudah didata sudah tiba."}</td></tr>`}</tbody></table></div>
     <div class="dn-f">${list.length>LIM?`<button type="button" class="linkish" data-dn="all">${DN.all?"Tampilkan lebih sedikit":`Lihat semua ${list.length} unit`}</button>`:"<span></span>"}
       ${empty?`<span class="dn-meta">+ ${empty} unit rencana belum didata (belum dijadwalkan) · <button type="button" class="linkish" data-goto="pengiriman">isi di Rencana kirim</button></span>`:""}</div></section>`; }
+
+/* baris 3 kartu: grafik mingguan, status di lokasi, alur unit */
+const dnHeat=(v,max,rgb)=>v&&max?`background:rgba(${rgb},${(0.1+0.5*Math.min(1,v/max)).toFixed(2)})`:"";
+function dnWeekly(units){
+  const mon=d=>{ const x=new Date(d+"T00:00:00"); const k=(x.getDay()+6)%7; x.setDate(x.getDate()-k); return ymd(x); };
+  const cur=mon(todayStr()), weeks=[]; { const d=new Date(cur+"T00:00:00"); for(let i=8;i>=0;i--){ const x=new Date(d); x.setDate(x.getDate()-7*i); weeks.push(ymd(x)); } }
+  const go=weeks.map(()=>0), tb=weeks.map(()=>0);
+  units.forEach(u=>{ if(u.tglKirim&&u.status!=="Persiapan kirim"){ const i=weeks.indexOf(mon(u.tglKirim)); if(i>=0) go[i]++; }
+    if(arrived(u)&&u.tglTiba){ const i=weeks.indexOf(mon(u.tglTiba)); if(i>=0) tb[i]++; } });
+  const top=Math.max(4,...go,...tb), X=i=>40+i*45.5, Y=v=>180-v/top*160;
+  const line=a=>a.map((v,i)=>X(i).toFixed(1)+","+Y(v).toFixed(1)).join(" ");
+  const area=a=>line(a)+` ${X(a.length-1).toFixed(1)},180 40,180`;
+  const lab=i=>{ const d=new Date(weeks[i]+"T00:00:00"); return d.toLocaleDateString("id-ID",{day:"numeric",month:"short"}); };
+  const sum=go.reduce((a,b)=>a+b,0)+tb.reduce((a,b)=>a+b,0);
+  return `<div class="card dn-c3"><h2>Unit dikirim &amp; tiba per minggu</h2>
+    <div class="dn-lg"><span><i style="background:#F7871F"></i>Dikirim ${go.reduce((a,b)=>a+b,0)}</span><span><i style="background:#16A34A"></i>Tiba ${tb.reduce((a,b)=>a+b,0)}</span><span class="dn-meta">9 minggu terakhir</span></div>
+    <svg viewBox="0 0 420 210" role="img" aria-label="Unit dikirim dan tiba per minggu, 9 minggu terakhir">
+      <g stroke="#ECEAF4"><line x1="34" y1="20" x2="410" y2="20"/><line x1="34" y1="100" x2="410" y2="100"/><line x1="34" y1="180" x2="410" y2="180"/></g>
+      <g fill="#8F8DA6" font-size="11" text-anchor="end"><text x="28" y="24">${top}</text><text x="28" y="104">${Math.round(top/2)}</text><text x="28" y="184">0</text></g>
+      <polygon points="${area(go)}" fill="#F7871F" fill-opacity=".12"/><polyline points="${line(go)}" fill="none" stroke="#F7871F" stroke-width="2.5" stroke-linejoin="round"/>
+      <polygon points="${area(tb)}" fill="#16A34A" fill-opacity=".12"/><polyline points="${line(tb)}" fill="none" stroke="#16A34A" stroke-width="2.5" stroke-linejoin="round"/>
+      ${go.map((v,i)=>`<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="3" fill="#F7871F"><title>${lab(i)}: ${v} dikirim</title></circle><circle cx="${X(i).toFixed(1)}" cy="${Y(tb[i]).toFixed(1)}" r="3" fill="#16A34A"><title>${lab(i)}: ${tb[i]} tiba</title></circle>`).join("")}
+      <g fill="#8F8DA6" font-size="11" text-anchor="middle">${[0,2,4,6,8].map(i=>`<text x="${X(i).toFixed(1)}" y="202">${lab(i)}</text>`).join("")}</g>
+    </svg>${sum?"":`<p class="dn-meta dn-note">Grafik terisi dari Tanggal kirim dan Tanggal tiba setiap unit.</p>`}</div>`; }
+function dnStatusCard(pop){
+  const rows=UNIT_STATUS.map(s=>({k:s.k,c:s.col,n:pop.filter(u=>u.status===s.k).length}));
+  const other=pop.length-rows.reduce((a,r)=>a+r.n,0); if(other>0) rows.push({k:"Lainnya",c:"#94A3B8",n:other});
+  const mx=Math.max(1,...rows.map(r=>r.n)), ex=pop.filter(isExistingUnit).length;
+  return `<div class="card dn-c3"><div class="dn-c3h"><h2>Status unit di lokasi</h2><span class="dn-meta">${pop.length} unit</span></div>
+    ${pop.length?`<div class="dn-sb">${rows.map(r=>`<button type="button" data-dn="st" data-k="${esc(r.k)}" title="Lihat unit ${esc(r.k)}"><span>${esc(r.k)}</span><span class="tr"><i style="width:${Math.round(r.n/mx*100)}%;background:${r.c}"></i></span><b>${r.n}</b></button>`).join("")}</div>${ex?`<p class="dn-meta dn-note">Termasuk ${ex} unit existing</p>`:""}`
+      :`<div class="dn-empty dn-e2">Belum ada unit di lokasi. Status (Tiba, Standby, Beroperasi, Breakdown) muncul setelah unit tiba.</div>`}</div>`; }
+function dnFunnel(items){
+  const r=items.reduce((a,k)=>a+(Number(k.rencana)||0),0), t=items.reduce((a,k)=>a+Math.min(tibaItem(k),Number(k.rencana)||0),0), j=items.reduce((a,k)=>a+jalanItem(k),0);
+  const op=items.reduce((a,k)=>a+Math.min(unitsOfItem(k).filter(u=>u.status==="Beroperasi").length,Number(k.rencana)||0),0), d=j+t;
+  const st=[["Rencana kirim",r,"100%","#5B21B6",100],["Dikirim",d,`${pct(d,r)}% dari rencana`,"#4338CA",84],["Tiba",t,`${pct(t,d)}% dari dikirim`,"#2563EB",68],["Beroperasi",op,`${pct(op,t)}% dari tiba`,"#0891B2",52]];
+  return `<div class="card dn-c3"><h2>Alur unit</h2><div class="dn-fn">${st.map(x=>`<div class="fr"><div class="fb"><span style="width:${x[4]}%;background:${x[3]}">${x[1]}</span></div><div><b>${x[0]}</b><small>${x[2]}</small></div></div>`).join("")}</div></div>`; }
 function renderDashNew(){
   const el=$("#dashNew"); if(!el) return;
   if(!S.ready){ el.innerHTML=`<section class="card dn-card"><div class="dn-empty">Memuat data…</div></section>`; return; }
@@ -3702,13 +3770,15 @@ function renderDashNew(){
   let main="";
   if(!P){
     const tot={r:0,j:0,s:0,t:0,p:0};
+    const SS=ps.map(p=>projStats(p.id)), MX={r:Math.max(0,...SS.map(x=>x.rencana)),j:Math.max(0,...SS.map(x=>x.jalan)),s:Math.max(0,...SS.map(x=>x.sisa)),t:Math.max(0,...SS.map(x=>x.tiba)),
+      p:Math.max(0,...ps.map(p=>S.units.filter(u=>arrived(u)&&u.projectId===p.id).length))};
     const rows=ps.map(p=>{ const st=projStats(p.id), np=S.units.filter(u=>arrived(u)&&u.projectId===p.id).length;
       tot.r+=st.rencana; tot.j+=st.jalan; tot.s+=st.sisa; tot.t+=st.tiba; tot.p+=np;
       const tw=st.rencana?Math.round(st.tiba/st.rencana*100):0, jw=st.rencana?Math.round(st.jalan/st.rencana*100):0;
       return `<tr><td><button type="button" class="dn-pn" data-proj="${p.id}">${esc(p.kode)}</button><small class="dn-sub">${esc([p.nama,p.lokasi].filter(Boolean).join(" · "))}</small></td>
-        <td class="n"><b>${st.rencana}</b></td><td class="n">${dnNum(st.jalan,"c-go")}</td><td class="n">${dnNum(st.sisa,"c-sisa")}</td><td class="n">${dnNum(st.tiba,"c-tiba")}</td>
+        <td class="n hm" style="${dnHeat(st.rencana,MX.r,"139,92,246")}"><b>${st.rencana}</b></td><td class="n hm" style="${dnHeat(st.jalan,MX.j,"247,135,31")}">${dnNum(st.jalan,"c-go")}</td><td class="n hm" style="${dnHeat(st.sisa,MX.s,"239,79,95")}">${dnNum(st.sisa,"c-sisa")}</td><td class="n hm" style="${dnHeat(st.tiba,MX.t,"22,163,74")}">${dnNum(st.tiba,"c-tiba")}</td>
         <td><div class="dn-bar" role="img" aria-label="${st.tiba} tiba, ${st.jalan} dalam pengiriman dari ${st.rencana}"><i class="t" style="width:${tw}%"></i><i class="j" style="width:${jw}%"></i></div></td>
-        <td class="n">${dnNum(np,"")}</td><td class="n dn-upd">${st.last?fmtTime(st.last):"—"}</td></tr>`; }).join("");
+        <td class="n hm" style="${dnHeat(np,MX.p,"37,99,235")}">${dnNum(np,"")}</td><td class="n dn-upd">${st.last?fmtTime(st.last):"—"}</td></tr>`; }).join("");
     main=`<section class="card dn-card"><div class="dn-h"><div><h2>Ringkasan per project</h2><p>Rencana = Dalam pengiriman + Sisa kirim + Sudah tiba. Klik nama project untuk melihat rinciannya.</p></div></div>
       <div class="dn-tw"><table class="dn-t"><thead><tr><th>Project</th><th class="n">Rencana</th><th class="n c-go">Dalam pengiriman</th><th class="n c-sisa">Sisa kirim</th><th class="n c-tiba">Sudah tiba</th><th class="dn-bw">Progres</th><th class="n">Populasi</th><th class="n">Update terakhir</th></tr></thead>
       <tbody>${rows||`<tr><td colspan="8" class="dn-empty-c">Belum ada project.${canWrite?" Tambahkan lewat tombol + Project.":""}</td></tr>`}</tbody>
@@ -3716,10 +3786,11 @@ function renderDashNew(){
         <td class="dn-leg"><span><i class="t"></i>tiba</span><span><i class="j"></i>dalam pengiriman</span></td><td class="n"><b>${tot.p}</b></td><td></td></tr></tfoot>`:""}</table></div></section>`;
   } else {
     const st=projStats(P.id);
+    const MXI={r:Math.max(0,...st.items.map(k=>Number(k.rencana)||0)),j:Math.max(0,...st.items.map(jalanItem)),s:Math.max(0,...st.items.map(sisaItem)),t:Math.max(0,...st.items.map(k=>Math.min(tibaItem(k),Number(k.rencana)||0)))};
     const row=k=>{ const n=tibaItem(k), r=Number(k.rencana)||0, jl=jalanItem(k), sk=sisaItem(k), eta=jl?dnItemEta(k):"", lebih=n>r?n-r:0;
       return `<tr><td><button type="button" class="dn-in" data-dn="item" data-id="${k.id}" title="Lihat unit ${esc(k.tipe)} di Rencana kirim">${esc(k.tipe)}</button></td>
-        <td class="n"><b>${r}</b></td><td>${jl?`<b class="c-go">${jl} unit</b>${eta?` <span class="dn-meta">· ETA ${fmtD(eta)}</span>`:""}`:'<span class="dn-z">–</span>'}</td>
-        <td class="n">${lebih?`<b class="c-go">lebih ${lebih}</b>`:dnNum(sk,"c-sisa")}</td><td class="n">${dnNum(Math.min(n,r),"c-tiba")}</td>
+        <td class="n hm" style="${dnHeat(r,MXI.r,"139,92,246")}"><b>${r}</b></td><td class="hm" style="${dnHeat(jl,MXI.j,"247,135,31")}">${jl?`<b class="c-go">${jl} unit</b>${eta?` <span class="dn-meta">· ETA ${fmtD(eta)}</span>`:""}`:'<span class="dn-z">–</span>'}</td>
+        <td class="n hm" style="${dnHeat(sk,MXI.s,"239,79,95")}">${lebih?`<b class="c-go">lebih ${lebih}</b>`:dnNum(sk,"c-sisa")}</td><td class="n hm" style="${dnHeat(Math.min(n,r),MXI.t,"22,163,74")}">${dnNum(Math.min(n,r),"c-tiba")}</td>
         <td class="dn-ket">${esc([k.catatan,k.asal?"dari "+k.asal:""].filter(Boolean).join(" · "))}</td></tr>`; };
     const its=st.items, gS=its.filter(k=>sisaItem(k)>0), gJ=its.filter(k=>!sisaItem(k)&&jalanItem(k)), gL=its.filter(k=>!sisaItem(k)&&!jalanItem(k));
     gS.sort((a,b)=>sisaItem(b)-sisaItem(a));
@@ -3732,7 +3803,8 @@ function renderDashNew(){
         :`<tr><td colspan="6" class="dn-empty-c">Belum ada rencana kirim di project ini.</td></tr>`}</tbody>
       ${its.length?`<tfoot><tr><td><b>Total · ${its.length} item</b></td><td class="n"><b>${st.rencana}</b></td><td>${dnNum(st.jalan,"c-go")}</td><td class="n">${dnNum(st.sisa,"c-sisa")}</td><td class="n">${dnNum(st.tiba,"c-tiba")}</td><td></td></tr></tfoot>`:""}</table></div></section>`;
   }
-  el.innerHTML=main+dnPendingTable(items,!P)+dnPopulasi(pop);
+  const allU=S.units.filter(u=>pids.includes(u.projectId)&&!isExistingUnit(u));
+  el.innerHTML=`<div class="dn-row3">${dnWeekly(allU)}${dnStatusCard(pop)}${dnFunnel(items)}</div>`+main+dnPendingTable(items,!P)+dnPopulasi(pop);
 }
 document.addEventListener("click",e=>{
   const b=e.target.closest("#dashNew [data-dn]"); if(!b) return;
@@ -3740,6 +3812,7 @@ document.addEventListener("click",e=>{
   if(a==="f"){ DN.f=b.dataset.f; DN.all=false; renderDashNew(); }
   else if(a==="all"){ DN.all=!DN.all; renderDashNew(); }
   else if(a==="done"){ DN.done=!DN.done; renderDashNew(); }
+  else if(a==="st"){ S.fUnit=UNIT_STATUS.some(x=>x.k===b.dataset.k)?b.dataset.k:"Semua"; setTab("unit"); render(); }
   else if(a==="pop"){ S.unitGroup=decodeURIComponent(b.dataset.key); setTab("unit"); render(); }
   else if(a==="item"){ SLOT_OPEN.add(b.dataset.id); try{ localStorage.setItem("mu_slot_open",JSON.stringify([...SLOT_OPEN])); }catch(err){} setTab("pengiriman"); render();
     setTimeout(()=>{ const t=document.querySelector(`.itemTg[data-id="${b.dataset.id}"]`); if(t) t.scrollIntoView({block:"center"}); },80); }
@@ -4376,5 +4449,6 @@ window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,la
     e.preventDefault(); open(i);
   }, true);
 })();
-</script><!--/uppick--><script src="../activity-log.js?v=20261024" data-kind="unit"></script><script src="../otp-login.js?v=20261025"></script></body>
+</script><!--/uppick--><script src="../activity-log.js?v=20261024" data-kind="unit"></script><script src="../otp-login.js?v=20261025"></script><link rel="stylesheet" href="../kmb-theme.css?v=20261030"><script src="../kmb-theme.js?v=20261030"></script>
+</body>
 </html>
