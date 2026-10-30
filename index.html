@@ -261,6 +261,38 @@ body.setmode .hero { display: none; }
 .ckl label { display: flex; align-items: center; gap: 10px; padding: 7px 8px; border-radius: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink); margin: 0 !important; cursor: pointer; }
 .ckl label:hover { background: var(--p-soft); } .ckl label.all { border-bottom: 1px dashed var(--line); border-radius: 8px 8px 0 0; }
 .ckl small { margin-left: auto; color: var(--muted); font-weight: 600; } .ckl input { width: 17px !important; height: 17px; accent-color: var(--p); padding: 0 !important; }
+</style>
+<style id="home-simple">
+/* Beranda sederhana: tanpa gambar, latar polos, kartu portal putih */
+body{background:#F4F5FB!important;background-image:none!important}
+.scene,.bscene,.helmet,.side-l,.side-r,.tag{display:none!important}
+main{max-width:1120px!important;margin:0 auto!important;padding:28px 20px 40px!important}
+.hero.hs{aspect-ratio:auto!important;min-height:0!important;background:none!important;border:0!important;box-shadow:none!important;border-radius:0!important;
+  padding:18px 4px 26px!important;overflow:visible!important;text-align:left}
+.hero.hs::before,.hero.hs::after{display:none!important}
+.hs-e{display:inline-block;font-size:12px;font-weight:800;letter-spacing:.14em;color:#6D28D9;background:#EFE8FD;border-radius:999px;padding:4px 12px}
+.hero.hs h1{margin:12px 0 6px;font-size:clamp(32px,5vw,48px);font-weight:800;letter-spacing:-.02em;line-height:1.05;
+  background:linear-gradient(90deg,#4C1D95,#6D28D9 45%,#2563EB);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero.hs p{margin:0;font-size:15.5px;color:#5B5876;max-width:620px}
+.tot{margin:0 0 24px!important;padding:0!important;grid-template-columns:repeat(auto-fill,minmax(320px,1fr))!important;gap:16px!important}
+.t.wt{background:#fff!important;color:#1C1A33!important;border:1px solid #E6E4F2;box-shadow:0 1px 2px rgba(30,27,58,.05)!important;border-radius:16px!important;
+  min-height:96px!important;padding:18px 18px!important;gap:16px!important;transition:transform .15s,box-shadow .15s,border-color .15s;text-decoration:none}
+.t.wt::before,.t.wt::after{display:none!important}
+.t.wt:hover{transform:translateY(-2px);border-color:#C4B5FD;box-shadow:0 12px 26px -14px rgba(76,29,149,.35)!important}
+.t.wt:focus-visible{outline:3px solid #C4B5FD;outline-offset:2px}
+.t.wt .ti{width:52px!important;height:52px!important;border-radius:14px!important}
+.t.wt.t1 .ti{background:linear-gradient(135deg,#7C3AED,#A78BFA)!important}
+.t.wt.t2 .ti{background:linear-gradient(135deg,#2563EB,#60A5FA)!important}
+.t.wt.t3 .ti{background:linear-gradient(135deg,#EA580C,#FDBA74)!important}
+.t.wt.t4 .ti{background:linear-gradient(135deg,#0D9488,#5EEAD4)!important}
+.t.wt.t5 .ti{background:linear-gradient(135deg,#1C1A33,#4B4868)!important}
+.t.wt .ti svg{width:28px;height:28px}
+.t.wt .tx b{font-size:16px!important;color:#1C1A33!important}
+.t.wt .wd{display:block;font-size:13px;color:#6B6985;margin-top:3px;font-weight:500;text-transform:none;letter-spacing:0;opacity:1}
+.t.wt .ga{background:#F1EFF8!important;color:#6D28D9!important}
+.t.wt .ga svg{stroke:currentColor}
+.top{background:rgba(255,255,255,.92)!important;border-bottom:1px solid #ECEAF4!important}
+@media (max-width:560px){main{padding:18px 14px 30px!important}.tot{grid-template-columns:minmax(0,1fr)!important}.hero.hs{padding:8px 2px 18px!important}}
 </style></head><body>
 
 <div class="side-l" aria-hidden="true"></div><div class="side-r" aria-hidden="true"></div><div class="scene" aria-hidden="true"></div><div class="bscene" aria-hidden="true"></div><div class="helmet" aria-hidden="true"></div>
@@ -271,7 +303,7 @@ body.setmode .hero { display: none; }
     <div class="menu" id="menu" role="menu" hidden></div></div>
 </header>
 <main>
-  <section class="hero"><h1 class="vh">Monitoring</h1></section>
+  <section class="hero hs"><span class="hs-e">PT KMB</span><h1>Monitoring</h1><p id="hsSub">Satu pintu untuk semua web monitoring: manpower, APD, unit &amp; mobilisasi, dan notulensi.</p></section>
   <section id="page" hidden></section>
   <div id="note"></div>
   <div class="tot" id="tot"></div>
@@ -321,11 +353,11 @@ const PHASE2 = [
 ];
 // kotak di halaman utama: satu kotak per web
 const WEBS = [
-  { key: 'mpp', title: 'Monitoring MPP Achievement All Jobsite', url: 'manpower-portal/', icon: 'miner', tile: 't1', show: () => MPP.some((p) => roleOf(p.app)) },
-  { key: 'apd', title: 'Monitoring APD', url: 'monitoring-apd-kmb/', icon: 'vest', tile: 't2', show: () => !!roleOf('apd') },
-  { key: 'unit', title: 'Monitoring Unit & Mobilisasi', url: 'monitoring-unit/', icon: 'truck', tile: 't3', show: () => !!roleOf('unit-monitoring') },
-  { key: 'notulensi', title: 'Notulensi Meeting', url: 'notulensi/', icon: 'note', tile: 't4', show: () => !!roleOf('notulensi') },
-  { key: 'kantor', title: 'Kantor Monitoring', url: 'kantor-ai/', icon: 'ai', tile: 't5', show: () => isOwner() },
+  { key: 'mpp', title: 'Monitoring MPP Achievement All Jobsite', desc: 'Pemenuhan manpower & rekrutmen per jobsite', url: 'manpower-portal/', icon: 'miner', tile: 't1', show: () => MPP.some((p) => roleOf(p.app)) },
+  { key: 'apd', title: 'Monitoring APD', desc: 'Permintaan, stok & pembagian APD', url: 'monitoring-apd-kmb/', icon: 'vest', tile: 't2', show: () => !!roleOf('apd') },
+  { key: 'unit', title: 'Monitoring Unit & Mobilisasi', desc: 'Rencana kirim, unit tiba & populasi unit', url: 'monitoring-unit/', icon: 'truck', tile: 't3', show: () => !!roleOf('unit-monitoring') },
+  { key: 'notulensi', title: 'Notulensi Meeting', desc: 'Catatan rapat, tindak lanjut & file', url: 'notulensi/', icon: 'note', tile: 't4', show: () => !!roleOf('notulensi') },
+  { key: 'kantor', title: 'Kantor Monitoring', desc: 'Tim AI & laporan harian', url: 'kantor-ai/', icon: 'ai', tile: 't5', show: () => isOwner() },
 ];
 const SUBS = [...MPP.map((s) => ({ ...s, portal: 'Monitoring MPP' })), { ...APD, portal: 'Monitoring APD' },
   { app: 'unit-monitoring', key: 'unit', name: 'Monitoring Unit', url: 'monitoring-unit/', portal: 'Monitoring Unit' },
@@ -509,7 +541,7 @@ function render() {
   $('page').hidden = true; $('page').innerHTML = '';
   $('note').innerHTML = resultBox() + (Object.keys(S.apps).length ? '' : '<div class="nb warn">Email ini belum punya akses ke portal mana pun. Minta Pemilik atau Editor mengirim <b>link undangan</b> ke email ini.</div>');
   const webs = WEBS.filter((w) => w.show());
-  $('tot').innerHTML = webs.map((w) => `<a class="t wt ${w.tile}" href="${w.url}" title="Buka ${esc(w.title)}"><span class="ti">${I[w.icon]}</span><div class="tx"><b>${esc(w.title)}</b></div><span class="ga">${I.chev}</span></a>`).join('');
+  $('tot').innerHTML = webs.map((w) => `<a class="t wt ${w.tile}" href="${w.url}" title="Buka ${esc(w.title)}"><span class="ti">${I[w.icon]}</span><div class="tx"><b>${esc(w.title)}</b>${w.desc ? `<small class="wd">${esc(w.desc)}</small>` : ''}</div><span class="ga">${I.chev}</span></a>`).join('');
   $('tot').style.setProperty('--n', Math.max(1, Math.min(4, webs.length)));
   $('grid').innerHTML = '';
 }
@@ -906,5 +938,4 @@ async function init() {
 }
 init();
 </script>
-<script src="activity-page.js?v=20261024c"></script><script src="otp-login.js?v=20261025"></script><link rel="stylesheet" href="kmb-theme.css?v=20261030b"><script src="kmb-theme.js?v=20261030b"></script>
-</body></html>
+<script src="activity-page.js?v=20261024c"></script><script src="otp-login.js?v=20261025"></script></body></html>

@@ -958,6 +958,20 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .dn-t th{background:#fff!important;color:#16182B!important;font-size:14px!important;font-weight:600!important;text-transform:none!important;letter-spacing:0!important;border-bottom:1px solid #E2E8F0}
 .dn-t td{font-size:14px}
 .dn-t td.hm{color:#16182B}
+
+/* tabel unit belum tiba: format seperti Excel */
+.dn-xl{width:100%;border-collapse:collapse;font-size:14.5px;min-width:980px;font-family:Calibri,"Segoe UI",system-ui,sans-serif}
+.dn-xl th{background:#fff!important;color:#000!important;font-weight:400!important;font-size:15.5px!important;text-align:center!important;padding:6px 10px!important;
+  border:1px solid #BFBFBF!important;border-bottom:1px solid #BFBFBF!important;text-transform:none!important;letter-spacing:0!important;white-space:nowrap}
+.dn-xl td{padding:5px 10px;border:1px dotted #9E9E9E;color:#000;white-space:nowrap}
+.dn-xl td.c{text-align:center}.dn-xl td.r{text-align:right}
+.dn-xl tbody tr:hover td{background:#F3F7FF}
+.dn-xl .dn-rem{color:#E00000;font-weight:400;font-size:14.5px;white-space:normal;min-width:160px}
+.dn-xl .dn-late{color:#E00000}
+.dn-xl .dn-pl{all:unset;cursor:pointer;color:#1F4FB8;font-weight:600}
+.dn-xl .dn-pl:hover{text-decoration:underline}
+.dn-xl .dn-z{color:#BDBDBD}
+@media print{.dn-xl{min-width:0;font-size:10px}.dn-xl td,.dn-xl th{padding:3px 5px!important}}
 /* tingkat perkecilan mengikuti lebar kertas (lebar desain 1180px) */
 /* Print mengikuti lebar kertas & pilihan Skala (%) di jendela Print:
    skala lebih kecil = tampilan lebih kecil, seperti memperkecil (zoom out) web.
@@ -3713,6 +3727,8 @@ function dnStatus(u){ const st=String(u.status||"").trim();
   return {t:st,c:"etc"}; }
 function dnUnitName(u){ const m=muDetails(u); const base=String(m.model||"").trim()||String(u.tipe||"").trim()||"Unit";
   return base+(m.merk&&!base.toUpperCase().includes(String(m.merk).toUpperCase())?" · "+m.merk:""); }
+function dnEquip(u){ const m=muDetails(u); const mdl=String(m.model||"").trim()||String(u.tipe||"").trim()||"Unit"; const mk=String(m.merk||"").trim();
+  return "1x "+mdl+(mk&&!mdl.toUpperCase().includes(mk.toUpperCase())?" - "+mk.charAt(0).toUpperCase()+mk.slice(1).toLowerCase():""); }
 function dnPending(items){ const rows=[]; let empty=0;
   items.forEach(k=>{ const us=slotUnits(k); us.forEach(u=>{ if(!arrived(u)) rows.push({u,k,m:muDetails(u)}); }); empty+=Math.max(0,(Number(k.rencana)||0)-us.length); });
   rows.sort((a,b)=>(a.m.eta||"9999").localeCompare(b.m.eta||"9999")||(a.m.etd||"9999").localeCompare(b.m.etd||"9999")||String(a.u.id).localeCompare(String(b.u.id),"en",{numeric:true}));
@@ -3730,21 +3746,21 @@ function dnPendingTable(items,withProj){
   const list=rows.filter(r=>DN.f==="all"||(DN.f==="go")===(r.u.status==="Dalam perjalanan"));
   const LIM=15, show=DN.all?list:list.slice(0,LIM), today=todayStr();
   const chipB=(f,t,n)=>`<button type="button" data-dn="f" data-f="${f}" aria-pressed="${DN.f===f}">${t} <b>${n}</b></button>`;
+  const z='<span class="dn-z">–</span>';
   const body=show.map((r,i)=>{ const {u,k,m}=r, st=dnStatus(u), late=m.eta&&m.eta<today;
-    return `<tr><td class="dn-no">${i+1}</td>${withProj?`<td><button type="button" class="ptag dn-pl" data-proj="${u.projectId}">${esc(projKode(u.projectId))}</button></td>`:""}
-      <td>${m.kategori?esc(m.kategori):'<span class="dn-z">–</span>'}</td>
-      <td><b>${esc(dnUnitName(u))}</b>${u.kodeSementara?"":`<small class="dn-sub">${esc(u.kode)}</small>`}</td>
-      <td>${m.kepemilikan?esc(m.kepemilikan):'<span class="dn-z">–</span>'}</td>
-      <td>${u.lokasi?esc(u.lokasi):'<span class="dn-z">–</span>'}</td>
-      <td class="dn-d">${m.etd?fmtD(m.etd):'<span class="dn-z">–</span>'}</td>
-      <td class="dn-d${late?" dn-late":""}">${m.eta?`<b>${fmtD(m.eta)}</b>${late?'<small class="dn-sub">lewat ETA</small>':""}`:'<span class="dn-z">–</span>'}</td>
-      <td><span class="dn-st ${st.c}">${esc(st.t)}</span></td>
-      <td>${m.pic?esc(m.pic):'<span class="dn-z">–</span>'}</td>
+    return `<tr title="${esc(st.t)}${u.kodeSementara?"":" · "+esc(u.kode)}"><td class="c">${i+1}</td>${withProj?`<td><button type="button" class="dn-pl" data-proj="${u.projectId}">${esc(projKode(u.projectId))}</button></td>`:""}
+      <td>${m.kategori?esc(m.kategori):z}</td>
+      <td>${esc(dnEquip(u))}</td>
+      <td class="c">${m.kepemilikan?esc(m.kepemilikan):z}</td>
+      <td>${u.lokasi?esc(u.lokasi):z}</td>
+      <td class="r">${m.etd?fmtD(m.etd):""}</td>
+      <td class="r${late?" dn-late":""}">${m.eta?fmtD(m.eta):""}</td>
+      <td class="c">${m.pic?esc(m.pic):""}</td>
       <td class="dn-rem">${esc(m.catatan||"")}</td></tr>`; }).join("");
-  const cols=withProj?11:10;
+  const cols=withProj?10:9;
   return `<section class="card dn-card"><div class="dn-h"><div><h2>Unit yang belum tiba</h2><p>Urut ETA terdekat. Unit yang sudah tiba otomatis pindah ke Populasi.</p></div>
       <div class="dn-chips">${chipB("all","Semua",rows.length)}${chipB("go","Dalam pengiriman",nGo)}${chipB("prep","Belum berangkat",nPrep)}</div></div>
-    <div class="dn-tw"><table class="dn-t dn-u"><thead><tr><th>No</th>${withProj?"<th>Project</th>":""}<th>Kategori</th><th>Unit</th><th>Kepemilikan</th><th>Lokasi</th><th>ETD</th><th>ETA</th><th>Status kirim</th><th>PIC</th><th>Remarks</th></tr></thead>
+    <div class="dn-tw"><table class="dn-xl"><thead><tr><th>No</th>${withProj?"<th>Project</th>":""}<th>Category</th><th>Equipment</th><th>Status</th><th>Location</th><th>ETD</th><th>ETA</th><th>PIC</th><th>Remarks</th></tr></thead>
     <tbody>${body||`<tr><td colspan="${cols}" class="dn-empty-c">${rows.length?"Tidak ada unit untuk pilihan ini.":"Semua unit yang sudah didata sudah tiba."}</td></tr>`}</tbody></table></div>
     <div class="dn-f">${list.length>LIM?`<button type="button" class="linkish" data-dn="all">${DN.all?"Tampilkan lebih sedikit":`Lihat semua ${list.length} unit`}</button>`:"<span></span>"}
       ${empty?`<span class="dn-meta">+ ${empty} unit rencana belum didata (belum dijadwalkan) · <button type="button" class="linkish" data-goto="pengiriman">isi di Rencana kirim</button></span>`:""}</div></section>`; }
@@ -4011,9 +4027,9 @@ function buildStyledExcel(P,ps){
     if(!any) emptyRow(sh,r++,N,"Belum ada rencana kirim");
     const pend=dnPending(S.kirim.filter(k=>pset.has(k.projectId)));
     r++; section(sh,r++,N,"Unit yang belum tiba",`${pend.rows.length} unit · urut ETA terdekat${pend.empty?` · ${pend.empty} unit rencana belum didata`:""}`);
-    header(sh,r,["Project","Kategori","Unit","Kepemilikan","Lokasi","ETD","ETA","Status kirim","PIC","Remarks"],[1,2,9]); r++;
+    header(sh,r,["Project","Category","Equipment","Status","Location","ETD","ETA","Status kirim","PIC","Remarks"],[1,2,9]); r++;
     pend.rows.forEach(({u,m})=>{ const st=dnStatus(u), sc=st.c==="go"?["#C2410C","#FFF1E2"]:st.c==="prep"?["#5B21B6","#EFE8FD"]:["#475569","#EDEFF4"], late=m.eta&&m.eta<todayStr();
-      sh.put(r,0,projKode(u.projectId),ptag); sh.put(r,1,m.kategori||"—",m.kategori?td:dash); sh.put(r,2,dnUnitName(u)+(u.kodeSementara?"":"\n"+u.kode),{...td,b:true});
+      sh.put(r,0,projKode(u.projectId),ptag); sh.put(r,1,m.kategori||"—",m.kategori?td:dash); sh.put(r,2,dnEquip(u)+(u.kodeSementara?"":"\n"+u.kode),{...td,b:true});
       sh.put(r,3,m.kepemilikan||"—",m.kepemilikan?tdc:dash); sh.put(r,4,u.lokasi||"—",tdc); dv(sh,r,5,m.etd); dv(sh,r,6,m.eta,{...dateSt,b:true,...(late?{color:"#E11D48"}:{})});
       sh.put(r,7,st.t,{...tdc,b:true,color:sc[0],fill:sc[1]}); sh.put(r,8,m.pic||"—",m.pic?tdc:dash); sh.put(r,9,m.catatan||"",{...td,sz:9,b:true,color:"#BE123C"}); r++; });
     if(!pend.rows.length) emptyRow(sh,r++,N,"Tidak ada unit dalam pengiriman / persiapan kirim");
