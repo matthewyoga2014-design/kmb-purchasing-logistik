@@ -722,6 +722,9 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 /* tombol edit */
 #kirimTbl{table-layout:fixed}#kirimTbl col.kc-act{width:330px}
 #tKirim tr.ki-row>td.n{text-align:left}
+.mcd-seg{display:flex;gap:4px;margin:0 18px 6px;padding:4px;background:#F3F0FB;border-radius:11px}
+.mcd-seg button{flex:1;border:0;background:transparent;border-radius:8px;padding:8px 10px;font:inherit;font-weight:700;font-size:13px;color:#5B5675;cursor:pointer}
+.mcd-seg button.on{background:#fff;color:#5B21B6;box-shadow:0 1px 3px rgba(30,20,80,.12)}
 .ki-hist{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#FAF9FE}
 .ki-hist-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;font-size:13px}
 .ki-hist table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
@@ -2881,13 +2884,14 @@ function renderProjDash(P){
         <td>${esc(u.via||k.moda||"")}</td><td>${esc(m.kategori||"")}</td><td>${esc(m.pic||"")}</td><td>${esc(m.model||"")}</td><td>${esc(m.tahun||"")}</td><td>${esc(m.serial||"")}</td><td class="d">${u.hm?Number(u.hm).toLocaleString("id-ID"):""}</td></tr>`; }).join("");
     const w=x=>n?(x/n*100).toFixed(1)+"%":"0%", sisa=r-tibaItem(k);
     const aw=Number(k.rencanaAwal)||0, tb=tibaItem(k), jl=jalanItem(k), sk=sisaItem(k), lebih=Math.max(0,tb-r), revs=revCount(k);
-    const via=[k.moda?"Via "+k.moda:"",k.asal?"dari "+k.asal:""].filter(Boolean).join(" · ");
+    const DIV=(()=>{ const fb=["Rencana","Tiba","Dlm perjalanan","Sisa kirim","Keterangan"]; try{ return muColVis("dashitem",MU_DICOLS,fb); }catch(e){ return fb; } })();
     const f=(l,v,c)=>`<span class="rk-f"><small>${l}</small><b${c?` class="${c}"`:""}>${v}</b></span>`;
     const head=`<tr class="rk-gh"><td colspan="21"><div class="rk-ghi">
         <div class="rk-ghl"><b class="rk-in">${esc(k.tipe)}</b>${revs?`<span class="rk-rv">${revs}× direvisi</span>`:""}</div>
-        <div class="rk-fs">${f("Rencana",r)}${f("Tiba",tb,"t")}${f("Dlm perjalanan",jl,"j")}${lebih?f("Sisa kirim","lebih "+lebih,"o"):f("Sisa kirim",sk,sk?"r":"")}${f("ETA",k.eta?fmtD(k.eta):(sk?"–":"Lengkap"))}</div>
+        <div class="rk-fs">${DIV.filter(c=>!["Keterangan","Via","Asal"].includes(c)).map(c=>c==="Rencana"?f("Rencana",r):c==="Tiba"?f("Tiba",tb,"t"):c==="Dlm perjalanan"?f("Dlm perjalanan",jl,"j"):c==="Sisa kirim"?(lebih?f("Sisa kirim","lebih "+lebih,"o"):f("Sisa kirim",sk,sk?"r":"")):c==="ETA"?f("ETA",k.eta?fmtD(k.eta):(sk?"–":"Lengkap")):c==="Rencana awal"?f("Rencana awal",aw):c==="Perubahan"?f("Perubahan",r!==aw?deltaChip(r-aw):"–"):"").join("")}</div>
         ${canWrite?`<div class="rk-ghr">${tb<r?`<button class="linkish" data-act="tibaItem" data-id="${k.id}" type="button">+ Tiba</button>`:""}<button class="linkish" data-act="jumlah" data-id="${k.id}" type="button">Ubah jumlah</button></div>`:""}
-        ${k.catatan||via?`<div class="rk-ket"><small>Keterangan</small> ${esc(k.catatan||"")}${via?`<span>${esc(via)}</span>`:""}</div>`:""}
+        ${(()=>{ const kt=DIV.includes("Keterangan")?String(k.catatan||"").trim():"", vx=[DIV.includes("Via")&&k.moda?"Via "+k.moda:"",DIV.includes("Asal")&&k.asal?"dari "+k.asal:""].filter(Boolean).join(" · ");
+          return kt||vx?`<div class="rk-ket">${kt?`<small>Keterangan</small> ${esc(kt)}`:""}${vx?`<span>${esc(vx)}</span>`:""}</div>`:""; })()}
       </div></td></tr>`;
     return `<tbody>${head}${COLH}${trs}</tbody>`; }).join("");
   const rows=SUMI.length?`<div class="rk-tw"><table class="rk-t2"><colgroup><col style="width:4.5%"><col style="width:10%"><col style="width:9%"><col style="width:9%"><col style="width:13%"><col style="width:10%"><col style="width:12%"><col style="width:8.5%"><col style="width:8.5%"><col style="width:15.5%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"></colgroup>${groups}</table></div>
@@ -3490,9 +3494,11 @@ document.addEventListener("click",e=>{
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ const pop=$("#muCfPop"); if(pop) pop.hidden=true; } });
 /* Kolom baris item (Rencana kirim): bisa diatur lewat "Atur kolom item" */
 const MU_KCOL={"Rencana":{w:110,c:"n"},"Status unit":{w:340,c:"st"},"Sisa kirim":{w:120,c:"n"},"Rencana awal":{w:120,c:"n"},"Perubahan":{w:120,c:"n"},"Tiba":{w:90,c:"n"},"Dlm perjalanan":{w:130,c:"n"},"ETA":{w:120,c:"d"},"Keterangan":{w:260,c:"t"},"Via":{w:150,c:"t"},"Asal":{w:150,c:"t"}};
-function muKCols(){ try{ const labels=Object.keys(MU_KCOL), P=muColPrefs().item||{};
-  const order=muColDesired(labels,P), hid=muColHidden("item",labels,P); return order.filter(l=>!hid.has(l)); }
-  catch(e){ return ["Rencana","Status unit","Sisa kirim"]; } }
+function muColVis(key,labels,fb){ try{ const P=muColPrefs()[key]||{};
+  const order=muColDesired(labels,P), hid=muColHidden(key,labels,P); return order.filter(l=>!hid.has(l)); }
+  catch(e){ return fb; } }
+const muKCols=()=>muColVis("item",Object.keys(MU_KCOL),["Rencana","Status unit","Sisa kirim"]);
+const MU_DICOLS=["Rencana","Tiba","Dlm perjalanan","Sisa kirim","ETA","Rencana awal","Perubahan","Keterangan","Via","Asal"];
 const muKSpan=()=>muKCols().length+3;
 function renderKirim(){
   if(!KIRIM_FORCE && SLOT_EDIT.size && document.querySelector(".slotBox.editing")) return;
@@ -4185,11 +4191,12 @@ document.addEventListener("click",e=>{
 
 /* ---------- Atur kolom: pilih & urutkan kolom tabel (Pemilik/Editor, berlaku untuk semua) ---------- */
 const MU_COLT={
-  slot:{sel:".slotTbl table.slotFixed",name:"Tabel unit Rencana kirim (semua item)",labels:["#","Tgl kirim","ETD","ETA","Actual","No. lambung","Vendor","Merek","Kepemilikan","Status","Kondisi","Posisi","Kirim berikutnya","Catatan","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM",""],defHidden:["Via", "Kategori", "PIC", "Model / tipe", "Tahun", "Serial / chassis", "HM"]},
-  dash:{sel:"table.rk-t2",name:"Tabel Rencana kirim per unit (dashboard)",labels:["No","No. lambung","Vendor","Merek","Status kirim","Kepemilikan","Posisi","ETD","ETA","Catatan","Tgl kirim","Actual","Kondisi","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM"],defHidden:["Tgl kirim","Actual","Kondisi","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM"]},
+  slot:{pair:["item","slot"],tab:"Isian unit",sel:".slotTbl table.slotFixed",name:"Tabel unit Rencana kirim (semua item)",labels:["#","Tgl kirim","ETD","ETA","Actual","No. lambung","Vendor","Merek","Kepemilikan","Status","Kondisi","Posisi","Kirim berikutnya","Catatan","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM",""],defHidden:["Via", "Kategori", "PIC", "Model / tipe", "Tahun", "Serial / chassis", "HM"]},
+  dashitem:{pair:["dashitem","dash"],tab:"Item unit",sel:"table.mu-kcol-none",name:"Ringkasan per item unit (dashboard)",sub:"isian item unit",labels:MU_DICOLS,defHidden:["ETA","Rencana awal","Perubahan","Via","Asal"]},
+  dash:{pair:["dashitem","dash"],tab:"Isian unit",sel:"table.rk-t2",name:"Tabel Rencana kirim per unit (dashboard)",labels:["No","No. lambung","Vendor","Merek","Status kirim","Kepemilikan","Posisi","ETD","ETA","Catatan","Tgl kirim","Actual","Kondisi","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM"],defHidden:["Tgl kirim","Actual","Kondisi","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM"]},
   pop:{sel:"table.mu-mpp-detail-table",name:"Tabel detail Populasi Unit"},
   popdash:{sel:"table.mu-pop-table",name:"Rekap Populasi Unit (dashboard)",sub:"data Populasi Unit",labels:["Merek Unit","Total","Status Operasional","Kondisi Unit","Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"],defHidden:["Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"]},
-  item:{sel:"table.mu-kcol-none",name:"Baris item unit Rencana kirim",sub:"isian item unit",labels:["Rencana","Status unit","Sisa kirim","Rencana awal","Perubahan","Tiba","Dlm perjalanan","ETA","Keterangan","Via","Asal"],defHidden:["Rencana awal","Perubahan","Tiba","Dlm perjalanan","ETA","Keterangan","Via","Asal"]},
+  item:{pair:["item","slot"],tab:"Item unit",sel:"table.mu-kcol-none",name:"Baris item unit Rencana kirim",sub:"isian item unit",labels:["Rencana","Status unit","Sisa kirim","Rencana awal","Perubahan","Tiba","Dlm perjalanan","ETA","Keterangan","Via","Asal"],defHidden:["Rencana awal","Perubahan","Tiba","Dlm perjalanan","ETA","Keterangan","Via","Asal"]},
   mob:{sel:"#p-mobilisasi .tbl-wrap table",name:"Tabel Mobilisasi"}
 };
 function muColPrefs(){ let p=(SBDATA&&SBDATA.colPrefs)||null;
@@ -4251,7 +4258,8 @@ function muColDialog(key){
   let dlg=$("#muColDlg"); if(!dlg){ document.body.insertAdjacentHTML("beforeend",'<dialog id="muColDlg" class="mu-col-dlg"></dialog>'); dlg=$("#muColDlg"); }
   const draw=()=>{ const show=order.filter(l=>!hid.has(l)), av=order.filter(l=>hid.has(l)), sc=dlg.querySelector(".mcd-l"), top=sc?sc.scrollTop:0;
     dlg.innerHTML=`<form method="dialog" class="mcd"><div class="mcd-h"><div><b>Atur kolom</b><small>${esc(d.name)}</small></div><button type="button" class="mcd-x" data-mc="close" aria-label="Tutup">✕</button></div>
-    <p class="mcd-tip">Seret <span aria-hidden="true">⠿</span> untuk mengubah urutan. Klik <b>−</b> untuk menyembunyikan, <b>+</b> untuk menambah kolom. Berlaku untuk semua yang membuka web${key==="item"?" dan saat print":", juga di print & Excel"}.</p>
+    ${d.pair?`<div class="mcd-seg" role="tablist">${d.pair.map(pk=>`<button type="button" role="tab" data-mc="pair" data-k="${pk}" aria-selected="${pk===key}" class="${pk===key?"on":""}">${esc(MU_COLT[pk].tab)}</button>`).join("")}</div>`:""}
+    <p class="mcd-tip">Seret <span aria-hidden="true">⠿</span> untuk mengubah urutan. Klik <b>−</b> untuk menyembunyikan, <b>+</b> untuk menambah kolom. Berlaku untuk semua yang membuka web${key==="item"||key==="dashitem"?" dan saat print":", juga di print & Excel"}.</p>
     <div class="mcd-body"><div class="mcd-sec">Tambah kolom <small>dari ${esc(d.sub||"isian form Edit unit")}</small></div>
     <div class="mcd-av">${av.length?av.map(l=>`<button type="button" data-mc="show" data-l="${esc(l)}">+ ${esc(l)}</button>`).join(""):'<span class="muted small">Semua kolom sudah tampil.</span>'}</div>
     <div class="mcd-sec">Kolom yang tampil <span>${show.length}</span></div>
@@ -4264,13 +4272,14 @@ function muColDialog(key){
   const swap=(l,dir)=>{ const v=vis(), i=v.indexOf(l), o=v[i+dir]; if(!o) return; const a1=order.indexOf(l), a2=order.indexOf(o); order[a1]=o; order[a2]=l; };
   dlg.onclick=async e=>{ const b=e.target.closest("[data-mc]"); if(!b) return; const a=b.dataset.mc, li=b.closest("li"), l=(li&&li.dataset.l)||b.dataset.l;
     if(a==="close") dlg.close();
+    else if(a==="pair"){ if(b.dataset.k!==key){ dlg.close(); muColDialog(b.dataset.k); } }
     else if(a==="hide"){ if(vis().length<=1){ toast("Sisakan minimal satu kolom."); return; } hid.add(l); order=[...order.filter(x=>x!==l),l]; draw(); }
     else if(a==="show"){ hid.delete(l); const v=vis().filter(x=>x!==l), last=v[v.length-1]; order=order.filter(x=>x!==l); order.splice(last?order.indexOf(last)+1:0,0,l); draw(); }
     else if(a==="up"){ swap(l,-1); draw(); }
     else if(a==="dn"){ swap(l,1); draw(); }
-    else if(a==="reset"){ b.disabled=true; if(await muColSave(key,null)){ toast("Kolom kembali seperti awal."); dlg.close(); muColApplyAll(); render(); if(key==="item") renderKirim(); } else b.disabled=false; }
+    else if(a==="reset"){ b.disabled=true; if(await muColSave(key,null)){ toast("Kolom kembali seperti awal."); dlg.close(); muColApplyAll(); render(); if(key==="item") renderKirim(); if(key==="dashitem") render(); } else b.disabled=false; }
     else if(a==="save"){ if(order.every(x=>hid.has(x))){ toast("Sisakan minimal satu kolom."); return; } b.disabled=true;
-      if(await muColSave(key,{order:order.slice(),hidden:order.filter(x=>hid.has(x))})){ toast("Susunan kolom disimpan."); dlg.close(); muColApplyAll(); if(key==="item") renderKirim(); } else b.disabled=false; } };
+      if(await muColSave(key,{order:order.slice(),hidden:order.filter(x=>hid.has(x))})){ toast("Susunan kolom disimpan."); dlg.close(); muColApplyAll(); if(key==="item") renderKirim(); if(key==="dashitem") render(); } else b.disabled=false; } };
   // seret (mouse & sentuh)
   dlg.onpointerdown=e=>{ const g=e.target.closest(".mcd-g"); if(!g) return; e.preventDefault(); const li=g.closest("li"), ul=li.parentNode; li.classList.add("drag"); try{ g.setPointerCapture(e.pointerId); }catch(err){}
     const body=dlg.querySelector(".mcd-body");
