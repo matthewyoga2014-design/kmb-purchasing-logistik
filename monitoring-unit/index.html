@@ -949,6 +949,14 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 @media print{.btn.colcfg{display:none!important}}
 
 /* filter kolom tabel unit */
+.btn.cf-open svg.i{width:13px;height:13px}
+.btn.cf-open.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.cf-sub{font-size:12px;color:var(--muted);margin-top:-4px}
+.cf-cols{display:flex;flex-wrap:wrap;gap:6px;max-height:120px;overflow:auto}
+.cf-cols button{font:inherit;font-size:12px;font-weight:700;border:1px solid var(--line-2);background:#fff;color:var(--ink-2,#4B4868);border-radius:999px;padding:4px 10px;cursor:pointer}
+.cf-cols button.has{border-color:#C4B5FD;background:#F5F1FF;color:#6D28D9}
+.cf-cols button.on{background:var(--accent);border-color:var(--accent);color:#fff}
+
 .slotTbl th .cf-btn{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-left:4px;vertical-align:middle;border:1px solid transparent;border-radius:6px;background:transparent;color:#A3A1B8;cursor:pointer;padding:0}
 .slotTbl th:hover .cf-btn,.slotTbl th .cf-btn:focus-visible{border-color:var(--line-2);background:#fff;color:var(--accent)}
 .slotTbl th .cf-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
@@ -3254,11 +3262,13 @@ function printSlot(k){
   setTimeout(()=>{ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){ toast("Gagal membuka jendela print."); } if(!wasOpen){ SLOT_OPEN.delete(k.id); rk(); } },350);
 }
 function slotRow(k){
-  if(!SLOT_OPEN.has(k.id)) return "";
+  if(!SLOT_OPEN.has(k.id)&&!muKActive()) return "";
   const us=slotUnits(k), r=Number(k.rencana)||0, n=Math.max(r,us.length);
   const cnt=[...new Set([...ALL_STATUS.map(x=>x.k),...us.map(u=>u.status).filter(Boolean)])].map(k=>({k,n:us.filter(u=>u.status===k).length})).filter(o=>o.n);
   if(SLOT_EDIT.has(k.id)) return slotEditRows(k,us,n);
+  const KACT=muKActive(), KNAME=KACT&&!Object.keys(MU_CF).length&&String(k.tipe||"").toLowerCase().includes(muKQ());
   const rows=Array.from({length:n},(_,i)=>{ const u=us[i], over=i>=r;
+    if(KACT&&!KNAME&&(!u||!muKUnitOk(u,k))) return "";
     if(!u) return `<tr class="sl sl-empty"><td class="no">${i+1}</td><td colspan="20" class="muted">Belum dijadwalkan / belum dikirim</td><td class="act">${canWrite?`<button class="btn small" data-act="slotNew" data-id="${k.id}" data-no="${i+1}" type="button">Isi</button>`:""}</td></tr>`;
     const md=muDetails(u);
     return `<tr class="sl${over?" over":""}"><td class="no">${i+1}${over?'<span class="sub overtag" title="Melebihi jumlah rencana">lebih</span>':""}</td>
@@ -3364,14 +3374,85 @@ function formSlotBulk(k){
 }
 let KIRIM_FORCE=false;
 function rk(){ KIRIM_FORCE=true; try{ renderKirim(); }finally{ KIRIM_FORCE=false; } }
+/* ---------- Filter & cari di tab Rencana kirim (berlaku untuk seluruh tabel unit yang tampil) ---------- */
+let MU_CF=(()=>{ try{ const o=JSON.parse(sessionStorage.getItem("mu_cf")||"{}"); const r={}; Object.keys(o).forEach(k=>r[k]=new Set(o[k])); return r; }catch(e){ return {}; } })();
+const muCfSave=()=>{ try{ const o={}; Object.keys(MU_CF).forEach(k=>o[k]=[...MU_CF[k]]); sessionStorage.setItem("mu_cf",JSON.stringify(o)); }catch(e){} };
+const KONG="(Kosong)", dOr=v=>v?fmtD(v):KONG, tOr=v=>String(v||"").trim()||KONG;
+const MU_CFV={
+  "Tgl kirim":(u)=>dOr(u.tglKirim), "ETD":(u,k,m)=>dOr(m.etd), "ETA":(u,k,m)=>dOr(m.eta), "Actual":(u)=>arrived(u)&&u.tglTiba?fmtD(u.tglTiba):KONG,
+  "No. lambung":(u)=>u.kodeSementara?"belum diisi":tOr(u.kode), "Vendor":(u,k,m)=>tOr(m.vendor), "Merek":(u,k,m)=>tOr(m.merk), "Kepemilikan":(u,k,m)=>tOr(m.kepemilikan),
+  "Status":(u)=>tOr(u.status||"Persiapan kirim"), "Kondisi":(u,k,m)=>tOr(m.kondisi), "Posisi":(u)=>tOr(u.lokasi),
+  "Kirim berikutnya":(u)=>{ const nx=nextMobOf(u); return nx?("→ "+nx.ke):"Belum ada"; }, "Catatan":(u,k,m)=>tOr(m.catatan),
+  "Via":(u,k)=>tOr(u.via||k.moda), "Kategori":(u,k,m)=>tOr(m.kategori), "PIC":(u,k,m)=>tOr(m.pic), "Model / tipe":(u,k,m)=>tOr(m.model),
+  "Tahun":(u,k,m)=>tOr(m.tahun), "Serial / chassis":(u,k,m)=>tOr(m.serial), "HM":(u)=>u.hm?String(u.hm):KONG
+};
+const muKQ=()=>String(S.qKirim||"").trim().toLowerCase();
+const muKActive=()=>!!muKQ()||Object.keys(MU_CF).length>0;
+function muKUnitOk(u,k){ const m=muDetails(u);
+  for(const l of Object.keys(MU_CF)){ const f=MU_CFV[l]; if(f&&!MU_CF[l].has(f(u,k,m))) return false; }
+  const q=muKQ(); if(!q) return true;
+  return [k.tipe,projKode(u.projectId),u.kode,...Object.values(MU_CFV).map(f=>f(u,k,m))].join(" ").toLowerCase().includes(q); }
+function muKItemOk(k){ if(!muKActive()) return true;
+  if(!Object.keys(MU_CF).length && String(k.tipe||"").toLowerCase().includes(muKQ())) return true;
+  return slotUnits(k).some(u=>muKUnitOk(u,k)); }
+function muCfVisibleCols(){ const P=muColPrefs().slot, all=MU_COLT.slot.labels.filter(l=>!muColFixed(l)), hid=muColHidden("slot",MU_COLT.slot.labels,P);
+  return muColDesired(MU_COLT.slot.labels,P).filter(l=>!muColFixed(l)&&!hid.has(l)&&MU_CFV[l]&&all.includes(l)); }
+function muCfApply(){
+  const n=Object.keys(MU_CF).length, q=String(S.qKirim||"").trim(), bar=$("#muCfBar"); if(!bar) return;
+  const parts=[]; if(q) parts.push(`<button type="button" class="cf-chip" data-cfx="#q">Cari: “${esc(q)}” ✕</button>`);
+  Object.keys(MU_CF).forEach(l=>parts.push(`<button type="button" class="cf-chip" data-cfx="${esc(l)}" title="Hapus filter ${esc(l)}">${esc(l)}: ${esc([...MU_CF[l]].slice(0,3).join(", "))}${MU_CF[l].size>3?` +${MU_CF[l].size-3}`:""} ✕</button>`));
+  const html=parts.length?`<span>Menampilkan hasil:</span>${parts.join("")}<button type="button" class="linkish" data-cfx="*">Hapus semua</button>`:"";
+  bar.hidden=!parts.length; if(bar.dataset.h!==html){ bar.dataset.h=html; bar.innerHTML=html; } }
+function muCfOpen(btn,pid){
+  let pop=$("#muCfPop"); if(!pop){ document.body.insertAdjacentHTML("beforeend",'<div id="muCfPop" class="cf-pop" role="dialog" aria-label="Filter rencana kirim" hidden></div>'); pop=$("#muCfPop"); }
+  const cols=muCfVisibleCols(); if(!cols.length){ toast("Tidak ada kolom untuk difilter."); return; }
+  const units=[]; S.kirim.filter(k=>(!pid||k.projectId===pid)&&inFilter(k.projectId)).forEach(k=>slotUnits(k).forEach(u=>units.push([u,k])));
+  const pend={}; Object.keys(MU_CF).forEach(l=>pend[l]=new Set(MU_CF[l]));
+  let col=cols.find(l=>MU_CF[l])||(cols.includes("Status")?"Status":cols[0]);
+  const valsOf=l=>{ const c=new Map(); units.forEach(([u,k])=>{ const v=MU_CFV[l](u,k,muDetails(u)); c.set(v,(c.get(v)||0)+1); }); return c; };
+  const draw=()=>{ const cnt=valsOf(col), vals=[...cnt.keys()].sort((a,b)=>a===KONG?1:b===KONG?-1:a.localeCompare(b,"id",{numeric:true}));
+    const sel=pend[col]||new Set(vals), qq=String((pop.querySelector(".cf-q")||{}).value||"").toLowerCase();
+    pop.querySelector(".cf-cols").innerHTML=cols.map(l=>`<button type="button" data-cfcol="${esc(l)}" class="${l===col?"on":""}${pend[l]?" has":""}">${esc(l)}</button>`).join("");
+    pop.querySelector(".cf-list").innerHTML=vals.filter(v=>v.toLowerCase().includes(qq)).map(v=>`<label><input type="checkbox" value="${esc(v)}" ${sel.has(v)?"checked":""}> <span>${esc(v)}</span><small>${cnt.get(v)}</small></label>`).join("")||'<div class="muted small">Tidak ada nilai.</div>';
+    pop.dataset.vals=JSON.stringify(vals); };
+  pop.innerHTML=`<div class="cf-h"><b>Filter rencana kirim</b><button type="button" data-cfp="close" aria-label="Tutup">✕</button></div>
+    <div class="cf-sub">Pilih kolom, lalu centang nilai yang ingin ditampilkan.</div>
+    <div class="cf-cols"></div>
+    <input type="search" class="cf-q" placeholder="Cari nilai…" aria-label="Cari nilai">
+    <div class="cf-all"><button type="button" class="linkish" data-cfp="all">Pilih semua</button><button type="button" class="linkish" data-cfp="none">Kosongkan</button></div>
+    <div class="cf-list"></div>
+    <div class="cf-f"><button type="button" class="btn small" data-cfp="clear">Hapus semua filter</button><button type="button" class="btn small primary" data-cfp="ok">Terapkan</button></div>`;
+  draw();
+  const r=btn.getBoundingClientRect(); pop.hidden=false; const w=Math.min(380,window.innerWidth-16); pop.style.width=w+"px";
+  pop.style.left=Math.max(8,Math.min(window.innerWidth-w-8,r.right+window.scrollX-w))+"px"; pop.style.top=(r.bottom+window.scrollY+6)+"px";
+  const q=pop.querySelector(".cf-q"); q.oninput=()=>draw();
+  const allVals=()=>JSON.parse(pop.dataset.vals||"[]");
+  pop.onchange=e=>{ const c=e.target.closest("input[type=checkbox]"); if(!c) return; if(!pend[col]) pend[col]=new Set(allVals()); if(c.checked) pend[col].add(c.value); else pend[col].delete(c.value); if(allVals().every(v=>pend[col].has(v))) delete pend[col]; draw(); };
+  pop.onclick=e=>{ const cc=e.target.closest("[data-cfcol]"); if(cc){ col=cc.dataset.cfcol; q.value=""; draw(); return; }
+    const b=e.target.closest("[data-cfp]"); if(!b) return; const a=b.dataset.cfp;
+    if(a==="close"){ pop.hidden=true; return; }
+    if(a==="all"){ delete pend[col]; draw(); return; }
+    if(a==="none"){ pend[col]=new Set(); draw(); return; }
+    if(a==="clear"){ MU_CF={}; }
+    if(a==="ok"){ if(Object.values(pend).some(x=>!x.size)){ toast("Setiap kolom yang difilter perlu minimal satu nilai."); return; } MU_CF={}; Object.keys(pend).forEach(l=>MU_CF[l]=new Set(pend[l])); }
+    muCfSave(); pop.hidden=true; renderKirim(); muCfApply(); };
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-cfopen]"); if(b){ e.preventDefault(); e.stopPropagation(); const pop=$("#muCfPop"); if(pop&&!pop.hidden){ pop.hidden=true; return; } muCfOpen(b,b.dataset.cfopen||""); return; }
+  const x=e.target.closest("[data-cfx]"); if(x){ const v=x.dataset.cfx; if(v==="*"){ MU_CF={}; S.qKirim=""; } else if(v==="#q") S.qKirim=""; else delete MU_CF[v];
+    if(S.tab==="pengiriman"){ const g=$("#gSearch"); if(g) g.value=S.qKirim||""; } muCfSave(); renderKirim(); muCfApply(); return; }
+  const pop=$("#muCfPop"); if(pop&&!pop.hidden&&!e.target.closest("#muCfPop")) pop.hidden=true;
+},true);
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ const pop=$("#muCfPop"); if(pop) pop.hidden=true; } });
 function renderKirim(){
   if(!KIRIM_FORCE && SLOT_EDIT.size && document.querySelector(".slotBox.editing")) return;
-  const ps=projects().filter(p=>inFilter(p.id));
-  if(!ps.length){ $("#tKirim").innerHTML=`<tr><td colspan="9">${emptyState(S.ready?"Belum ada rencana kirim":"Memuat data…",S.ready?"Tambahkan project lalu item unit yang akan dikirim.":"")}</td></tr>`; }
+  const KACT=muKActive();
+  const ps=projects().filter(p=>inFilter(p.id)&&(!KACT||itemsOf(p.id).some(muKItemOk)));
+  if(!ps.length){ $("#tKirim").innerHTML=`<tr><td colspan="9">${KACT?emptyState("Tidak ada unit yang cocok","Ubah kata pencarian atau filter, atau klik Hapus semua."):emptyState(S.ready?"Belum ada rencana kirim":"Memuat data…",S.ready?"Tambahkan project lalu item unit yang akan dikirim.":"")}</td></tr>`; }
   else $("#tKirim").innerHTML=ps.map(p=>{
     const s=projStats(p.id), c=projColor(p.id);
-    const head=`<tr class="grp"><td colspan="9"><div class="grp-in"><div class="gt"><span class="tile-ic" style="background:var(--g-${c})">${ic(projIcon(p.id))}</span><div><b>${esc(p.kode)}</b> <span class="small">${esc([p.nama,p.lokasi].filter(Boolean).join(" · "))}</span><div class="small muted">${s.rencana} unit rencana · ${s.jalan} dlm perjalanan · ${s.tiba} tiba · ${s.sisa} sisa kirim${p.catatan?` · ${esc(p.catatan)}`:""}</div></div></div>${canWrite?`<div class="actions"><button class="btn small" data-act="addItem" data-id="${p.id}" type="button">+ Item</button><button class="btn small edit" data-act="editProj" data-id="${p.id}" type="button"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit project</button>${s.items.length?"":`<button class="btn small ghost danger" data-act="delProj" data-id="${p.id}" type="button">Hapus</button>`}</div>`:""}</div></td></tr>`;
-    const rows=s.items.map(k=>{ const n=tibaItem(k), r=Number(k.rencana)||0, aw=Number(k.rencanaAwal)||0, sisa=r-n, revs=revCount(k);
+    const head=`<tr class="grp"><td colspan="9"><div class="grp-in"><div class="gt"><span class="tile-ic" style="background:var(--g-${c})">${ic(projIcon(p.id))}</span><div><b>${esc(p.kode)}</b> <span class="small">${esc([p.nama,p.lokasi].filter(Boolean).join(" · "))}</span><div class="small muted">${s.rencana} unit rencana · ${s.jalan} dlm perjalanan · ${s.tiba} tiba · ${s.sisa} sisa kirim${p.catatan?` · ${esc(p.catatan)}`:""}</div></div></div>${canWrite?`<div class="actions"><button class="btn small cf-open${Object.keys(MU_CF).length?" on":""}" data-cfopen="${p.id}" type="button" title="Filter seluruh tabel unit"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>Filter${Object.keys(MU_CF).length?` (${Object.keys(MU_CF).length})`:""}</button><button class="btn small" data-act="addItem" data-id="${p.id}" type="button">+ Item</button><button class="btn small edit" data-act="editProj" data-id="${p.id}" type="button"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit project</button>${s.items.length?"":`<button class="btn small ghost danger" data-act="delProj" data-id="${p.id}" type="button">Hapus</button>`}</div>`:""}</div></td></tr>`;
+    const rows=s.items.filter(muKItemOk).map(k=>{ const n=tibaItem(k), r=Number(k.rencana)||0, aw=Number(k.rencanaAwal)||0, sisa=r-n, revs=revCount(k);
       return `<tr>
         <td><button type="button" class="itemTg" data-act="slotTg" data-id="${k.id}">${esc(k.tipe)}</button>${revs?`<span class="sub">${revs}× direvisi</span>`:""}<button type="button" class="slotTg" data-act="slotTg" data-id="${k.id}" aria-expanded="${SLOT_OPEN.has(k.id)}">${SLOT_OPEN.has(k.id)?"▾ Tutup":"▸ Lihat"} ${Math.max(r,unitsOfItem(k).length)} unit</button></td>
         <td class="n">${aw}</td><td class="n"><b>${r}</b></td><td class="n">${deltaChip(r-aw)}</td><td class="n">${n}${jalanItem(k)?`<span class="sub jalan">${jalanItem(k)} dlm perjalanan</span>`:""}</td>
@@ -3587,7 +3668,7 @@ function showUnitInfo(u){
     </div>` }],ok:"Tutup",onSubmit:()=>{}});
 }
 
-function renderMob(){
+function renderMob(){ setTimeout(()=>{ try{ muSearchMob(); }catch(e){} },0);
   const fs=["Aktif","Semua",...MOB_STATUS.map(s=>s.k)];
   $("#fMob").innerHTML=fs.map(f=>`<button type="button" data-fm="${f}" aria-pressed="${S.fMob===f}">${f}</button>`).join("");
   const base=S.mobs.filter(m=>inFilter(mobProj(m)));
@@ -3619,7 +3700,11 @@ function muOpenStatusUnit(status){
   const target=$("#muPopDetails");
   if(target)try{target.scrollIntoView({block:"start",behavior:"smooth"});}catch(e){}
 }
-function setTab(t){ S.tab=t; document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===t)));
+function muSearchMob(){ const q=String(S.qMob||"").trim().toLowerCase(); document.querySelectorAll("#tMob > tr").forEach(r=>{ r.style.display=!q||r.innerText.toLowerCase().includes(q)?"":"none"; }); }
+function muSearchSync(t){ const g=$("#gSearch"); if(!g) return;
+  const ph={pengiriman:"Cari di Rencana kirim: item, no. lambung, merek, posisi…",mobilisasi:"Cari di Mobilisasi: unit, rute, PIC…"}[t]||"Cari no. lambung, unit, project…";
+  g.placeholder=ph; g.value=t==="pengiriman"?(S.qKirim||""):t==="mobilisasi"?(S.qMob||""):(S.q||""); }
+function setTab(t){ S.tab=t; try{ muSearchSync(t); }catch(e){} document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===t)));
   ["ringkasan","unit","mobilisasi","pengiriman","dokumentasi"].forEach(x=>$("#p-"+x).hidden=x!==t); renderPFilter();
   try{ localStorage.setItem("mu_tab",t); }catch(e){} const ts=$("#fTabSel"); if(ts) ts.value=t;
   const was=document.body.classList.contains("tabview"); document.body.classList.toggle("tabview",t!=="ringkasan");
@@ -3734,8 +3819,11 @@ window.addEventListener("hashchange",()=>{
 });
 $("#qUnit").addEventListener("input",e=>{ S.q=e.target.value; const g=$("#gSearch"); if(g) g.value=S.q; renderUnit(); });
 setTimeout(()=>{ window.__muReady=true; },0);
-$("#gSearch").addEventListener("input",e=>{ S.q=e.target.value; $("#qUnit").value=S.q; if(S.q&&S.tab!=="unit"){ S.fUnit="Semua"; setTab("unit"); } renderUnit(); });
-$("#gSearch").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); setTab("unit"); renderUnit(); const t=$("#p-unit"); if(t) t.scrollIntoView({behavior:"smooth",block:"start"}); } });
+$("#gSearch").addEventListener("input",e=>{
+  if(S.tab==="pengiriman"){ S.qKirim=e.target.value; renderKirim(); muCfApply(); return; }
+  if(S.tab==="mobilisasi"){ S.qMob=e.target.value; muSearchMob(); return; }
+  S.q=e.target.value; $("#qUnit").value=S.q; if(S.q&&S.tab!=="unit"){ S.fUnit="Semua"; setTab("unit"); } renderUnit(); });
+$("#gSearch").addEventListener("keydown",e=>{ if(e.key==="Enter"){ e.preventDefault(); if(S.tab==="pengiriman"||S.tab==="mobilisasi") return; setTab("unit"); renderUnit(); const t=$("#p-unit"); if(t) t.scrollIntoView({behavior:"smooth",block:"start"}); } });
 document.addEventListener("change",e=>{
   const t=e.target;
   if(t.id==="fProjSel"){ if(t.value==="all") backAll(); else openProject(t.value); }
@@ -4129,58 +4217,6 @@ function muColDialog(key){
   dlg.showModal(); }
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-colcfg]"); if(b) muColDialog(b.dataset.colcfg); });
 
-/* ---------- Filter per kolom di tabel unit Rencana kirim (seperti filter Excel) ---------- */
-let MU_CF=(()=>{ try{ const o=JSON.parse(sessionStorage.getItem("mu_cf")||"{}"); const r={}; Object.keys(o).forEach(k=>r[k]=new Set(o[k])); return r; }catch(e){ return {}; } })();
-const muCfSave=()=>{ try{ const o={}; Object.keys(MU_CF).forEach(k=>o[k]=[...MU_CF[k]]); sessionStorage.setItem("mu_cf",JSON.stringify(o)); }catch(e){} };
-const muCfVal=c=>{ const t=String((c&&c.innerText)||"").split("\n")[0].trim(); return !t||t==="—"||t==="-"?"(Kosong)":t; };
-const muCfTables=()=>[...document.querySelectorAll(".slotTbl table.slotFixed")].filter(t=>!t.closest(".editing"));
-function muCfApply(){
-  muCfTables().forEach(t=>{ const h=t.querySelector("thead tr"); if(!h) return; const ths=[...h.children], labels=ths.map(muColLabel);
-    ths.forEach((th,i)=>{ const l=labels[i]; if(muColFixed(l)) return; let b=th.querySelector(".cf-btn");
-      if(!b){ th.insertAdjacentHTML("beforeend",`<button type="button" class="cf-btn" data-cf="${esc(l)}" aria-label="Filter ${esc(l)}" title="Filter ${esc(l)}"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg></button>`); b=th.querySelector(".cf-btn"); }
-      b.classList.toggle("on",!!MU_CF[l]); });
-    const act=Object.keys(MU_CF).filter(l=>labels.includes(l));
-    [...t.tBodies[0].rows].forEach(r=>{ let ok=true;
-      if(act.length){ if(r.classList.contains("sl-empty")) ok=false; else { const cs=[...r.children]; ok=act.every(l=>MU_CF[l].has(muCfVal(cs[labels.indexOf(l)]))); } }
-      if(!ok){ r.style.display="none"; r.dataset.cfHid="1"; } else if(r.dataset.cfHid){ r.style.display=""; delete r.dataset.cfHid; } });
-  });
-  const n=Object.keys(MU_CF).length, bar=$("#muCfBar");
-  if(bar){ bar.hidden=!n; const html=n?`<span>Filter aktif:</span>${Object.keys(MU_CF).map(l=>`<button type="button" class="cf-chip" data-cfx="${esc(l)}" title="Hapus filter ${esc(l)}">${esc(l)}: ${esc([...MU_CF[l]].slice(0,3).join(", "))}${MU_CF[l].size>3?` +${MU_CF[l].size-3}`:""} ✕</button>`).join("")}<button type="button" class="linkish" data-cfx="*">Hapus semua filter</button>`:""; if(bar.dataset.h!==html){ bar.dataset.h=html; bar.innerHTML=html; } }
-}
-function muCfOpen(btn){
-  const l=btn.dataset.cf; let pop=$("#muCfPop"); if(!pop){ document.body.insertAdjacentHTML("beforeend",'<div id="muCfPop" class="cf-pop" role="dialog" aria-label="Filter kolom" hidden></div>'); pop=$("#muCfPop"); }
-  const cnt=new Map();
-  muCfTables().forEach(t=>{ const h=t.querySelector("thead tr"); if(!h) return; const idx=[...h.children].map(muColLabel).indexOf(l); if(idx<0) return;
-    [...t.tBodies[0].rows].forEach(r=>{ if(r.classList.contains("sl-empty")) return; const v=muCfVal(r.children[idx]); cnt.set(v,(cnt.get(v)||0)+1); }); });
-  const vals=[...cnt.keys()].sort((a,b)=>a==="(Kosong)"?1:b==="(Kosong)"?-1:a.localeCompare(b,"id",{numeric:true}));
-  const sel=new Set(MU_CF[l]||vals);
-  const draw=q=>{ const qq=String(q||"").toLowerCase(), vis=vals.filter(v=>v.toLowerCase().includes(qq));
-    pop.querySelector(".cf-list").innerHTML=vis.length?vis.map(v=>`<label><input type="checkbox" value="${esc(v)}" ${sel.has(v)?"checked":""}> <span>${esc(v)}</span><small>${cnt.get(v)}</small></label>`).join(""):'<div class="muted small">Tidak ada nilai.</div>'; };
-  pop.innerHTML=`<div class="cf-h"><b>Filter: ${esc(l)}</b><button type="button" data-cfp="close" aria-label="Tutup">✕</button></div>
-    <input type="search" class="cf-q" placeholder="Cari…" aria-label="Cari nilai">
-    <div class="cf-all"><button type="button" class="linkish" data-cfp="all">Pilih semua</button><button type="button" class="linkish" data-cfp="none">Kosongkan</button></div>
-    <div class="cf-list"></div>
-    <div class="cf-f"><button type="button" class="btn small" data-cfp="clear">Hapus filter</button><button type="button" class="btn small primary" data-cfp="ok">Terapkan</button></div>`;
-  draw("");
-  const r=btn.getBoundingClientRect(); pop.hidden=false;
-  const w=Math.min(280,window.innerWidth-16); pop.style.width=w+"px";
-  pop.style.left=Math.max(8,Math.min(window.innerWidth-w-8,r.left+window.scrollX-w+r.width))+"px"; pop.style.top=(r.bottom+window.scrollY+6)+"px";
-  const q=pop.querySelector(".cf-q"); q.oninput=()=>draw(q.value); setTimeout(()=>q.focus(),0);
-  pop.onchange=e=>{ const c=e.target.closest("input[type=checkbox]"); if(!c) return; if(c.checked) sel.add(c.value); else sel.delete(c.value); };
-  pop.onclick=e=>{ const b=e.target.closest("[data-cfp]"); if(!b) return; const a=b.dataset.cfp;
-    if(a==="close"){ pop.hidden=true; return; }
-    if(a==="all"){ vals.forEach(v=>sel.add(v)); draw(q.value); return; }
-    if(a==="none"){ sel.clear(); draw(q.value); return; }
-    if(a==="clear"){ delete MU_CF[l]; }
-    if(a==="ok"){ if(!sel.size){ toast("Pilih minimal satu nilai."); return; } if(vals.every(v=>sel.has(v))) delete MU_CF[l]; else MU_CF[l]=new Set(sel); }
-    muCfSave(); pop.hidden=true; muCfApply(); };
-}
-document.addEventListener("click",e=>{
-  const b=e.target.closest(".cf-btn"); if(b){ e.preventDefault(); e.stopPropagation(); const pop=$("#muCfPop"); if(pop&&!pop.hidden&&pop.dataset.l===b.dataset.cf){ pop.hidden=true; return; } muCfOpen(b); $("#muCfPop").dataset.l=b.dataset.cf; return; }
-  const x=e.target.closest("[data-cfx]"); if(x){ if(x.dataset.cfx==="*") MU_CF={}; else delete MU_CF[x.dataset.cfx]; muCfSave(); muCfApply(); return; }
-  const pop=$("#muCfPop"); if(pop&&!pop.hidden&&!e.target.closest("#muCfPop")) pop.hidden=true;
-},true);
-document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ const pop=$("#muCfPop"); if(pop) pop.hidden=true; } });
 /* ---------- Excel bergaya web: file .xlsx disusun langsung di browser (tanpa library) ---------- */
 const MUX=(()=>{
   const enc=new TextEncoder();
