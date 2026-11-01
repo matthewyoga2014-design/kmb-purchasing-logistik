@@ -4756,6 +4756,8 @@ window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,la
   if (window.__upkInstalled) return; window.__upkInstalled = true;
   const CSS = `#upPick{position:fixed;inset:0;z-index:100000;background:rgba(18,16,40,.45);display:grid;place-items:center;padding:16px;font-family:inherit}
 #upPick[hidden]{display:none!important}
+#upPickHost{padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important;width:100vw!important;max-width:none!important;height:100dvh!important;max-height:none!important;margin:0!important;inset:0;overflow:visible}
+#upPickHost::backdrop{background:transparent}
 #upPick .upk{background:#EEF2FB;border-radius:18px;width:min(560px,100%);box-shadow:0 24px 60px rgba(18,16,40,.3);overflow:hidden}
 #upPick .upk-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px 12px;background:#fff;border-bottom:1px solid #E3E6F0}
 #upPick .upk-h small{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6D28D9}#upPick .upk-h h3{margin:2px 0 0;font-size:20px;color:#1E1B3A;line-height:1.25}
@@ -4767,10 +4769,14 @@ window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,la
 #upPick .upk-z p{margin:0;font-size:14px;color:#1E1B3A}
 #upPick .upk-b{border:0;background:#1A56DB;color:#fff;border-radius:999px;padding:12px 34px;font-weight:700;font-size:15px;line-height:1;font-family:inherit;cursor:pointer;box-shadow:0 6px 16px rgba(26,86,219,.3)}
 #upPick .upk-b:focus-visible,#upPick .upk-x:focus-visible{outline:3px solid #6D28D9;outline-offset:2px}
-.upk-w{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;border:2px dashed #C9CEDD;border-radius:12px;padding:10px 12px;background:#FAFAFE;cursor:pointer;transition:background .15s,border-color .15s;font-family:inherit}
-.upk-w.drag{background:#EFE9FE;border-color:#6D28D9;border-style:solid}
-.upk-w .upk-wb{display:inline-flex;align-items:center;gap:6px;border:1px solid #D9D6EC;background:#fff;color:#3B2A7A;border-radius:10px;padding:7px 12px;font:700 13px/1 inherit;font-family:inherit;cursor:pointer}
-.upk-w small{color:#6B6889;font-size:12px;pointer-events:none}.upk-w .upk-wf{flex-basis:100%;font-size:12.5px;color:#15803D;font-weight:600;word-break:break-all}.upk-w .upk-wf:empty{display:none}
+.upk-w{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:40px;border:1px dashed #E8E6F3;border-radius:9px;padding:6px 8px;background:transparent;cursor:pointer;transition:background .15s,border-color .15s;font-family:inherit}
+.upk-w.drag{background:#EFE9FE;border-color:#6D28D9}
+.upk-w .upk-wb{display:inline-flex;align-items:center;gap:7px;border:1px solid #E8E6F3;background:#fff;color:#4B4868;border-radius:9px;padding:6px 12px;font-size:12.5px;font-weight:700;line-height:1.2;font-family:inherit;cursor:pointer;white-space:nowrap}
+.upk-w .upk-wb:hover{border-color:#C9C2EC}
+.upk-w .upk-wf{display:contents}
+.upk-w .upk-fc{display:inline-flex;align-items:center;gap:4px}
+.upk-w .upk-fn{display:inline-block;font-size:11.5px;font-weight:700;color:#5B21B6;background:#EFE9FE;border-radius:7px;padding:4px 9px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upk-w .upk-rm{border:0;background:#FEE2E2;color:#DC2626;width:24px;height:24px;border-radius:6px;cursor:pointer;font-weight:800;font-family:inherit;line-height:1}
 @media (max-width:560px){#upPick{place-items:end center;padding:0}#upPick .upk{border-radius:20px 20px 0 0}}`;
   const nativeClick = HTMLInputElement.prototype.click;
   const isFile = (i) => i && i.tagName === 'INPUT' && (i.type || '').toLowerCase() === 'file';
@@ -4800,7 +4806,7 @@ window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,la
   }
   function build() {
     let pk = document.getElementById('upPick'); if (pk) return pk;
-    const st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
+    if (!document.getElementById('upkCss')) { const st = document.createElement('style'); st.id = 'upkCss'; st.textContent = CSS; document.head.appendChild(st); }
     document.body.insertAdjacentHTML('beforeend', `<div id="upPick" role="dialog" aria-modal="true" aria-labelledby="upPkT" hidden><div class="upk">
 <div class="upk-h"><div><small>Sisipkan file</small><h3 id="upPkT"></h3></div><button type="button" class="upk-x" data-pkclose aria-label="Tutup">×</button></div>
 <div class="upk-i"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span id="upPkI"></span></div>
@@ -4818,21 +4824,26 @@ window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,la
       e.preventDefault(); e.stopPropagation(); z.classList.remove('on'); const i = pk._inp; if (!i) return;
       close(); if (!setFiles(i, [...((e.dataTransfer && e.dataTransfer.files) || [])])) { open(i); document.getElementById('upPkI').textContent = 'Jenis file tidak sesuai. ' + info(i); }
     });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pk.hidden) { e.stopPropagation(); close(); } }, true);
+    if (!window.__upkEsc) { window.__upkEsc = 1; document.addEventListener('keydown', (e) => { const q = document.getElementById('upPick'); if (e.key === 'Escape' && q && !q.hidden) { e.preventDefault(); e.stopPropagation(); close(); } }, true); }
     return pk;
   }
   function open(i) {
     // Di dalam jendela form (dialog modal), popup "Sisipkan file" tertutup oleh dialog dan tidak bisa diklik.
     // Untuk input di dalam dialog, langsung buka jendela pilih file dari komputer/HP.
-    if (i.closest && i.closest('dialog[open]')) { nativeClick.call(i); return; }
+    i._prev = i.multiple ? [...(i.files || [])] : null;
     const pk = build();
+    // di dalam jendela form (dialog modal), panel dibuka sebagai dialog modal juga agar tampil di atasnya
+    const dlg = i.closest && i.closest('dialog[open]');
+    if (dlg) { let h = document.getElementById('upPickHost'); if (!h) { h = document.createElement('dialog'); h.id = 'upPickHost'; h.addEventListener('cancel', (e) => { e.preventDefault(); close(); }); document.body.appendChild(h); }
+      h.appendChild(pk); if (!h.open) h.showModal(); }
+    else document.body.appendChild(pk);
     if (pk._inp && pk._inp._upkH) pk._inp.removeEventListener('change', pk._inp._upkH);
     pk._inp = i; i._upkH = () => close(); i.addEventListener('change', i._upkH, { once: true });
     document.getElementById('upPkT').textContent = label(i); document.getElementById('upPkI').textContent = info(i);
     pk.hidden = false; setTimeout(() => document.getElementById('upPkB').focus(), 30);
   }
   function setFiles(i, fs) {
-    fs = fs.filter((f) => okType(f, i)); if (!fs.length) return false; if (!i.multiple) fs = fs.slice(0, 1);
+    fs = fs.filter((f) => okType(f, i)); if (!fs.length) return false; if (!i.multiple) fs = fs.slice(0, 1); else fs = [...(i.files || [])].concat(fs); i._prev = null;
     const dt = new DataTransfer(); fs.forEach((f) => dt.items.add(f)); i.files = dt.files;
     i.dispatchEvent(new Event('input', { bubbles: true })); i.dispatchEvent(new Event('change', { bubbles: true })); return true;
   }
@@ -4842,11 +4853,15 @@ window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,la
     (root.querySelectorAll ? root.querySelectorAll('input[type=file]') : []).forEach((i) => {
       if (i._upkW || i.hidden || skip(i) || i.closest('#upPick') || getComputedStyle(i).display === 'none') return;
       const w = document.createElement('div'); w.className = 'upk-w'; w.tabIndex = -1;
-      w.innerHTML = `<button type="button" class="upk-wb">${UPI}Upload</button><small>atau seret berkas ke sini${i.multiple ? ' · bisa beberapa file' : ''}</small><span class="upk-wf"></span>`;
+      w.innerHTML = `<button type="button" class="upk-wb">${UPI}Upload</button><span class="upk-wf"></span>`;
       i.insertAdjacentElement('afterend', w); i.style.display = 'none'; i._upkW = w;
-      const show = () => { w.querySelector('.upk-wf').textContent = [...(i.files || [])].map((f) => '✓ ' + f.name).join('   '); };
+      const escH = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const show = () => { if (i._prev && i._prev.length) { const add = [...(i.files || [])]; const p = i._prev; i._prev = null; const dt = new DataTransfer(); p.concat(add).forEach((f) => dt.items.add(f)); i.files = dt.files; } i._prev = null; const fs = [...(i.files || [])]; w.querySelector('.upk-wf').innerHTML = fs.map((f, n) => `<span class="upk-fc"><span class="upk-fn" title="${escH(f.name)}">${escH(f.name)}</span><button type="button" class="upk-rm" data-upkrm="${n}" aria-label="Hapus berkas">×</button></span>`).join(''); };
       i.addEventListener('change', show);
-      w.addEventListener('click', (e) => { e.preventDefault(); open(i); });
+      w.addEventListener('click', (e) => {
+        e.preventDefault(); const rm = e.target.closest('[data-upkrm]');
+        if (rm) { e.stopPropagation(); const k = +rm.dataset.upkrm; const dt = new DataTransfer(); [...(i.files || [])].forEach((f, n) => { if (n !== k) dt.items.add(f); }); i.files = dt.files; show(); i.dispatchEvent(new Event('input', { bubbles: true })); return; }
+        open(i); });
       ['dragenter', 'dragover'].forEach((ev) => w.addEventListener(ev, (e) => { e.preventDefault(); w.classList.add('drag'); }));
       w.addEventListener('dragleave', (e) => { if (!w.contains(e.relatedTarget)) w.classList.remove('drag'); });
       w.addEventListener('drop', (e) => { e.preventDefault(); w.classList.remove('drag'); setFiles(i, [...((e.dataTransfer && e.dataTransfer.files) || [])]); });
@@ -4854,7 +4869,7 @@ window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,la
   }
   const start = () => { enhance(document); new MutationObserver((ms) => ms.forEach((m) => m.addedNodes.forEach((n) => { if (n.nodeType === 1) enhance(n.matches && n.matches('input') ? n.parentNode : n); }))).observe(document.body, { childList: true, subtree: true }); };
   if (document.body) start(); else document.addEventListener('DOMContentLoaded', start);
-  function close() { const pk = document.getElementById('upPick'); if (pk) { pk.hidden = true; } }
+  function close() { const pk = document.getElementById('upPick'); if (pk) { pk.hidden = true; } const h = document.getElementById('upPickHost'); if (h && h.open) h.close(); }
   // input.click() dari kode (tombol upload, input yang dibuat dinamis)
   HTMLInputElement.prototype.click = function () { if (isFile(this) && !skip(this) && !this.disabled) { open(this); return; } return nativeClick.call(this); };
   // klik langsung pada input file atau label-nya
