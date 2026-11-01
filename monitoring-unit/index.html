@@ -947,6 +947,27 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .mcd-av button{font:inherit;font-size:13px;font-weight:700;color:#6D28D9;background:#F5F1FF;border:1px dashed #C4B5FD;border-radius:999px;padding:6px 12px;cursor:pointer}
 .mcd-av button:hover{background:#EFE8FD;border-style:solid}
 @media print{.btn.colcfg{display:none!important}}
+
+/* filter kolom tabel unit */
+.slotTbl th .cf-btn{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;margin-left:4px;vertical-align:middle;border:1px solid transparent;border-radius:6px;background:transparent;color:#A3A1B8;cursor:pointer;padding:0}
+.slotTbl th:hover .cf-btn,.slotTbl th .cf-btn:focus-visible{border-color:var(--line-2);background:#fff;color:var(--accent)}
+.slotTbl th .cf-btn.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.cf-pop{position:absolute;z-index:80;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 40px rgba(30,27,58,.18);padding:12px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.cf-pop[hidden]{display:none}
+.cf-h{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.cf-h button{border:0;background:#F1EFF8;border-radius:8px;width:26px;height:26px;cursor:pointer}
+.cf-q{height:34px;border:1px solid var(--line-2);border-radius:9px;padding:0 10px;font:inherit}
+.cf-all{display:flex;gap:14px}.cf-all .linkish{font-weight:700;font-size:12.5px}
+.cf-list{max-height:240px;overflow:auto;display:flex;flex-direction:column;gap:2px}
+.cf-list label{display:flex;align-items:center;gap:8px;padding:5px 6px;border-radius:8px;cursor:pointer}
+.cf-list label:hover{background:#F7F5FD}
+.cf-list span{flex:1;min-width:0;overflow-wrap:anywhere}.cf-list small{color:var(--muted);font-weight:700}
+.cf-list input{accent-color:var(--accent);width:16px;height:16px}
+.cf-f{display:flex;justify-content:flex-end;gap:8px;border-top:1px solid var(--line);padding-top:8px}
+.cf-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:4px 0 10px;font-size:12.5px;color:var(--muted)}
+.cf-bar[hidden]{display:none}
+.cf-chip{font:inherit;font-size:12px;font-weight:700;color:#5B21B6;background:#EFE8FD;border:1px solid #DDD0FC;border-radius:999px;padding:3px 10px;cursor:pointer}
+@media print{.cf-btn,.cf-bar,.cf-pop{display:none!important}}
 /* tabel rencana kirim per unit — sesuai sheet */
 .rk-fs{display:flex;flex-wrap:wrap;gap:6px 22px;margin-left:auto}
 .rk-f{display:flex;flex-direction:column;align-items:flex-end;line-height:1.2}
@@ -1635,6 +1656,7 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
     <div class="sec-head">
       <div><h2>Rencana kirim unit</h2><p>Jumlah unit yang direncanakan dikirim ke tiap project. Pakai <b>Ubah jumlah</b> setiap ada revisi supaya alasan dan selisihnya tercatat di riwayat.</p></div>
       <div class="actions"><button class="btn" id="addProj" type="button">+ Project</button><button type="button" class="btn colcfg" data-colcfg="slot" data-needwrite hidden title="Pilih, tambah & urutkan kolom tabel unit"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Atur kolom</button><button class="btn primary" id="addKirim" type="button">+ Item unit</button></div>
+    <div class="cf-bar" id="muCfBar" hidden></div>
     </div>
     <div class="tbl-wrap"><table id="kirimTbl">
       <colgroup class="kirimCols"><col class="kc0"><col class="kc1"><col class="kc2"><col class="kc3"><col class="kc4"><col class="kc5"><col class="kc6"><col class="kc7"><col class="kc8"></colgroup><thead><tr><th>Item unit</th><th class="n">Rencana awal</th><th class="n">Rencana kini</th><th class="n">Perubahan</th><th class="n">Tiba</th><th class="n">Sisa kirim</th><th>ETA</th><th>Keterangan</th><th></th></tr></thead>
@@ -4051,7 +4073,7 @@ function muColApplyAll(){ const P=muColPrefs();
   Object.entries(MU_COLT).forEach(([k,d])=>document.querySelectorAll(d.sel).forEach(t=>{ try{ muColApply(t,P[k],k); }catch(e){} }));
   document.querySelectorAll("[data-colcfg][data-needwrite]").forEach(b=>b.hidden=!canWrite); }
 let muColRaf=0;
-new MutationObserver(()=>{ if(muColRaf) return; muColRaf=requestAnimationFrame(()=>{ muColRaf=0; muColApplyAll(); }); }).observe(document.body,{childList:true,subtree:true});
+new MutationObserver(()=>{ if(muColRaf) return; muColRaf=requestAnimationFrame(()=>{ muColRaf=0; muColApplyAll(); try{ muCfApply(); }catch(e){} }); }).observe(document.body,{childList:true,subtree:true});
 async function muColSave(key,cfg){
   for(let i=0;i<3;i++){
     const {data:row,error}=await sb.from("app_state_public").select("data").eq("app_id",APP).maybeSingle();
@@ -4106,6 +4128,59 @@ function muColDialog(key){
     document.addEventListener("pointermove",move); document.addEventListener("pointerup",up); document.addEventListener("pointercancel",up); };
   dlg.showModal(); }
 document.addEventListener("click",e=>{ const b=e.target.closest("[data-colcfg]"); if(b) muColDialog(b.dataset.colcfg); });
+
+/* ---------- Filter per kolom di tabel unit Rencana kirim (seperti filter Excel) ---------- */
+let MU_CF=(()=>{ try{ const o=JSON.parse(sessionStorage.getItem("mu_cf")||"{}"); const r={}; Object.keys(o).forEach(k=>r[k]=new Set(o[k])); return r; }catch(e){ return {}; } })();
+const muCfSave=()=>{ try{ const o={}; Object.keys(MU_CF).forEach(k=>o[k]=[...MU_CF[k]]); sessionStorage.setItem("mu_cf",JSON.stringify(o)); }catch(e){} };
+const muCfVal=c=>{ const t=String((c&&c.innerText)||"").split("\n")[0].trim(); return !t||t==="—"||t==="-"?"(Kosong)":t; };
+const muCfTables=()=>[...document.querySelectorAll(".slotTbl table.slotFixed")].filter(t=>!t.closest(".editing"));
+function muCfApply(){
+  muCfTables().forEach(t=>{ const h=t.querySelector("thead tr"); if(!h) return; const ths=[...h.children], labels=ths.map(muColLabel);
+    ths.forEach((th,i)=>{ const l=labels[i]; if(muColFixed(l)) return; let b=th.querySelector(".cf-btn");
+      if(!b){ th.insertAdjacentHTML("beforeend",`<button type="button" class="cf-btn" data-cf="${esc(l)}" aria-label="Filter ${esc(l)}" title="Filter ${esc(l)}"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg></button>`); b=th.querySelector(".cf-btn"); }
+      b.classList.toggle("on",!!MU_CF[l]); });
+    const act=Object.keys(MU_CF).filter(l=>labels.includes(l));
+    [...t.tBodies[0].rows].forEach(r=>{ let ok=true;
+      if(act.length){ if(r.classList.contains("sl-empty")) ok=false; else { const cs=[...r.children]; ok=act.every(l=>MU_CF[l].has(muCfVal(cs[labels.indexOf(l)]))); } }
+      if(!ok){ r.style.display="none"; r.dataset.cfHid="1"; } else if(r.dataset.cfHid){ r.style.display=""; delete r.dataset.cfHid; } });
+  });
+  const n=Object.keys(MU_CF).length, bar=$("#muCfBar");
+  if(bar){ bar.hidden=!n; const html=n?`<span>Filter aktif:</span>${Object.keys(MU_CF).map(l=>`<button type="button" class="cf-chip" data-cfx="${esc(l)}" title="Hapus filter ${esc(l)}">${esc(l)}: ${esc([...MU_CF[l]].slice(0,3).join(", "))}${MU_CF[l].size>3?` +${MU_CF[l].size-3}`:""} ✕</button>`).join("")}<button type="button" class="linkish" data-cfx="*">Hapus semua filter</button>`:""; if(bar.dataset.h!==html){ bar.dataset.h=html; bar.innerHTML=html; } }
+}
+function muCfOpen(btn){
+  const l=btn.dataset.cf; let pop=$("#muCfPop"); if(!pop){ document.body.insertAdjacentHTML("beforeend",'<div id="muCfPop" class="cf-pop" role="dialog" aria-label="Filter kolom" hidden></div>'); pop=$("#muCfPop"); }
+  const cnt=new Map();
+  muCfTables().forEach(t=>{ const h=t.querySelector("thead tr"); if(!h) return; const idx=[...h.children].map(muColLabel).indexOf(l); if(idx<0) return;
+    [...t.tBodies[0].rows].forEach(r=>{ if(r.classList.contains("sl-empty")) return; const v=muCfVal(r.children[idx]); cnt.set(v,(cnt.get(v)||0)+1); }); });
+  const vals=[...cnt.keys()].sort((a,b)=>a==="(Kosong)"?1:b==="(Kosong)"?-1:a.localeCompare(b,"id",{numeric:true}));
+  const sel=new Set(MU_CF[l]||vals);
+  const draw=q=>{ const qq=String(q||"").toLowerCase(), vis=vals.filter(v=>v.toLowerCase().includes(qq));
+    pop.querySelector(".cf-list").innerHTML=vis.length?vis.map(v=>`<label><input type="checkbox" value="${esc(v)}" ${sel.has(v)?"checked":""}> <span>${esc(v)}</span><small>${cnt.get(v)}</small></label>`).join(""):'<div class="muted small">Tidak ada nilai.</div>'; };
+  pop.innerHTML=`<div class="cf-h"><b>Filter: ${esc(l)}</b><button type="button" data-cfp="close" aria-label="Tutup">✕</button></div>
+    <input type="search" class="cf-q" placeholder="Cari…" aria-label="Cari nilai">
+    <div class="cf-all"><button type="button" class="linkish" data-cfp="all">Pilih semua</button><button type="button" class="linkish" data-cfp="none">Kosongkan</button></div>
+    <div class="cf-list"></div>
+    <div class="cf-f"><button type="button" class="btn small" data-cfp="clear">Hapus filter</button><button type="button" class="btn small primary" data-cfp="ok">Terapkan</button></div>`;
+  draw("");
+  const r=btn.getBoundingClientRect(); pop.hidden=false;
+  const w=Math.min(280,window.innerWidth-16); pop.style.width=w+"px";
+  pop.style.left=Math.max(8,Math.min(window.innerWidth-w-8,r.left+window.scrollX-w+r.width))+"px"; pop.style.top=(r.bottom+window.scrollY+6)+"px";
+  const q=pop.querySelector(".cf-q"); q.oninput=()=>draw(q.value); setTimeout(()=>q.focus(),0);
+  pop.onchange=e=>{ const c=e.target.closest("input[type=checkbox]"); if(!c) return; if(c.checked) sel.add(c.value); else sel.delete(c.value); };
+  pop.onclick=e=>{ const b=e.target.closest("[data-cfp]"); if(!b) return; const a=b.dataset.cfp;
+    if(a==="close"){ pop.hidden=true; return; }
+    if(a==="all"){ vals.forEach(v=>sel.add(v)); draw(q.value); return; }
+    if(a==="none"){ sel.clear(); draw(q.value); return; }
+    if(a==="clear"){ delete MU_CF[l]; }
+    if(a==="ok"){ if(!sel.size){ toast("Pilih minimal satu nilai."); return; } if(vals.every(v=>sel.has(v))) delete MU_CF[l]; else MU_CF[l]=new Set(sel); }
+    muCfSave(); pop.hidden=true; muCfApply(); };
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest(".cf-btn"); if(b){ e.preventDefault(); e.stopPropagation(); const pop=$("#muCfPop"); if(pop&&!pop.hidden&&pop.dataset.l===b.dataset.cf){ pop.hidden=true; return; } muCfOpen(b); $("#muCfPop").dataset.l=b.dataset.cf; return; }
+  const x=e.target.closest("[data-cfx]"); if(x){ if(x.dataset.cfx==="*") MU_CF={}; else delete MU_CF[x.dataset.cfx]; muCfSave(); muCfApply(); return; }
+  const pop=$("#muCfPop"); if(pop&&!pop.hidden&&!e.target.closest("#muCfPop")) pop.hidden=true;
+},true);
+document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ const pop=$("#muCfPop"); if(pop) pop.hidden=true; } });
 /* ---------- Excel bergaya web: file .xlsx disusun langsung di browser (tanpa library) ---------- */
 const MUX=(()=>{
   const enc=new TextEncoder();
