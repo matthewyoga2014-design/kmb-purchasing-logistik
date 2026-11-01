@@ -1791,7 +1791,9 @@ const arrived = u => { const st=String(u.status||"").trim(); if(!st) return true
 const muIsArrSt = (st,tgl) => arrived({status:st,tglTiba:tgl});
 const muStatusList = () => [...new Set([...ALL_STATUS.map(x=>x.k),...S.units.map(u=>String(u.status||"").trim()).filter(Boolean)])];
 /* Kotak pilihan + ketik (combobox): klik/fokus menampilkan SEMUA pilihan, mengetik menyaring daftar. */
-const MU_COMBO_SRC={status:()=>muStatusList()};
+const MU_KOND_BAKU=["Belum diverifikasi","Ready Done Rekondisi","Dalam Rekondisi","Belum Rekondisi","Layak operasi","Dalam Perbaikan","Rusak / Breakdown","Lainnya"];
+const muKondList = () => [...new Set([...MU_KOND_BAKU,...S.units.map(u=>String(muDetails(u).kondisi||"").trim()).filter(Boolean)])];
+const MU_COMBO_SRC={status:()=>muStatusList(),kondisi:()=>muKondList()};
 function muComboize(el,src){ if(!el) return; el.removeAttribute("list"); el.dataset.combo=src; el.setAttribute("autocomplete","off"); }
 let MU_COMBO=null;
 function muComboClose(){ if(MU_COMBO){ MU_COMBO.box.remove(); MU_COMBO=null; } }
@@ -1808,7 +1810,7 @@ function muComboOpen(el,filter){
   box.style.minWidth=Math.max(r.width,180)+"px"; box.style.position=inDlg?"absolute":"absolute";
   const cur=String(el.value||"").trim();
   box.innerHTML=(list.length?list:[]).map((o,i)=>`<div class="mu-combo-opt${o===cur?" on":""}" data-combo-v="${esc(o)}" role="option">${esc(o)}</div>`).join("")+
-    (cur&&!all.includes(cur)?`<div class="mu-combo-new">Pakai ketikan: <b>${esc(cur)}</b></div>`:"")+(list.length||cur?"":`<div class="mu-combo-new">Ketik status baru…</div>`);
+    (cur&&!all.includes(cur)?`<div class="mu-combo-new">Pakai ketikan: <b>${esc(cur)}</b></div>`:"")+(list.length||cur?"":`<div class="mu-combo-new">Ketik ${el.dataset.combo==="kondisi"?"kondisi":"status"} baru…</div>`);
   MU_COMBO.i=-1;
 }
 document.addEventListener("focusin",e=>{ const el=e.target.closest&&e.target.closest("input[data-combo]"); if(el){ muComboOpen(el,false); try{ el.select(); }catch(err){} } });
@@ -2418,8 +2420,7 @@ function muDetailInputs(){
     {key:"model",label:"Model / tipe",ph:"Contoh: Dolly 50T"},
     {key:"tahun",label:"Tahun",ph:"Contoh: 2023"},
     {key:"serial",label:"Serial / chassis",ph:"Nomor seri dari unit"},
-    {key:"kondisi",label:"Kondisi unit",type:"select",
-      options:["Belum diverifikasi","Ready Done Rekondisi","Dalam Rekondisi","Belum Rekondisi","Layak operasi","Dalam Perbaikan","Rusak / Breakdown","Lainnya"]},
+    {key:"kondisi",label:"Kondisi unit",combo:"kondisi",list:MU_KOND_BAKU,ph:"Pilih atau ketik kondisi"},
     {key:"foto",label:"Foto unit (link Drive / URL)",full:true,ph:"Tempel tautan foto unit; opsional",hint:"Gunakan URL foto yang dapat dibuka oleh pembaca."}
   ];
 }
@@ -2438,7 +2439,7 @@ function formExistingUnit(presetProject){
     muSection("02 · Operasional & Kondisi","Lokasi fisik dan kondisi per unit"),
     {key:"lokasi",label:"Posisi unit sekarang",req:true,list:lokasiList()},
     {key:"status",label:"Status operasional",type:"select",options:UNIT_STATUS.map(s=>s.k)},
-    {key:"kondisi",label:"Kondisi unit",type:"select",options:["Belum diverifikasi","Ready Done Rekondisi","Dalam Rekondisi","Belum Rekondisi","Layak operasi","Dalam Perbaikan","Rusak / Breakdown","Lainnya"]},
+    {key:"kondisi",label:"Kondisi unit",combo:"kondisi",list:MU_KOND_BAKU,ph:"Pilih atau ketik kondisi",hint:"Pilih dari daftar atau ketik sendiri."},
     {key:"hm",label:"Hour meter (HM)",type:"number",min:0,step:"0.1"},
     {key:"tglTiba",label:"Tanggal tiba (jika diketahui)",type:"date"},
     muSection("03 · Keterangan & Bukti","Catatan pemantauan yang bisa dibaca editor"),
@@ -2552,7 +2553,7 @@ function formUnit(u,presetItem){
     muSection("02 · Operasional & Kondisi","Status fisik, lokasi dan HM"),
     {key:"lokasi",label:"Posisi unit sekarang",req:true,list:lokasiList()},
     {key:"status",label:"Status operasional",type:"select",options:UNIT_STATUS.map(s=>s.k)},
-    {key:"kondisi",label:"Kondisi unit",type:"select",options:["Belum diverifikasi","Ready Done Rekondisi","Dalam Rekondisi","Belum Rekondisi","Layak operasi","Dalam Perbaikan","Rusak / Breakdown","Lainnya"]},
+    {key:"kondisi",label:"Kondisi unit",combo:"kondisi",list:MU_KOND_BAKU,ph:"Pilih atau ketik kondisi",hint:"Pilih dari daftar atau ketik sendiri."},
     {key:"tglTiba",label:"Tanggal tiba (jika diketahui)",type:"date",hint:"Boleh kosong untuk unit existing lama."},
     {key:"hm",label:"Hour meter (HM)",type:"number",min:0,step:"0.1"},
     muSection("03 · Catatan & Dokumentasi","Keterangan panjang tidak lagi memenuhi tabel unit"),
@@ -3173,7 +3174,7 @@ function slotEditRows(k,us,n){
       <td>${inp("merk",md.merk,"text","Merek","merkList")}</td>
       <td>${inp("kepemilikan",md.kepemilikan,"text","Owned / Rental","kepList")}</td>
       <td><input data-f="status" data-combo="status" type="text" value="${esc(u?u.status:"")}" placeholder="Status" autocomplete="off"></td>
-      <td>${sel("kondisi",md.kondisi||"",["",...MU_KOND])}</td>
+      <td><input data-f="kondisi" data-combo="kondisi" type="text" value="${esc(md.kondisi||"")}" placeholder="Kondisi" autocomplete="off"></td>
       <td>${inp("lokasi",u&&u.lokasi,"text","Posisi","lokList")}</td>
       <td>${inp("hm",u?String(u.hm??""):"","number","0")}</td>
       <td class="muted small">${u?nextCell(u):""}</td>
