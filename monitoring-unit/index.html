@@ -1222,6 +1222,13 @@ b.j{color:#1D4ED8}b.t{color:#15803D}b.b{color:#64748B}b.o{color:#B45309}
 .mu-pop-total small{font-size:10px;font-weight:650}.mu-pop-source{padding:8px 12px!important;font-size:10px!important;color:#611be3!important}
 .mu-pop-guide{background:#f2f5fc;border:1px solid #dfe5f5;color:#585676;border-radius:9px;padding:9px 11px;font-size:10px;line-height:1.45;margin-bottom:12px}
 .mu-pop-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-items:start}
+@media screen{.mu-pop-dashboard .mu-pop-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,560px),1fr))!important}
+.mu-pop-dashboard .mu-pop-table{table-layout:auto!important}
+.mu-pop-dashboard .mu-pop-table th{width:auto!important;white-space:nowrap}
+.mu-pop-dashboard .mu-pop-table td{overflow-wrap:normal}
+.mu-pop-dashboard .mu-pop-table td.mu-pop-number{width:1%;white-space:nowrap;text-align:center}
+.mu-pop-dashboard .mu-pop-table-scroller{overflow-x:auto}}
+.mu-pop-plates{display:flex;flex-wrap:wrap;gap:4px}.mu-pop-plates .tmp{color:var(--warn);font-weight:700;background:#FFF4E5;border-radius:5px;padding:1px 6px}.mu-pop-plates .plate{font-size:10px;padding:1px 6px}
 .mu-pop-card{border:1px solid #ddd9ea;border-radius:13px;min-width:0;overflow:hidden;background:#fff}
 .mu-pop-card-head{display:flex;align-items:center;gap:7px;background:var(--mu-head);border-bottom:1px solid #e7dfee;padding:10px 12px;color:#211941;min-height:38px}
 .mu-pop-truck{display:flex;align-items:center;justify-content:center;flex:0 0 19px}
@@ -3081,12 +3088,15 @@ function renderPopDash(){
       return '<section class="mu-pop-vendor">'+
         '<div class="mu-pop-vendor-head"><b>Vendor: '+muVendorTag(v.vendor)+'</b><strong>'+v.count+' unit</strong></div>'+
         '<div class="mu-pop-table-scroller"><table class="mu-pop-table"><thead><tr>'+
-          '<th>Merek Unit</th><th>Total</th><th>Status Operasional</th><th>Kondisi Unit</th>'+
+          '<th>Merek Unit</th><th>Total</th><th>Status Operasional</th><th>Kondisi Unit</th><th>Kepemilikan</th><th>Posisi</th><th>No. lambung</th><th>Model / tipe</th><th>Tahun</th><th>Kategori</th><th>PIC</th>'+
         '</tr></thead><tbody>'+
         brands.map(b=>
           '<tr><td class="mu-pop-brand">'+muBrandTag(b.brand)+'</td><td class="mu-pop-number">'+b.items.length+'</td>'+
           '<td><div class="mu-pop-badges">'+muPopBadges(b.items,x=>x.operational,false)+'</div></td>'+
-          '<td><div class="mu-pop-badges">'+muPopBadges(b.items,x=>x.kondisi,true)+'</div></td></tr>'
+          '<td><div class="mu-pop-badges">'+muPopBadges(b.items,x=>x.kondisi,true)+'</div></td>'+
+          ['kepemilikan','lokasi'].map(f=>'<td><div class="mu-pop-badges">'+muPopBadges(b.items,x=>f==='lokasi'?x.u.lokasi:muDetails(x.u)[f],false)+'</div></td>').join('')+
+          '<td><div class="mu-pop-plates">'+b.items.map(x=>x.u.kodeSementara||!String(x.u.kode||'').trim()?'<span class="tmp">belum diisi</span>':'<span class="plate">'+esc(x.u.kode)+'</span>').join('')+'</div></td>'+
+          ['model','tahun','kategori','pic'].map(f=>'<td><div class="mu-pop-badges">'+muPopBadges(b.items,x=>muDetails(x.u)[f],false)+'</div></td>').join('')+'</tr>'
         ).join('')+'</tbody></table></div></section>';
     }).join("");
     const key='type:'+type,hidden=muDashboardHidden(key);
@@ -3104,7 +3114,7 @@ function renderPopDash(){
       '<p>Rekap otomatis berdasarkan jenis, vendor, merek, status operasional, dan kondisi dari sheet Populasi Unit'+
       (P?' — '+esc(P.kode):'')+'.</p></div>'+
       '<div class="mu-pop-head-actions"><span class="mu-pop-total">'+us.length+' <small>Total unit</small></span>'+
-        '<button type="button" class="btn small mu-pop-source" data-goto="unit">Lihat sumber data →</button>'+muDashboardCollapseButton("population")+'</div></div>'+
+        '<button type="button" class="btn small mu-pop-source colcfg" data-colcfg="popdash" data-needwrite'+(canWrite?'':' hidden')+'>Atur kolom</button><button type="button" class="btn small mu-pop-source" data-goto="unit">Lihat sumber data →</button>'+muDashboardCollapseButton("population")+'</div></div>'+
     '<div class="mu-pop-guide">ⓘ <b>Jenis Unit → Vendor → Merek</b> · Jumlah status dan kondisi adalah rincian unit, bukan tambahan populasi.</div>'+
     (types.length?'<div class="mu-pop-grid">'+content+'</div>':
       '<div class="mu-pop-no-data">Belum ada unit yang tercatat di lokasi. '+(canWrite?'Input melalui sheet Populasi Unit.':'')+'</div>')+
@@ -4178,6 +4188,7 @@ const MU_COLT={
   slot:{sel:".slotTbl table.slotFixed",name:"Tabel unit Rencana kirim (semua item)",labels:["#","Tgl kirim","ETD","ETA","Actual","No. lambung","Vendor","Merek","Kepemilikan","Status","Kondisi","Posisi","Kirim berikutnya","Catatan","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM",""],defHidden:["Via", "Kategori", "PIC", "Model / tipe", "Tahun", "Serial / chassis", "HM"]},
   dash:{sel:"table.rk-t2",name:"Tabel Rencana kirim per unit (dashboard)",labels:["No","No. lambung","Vendor","Merek","Status kirim","Kepemilikan","Posisi","ETD","ETA","Catatan","Tgl kirim","Actual","Kondisi","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM"],defHidden:["Tgl kirim","Actual","Kondisi","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM"]},
   pop:{sel:"table.mu-mpp-detail-table",name:"Tabel detail Populasi Unit"},
+  popdash:{sel:"table.mu-pop-table",name:"Rekap Populasi Unit (dashboard)",sub:"data Populasi Unit",labels:["Merek Unit","Total","Status Operasional","Kondisi Unit","Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"],defHidden:["Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"]},
   item:{sel:"table.mu-kcol-none",name:"Baris item unit Rencana kirim",sub:"isian item unit",labels:["Rencana","Status unit","Sisa kirim","Rencana awal","Perubahan","Tiba","Dlm perjalanan","ETA","Keterangan","Via","Asal"],defHidden:["Rencana awal","Perubahan","Tiba","Dlm perjalanan","ETA","Keterangan","Via","Asal"]},
   mob:{sel:"#p-mobilisasi .tbl-wrap table",name:"Tabel Mobilisasi"}
 };
