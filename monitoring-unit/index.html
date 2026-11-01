@@ -926,6 +926,30 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .rvj.ren{background:#DFEAFE;color:#1D4ED8}.rvj.kor{background:#FEF3C7;color:#B45309}.rvj.lain{background:#EDEFF4;color:#475569}
 .mu-own-tag{display:inline-block;font-size:11px;font-weight:800;border:1px solid;border-radius:999px;padding:2px 10px;line-height:1.35;white-space:nowrap}
 @media print{.mu-own-tag{font-size:7.5px;padding:1px 5px}}
+
+/* atur kolom */
+.btn.colcfg svg.i{width:14px;height:14px}
+.colcfg-wrap{display:inline-flex;gap:6px;align-items:center}
+.mu-col-dlg{border:0;border-radius:18px;padding:0;width:min(440px,94vw);box-shadow:0 24px 60px rgba(30,27,58,.25)}
+.mu-col-dlg::backdrop{background:rgba(28,26,51,.35)}
+.mcd{display:flex;flex-direction:column;max-height:86vh}
+.mcd-h{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:16px 18px 6px}
+.mcd-h b{display:block;font-size:17px}.mcd-h small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.mcd-x{border:0;background:#F1EFF8;border-radius:8px;width:32px;height:32px;cursor:pointer;font-size:14px}
+.mcd-tip{margin:0 18px 10px;font-size:12.5px;color:var(--muted)}
+.mcd-l{list-style:none;margin:0;padding:0 12px;overflow:auto;flex:1}
+.mcd-l li{display:flex;align-items:center;gap:10px;padding:8px 10px;margin:4px 0;border:1px solid var(--line);border-radius:12px;background:#fff;user-select:none}
+.mcd-l li.off{background:#F8F7FC}.mcd-l li.off label{color:var(--muted);text-decoration:line-through}
+.mcd-l li.drag{border-color:var(--accent);box-shadow:0 8px 20px rgba(109,40,217,.18);background:#FBFAFF}
+.mcd-g{cursor:grab;touch-action:none;color:#9C99B6;font-size:18px;line-height:1;padding:4px 2px}
+.mcd-l label{flex:1;display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;cursor:pointer}
+.mcd-l input{width:17px;height:17px;accent-color:var(--accent)}
+.mcd-b{display:flex;gap:4px}
+.mcd-b button{width:30px;height:30px;border:1px solid var(--line);border-radius:8px;background:#fff;cursor:pointer;font-weight:800;color:var(--ink-2,#4B4868)}
+.mcd-b button:disabled{opacity:.35;cursor:default}
+.mcd-f{display:flex;align-items:center;gap:8px;padding:12px 18px 16px;border-top:1px solid var(--line);margin-top:8px}
+.mcd-f span{flex:1}
+@media print{.btn.colcfg{display:none!important}}
 /* tabel rencana kirim per unit — sesuai sheet */
 .rk-fs{display:flex;flex-wrap:wrap;gap:6px 22px;margin-left:auto}
 .rk-f{display:flex;flex-direction:column;align-items:flex-end;line-height:1.2}
@@ -1641,7 +1665,7 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
       <div class="mu-mpp-summary"><table><thead><tr><th>No</th><th>Jenis Unit</th><th class="n">Jumlah</th><th>Porsi</th><th class="mu-mpp-recap-action">Rincian</th></tr></thead><tbody id="muPopSummary"></tbody></table></div>
     </section>
     <section class="mu-mpp-details" id="muPopDetails" aria-label="Detail unit per jenis">
-      <div class="mu-mpp-detail-head"><div><span class="mu-mpp-eyebrow">DETAIL UNIT</span><h3 id="muPopDetailTitle">Seluruh unit di lokasi</h3><p id="muPopDetailSub">Pilih jenis unit pada kartu atau tabel rekap untuk menyaring daftar.</p></div><button type="button" class="btn small" data-unit-all hidden id="muPopReset">Lihat semua</button></div>
+      <div class="mu-mpp-detail-head"><div><span class="mu-mpp-eyebrow">DETAIL UNIT</span><h3 id="muPopDetailTitle">Seluruh unit di lokasi</h3><p id="muPopDetailSub">Pilih jenis unit pada kartu atau tabel rekap untuk menyaring daftar.</p></div><span class="colcfg-wrap"><button type="button" class="btn small colcfg" data-colcfg="pop" data-needwrite hidden><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Atur kolom</button><button type="button" class="btn small" data-unit-all hidden id="muPopReset">Lihat semua</button></span></div>
       <div class="mu-mpp-detail-wrap"><table class="mu-mpp-detail-table">
       <thead><tr><th>No</th><th>Nomor lambung</th><th>Jenis Unit</th><th>Vendor</th><th>Merek</th><th>Project</th><th>Posisi</th><th>Status Operasional</th><th>Kondisi</th><th class="n">HM</th><th>Tanggal tiba</th><th>Keterangan</th><th class="mu-mpp-actions">Aksi</th></tr>
       <tr class="mu-colf" id="muColFilter"></tr></thead>
@@ -1655,7 +1679,7 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
     <div class="sec-head">
       <div><h2>Mobilisasi / kirim lanjutan</h2><p>Perpindahan unit <b>setelah tiba di site</b>: dari titik kedatangan ke area kerja, ke workshop, atau ke site/project lain. Ubah status ke <b>Berjalan</b> atau <b>Selesai</b> dan posisi unit ikut diperbarui.</p>
         <div class="mobnote">Pengiriman awal ke site (persiapan kirim → dalam perjalanan → tiba) dicatat di tab <button type="button" class="linkish" data-goto="pengiriman">Rencana kirim</button>, di tabel unit tiap item.</div></div>
-      <div class="actions"><button class="btn primary" id="addMob" type="button">+ Kirim lanjutan</button></div>
+      <div class="actions"><button type="button" class="btn colcfg" data-colcfg="mob" data-needwrite hidden><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Atur kolom</button><button class="btn primary" id="addMob" type="button">+ Kirim lanjutan</button></div>
     </div>
     <div class="toolbar"><div class="filters" id="fMob"></div></div>
     <div class="tbl-wrap"><table>
@@ -2807,6 +2831,7 @@ function renderProjDash(P){
 
   const progress='<div class="card pcard rk-card"><div class="card-head"><h3><span class="tile-ic" style="background:var(--g-'+c+')">'+ic(projIcon(P.id))+'</span>Rencana kirim per unit</h3>'+
     (canWrite?'<button class="btn small primary" data-act="addItem" data-id="'+esc(P.id)+'" type="button">+ Item unit</button>':'')+
+    (canWrite?'<button class="btn small colcfg" data-colcfg="dash" type="button" title="Pilih & urutkan kolom tabel ini"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Atur kolom</button>':'')+
     muDashboardCollapseButton("progress")+'</div>'+
     (rows?'<div class="rk-total rk-tot2">'+totLine+'</div>'+
       rows
@@ -3234,6 +3259,7 @@ function slotRow(k){
       <td class="act">${canWrite?`${arrived(u)&&!nextMobOf(u)?`<button class="btn small" data-act="planUnit" data-id="${u.id}" type="button">Kirim lagi</button> `:""}<button class="btn small edit" data-act="slotEdit" data-id="${u.id}" type="button" title="Edit / update unit ini"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit</button><button class="btn small ghost danger" data-act="slotDel" data-id="${u.id}" data-no="${i+1}" type="button" title="Hapus unit ini dari daftar">Hapus</button>`:""}${buktiBtn(u)}</td></tr>`; }).join("");
   return `<tr class="slots"><td colspan="9"><div class="slotBox">
     <div class="slotHead"><div class="sum">${cnt.map(o=>`<span><i style="background:${muStatCol(o.k)}"></i>${esc(o.k)} <b>${o.n}</b></span>`).join("")}${n-us.length>0?`<span><i style="background:#D9D6E8"></i>Belum dijadwalkan <b>${n-us.length}</b></span>`:""}</div>
+      ${canWrite?`<button class="btn small colcfg" data-colcfg="slot" type="button" title="Pilih & urutkan kolom tabel ini"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Atur kolom</button>`:""}
       ${muCanPrint()?`<button class="btn small slotPrint" data-act="slotPrint" data-id="${k.id}" type="button"><svg class="i"><use href="#i-print"/></svg>Print tabel</button>`:""}
       ${canWrite?(SLOT_EDIT.has(k.id)?`<span class="edbar"><span class="muted small">Mode edit: ubah langsung di tabel, lalu Simpan.</span><button class="btn small" data-act="slotEditCancel" data-id="${k.id}" type="button">Batal</button><button class="btn small primary" data-act="slotEditSave" data-id="${k.id}" type="button">Simpan semua</button></span>`:`<span class="edbar">${SRC==="sheet"?`<button class="btn small bukti" data-act="dokUp" data-id="${k.id}" type="button"><svg class="i"><use href="#i-cam"/></svg>Upload bukti</button>`:""}<button class="btn small" data-act="slotBulk" data-id="${k.id}" type="button">Jadwalkan beberapa unit</button><button class="btn small edit" data-act="slotEditOn" data-id="${k.id}" type="button"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit tabel</button></span>`):""}</div>
     <div class="slotTbl"><table class="slotFixed">${MU_SLOT_COLS}<thead><tr><th>#</th><th>Rencana kirim</th><th>Tgl kirim</th><th>ETD</th><th>ETA</th><th>Actual</th><th>No. lambung</th><th>Vendor</th><th>Merek</th><th>Kepemilikan</th><th>Status</th><th>Kondisi</th><th>Posisi</th><th>Kirim berikutnya</th><th>Catatan</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
@@ -3987,6 +4013,86 @@ document.addEventListener("click",e=>{
   else if(a==="item"){ SLOT_OPEN.add(b.dataset.id); try{ localStorage.setItem("mu_slot_open",JSON.stringify([...SLOT_OPEN])); }catch(err){} setTab("pengiriman"); render();
     setTimeout(()=>{ const t=document.querySelector(`.itemTg[data-id="${b.dataset.id}"]`); if(t) t.scrollIntoView({block:"center"}); },80); }
 });
+
+/* ---------- Atur kolom: pilih & urutkan kolom tabel (Pemilik/Editor, berlaku untuk semua) ---------- */
+const MU_COLT={
+  slot:{sel:".slotTbl table.slotFixed",name:"Tabel unit Rencana kirim"},
+  dash:{sel:"table.rk-t2",name:"Tabel Rencana kirim per unit (dashboard)"},
+  pop:{sel:"table.mu-mpp-detail-table",name:"Tabel detail Populasi Unit"},
+  mob:{sel:"#p-mobilisasi .tbl-wrap table",name:"Tabel Mobilisasi"}
+};
+function muColPrefs(){ let p=(SBDATA&&SBDATA.colPrefs)||null;
+  try{ if(p) localStorage.setItem("mu_colprefs",JSON.stringify(p)); else p=JSON.parse(localStorage.getItem("mu_colprefs")||"null"); }catch(e){}
+  return p||{}; }
+const muColLabel=c=>String(c.dataset.ck||((c.childNodes[0]&&c.childNodes[0].nodeType===3?c.childNodes[0].textContent:c.textContent)||"")).replace(/\s+/g," ").trim();
+const muColFixed=l=>l==="#"||l==="No"||l==="";
+function muColHead(t){ return t.querySelector("thead tr")||t.querySelector("tr.rk-ch"); }
+function muColDesired(cur,pref){
+  const conf=cur.filter(l=>!muColFixed(l)), order=(pref&&Array.isArray(pref.order)?pref.order:[]).filter(l=>conf.includes(l));
+  conf.forEach((l,i)=>{ if(order.includes(l)) return; const prev=conf.slice(0,i).reverse().find(x=>order.includes(x)); order.splice(prev?order.indexOf(prev)+1:0,0,l); });
+  const first=cur.filter(l=>l==="#"||l==="No"), last=cur.filter(l=>l==="");
+  return [...first,...order,...last]; }
+function muColApply(t,pref){
+  const h=muColHead(t); if(!h) return; const cur=[...h.children].map(muColLabel), N=cur.length;
+  if(new Set(cur.filter(Boolean)).size!==cur.filter(Boolean).length) return;
+  const want=muColDesired(cur,pref), hid=new Set((pref&&pref.hidden)||[]), sig=want.join("|")+"#"+[...hid].join("|");
+  if(t.dataset.colSig===sig && cur.join("|")===want.join("|") && t.rows.length===Number(t.dataset.colRows||-1)) return;
+  const idx=want.map(l=>cur.indexOf(l));
+  const fix=row=>{ const cs=[...row.children]; if(cs.length!==N||cs.some(c=>(c.colSpan||1)>1)) return;
+    idx.forEach(i=>row.appendChild(cs[i]));
+    cs.forEach((c,i)=>{ const off=hid.has(cur[i]); if(off){ c.style.display="none"; c.dataset.colHid="1"; } else if(c.dataset.colHid){ c.style.display=""; delete c.dataset.colHid; } }); };
+  const cg=t.querySelector(":scope > colgroup"); if(cg) fix(cg);
+  [...t.rows].forEach(fix);
+  t.dataset.colSig=sig; t.dataset.colRows=t.rows.length; }
+function muColApplyAll(){ const P=muColPrefs();
+  Object.entries(MU_COLT).forEach(([k,d])=>document.querySelectorAll(d.sel).forEach(t=>{ try{ muColApply(t,P[k]); }catch(e){} }));
+  document.querySelectorAll("[data-colcfg][data-needwrite]").forEach(b=>b.hidden=!canWrite); }
+let muColRaf=0;
+new MutationObserver(()=>{ if(muColRaf) return; muColRaf=requestAnimationFrame(()=>{ muColRaf=0; muColApplyAll(); }); }).observe(document.body,{childList:true,subtree:true});
+async function muColSave(key,cfg){
+  for(let i=0;i<3;i++){
+    const {data:row,error}=await sb.from("app_state_public").select("data").eq("app_id",APP).maybeSingle();
+    if(error||!row){ toast("Gagal menyimpan pengaturan kolom."); return false; }
+    const d=row.data||{}, prev=Number(d.rev)||0, cp={...(d.colPrefs||{})}; if(cfg) cp[key]=cfg; else delete cp[key];
+    const next={...d,colPrefs:cp,rev:prev+1};
+    const {data:upd,error:e2}=await sb.from("app_state_public").update({data:next,updated_at:new Date().toISOString(),updated_by:meEmail}).eq("app_id",APP).eq("data->>rev",String(prev)).select("app_id");
+    if(e2){ toast("Gagal menyimpan pengaturan kolom."); return false; }
+    if(upd&&upd.length){ SBDATA={...(SBDATA||{}),colPrefs:cp,rev:next.rev}; if(SRC!=="sheet") applyState(next); return true; }
+  }
+  toast("Data sedang diubah orang lain. Coba simpan lagi."); return false; }
+function muColDialog(key){
+  if(!canWrite){ toast("Hanya Pemilik atau Editor yang dapat mengatur kolom."); return; }
+  const d=MU_COLT[key]; const t=document.querySelector(d.sel);
+  let labels=[];
+  if(t){ const h=muColHead(t); labels=[...h.children].map(muColLabel); }
+  if(!labels.length){ toast("Buka tabelnya dulu (misalnya klik ▸ Lihat unit), lalu atur kolom."); return; }
+  const P=muColPrefs()[key]||{}, hid=new Set(P.hidden||[]);
+  let order=muColDesired(labels,P).filter(l=>!muColFixed(l));
+  let dlg=$("#muColDlg"); if(!dlg){ document.body.insertAdjacentHTML("beforeend",'<dialog id="muColDlg" class="mu-col-dlg"></dialog>'); dlg=$("#muColDlg"); }
+  const draw=()=>{ dlg.innerHTML=`<form method="dialog" class="mcd"><div class="mcd-h"><div><b>Atur kolom</b><small>${esc(d.name)}</small></div><button type="button" class="mcd-x" data-mc="close" aria-label="Tutup">✕</button></div>
+    <p class="mcd-tip">Seret <span aria-hidden="true">⠿</span> untuk mengubah urutan. Hilangkan centang untuk menyembunyikan kolom. Berlaku untuk semua yang membuka web, juga di print.</p>
+    <ul class="mcd-l">${order.map((l,i)=>`<li data-l="${esc(l)}" class="${hid.has(l)?"off":""}"><span class="mcd-g" title="Seret untuk memindah" aria-hidden="true">⠿</span><label><input type="checkbox" ${hid.has(l)?"":"checked"} data-mc="tg"> ${esc(l)}</label>
+      <span class="mcd-b"><button type="button" data-mc="up" ${i?"":"disabled"} aria-label="Naikkan ${esc(l)}">↑</button><button type="button" data-mc="dn" ${i<order.length-1?"":"disabled"} aria-label="Turunkan ${esc(l)}">↓</button></span></li>`).join("")}</ul>
+    <div class="mcd-f"><button type="button" class="btn" data-mc="reset">Kembalikan ke awal</button><span></span><button type="button" class="btn" data-mc="close">Batal</button><button type="button" class="btn primary" data-mc="save">Simpan</button></div></form>`; };
+  draw();
+  dlg.onclick=async e=>{ const b=e.target.closest("[data-mc]"); if(!b) return; const a=b.dataset.mc, li=b.closest("li"), l=li&&li.dataset.l, i=order.indexOf(l);
+    if(a==="close") dlg.close();
+    else if(a==="tg"){ if(b.checked) hid.delete(l); else hid.add(l); li.classList.toggle("off",!b.checked); }
+    else if(a==="up"&&i>0){ order.splice(i-1,0,order.splice(i,1)[0]); draw(); }
+    else if(a==="dn"&&i<order.length-1){ order.splice(i+1,0,order.splice(i,1)[0]); draw(); }
+    else if(a==="reset"){ b.disabled=true; if(await muColSave(key,null)){ toast("Kolom kembali seperti awal."); dlg.close(); muColApplyAll(); render(); } else b.disabled=false; }
+    else if(a==="save"){ if(order.every(x=>hid.has(x))){ toast("Sisakan minimal satu kolom."); return; } b.disabled=true;
+      if(await muColSave(key,{order:order.slice(),hidden:order.filter(x=>hid.has(x))})){ toast("Susunan kolom disimpan."); dlg.close(); muColApplyAll(); } else b.disabled=false; } };
+  // seret (mouse & sentuh)
+  dlg.onpointerdown=e=>{ const g=e.target.closest(".mcd-g"); if(!g) return; e.preventDefault(); const li=g.closest("li"), ul=li.parentNode; li.classList.add("drag"); try{ g.setPointerCapture(e.pointerId); }catch(err){}
+    const move=ev=>{ const ur=ul.getBoundingClientRect(); if(ev.clientY<ur.top+30) ul.scrollTop-=12; else if(ev.clientY>ur.bottom-30) ul.scrollTop+=12;
+      const over=document.elementFromPoint(ev.clientX,ev.clientY); const o=over&&over.closest&&over.closest(".mcd-l li"); if(!o||o===li||o.parentNode!==ul) return;
+      const r=o.getBoundingClientRect(); ul.insertBefore(li,ev.clientY<r.top+r.height/2?o:o.nextSibling); };
+    const up=()=>{ document.removeEventListener("pointermove",move); document.removeEventListener("pointerup",up); document.removeEventListener("pointercancel",up); li.classList.remove("drag");
+      order=[...ul.children].map(x=>x.dataset.l); draw(); };
+    document.addEventListener("pointermove",move); document.addEventListener("pointerup",up); document.addEventListener("pointercancel",up); };
+  dlg.showModal(); }
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-colcfg]"); if(b) muColDialog(b.dataset.colcfg); });
 /* ---------- Excel bergaya web: file .xlsx disusun langsung di browser (tanpa library) ---------- */
 const MUX=(()=>{
   const enc=new TextEncoder();
@@ -4172,6 +4278,10 @@ function buildStyledExcel(P,ps){
     sh.merge(r,0,3,"Item unit",thL); sh.merge(r,11,14,"Keterangan",thL); sh.titles=[r,r]; r++;
     const subH=["#","Rencana kirim","Tgl kirim","ETD","ETA","Actual","No. lambung","Vendor","Merek","Kepemilikan","Status","Kondisi","Posisi","Kirim berikutnya","Catatan"];
     const sth={bd:true,b:true,sz:8.5,color:"#6B6985",fill:"#F7F6FC",h:"center",wrap:true};
+    // ikut susunan "Atur kolom" tabel unit
+    const SPF=muColPrefs().slot||{}, SHID=new Set(SPF.hidden||[]), SWANT=muColDesired(subH,SPF).filter(l=>!SHID.has(l)), POS=subH.map(l=>SWANT.indexOf(l));
+    { const base=sh.cols.slice(); subH.forEach((l,c)=>{ if(POS[c]>=0) sh.cols[POS[c]]=base[c]; }); }
+    const U={put:(rr,c,v,st)=>{ const j=POS[c]; if(j>=0) sh.put(rr,j,v,st); }};
     if(!ps.length) emptyRow(sh,r++,N,"Belum ada rencana kirim");
     ps.forEach(p=>{ const s=projStats(p.id);
       r++; sh.merge(r,0,N-1,`${p.kode}${[p.nama,p.lokasi].filter(Boolean).length?"   ·   "+[p.nama,p.lokasi].filter(Boolean).join(" · "):""}`,{b:true,sz:13,color:ACC,fill:SOFT,ind:1,bd:{t:{w:"medium",c:ACC}}}); sh.height(r,24); r++;
@@ -4192,29 +4302,29 @@ function buildStyledExcel(P,ps){
         sh.height(r,26); r++;
         // tabel unit
         const us=slotUnits(k), tot=Math.max(rr,us.length);
-        subH.forEach((t,c)=>sh.put(r,c,t,sth)); sh.height(r,20); r++;
+        subH.forEach((t,c)=>U.put(r,c,t,sth)); sh.height(r,20); r++;
         for(let i=0;i<tot;i++){ const u=us[i], over=i>=rr;
-          if(!u){ sh.put(r,0,i+1,{...tdc,color:MUTED,sz:9}); sh.merge(r,1,N-1,"Belum dijadwalkan / belum dikirim",{...td,i:true,color:"#A3A1B8",sz:9,ind:1}); r++; continue; }
+          if(!u){ sh.put(r,0,i+1,{...tdc,color:MUTED,sz:9}); sh.merge(r,1,Math.max(1,SWANT.length-1),"Belum dijadwalkan / belum dikirim",{...td,i:true,color:"#A3A1B8",sz:9,ind:1}); r++; continue; }
           const md=muDetails(u), sz=9.5, c0={...tdc,sz};
-          sh.put(r,0,over?`${i+1} (lebih)`:i+1,{...c0,color:over?"#C2410C":MUTED,b:over});
-          dv(sh,r,1,u.rencanaKirim,{...dateSt,sz,b:true}); dv(sh,r,3,md.etd,{...dateSt,sz});
+          U.put(r,0,over?`${i+1} (lebih)`:i+1,{...c0,color:over?"#C2410C":MUTED,b:over});
+          dv(U,r,1,u.rencanaKirim,{...dateSt,sz,b:true}); dv(U,r,3,md.etd,{...dateSt,sz});
           const late=md.eta&&!arrived(u)&&md.eta<todayStr();
-          dv(sh,r,4,md.eta,{...dateSt,sz,...(late?{color:"#E11D48",b:true}:{})});
-          if(arrived(u)&&u.tglTiba) sh.put(r,5,{d:u.tglTiba},{...dateSt,sz,b:true,color:"#15803D"}); else sh.put(r,5,"—",{...dash,sz});
-          if(u.kodeSementara) sh.put(r,6,"belum diisi",{...c0,i:true,color:"#B45309"}); else sh.put(r,6,u.kode,{...plate,sz:9});
-          sh.put(r,7,String(md.vendor||"").trim()||"Belum diisi",{...vendSt(md.vendor),sz:9});
-          sh.put(r,8,String(md.merk||"").trim()||"Belum diisi",{...brandSt(md.merk),sz:9});
-          if(md.kepemilikan){ const oc=muOwnCol(md.kepemilikan); sh.put(r,9,md.kepemilikan,{...c0,b:true,sz:9,color:oc.fg,fill:oc.bg}); } else sh.put(r,9,"—",{...dash,sz});
-          dv(sh,r,2,u.tglKirim,{...dateSt,sz});
-          sh.put(r,10,u.status||"—",{...chipSt(ALL_STATUS,u.status),sz:9});
-          if(md.kondisi) sh.put(r,11,md.kondisi,{...kondSt(md.kondisi),sz:9}); else sh.put(r,11,"—",{...dash,sz});
-          sh.put(r,12,u.lokasi||"—",c0);
+          dv(U,r,4,md.eta,{...dateSt,sz,...(late?{color:"#E11D48",b:true}:{})});
+          if(arrived(u)&&u.tglTiba) U.put(r,5,{d:u.tglTiba},{...dateSt,sz,b:true,color:"#15803D"}); else U.put(r,5,"—",{...dash,sz});
+          if(u.kodeSementara) U.put(r,6,"belum diisi",{...c0,i:true,color:"#B45309"}); else U.put(r,6,u.kode,{...plate,sz:9});
+          U.put(r,7,String(md.vendor||"").trim()||"Belum diisi",{...vendSt(md.vendor),sz:9});
+          U.put(r,8,String(md.merk||"").trim()||"Belum diisi",{...brandSt(md.merk),sz:9});
+          if(md.kepemilikan){ const oc=muOwnCol(md.kepemilikan); U.put(r,9,md.kepemilikan,{...c0,b:true,sz:9,color:oc.fg,fill:oc.bg}); } else U.put(r,9,"—",{...dash,sz});
+          dv(U,r,2,u.tglKirim,{...dateSt,sz});
+          U.put(r,10,u.status||"—",{...chipSt(ALL_STATUS,u.status),sz:9});
+          if(md.kondisi) U.put(r,11,md.kondisi,{...kondSt(md.kondisi),sz:9}); else U.put(r,11,"—",{...dash,sz});
+          U.put(r,12,u.lokasi||"—",c0);
           const nx=nextMobOf(u), done=mobsOfUnit(u).filter(m=>m.status==="Selesai");
           const hist=done.length?[done[0].dari,...done.map(m=>m.ke)].join(" → "):"";
           const nxt=nx?`→ ${nx.ke}${projByName(nx.ke)&&projByName(nx.ke).id!==u.projectId?" (site lain)":""}\n${fmtD(nx.tanggal)}${nx.jam?" "+nx.jam:""} · ${nx.status}${hist?"\n"+hist:""}`:(hist||(arrived(u)?"Belum ada":"—"));
-          sh.put(r,13,nxt,{...td,sz:9,color:nx?"#C2410C":MUTED,b:!!nx});
+          U.put(r,13,nxt,{...td,sz:9,color:nx?"#C2410C":MUTED,b:!!nx});
           const sub=[md.model,md.tahun,md.serial?"SN "+md.serial:""].filter(Boolean).join(" · ");
-          sh.put(r,14,[String(md.catatan||"").trim(),sub].filter(Boolean).join("\n"),{...td,sz:9,color:"#4B4868"});
+          U.put(r,14,String(md.catatan||"").trim(),{...td,sz:9,color:"#4B4868"});
           sh.height(r,20); r++; }
         r++; });
     });
