@@ -1775,8 +1775,8 @@ document.addEventListener("focusout",e=>{ if(MU_COMBO&&e.target===MU_COMBO.el) s
 window.addEventListener("resize",muComboClose);
 document.addEventListener("scroll",e=>{ if(MU_COMBO&&!(e.target.closest&&e.target.closest(".mu-combo-pop"))) muComboOpen(MU_COMBO.el,false); },true);
 // Lebar kolom sama untuk semua tabel unit, supaya kolom antar item sejajar.
-const MU_SLOT_COLS='<colgroup><col style="width:1.76%"><col style="width:5.38%"><col style="width:4.76%"><col style="width:4.76%"><col style="width:5.07%"><col style="width:4.76%"><col style="width:6.11%"><col style="width:5.38%"><col style="width:7.45%"><col style="width:4.76%"><col style="width:8.8%"><col style="width:6.73%"><col style="width:5.8%"><col style="width:7.76%"><col style="width:8.8%"><col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:11.9%"></colgroup>';
-const MU_SLOT_COLS_ED='<colgroup><col style="width:1.58%"><col style="width:4.82%"><col style="width:5.94%"><col style="width:5.94%"><col style="width:5.94%"><col style="width:5.94%"><col style="width:5.47%"><col style="width:4.82%"><col style="width:6.68%"><col style="width:5.94%"><col style="width:6.96%"><col style="width:6.03%"><col style="width:5.19%"><col style="width:3.25%"><col style="width:6.96%"><col style="width:7.88%"><col style="width:10.67%"></colgroup>';
+const MU_SLOT_COLS='<colgroup><col style="width:2.2%"><col style="width:5.6%"><col style="width:5.6%"><col style="width:6%"><col style="width:5.6%"><col style="width:7%"><col style="width:6.5%"><col style="width:7%"><col style="width:6%"><col style="width:8.5%"><col style="width:7.5%"><col style="width:6.5%"><col style="width:8%"><col style="width:10%"><col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:6%"><col style="width:4%"><col style="width:6%"><col style="width:4%"><col style="width:8%"></colgroup>';
+const MU_SLOT_COLS_ED='<colgroup><col style="width:2%"><col style="width:6.5%"><col style="width:6.5%"><col style="width:6.5%"><col style="width:6.5%"><col style="width:7.5%"><col style="width:6.5%"><col style="width:6.5%"><col style="width:6.5%"><col style="width:8%"><col style="width:7%"><col style="width:6.5%"><col style="width:4%"><col style="width:6.5%"><col style="width:7%"><col style="width:5.5%"></colgroup>';
 const muStatCol = k => (ALL_STATUS.find(x=>x.k===k)||{}).col||"#94A3B8";
 // Penanda sumber unit existing disimpan pada kolom "Via" yang sudah tersedia.
 // Tidak membutuhkan perubahan skema ataupun deploy ulang Apps Script.
@@ -2293,7 +2293,7 @@ function tibaChecklist(kid){
   const k=S.kirim.find(x=>x.id===kid);
   if(!k) return `<label>Unit yang tiba</label><div class="tcl-empty">Pilih item rencana kirim.</div>`;
   const us=slotUnits(k), pre=us.filter(u=>!arrived(u)), arr=us.filter(arrived);
-  const row=u=>`<label class="tcl-row"><input type="checkbox" data-tu="${u.id}" ${pre.length===1?"checked":""}><span class="tcl-main"><b>${u.kodeSementara?`<span class="tmp">No. lambung belum diisi</span>`:esc(u.kode)}</b><small>${esc(u.status)}${u.rencanaKirim?` · rencana kirim ${fmtDate(u.rencanaKirim)}`:""}${u.tglKirim?` · berangkat ${fmtDate(u.tglKirim)}`:""}${u.via?` · via ${esc(u.via)}`:""}</small></span>${u.kodeSementara?`<input type="text" class="tcl-kode" data-tk="${u.id}" placeholder="Isi no. lambung" oninput="this.closest('label').querySelector('[data-tu]').checked=!!this.value.trim()">`:""}</label>`;
+  const row=u=>`<label class="tcl-row"><input type="checkbox" data-tu="${u.id}" ${pre.length===1?"checked":""}><span class="tcl-main"><b>${u.kodeSementara?`<span class="tmp">No. lambung belum diisi</span>`:esc(u.kode)}</b><small>${esc(u.status)}${muDetails(u).etd?` · ETD ${fmtDate(muDetails(u).etd)}`:""}${u.tglKirim?` · berangkat ${fmtDate(u.tglKirim)}`:""}${u.via?` · via ${esc(u.via)}`:""}</small></span>${u.kodeSementara?`<input type="text" class="tcl-kode" data-tk="${u.id}" placeholder="Isi no. lambung" oninput="this.closest('label').querySelector('[data-tu]').checked=!!this.value.trim()">`:""}</label>`;
   return `<label>Unit yang tiba <span class="muted small">(dari daftar unit yang dikirim)</span></label>
     ${pre.length?`<div class="tcl"><div class="tcl-head"><span>${pre.length} unit sedang dikirim / dijadwalkan</span><button type="button" class="linkish" data-act="tclAll">Pilih semua</button></div>${pre.map(row).join("")}</div>`
       :`<div class="tcl-empty">Belum ada unit ${esc(k.tipe)} yang dicatat dikirim. Isi no. lambung di kolom "Unit lain" di bawah, atau jadwalkan dulu di tabel unit (Rencana kirim → Lihat unit).</div>`}
@@ -2335,6 +2335,8 @@ function muDetails(u){
       arr.slice().reverse().find(v=>!placeholders.test(v))||explicit||arr[arr.length-1]||"";
     result[key]=picked;
   }
+  // "Rencana kirim" lama = ETD (perkiraan berangkat). Dipakai bila ETD belum diisi.
+  if(!result.etd && u && u.rencanaKirim) result.etd=String(u.rencanaKirim).slice(0,10);
   return result;
 }
 function muPrepareUnitData(d){
@@ -3107,7 +3109,6 @@ function slotEditRows(k,us,n){
   const inp=(name,v,type="text",ph="",list="")=>`<input data-f="${name}" type="${type}" value="${esc(v||"")}" placeholder="${esc(ph)}" ${list?`list="${list}"`:""}>`;
   const rows=Array.from({length:n},(_,i)=>{ const u=us[i]||null, md=u?muDetails(u):{};
     return `<tr class="sl ed" data-uid="${u?u.id:""}" data-no="${i+1}"><td class="no">${i+1}</td>
-      <td>${inp("rencanaKirim",u&&u.rencanaKirim,"date")}</td>
       <td>${inp("tglKirim",u&&u.tglKirim,"date")}</td>
       <td>${inp("etd",md.etd,"date")}</td>
       <td>${inp("eta",md.eta,"date")}</td>
@@ -3125,7 +3126,7 @@ function slotEditRows(k,us,n){
   return `<tr class="slots"><td colspan="9"><div class="slotBox editing">
     <div class="slotHead"><div class="sum"><b>Edit ${esc(k.tipe)}</b></div><span class="edbar"><span class="muted small">Ubah langsung di tabel, lalu Simpan semua. Baris kosong yang diisi akan ditambahkan.</span><button class="btn small" data-act="slotEditCancel" data-id="${k.id}" type="button">Batal</button><button class="btn small primary" data-act="slotEditSave" data-id="${k.id}" type="button">Simpan semua</button></span></div>
     <datalist id="kepList">${[...new Set(["Owned","Rental","Leasing",...S.units.map(x=>muDetails(x).kepemilikan).filter(Boolean)])].map(o=>`<option value="${esc(o)}">`).join("")}</datalist><datalist id="statList">${muStatusList().map(o=>`<option value="${esc(o)}">`).join("")}</datalist><datalist id="viaList">${VIA_LIST.map(o=>`<option value="${esc(o)}">`).join("")}</datalist><datalist id="lokList">${lokasiList().map(o=>`<option value="${esc(o)}">`).join("")}</datalist><datalist id="vendList">${[...new Set(S.units.map(x=>muDetails(x).vendor).filter(Boolean))].map(o=>`<option value="${esc(o)}">`).join("")}</datalist><datalist id="merkList">${[...new Set(S.units.map(x=>muDetails(x).merk).filter(Boolean))].map(o=>`<option value="${esc(o)}">`).join("")}</datalist>
-    <div class="slotTbl"><table class="slotFixed">${MU_SLOT_COLS_ED}<thead><tr><th>#</th><th>Rencana kirim</th><th>Tgl kirim</th><th>ETD</th><th>ETA</th><th>Actual</th><th>No. lambung</th><th>Vendor</th><th>Merek</th><th>Kepemilikan</th><th>Status</th><th>Kondisi</th><th>Posisi</th><th>HM</th><th>Kirim berikutnya</th><th colspan="2">Catatan</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="slotTbl"><table class="slotFixed">${MU_SLOT_COLS_ED}<thead><tr><th>#</th><th>Tgl kirim</th><th>ETD</th><th>ETA</th><th>Actual</th><th>No. lambung</th><th>Vendor</th><th>Merek</th><th>Kepemilikan</th><th>Status</th><th>Kondisi</th><th>Posisi</th><th>HM</th><th>Kirim berikutnya</th><th colspan="2">Catatan</th></tr></thead><tbody>${rows}</tbody></table></div>
   </div></td></tr>`;
 }
 function saveSlotEdit(k){
@@ -3137,13 +3138,13 @@ function saveSlotEdit(k){
     let kode=f.kode.toUpperCase();
     if(kode){ if(seen.has(kode)) err=err||`No. lambung ${kode} diketik dua kali.`; seen.add(kode);
       if(S.units.some(x=>x.kode===kode&&(!u||x.id!==u.id))) err=err||`No. lambung ${kode} sudah terdaftar.`; }
-    if(!u){ const filled=f.rencanaKirim||kode||f.tglKirim||f.status||f.lokasi||f.tglTiba||f.catatan||f.vendor||f.merk||f.kondisi||f.hm||f.etd||f.eta||f.kepemilikan; if(!filled) return;
+    if(!u){ const filled=kode||f.tglKirim||f.status||f.lokasi||f.tglTiba||f.catatan||f.vendor||f.merk||f.kondisi||f.hm||f.etd||f.eta||f.kepemilikan; if(!filled) return;
       const status=f.status||"Persiapan kirim", isArr=UNIT_STATUS.some(x=>x.k===status);
       let sem=false; if(!kode){ kode=tmpKode(k,no,used); sem=true; } used.add(kode);
-      ops.push({col:COL.units,action:"add",id:slotId(no),data:{kode,kodeSementara:sem,projectId:k.projectId,kirimId:k.id,tipe:k.tipe,rencanaKirim:f.rencanaKirim,via:f.via||k.moda||"",tglKirim:f.tglKirim||(status!=="Persiapan kirim"?todayStr():""),status,lokasi:f.lokasi,tglTiba:f.tglTiba||(isArr?todayStr():""),hm:f.hm===""?0:Number(f.hm),...muPrepareUnitData({catatan:f.catatan,vendor:f.vendor,merk:f.merk,kondisi:f.kondisi,etd:f.etd,eta:f.eta,kepemilikan:f.kepemilikan}),updatedAt:nowIso()}});
+      ops.push({col:COL.units,action:"add",id:slotId(no),data:{kode,kodeSementara:sem,projectId:k.projectId,kirimId:k.id,tipe:k.tipe,rencanaKirim:f.etd||"",via:f.via||k.moda||"",tglKirim:f.tglKirim||(status!=="Persiapan kirim"?todayStr():""),status,lokasi:f.lokasi,tglTiba:f.tglTiba||(isArr?todayStr():""),hm:f.hm===""?0:Number(f.hm),...muPrepareUnitData({catatan:f.catatan,vendor:f.vendor,merk:f.merk,kondisi:f.kondisi,etd:f.etd,eta:f.eta,kepemilikan:f.kepemilikan}),updatedAt:nowIso()}});
       return; }
     const det=muDetails(u);
-    const d={rencanaKirim:f.rencanaKirim,via:f.via,tglKirim:f.tglKirim,status:f.status,lokasi:f.lokasi,tglTiba:f.tglTiba,hm:f.hm===""?0:Number(f.hm),
+    const d={via:f.via,tglKirim:f.tglKirim,status:f.status,lokasi:f.lokasi,tglTiba:f.tglTiba,hm:f.hm===""?0:Number(f.hm),
       ...muPrepareUnitData({...det,catatan:f.catatan,vendor:f.vendor,merk:f.merk,kondisi:f.kondisi,etd:f.etd,eta:f.eta,kepemilikan:f.kepemilikan})};
     if(d.via===undefined) delete d.via;
     if(kode && kode!==u.kode){ d.kode=kode; d.kodeSementara=false; }
@@ -3236,10 +3237,9 @@ function slotRow(k){
   const cnt=[...new Set([...ALL_STATUS.map(x=>x.k),...us.map(u=>u.status).filter(Boolean)])].map(k=>({k,n:us.filter(u=>u.status===k).length})).filter(o=>o.n);
   if(SLOT_EDIT.has(k.id)) return slotEditRows(k,us,n);
   const rows=Array.from({length:n},(_,i)=>{ const u=us[i], over=i>=r;
-    if(!u) return `<tr class="sl sl-empty"><td class="no">${i+1}</td><td colspan="21" class="muted">Belum dijadwalkan / belum dikirim</td><td class="act">${canWrite?`<button class="btn small" data-act="slotNew" data-id="${k.id}" data-no="${i+1}" type="button">Isi</button>`:""}</td></tr>`;
+    if(!u) return `<tr class="sl sl-empty"><td class="no">${i+1}</td><td colspan="20" class="muted">Belum dijadwalkan / belum dikirim</td><td class="act">${canWrite?`<button class="btn small" data-act="slotNew" data-id="${k.id}" data-no="${i+1}" type="button">Isi</button>`:""}</td></tr>`;
     const md=muDetails(u);
     return `<tr class="sl${over?" over":""}"><td class="no">${i+1}${over?'<span class="sub overtag" title="Melebihi jumlah rencana">lebih</span>':""}</td>
-      <td>${u.rencanaKirim?`<b>${fmtD(u.rencanaKirim)}</b>`:'<span class="muted">—</span>'}</td>
       <td>${u.tglKirim?fmtD(u.tglKirim):'<span class="muted">—</span>'}</td>
       <td class="etd">${md.etd?fmtD(md.etd):'<span class="muted">—</span>'}</td>
       <td class="eta">${md.eta?`${fmtD(md.eta)}${!arrived(u)&&md.eta<todayStr()?'<span class="sub late">lewat ETA</span>':""}`:'<span class="muted">—</span>'}</td>
@@ -3259,7 +3259,7 @@ function slotRow(k){
     <div class="slotHead"><div class="sum">${cnt.map(o=>`<span><i style="background:${muStatCol(o.k)}"></i>${esc(o.k)} <b>${o.n}</b></span>`).join("")}${n-us.length>0?`<span><i style="background:#D9D6E8"></i>Belum dijadwalkan <b>${n-us.length}</b></span>`:""}</div>
       ${muCanPrint()?`<button class="btn small slotPrint" data-act="slotPrint" data-id="${k.id}" type="button"><svg class="i"><use href="#i-print"/></svg>Print tabel</button>`:""}
       ${canWrite?(SLOT_EDIT.has(k.id)?`<span class="edbar"><span class="muted small">Mode edit: ubah langsung di tabel, lalu Simpan.</span><button class="btn small" data-act="slotEditCancel" data-id="${k.id}" type="button">Batal</button><button class="btn small primary" data-act="slotEditSave" data-id="${k.id}" type="button">Simpan semua</button></span>`:`<span class="edbar">${SRC==="sheet"?`<button class="btn small bukti" data-act="dokUp" data-id="${k.id}" type="button"><svg class="i"><use href="#i-cam"/></svg>Upload bukti</button>`:""}<button class="btn small" data-act="slotBulk" data-id="${k.id}" type="button">Jadwalkan beberapa unit</button><button class="btn small edit" data-act="slotEditOn" data-id="${k.id}" type="button"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit tabel</button></span>`):""}</div>
-    <div class="slotTbl"><table class="slotFixed">${MU_SLOT_COLS}<thead><tr><th>#</th><th>Rencana kirim</th><th>Tgl kirim</th><th>ETD</th><th>ETA</th><th>Actual</th><th>No. lambung</th><th>Vendor</th><th>Merek</th><th>Kepemilikan</th><th>Status</th><th>Kondisi</th><th>Posisi</th><th>Kirim berikutnya</th><th>Catatan</th><th>Via</th><th>Kategori</th><th>PIC</th><th>Model / tipe</th><th>Tahun</th><th>Serial / chassis</th><th>HM</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
+    <div class="slotTbl"><table class="slotFixed">${MU_SLOT_COLS}<thead><tr><th>#</th><th>Tgl kirim</th><th>ETD</th><th>ETA</th><th>Actual</th><th>No. lambung</th><th>Vendor</th><th>Merek</th><th>Kepemilikan</th><th>Status</th><th>Kondisi</th><th>Posisi</th><th>Kirim berikutnya</th><th>Catatan</th><th>Via</th><th>Kategori</th><th>PIC</th><th>Model / tipe</th><th>Tahun</th><th>Serial / chassis</th><th>HM</th><th></th></tr></thead><tbody>${rows}</tbody></table></div>
   </div></td></tr>`;
 }
 function tmpKode(k,no,taken){ const base=String(k.tipe).toUpperCase().replace(/[^A-Z0-9]+/g,"").slice(0,10)||"UNIT"; let i=no, c;
@@ -3268,9 +3268,8 @@ function formSlot(k,u,no){
   openForm({
     title:u?`Update unit #${no}${u.kodeSementara?"":" · "+u.kode}`:`Isi unit #${no}`,
     desc:`${projKode(k.projectId)} · ${k.tipe}. Update setiap kali unit ini bergerak: persiapan kirim → dalam perjalanan → tiba.`,
-    values:u?{...u,...muDetails(u),kode:u.kodeSementara?"":u.kode,via:u.via||k.moda||""}:{status:"Persiapan kirim",lokasi:k.asal||"",via:k.moda||"",rencanaKirim:k.eta||"",hm:0,kondisi:"Belum diverifikasi"},
+    values:u?{...u,...muDetails(u),kode:u.kodeSementara?"":u.kode,via:u.via||k.moda||""}:{status:"Persiapan kirim",lokasi:k.asal||"",via:k.moda||"",hm:0,kondisi:"Belum diverifikasi"},
     fields:[
-      {key:"rencanaKirim",label:"Rencana kirim (tanggal)",type:"date"},
       {key:"kode",label:"Nomor lambung",ph:u&&u.kodeSementara?`Sementara: ${u.kode}`:"Contoh: DT375-01",hint:"Boleh dikosongkan dulu kalau belum tahu."},
       {key:"etd",label:"ETD (perkiraan berangkat)",type:"date"},
       {key:"eta",label:"ETA (perkiraan tiba)",type:"date"},
@@ -3309,13 +3308,12 @@ function formSlotBulk(k){
   openForm({
     title:"Jadwalkan beberapa unit sekaligus",
     desc:`${projKode(k.projectId)} · ${k.tipe} · ${n} unit. Contoh: unit 1–4 dikirim minggu ke-2, unit 5–9 minggu ke-4.`,
-    values:{dari:firstEmpty,sampai:n,via:k.moda||"",rencanaKirim:k.eta||"",status:"Persiapan kirim"},
+    values:{dari:firstEmpty,sampai:n,via:k.moda||"",status:"Persiapan kirim"},
     fields:[
       {key:"dari",label:"Dari unit #",type:"number",min:1,req:true},
       {key:"sampai",label:"Sampai unit #",type:"number",min:1,req:true},
-      {key:"rencanaKirim",label:"Rencana kirim (tanggal)",type:"date",req:true},
       {key:"via",label:"Via",list:VIA_LIST,ph:"Perjalanan darat"},
-      {key:"etd",label:"ETD (perkiraan berangkat)",type:"date"},
+      {key:"etd",label:"ETD (perkiraan berangkat)",type:"date",req:true},
       {key:"eta",label:"ETA (perkiraan tiba)",type:"date"},
       {key:"status",label:"Status",combo:"status",list:muStatusList(),ph:"Pilih atau ketik status"},
       {key:"lokasi",label:"Posisi sekarang",list:lokasiList(),ph:k.asal||"Pelabuhan / pool asal"},
@@ -3330,7 +3328,7 @@ function formSlotBulk(k){
       const isArr=UNIT_STATUS.some(x=>x.k===d.status), taken=new Set();
       { const ops=[]; let c=0;
         for(let i=a;i<=b;i++){ const u=us[i-1];
-          const base={rencanaKirim:d.rencanaKirim,via:d.via,status:d.status,updatedAt:nowIso()};
+          const base={rencanaKirim:d.etd||"",via:d.via,status:d.status,updatedAt:nowIso()};
           if(d.lokasi) base.lokasi=d.lokasi; if(d.catatan) base.catatan=d.catatan;
           if(d.status!=="Persiapan kirim") base.tglKirim=(u&&u.tglKirim)||todayStr();
           if(isArr) base.tglTiba=(u&&u.tglTiba)||todayStr();
@@ -3338,7 +3336,7 @@ function formSlotBulk(k){
           if(u) ops.push({col:COL.units,action:"update",id:u.id,data:base});
           else { const kode=tmpKode(k,i,taken); taken.add(kode); ops.push({col:COL.units,action:"add",id:slotId(i),data:{...base,kode,kodeSementara:true,projectId:k.projectId,kirimId:k.id,tipe:k.tipe,lokasi:base.lokasi||k.asal||"",tglTiba:base.tglTiba||"",tglKirim:base.tglKirim||"",hm:0,catatan:base.catatan||""}}); }
           c++; }
-        store.batch(ops).then(()=>toast(`${c} unit dijadwalkan kirim ${fmtDate(d.rencanaKirim)}.`)).catch(()=>{}); }
+        store.batch(ops).then(()=>toast(`${c} unit dijadwalkan berangkat (ETD) ${fmtDate(d.etd)}.`)).catch(()=>{}); }
     }
   });
 }
@@ -4013,7 +4011,7 @@ document.addEventListener("click",e=>{
 
 /* ---------- Atur kolom: pilih & urutkan kolom tabel (Pemilik/Editor, berlaku untuk semua) ---------- */
 const MU_COLT={
-  slot:{sel:".slotTbl table.slotFixed",name:"Tabel unit Rencana kirim (semua item)",labels:["#","Rencana kirim","Tgl kirim","ETD","ETA","Actual","No. lambung","Vendor","Merek","Kepemilikan","Status","Kondisi","Posisi","Kirim berikutnya","Catatan","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM",""],defHidden:["Via", "Kategori", "PIC", "Model / tipe", "Tahun", "Serial / chassis", "HM"]},
+  slot:{sel:".slotTbl table.slotFixed",name:"Tabel unit Rencana kirim (semua item)",labels:["#","Tgl kirim","ETD","ETA","Actual","No. lambung","Vendor","Merek","Kepemilikan","Status","Kondisi","Posisi","Kirim berikutnya","Catatan","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM",""],defHidden:["Via", "Kategori", "PIC", "Model / tipe", "Tahun", "Serial / chassis", "HM"]},
   dash:{sel:"table.rk-t2",name:"Tabel Rencana kirim per unit (dashboard)"},
   pop:{sel:"table.mu-mpp-detail-table",name:"Tabel detail Populasi Unit"},
   mob:{sel:"#p-mobilisasi .tbl-wrap table",name:"Tabel Mobilisasi"}
@@ -4289,7 +4287,7 @@ function buildStyledExcel(P,ps){
     const subH=["#","Rencana kirim","Tgl kirim","ETD","ETA","Actual","No. lambung","Vendor","Merek","Kepemilikan","Status","Kondisi","Posisi","Kirim berikutnya","Catatan","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM"];
     const sth={bd:true,b:true,sz:8.5,color:"#6B6985",fill:"#F7F6FC",h:"center",wrap:true};
     // ikut susunan "Atur kolom" tabel unit
-    const SPF=muColPrefs().slot||{}, SHID=muColHidden("slot",subH,SPF), SWANT=muColDesired(subH,SPF).filter(l=>!SHID.has(l)), POS=subH.map(l=>SWANT.indexOf(l));
+    const SPF=muColPrefs().slot||{}, SHID=new Set([...muColHidden("slot",subH,SPF),"Rencana kirim"]), SWANT=muColDesired(subH,SPF).filter(l=>!SHID.has(l)), POS=subH.map(l=>SWANT.indexOf(l));
     { const base=[...sh.cols.slice(0,15),14,18,16,18,9,18,9]; subH.forEach((l,c)=>{ if(POS[c]>=0) sh.cols[POS[c]]=base[c]; }); }
     const U={put:(rr,c,v,st)=>{ const j=POS[c]; if(j>=0) sh.put(rr,j,v,st); }};
     if(!ps.length) emptyRow(sh,r++,N,"Belum ada rencana kirim");
