@@ -720,7 +720,13 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 .sub.nextgo{color:var(--pri-2,#5B21B6)}
 
 /* tombol edit */
-#kirimTbl{table-layout:fixed}#kirimTbl col.kc0{width:26%}#kirimTbl col.kc1{width:11%}#kirimTbl col.kc2{width:auto}#kirimTbl col.kc3{width:11%}#kirimTbl col.kc4{width:330px}
+#kirimTbl{table-layout:fixed}#kirimTbl col.kc-act{width:330px}
+#tKirim tr.ki-row>td.n{text-align:left}
+.ki-hist{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#FAF9FE}
+.ki-hist-h{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center;font-size:13px}
+.ki-hist table{width:100%;border-collapse:collapse;margin-top:8px;font-size:12px}
+.ki-hist th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:5px 6px;border-bottom:1px solid var(--line);background:none;position:static}
+.ki-hist td{padding:6px;border-bottom:1px solid #F1EEF8;vertical-align:top}
 #tKirim tr.ki-row>td{vertical-align:top;padding-top:10px;padding-bottom:10px;border-top:1px solid var(--line)}
 #tKirim .kl{display:block;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
 #tKirim .kv{font-size:18px;line-height:1.2}
@@ -762,11 +768,7 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
   #tKirim tr.grp .actions,#tKirim .slotTg,#tKirim tr.ki-row td.act{display:none!important}
   /* kolom Keterangan item lurus dengan kolom Catatan tabel unit di bawahnya */
   #kirimTbl{table-layout:fixed!important;width:100%!important;min-width:0!important}
-  #kirimTbl col.kc0{width:28%!important}
-  #kirimTbl col.kc1{width:13%!important}
-  #kirimTbl col.kc2{width:46%!important}
-  #kirimTbl col.kc3{width:13%!important}
-  #kirimTbl col.kc4{width:0!important}
+  #kirimTbl col.kc-act{width:0!important}
   .slotTbl table.slotFixed colgroup col:last-child{width:0!important}
   .slotTbl table.slotFixed thead th:last-child,.slotTbl table.slotFixed td.act{display:none!important}
   #tKirim tr.slots>td{padding-left:0!important;padding-right:0!important}
@@ -1684,11 +1686,11 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
   <section class="panel" id="p-pengiriman" role="tabpanel" hidden>
     <div class="sec-head">
       <div><h2>Rencana kirim unit</h2><p>Jumlah unit yang direncanakan dikirim ke tiap project. Pakai <b>Ubah jumlah</b> setiap ada revisi supaya alasan dan selisihnya tercatat di riwayat.</p></div>
-      <div class="actions"><button class="btn" id="addProj" type="button">+ Project</button><button type="button" class="btn colcfg" data-colcfg="slot" data-needwrite hidden title="Pilih, tambah & urutkan kolom tabel unit"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Atur kolom</button><button class="btn primary" id="addKirim" type="button">+ Item unit</button></div>
+      <div class="actions"><button class="btn" id="addProj" type="button">+ Project</button><button type="button" class="btn colcfg" data-colcfg="slot" data-needwrite hidden title="Pilih, tambah & urutkan kolom tabel unit"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Kolom unit</button><button type="button" class="btn colcfg" data-colcfg="item" data-needwrite hidden title="Pilih kolom yang tampil di baris item unit"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Kolom item</button><button class="btn primary" id="addKirim" type="button">+ Item unit</button></div>
     <div class="cf-bar" id="muCfBar" hidden></div>
     </div>
     <div class="tbl-wrap"><table id="kirimTbl">
-      <colgroup class="kirimCols"><col class="kc0"><col class="kc1"><col class="kc2"><col class="kc3"><col class="kc4"></colgroup>
+      <colgroup class="kirimCols" id="kirimCols"></colgroup>
       <tbody id="tKirim"></tbody>
     </table></div>
     <div class="card pcard">
@@ -2265,6 +2267,11 @@ function formProject(p){
     }
   });
 }
+function muItemHist(k){
+  const aw=Number(k.rencanaAwal)||0, r=Number(k.rencana)||0;
+  const rv=S.revisi.filter(x=>x.kirimId===k.id).slice().sort((a,b)=>String(a.waktu||"").localeCompare(String(b.waktu||"")));
+  return `<div class="ki-hist"><div class="ki-hist-h"><b>Historis rencana</b><span>Awal <b>${aw}</b> → Akhir <b>${r}</b> ${deltaChip(r-aw)}</span></div>
+    ${rv.length?`<table><thead><tr><th>Tanggal</th><th>Jumlah</th><th>Jenis</th><th>Alasan</th></tr></thead><tbody>${rv.map(x=>`<tr><td>${fmtTime(x.waktu)}</td><td>${x.lama} → ${x.baru} ${deltaChip(x.baru-x.lama)}</td><td>${revChip(x)||"—"}</td><td>${esc(x.alasan||"—")}</td></tr>`).join("")}</tbody></table>`:'<p class="muted small" style="margin:6px 0 0">Belum ada perubahan jumlah.</p>'}</div>`; }
 function formKirim(k,presetProj){
   if(!S.projects.length){ toast("Tambahkan project dulu."); formProject(null); return; }
   openForm({
@@ -2279,6 +2286,7 @@ function formKirim(k,presetProj){
       {key:"moda",label:"Via",list:["Kapal RoRo","Tongkang","Trailer darat","Perjalanan darat","Self-propelled"],ph:"Perjalanan darat"},
       {key:"asal",label:"Asal",ph:"Banjarmasin"},
       {key:"catatan",label:"Keterangan",type:"textarea",full:true,ph:"Rental / milik sendiri, menunggu info PIC, dll."},
+      ...(k?[{key:"hist",type:"html",html:muItemHist(k)}]:[]),
       ...(k?[{key:"alasan",label:"Alasan perubahan jumlah",type:"textarea",full:true,ph:"Wajib diisi kalau jumlah rencana diubah"}]:[])
     ],
     onSubmit:d=>{
@@ -3179,7 +3187,7 @@ function slotEditRows(k,us,n){
       <td>${inp("hm",u?String(u.hm??""):"","number","0")}</td>
       <td class="muted small">${u?nextCell(u):""}</td>
       <td colspan="2">${inp("catatan",md.catatan,"text","Catatan")}</td></tr>`; }).join("");
-  return `<tr class="slots"><td colspan="5"><div class="slotBox editing">
+  return `<tr class="slots"><td colspan="${muKSpan()}"><div class="slotBox editing">
     <div class="slotHead"><div class="sum"><b>Edit ${esc(k.tipe)}</b></div><span class="edbar"><span class="muted small">Ubah langsung di tabel, lalu Simpan semua. Baris kosong yang diisi akan ditambahkan.</span><button class="btn small" data-act="slotEditCancel" data-id="${k.id}" type="button">Batal</button><button class="btn small primary" data-act="slotEditSave" data-id="${k.id}" type="button">Simpan semua</button></span></div>
     <datalist id="kepList">${[...new Set(["Owned","Rental","Leasing",...S.units.map(x=>muDetails(x).kepemilikan).filter(Boolean)])].map(o=>`<option value="${esc(o)}">`).join("")}</datalist><datalist id="statList">${muStatusList().map(o=>`<option value="${esc(o)}">`).join("")}</datalist><datalist id="viaList">${VIA_LIST.map(o=>`<option value="${esc(o)}">`).join("")}</datalist><datalist id="lokList">${lokasiList().map(o=>`<option value="${esc(o)}">`).join("")}</datalist><datalist id="vendList">${[...new Set(S.units.map(x=>muDetails(x).vendor).filter(Boolean))].map(o=>`<option value="${esc(o)}">`).join("")}</datalist><datalist id="merkList">${[...new Set(S.units.map(x=>muDetails(x).merk).filter(Boolean))].map(o=>`<option value="${esc(o)}">`).join("")}</datalist>
     <div class="slotTbl"><table class="slotFixed">${MU_SLOT_COLS_ED}<thead><tr><th>#</th><th>Tgl kirim</th><th>ETD</th><th>ETA</th><th>Actual</th><th>No. lambung</th><th>Vendor</th><th>Merek</th><th>Kepemilikan</th><th>Status</th><th>Kondisi</th><th>Posisi</th><th>HM</th><th>Kirim berikutnya</th><th colspan="2">Catatan</th></tr></thead><tbody>${rows}</tbody></table></div>
@@ -3313,7 +3321,7 @@ function slotRow(k){
       <td class="cat">${esc(String(md.catatan||"").trim())}</td>
       <td>${esc(u.via||k.moda||"")}</td><td>${esc(md.kategori||"")}</td><td>${esc(md.pic||"")}</td><td>${esc(md.model||"")}</td><td>${esc(md.tahun||"")}</td><td>${esc(md.serial||"")}</td><td class="n">${u.hm?Number(u.hm).toLocaleString("id-ID"):""}</td>
       <td class="act">${canWrite?`${arrived(u)&&!nextMobOf(u)?`<button class="btn small" data-act="planUnit" data-id="${u.id}" type="button">Kirim lagi</button> `:""}<button class="btn small edit" data-act="slotEdit" data-id="${u.id}" type="button" title="Edit / update unit ini"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit</button><button class="btn small ghost danger" data-act="slotDel" data-id="${u.id}" data-no="${i+1}" type="button" title="Hapus unit ini dari daftar">Hapus</button>`:""}${buktiBtn(u)}</td></tr>`; }).join("");
-  return `<tr class="slots"><td colspan="5"><div class="slotBox">
+  return `<tr class="slots"><td colspan="${muKSpan()}"><div class="slotBox">
     <div class="slotHead"><div class="sum">${cnt.map(o=>`<span><i style="background:${muStatCol(o.k)}"></i>${esc(o.k)} <b>${o.n}</b></span>`).join("")}${n-us.length>0?`<span><i style="background:#D9D6E8"></i>Belum dijadwalkan <b>${n-us.length}</b></span>`:""}</div>
       ${muCanPrint()?`<button class="btn small slotPrint" data-act="slotPrint" data-id="${k.id}" type="button"><svg class="i"><use href="#i-print"/></svg>Print tabel</button>`:""}
       ${canWrite?(SLOT_EDIT.has(k.id)?`<span class="edbar"><span class="muted small">Mode edit: ubah langsung di tabel, lalu Simpan.</span><button class="btn small" data-act="slotEditCancel" data-id="${k.id}" type="button">Batal</button><button class="btn small primary" data-act="slotEditSave" data-id="${k.id}" type="button">Simpan semua</button></span>`:`<span class="edbar">${SRC==="sheet"?`<button class="btn small bukti" data-act="dokUp" data-id="${k.id}" type="button"><svg class="i"><use href="#i-cam"/></svg>Upload bukti</button>`:""}<button class="btn small" data-act="slotBulk" data-id="${k.id}" type="button">Jadwalkan beberapa unit</button><button class="btn small edit" data-act="slotEditOn" data-id="${k.id}" type="button"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit tabel</button></span>`):""}</div>
@@ -3470,27 +3478,44 @@ document.addEventListener("click",e=>{
   const pop=$("#muCfPop"); if(pop&&!pop.hidden&&!e.target.closest("#muCfPop")) pop.hidden=true;
 },true);
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ const pop=$("#muCfPop"); if(pop) pop.hidden=true; } });
+/* Kolom baris item (Rencana kirim): bisa diatur lewat "Atur kolom item" */
+const MU_KCOL={"Rencana":{w:110,c:"n"},"Status unit":{w:340,c:"st"},"Sisa kirim":{w:120,c:"n"},"Rencana awal":{w:120,c:"n"},"Perubahan":{w:120,c:"n"},"Tiba":{w:90,c:"n"},"Dlm perjalanan":{w:130,c:"n"},"ETA":{w:120,c:"d"},"Keterangan":{w:260,c:"t"},"Via":{w:150,c:"t"},"Asal":{w:150,c:"t"}};
+function muKCols(){ try{ const labels=Object.keys(MU_KCOL), P=muColPrefs().item||{};
+  const order=muColDesired(labels,P), hid=muColHidden("item",labels,P); return order.filter(l=>!hid.has(l)); }
+  catch(e){ return ["Rencana","Status unit","Sisa kirim"]; } }
+const muKSpan=()=>muKCols().length+3;
 function renderKirim(){
   if(!KIRIM_FORCE && SLOT_EDIT.size && document.querySelector(".slotBox.editing")) return;
   const KACT=muKActive();
+  { const cg=$("#kirimCols"); if(cg) cg.innerHTML=`<col style="width:240px">${muKCols().map(c=>`<col style="width:${MU_KCOL[c].w}px">`).join("")}<col class="kc-fill"><col class="kc-act">`; }
   const ps=projects().filter(p=>inFilter(p.id)&&(!KACT||itemsOf(p.id).some(muKItemOk)));
-  if(!ps.length){ $("#tKirim").innerHTML=`<tr><td colspan="5">${KACT?emptyState("Tidak ada unit yang cocok","Ubah kata pencarian atau filter, atau klik Hapus semua."):emptyState(S.ready?"Belum ada rencana kirim":"Memuat data…",S.ready?"Tambahkan project lalu item unit yang akan dikirim.":"")}</td></tr>`; }
+  if(!ps.length){ $("#tKirim").innerHTML=`<tr><td colspan="${muKSpan()}">${KACT?emptyState("Tidak ada unit yang cocok","Ubah kata pencarian atau filter, atau klik Hapus semua."):emptyState(S.ready?"Belum ada rencana kirim":"Memuat data…",S.ready?"Tambahkan project lalu item unit yang akan dikirim.":"")}</td></tr>`; }
   else $("#tKirim").innerHTML=ps.map(p=>{
     const s=projStats(p.id), c=projColor(p.id);
-    const head=`<tr class="grp"><td colspan="5"><div class="grp-in"><div class="gt"><span class="tile-ic" style="background:var(--g-${c})">${ic(projIcon(p.id))}</span><div><b>${esc(p.kode)}</b> <span class="small">${esc([p.nama,p.lokasi].filter(Boolean).join(" · "))}</span><div class="small muted">${s.rencana} unit rencana · ${s.jalan} dlm perjalanan · ${s.tiba} tiba · ${s.sisa} sisa kirim${p.catatan?` · ${esc(p.catatan)}`:""}</div></div></div>${canWrite?`<div class="actions"><button class="btn small cf-open${Object.keys(MU_CF).length?" on":""}" data-cfopen="${p.id}" type="button" title="Filter seluruh tabel unit"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>Filter${Object.keys(MU_CF).length?` (${Object.keys(MU_CF).length})`:""}</button><button class="btn small" data-act="addItem" data-id="${p.id}" type="button">+ Item</button><button class="btn small edit" data-act="editProj" data-id="${p.id}" type="button"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit project</button>${s.items.length?"":`<button class="btn small ghost danger" data-act="delProj" data-id="${p.id}" type="button">Hapus</button>`}</div>`:""}</div></td></tr>`;
+    const head=`<tr class="grp"><td colspan="${muKSpan()}"><div class="grp-in"><div class="gt"><span class="tile-ic" style="background:var(--g-${c})">${ic(projIcon(p.id))}</span><div><b>${esc(p.kode)}</b> <span class="small">${esc([p.nama,p.lokasi].filter(Boolean).join(" · "))}</span><div class="small muted">${s.rencana} unit rencana · ${s.jalan} dlm perjalanan · ${s.tiba} tiba · ${s.sisa} sisa kirim${p.catatan?` · ${esc(p.catatan)}`:""}</div></div></div>${canWrite?`<div class="actions"><button class="btn small cf-open${Object.keys(MU_CF).length?" on":""}" data-cfopen="${p.id}" type="button" title="Filter seluruh tabel unit"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg>Filter${Object.keys(MU_CF).length?` (${Object.keys(MU_CF).length})`:""}</button><button class="btn small" data-act="addItem" data-id="${p.id}" type="button">+ Item</button><button class="btn small edit" data-act="editProj" data-id="${p.id}" type="button"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit project</button>${s.items.length?"":`<button class="btn small ghost danger" data-act="delProj" data-id="${p.id}" type="button">Hapus</button>`}</div>`:""}</div></td></tr>`;
     const rows=s.items.filter(muKItemOk).map(k=>{ const n=tibaItem(k), r=Number(k.rencana)||0, aw=Number(k.rencanaAwal)||0, sisa=r-n, revs=revCount(k);
       const us=unitsOfItem(k), stc=new Map(); us.forEach(u=>{ const t=String(u.status||"").trim()||"Status kosong"; stc.set(t,(stc.get(t)||0)+1); });
       const ord=[...ALL_STATUS.map(x=>x.k).filter(t=>stc.has(t)),...[...stc.keys()].filter(t=>!ALL_STATUS.some(x=>x.k===t))];
       const blm=Math.max(0,r-us.length);
       const stHtml=ord.map(t=>{ const d=ALL_STATUS.find(x=>x.k===t); return `<span class="ki-st" style="--sc:${d?d.col:"#8A87A6"}"><i></i>${esc(t)} <b>${stc.get(t)}</b></span>`; }).join("")+(blm?`<span class="ki-st" style="--sc:#C9C6DC"><i></i>Belum dijadwalkan <b>${blm}</b></span>`:"");
+      const cell={
+        "Rencana":`<b class="kv">${r}</b>`,
+        "Status unit":`<div class="ki-sts">${stHtml||'<span class="muted small">Belum ada unit</span>'}</div>`,
+        "Sisa kirim":(sisa>=0?`<b class="kv ${sisaItem(k)?"c-red":""}">${sisaItem(k)}</b>`:`<b class="kv c-orange">lebih ${-sisa}</b>`)+(sisa>0?"":'<span class="sub"><span class="chip s-ok">Lengkap</span></span>'),
+        "Rencana awal":`<b class="kv">${aw}</b>`,
+        "Perubahan":r!==aw?`${deltaChip(r-aw)}${revs?`<span class="sub">${revs}× direvisi</span>`:""}`:'<span class="muted">—</span>',
+        "Tiba":`<b class="kv">${n}</b>`,
+        "Dlm perjalanan":`<b class="kv">${jalanItem(k)}</b>`,
+        "ETA":k.eta?fmtD(k.eta):'<span class="muted">—</span>',
+        "Keterangan":k.catatan?esc(k.catatan):'<span class="muted">—</span>',
+        "Via":k.moda?esc(k.moda):'<span class="muted">—</span>',
+        "Asal":k.asal?esc(k.asal):'<span class="muted">—</span>'};
       return `<tr class="ki-row">
-        <td><small class="kl">Item unit</small><button type="button" class="itemTg" data-act="slotTg" data-id="${k.id}">${esc(k.tipe)}</button>${revs?`<span class="sub">${revs}× direvisi</span>`:""}<button type="button" class="slotTg" data-act="slotTg" data-id="${k.id}" aria-expanded="${SLOT_OPEN.has(k.id)}">${SLOT_OPEN.has(k.id)?"▾ Tutup":"▸ Lihat"} ${Math.max(r,unitsOfItem(k).length)} unit</button></td>
-        <td class="n"><small class="kl">Rencana</small><b class="kv">${r}</b>${r!==aw?`<span class="sub">awal ${aw} ${deltaChip(r-aw)}</span>`:""}</td>
-        <td><small class="kl">Status unit</small><div class="ki-sts">${stHtml||'<span class="muted small">Belum ada unit</span>'}</div></td>
-        <td class="n"><small class="kl">Sisa kirim</small>${sisa>=0?`<b class="kv ${sisaItem(k)?"c-red":""}">${sisaItem(k)}</b>`:`<b class="kv c-orange">lebih ${-sisa}</b>`}${sisa>0?"":'<span class="sub"><span class="chip s-ok">Lengkap</span></span>'}</td>
+        <td><small class="kl">Item unit</small><button type="button" class="itemTg" data-act="slotTg" data-id="${k.id}">${esc(k.tipe)}</button><button type="button" class="slotTg" data-act="slotTg" data-id="${k.id}" aria-expanded="${SLOT_OPEN.has(k.id)}">${SLOT_OPEN.has(k.id)?"▾ Tutup":"▸ Lihat"} ${Math.max(r,unitsOfItem(k).length)} unit</button></td>
+        ${muKCols().map(c=>`<td class="kc-${MU_KCOL[c].c}"><small class="kl">${esc(c)}</small>${cell[c]}</td>`).join("")}<td class="kc-fill"></td>
         <td class="act">${canWrite?`<button class="btn small edit" data-act="editKirim" data-id="${k.id}" type="button"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit</button><button class="btn small primary" data-act="jumlah" data-id="${k.id}" type="button">Ubah jumlah</button> ${sisa>0?`<button class="btn small" data-act="tibaItem" data-id="${k.id}" type="button">+ Tiba</button>`:""}<button class="btn small ghost danger" data-act="delKirim" data-id="${k.id}" type="button">Hapus</button>`:""}</td>
       </tr>`+slotRow(k); }).join("");
-    return head+(rows||`<tr><td colspan="5" class="muted small">Belum ada item unit di project ini.</td></tr>`);
+    return head+(rows||`<tr><td colspan="${muKSpan()}" class="muted small">Belum ada item unit di project ini.</td></tr>`);
   }).join("");
   const rv=S.revisi.filter(r=>inFilter(r.projectId));
   $("#revCount").textContent=rv.length?`${rv.length} perubahan`:"";
@@ -4153,6 +4178,7 @@ const MU_COLT={
   slot:{sel:".slotTbl table.slotFixed",name:"Tabel unit Rencana kirim (semua item)",labels:["#","Tgl kirim","ETD","ETA","Actual","No. lambung","Vendor","Merek","Kepemilikan","Status","Kondisi","Posisi","Kirim berikutnya","Catatan","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM",""],defHidden:["Via", "Kategori", "PIC", "Model / tipe", "Tahun", "Serial / chassis", "HM"]},
   dash:{sel:"table.rk-t2",name:"Tabel Rencana kirim per unit (dashboard)",labels:["No","No. lambung","Vendor","Merek","Status kirim","Kepemilikan","Posisi","ETD","ETA","Catatan","Tgl kirim","Actual","Kondisi","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM"],defHidden:["Tgl kirim","Actual","Kondisi","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM"]},
   pop:{sel:"table.mu-mpp-detail-table",name:"Tabel detail Populasi Unit"},
+  item:{sel:"table.mu-kcol-none",name:"Baris item unit Rencana kirim",sub:"isian item unit",labels:["Rencana","Status unit","Sisa kirim","Rencana awal","Perubahan","Tiba","Dlm perjalanan","ETA","Keterangan","Via","Asal"],defHidden:["Rencana awal","Perubahan","Tiba","Dlm perjalanan","ETA","Keterangan","Via","Asal"]},
   mob:{sel:"#p-mobilisasi .tbl-wrap table",name:"Tabel Mobilisasi"}
 };
 function muColPrefs(){ let p=(SBDATA&&SBDATA.colPrefs)||null;
@@ -4214,8 +4240,8 @@ function muColDialog(key){
   let dlg=$("#muColDlg"); if(!dlg){ document.body.insertAdjacentHTML("beforeend",'<dialog id="muColDlg" class="mu-col-dlg"></dialog>'); dlg=$("#muColDlg"); }
   const draw=()=>{ const show=order.filter(l=>!hid.has(l)), av=order.filter(l=>hid.has(l)), sc=dlg.querySelector(".mcd-l"), top=sc?sc.scrollTop:0;
     dlg.innerHTML=`<form method="dialog" class="mcd"><div class="mcd-h"><div><b>Atur kolom</b><small>${esc(d.name)}</small></div><button type="button" class="mcd-x" data-mc="close" aria-label="Tutup">✕</button></div>
-    <p class="mcd-tip">Seret <span aria-hidden="true">⠿</span> untuk mengubah urutan. Klik <b>−</b> untuk menyembunyikan, <b>+</b> untuk menambah kolom. Berlaku untuk semua yang membuka web, juga di print & Excel.</p>
-    <div class="mcd-body"><div class="mcd-sec">Tambah kolom <small>dari isian form Edit unit</small></div>
+    <p class="mcd-tip">Seret <span aria-hidden="true">⠿</span> untuk mengubah urutan. Klik <b>−</b> untuk menyembunyikan, <b>+</b> untuk menambah kolom. Berlaku untuk semua yang membuka web${key==="item"?" dan saat print":", juga di print & Excel"}.</p>
+    <div class="mcd-body"><div class="mcd-sec">Tambah kolom <small>dari ${esc(d.sub||"isian form Edit unit")}</small></div>
     <div class="mcd-av">${av.length?av.map(l=>`<button type="button" data-mc="show" data-l="${esc(l)}">+ ${esc(l)}</button>`).join(""):'<span class="muted small">Semua kolom sudah tampil.</span>'}</div>
     <div class="mcd-sec">Kolom yang tampil <span>${show.length}</span></div>
     <ul class="mcd-l">${show.map((l,i)=>`<li data-l="${esc(l)}"><span class="mcd-g" title="Seret untuk memindah" aria-hidden="true">⠿</span><span class="mcd-n">${esc(l)}</span>
@@ -4231,9 +4257,9 @@ function muColDialog(key){
     else if(a==="show"){ hid.delete(l); const v=vis().filter(x=>x!==l), last=v[v.length-1]; order=order.filter(x=>x!==l); order.splice(last?order.indexOf(last)+1:0,0,l); draw(); }
     else if(a==="up"){ swap(l,-1); draw(); }
     else if(a==="dn"){ swap(l,1); draw(); }
-    else if(a==="reset"){ b.disabled=true; if(await muColSave(key,null)){ toast("Kolom kembali seperti awal."); dlg.close(); muColApplyAll(); render(); } else b.disabled=false; }
+    else if(a==="reset"){ b.disabled=true; if(await muColSave(key,null)){ toast("Kolom kembali seperti awal."); dlg.close(); muColApplyAll(); render(); if(key==="item") renderKirim(); } else b.disabled=false; }
     else if(a==="save"){ if(order.every(x=>hid.has(x))){ toast("Sisakan minimal satu kolom."); return; } b.disabled=true;
-      if(await muColSave(key,{order:order.slice(),hidden:order.filter(x=>hid.has(x))})){ toast("Susunan kolom disimpan."); dlg.close(); muColApplyAll(); } else b.disabled=false; } };
+      if(await muColSave(key,{order:order.slice(),hidden:order.filter(x=>hid.has(x))})){ toast("Susunan kolom disimpan."); dlg.close(); muColApplyAll(); if(key==="item") renderKirim(); } else b.disabled=false; } };
   // seret (mouse & sentuh)
   dlg.onpointerdown=e=>{ const g=e.target.closest(".mcd-g"); if(!g) return; e.preventDefault(); const li=g.closest("li"), ul=li.parentNode; li.classList.add("drag"); try{ g.setPointerCapture(e.pointerId); }catch(err){}
     const body=dlg.querySelector(".mcd-body");
