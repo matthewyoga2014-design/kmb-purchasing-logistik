@@ -2830,12 +2830,12 @@ function renderProjDash(P){
   const T={jalan:0,prep:0,kosong:0,tiba:0};
   const kls=u=>!u?"kosong":arrived(u)?"tiba":u.status==="Dalam perjalanan"?"jalan":"prep";
   const chipU=u=>{ const c=u.status==="Dalam perjalanan"?["#1D4ED8","#DFEAFE"]:u.status==="Persiapan kirim"||!u.status?["#5B21B6","#EFE8FD"]:MUX_CHIP[statusOf(ALL_STATUS,u.status).cls]||MUX_CHIP["s-idle"]; return `<span class="rk-st" style="color:${c[0]};background:${c[1]}">${esc(u.status||"Persiapan kirim")}</span>`; };
-  const COLH='<tr class="rk-ch"><th class="c">No</th><th>No. lambung</th><th>Vendor</th><th>Merek</th><th>Status kirim</th><th>Kepemilikan</th><th>Posisi</th><th class="c">ETD</th><th class="c">ETA</th><th>Catatan</th></tr>';
+  const COLH='<tr class="rk-ch"><th class="c">No</th><th>No. lambung</th><th>Vendor</th><th>Merek</th><th>Status kirim</th><th>Kepemilikan</th><th>Posisi</th><th class="c">ETD</th><th class="c">ETA</th><th>Catatan</th><th>Tgl kirim</th><th>Actual</th><th>Kondisi</th><th>Kirim berikutnya</th><th>Via</th><th>Kategori</th><th>PIC</th><th>Model / tipe</th><th>Tahun</th><th>Serial / chassis</th><th>HM</th></tr>';
   const groups=SUMI.map(k=>{
     const us=slotUnits(k), r=Number(k.rencana)||0, n=Math.max(r,us.length);
     const cnt={jalan:0,prep:0,kosong:0,tiba:0};
     const trs=Array.from({length:n},(_,i)=>{ const u=us[i], c=kls(u); cnt[c]++; T[c]++;
-      if(!u) return `<tr class="kosong"><td class="rk-no">${i+1}</td><td colspan="9" class="rk-emp">Belum dijadwalkan · unit belum didata${canWrite?` <button class="linkish" data-act="slotNew" data-id="${k.id}" data-no="${i+1}" type="button">Isi</button>`:""}</td></tr>`;
+      if(!u) return `<tr class="kosong"><td class="rk-no">${i+1}</td><td colspan="20" class="rk-emp">Belum dijadwalkan · unit belum didata${canWrite?` <button class="linkish" data-act="slotNew" data-id="${k.id}" data-no="${i+1}" type="button">Isi</button>`:""}</td></tr>`;
       const m=muDetails(u), eta=m.eta||"", late=eta&&!arrived(u)&&eta<today;
       const plate=u.kodeSementara?`<span class="rk-plate tmp">belum diisi</span>`:`<span class="rk-plate">${esc(u.kode)}</span>`;
       return `<tr class="${c}"><td class="rk-no">${i+1}${i>=r?'<small>lebih</small>':""}</td>
@@ -2843,19 +2843,23 @@ function renderProjDash(P){
         <td>${m.vendor?muVendorTag(m.vendor):""}</td><td>${m.merk?muBrandTag(m.merk):""}</td>
         <td>${chipU(u)}</td><td>${m.kepemilikan?muOwnTag(m.kepemilikan):""}</td><td>${esc(u.lokasi||"")}</td>
         <td class="d">${m.etd?fmtD(m.etd):""}</td><td class="d${late?" late":""}">${eta?fmtD(eta):""}${late?"<small>lewat ETA</small>":""}</td>
-        <td class="rk-cat">${esc(String(m.catatan||"").trim())}</td></tr>`; }).join("");
+        <td class="rk-cat">${esc(String(m.catatan||"").trim())}</td>
+        <td class="d">${u.tglKirim?fmtD(u.tglKirim):""}</td><td class="d">${arrived(u)&&u.tglTiba?fmtD(u.tglTiba):""}</td>
+        <td>${m.kondisi?`<span class="mu-cond ${muKondCls(m.kondisi)}">${esc(m.kondisi)}</span>`:""}</td>
+        <td>${(()=>{ const nx=nextMobOf(u); return nx?`→ <b>${esc(nx.ke)}</b><small class="dn-sub">${fmtD(nx.tanggal)} · ${esc(nx.status)}</small>`:""; })()}</td>
+        <td>${esc(u.via||k.moda||"")}</td><td>${esc(m.kategori||"")}</td><td>${esc(m.pic||"")}</td><td>${esc(m.model||"")}</td><td>${esc(m.tahun||"")}</td><td>${esc(m.serial||"")}</td><td class="d">${u.hm?Number(u.hm).toLocaleString("id-ID"):""}</td></tr>`; }).join("");
     const w=x=>n?(x/n*100).toFixed(1)+"%":"0%", sisa=r-tibaItem(k);
     const aw=Number(k.rencanaAwal)||0, tb=tibaItem(k), jl=jalanItem(k), sk=sisaItem(k), lebih=Math.max(0,tb-r), revs=revCount(k);
     const via=[k.moda?"Via "+k.moda:"",k.asal?"dari "+k.asal:""].filter(Boolean).join(" · ");
     const f=(l,v,c)=>`<span class="rk-f"><small>${l}</small><b${c?` class="${c}"`:""}>${v}</b></span>`;
-    const head=`<tr class="rk-gh"><td colspan="10"><div class="rk-ghi">
+    const head=`<tr class="rk-gh"><td colspan="21"><div class="rk-ghi">
         <div class="rk-ghl"><b class="rk-in">${esc(k.tipe)}</b>${revs?`<span class="rk-rv">${revs}× direvisi</span>`:""}</div>
         <div class="rk-fs">${f("Rencana",r)}${f("Tiba",tb,"t")}${f("Dlm perjalanan",jl,"j")}${lebih?f("Sisa kirim","lebih "+lebih,"o"):f("Sisa kirim",sk,sk?"r":"")}${f("ETA",k.eta?fmtD(k.eta):(sk?"–":"Lengkap"))}</div>
         ${canWrite?`<div class="rk-ghr">${tb<r?`<button class="linkish" data-act="tibaItem" data-id="${k.id}" type="button">+ Tiba</button>`:""}<button class="linkish" data-act="jumlah" data-id="${k.id}" type="button">Ubah jumlah</button></div>`:""}
         ${k.catatan||via?`<div class="rk-ket"><small>Keterangan</small> ${esc(k.catatan||"")}${via?`<span>${esc(via)}</span>`:""}</div>`:""}
       </div></td></tr>`;
     return `<tbody>${head}${COLH}${trs}</tbody>`; }).join("");
-  const rows=SUMI.length?`<div class="rk-tw"><table class="rk-t2"><colgroup><col style="width:4.5%"><col style="width:10%"><col style="width:9%"><col style="width:9%"><col style="width:13%"><col style="width:10%"><col style="width:12%"><col style="width:8.5%"><col style="width:8.5%"><col style="width:15.5%"></colgroup>${groups}</table></div>
+  const rows=SUMI.length?`<div class="rk-tw"><table class="rk-t2"><colgroup><col style="width:4.5%"><col style="width:10%"><col style="width:9%"><col style="width:9%"><col style="width:13%"><col style="width:10%"><col style="width:12%"><col style="width:8.5%"><col style="width:8.5%"><col style="width:15.5%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"><col style="width:8%"></colgroup>${groups}</table></div>
     <div class="rk-foot"><span class="rk-lg"><span><i class="j"></i>dalam perjalanan</span><span><i class="p"></i>persiapan kirim</span><span><i class="k"></i>belum dijadwalkan</span><span><i class="t"></i>sudah tiba</span></span><span>Angka sama dengan sheet Rencana kirim: Sisa kirim = Rencana − Tiba − Dlm perjalanan</span></div>`:"";
   const PS=projStats(P.id);
   const totLine=`<span><b>${PS.rencana}</b> unit rencana</span><span><i class="j"></i><b class="j">${PS.jalan}</b> dlm perjalanan</span><span><i class="t"></i><b class="t">${PS.tiba}</b> tiba</span><span><i class="r"></i><b class="r">${PS.sisa}</b> sisa kirim</span><span class="rk-sub">${SUMI.length} item${P.catatan?" · "+esc(P.catatan):""}</span>`;
@@ -4128,7 +4132,7 @@ document.addEventListener("click",e=>{
 /* ---------- Atur kolom: pilih & urutkan kolom tabel (Pemilik/Editor, berlaku untuk semua) ---------- */
 const MU_COLT={
   slot:{sel:".slotTbl table.slotFixed",name:"Tabel unit Rencana kirim (semua item)",labels:["#","Tgl kirim","ETD","ETA","Actual","No. lambung","Vendor","Merek","Kepemilikan","Status","Kondisi","Posisi","Kirim berikutnya","Catatan","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM",""],defHidden:["Via", "Kategori", "PIC", "Model / tipe", "Tahun", "Serial / chassis", "HM"]},
-  dash:{sel:"table.rk-t2",name:"Tabel Rencana kirim per unit (dashboard)"},
+  dash:{sel:"table.rk-t2",name:"Tabel Rencana kirim per unit (dashboard)",labels:["No","No. lambung","Vendor","Merek","Status kirim","Kepemilikan","Posisi","ETD","ETA","Catatan","Tgl kirim","Actual","Kondisi","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM"],defHidden:["Tgl kirim","Actual","Kondisi","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM"]},
   pop:{sel:"table.mu-mpp-detail-table",name:"Tabel detail Populasi Unit"},
   mob:{sel:"#p-mobilisasi .tbl-wrap table",name:"Tabel Mobilisasi"}
 };
