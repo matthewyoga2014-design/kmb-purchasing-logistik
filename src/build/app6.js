@@ -94,16 +94,13 @@ function pstOk(c) {
 function pstLabel(f) {
   if (!f) return 'Semua pelamar';
   const [m, v] = f.split(':');
-  if (m === 'at') return 'Sedang di ' + PST_NAMES[+v];
+  if (m === 'at') return 'Sedang di ' + PST_NAMES[+v] + ' (masih proses)';
   if (m === 'ge') return 'Sudah sampai ' + PST_NAMES[+v];
   return v === 'ok' ? 'Diterima' : v === 'no' ? 'Tidak lolos / tidak aktif' : v === 'hd' ? 'Hold' : f;
 }
 function pstSelect(id) {
   const o = (v, l) => `<option value="${v}" ${ui.pst === v ? 'selected' : ''}>${l}</option>`;
-  return `<select id="${id || 'pstSel'}" class="pst-sel${ui.pst ? ' on' : ''}" aria-label="Filter tahap pelamar" title="Filter pelamar per tahap">${o('', 'Semua tahap')}
-    <optgroup label="Sedang di tahap (masih proses)">${PST_NAMES.map((n, i) => o('at:' + i, 'Sedang di ' + n)).join('')}</optgroup>
-    <optgroup label="Sudah sampai tahap (termasuk yang lanjut)">${PST_NAMES.slice(1).map((n, i) => o('ge:' + (i + 1), n + ' ke atas')).join('')}</optgroup>
-    <optgroup label="Status">${o('st:hd', 'Hold')}${o('st:ok', 'Diterima')}${o('st:no', 'Tidak lolos / tidak aktif')}</optgroup></select>`;
+  return `<select id="${id || 'pstSel'}" class="pst-sel${ui.pst ? ' on' : ''}" aria-label="Filter tahap pelamar" title="Kandidat yang sedang di tahap ini (masih proses)">${o('', 'Semua tahap')}${PST_NAMES.map((n, i) => o('at:' + i, n)).join('')}</select>`;
 }
 function pstList(cs) {
   const L = [...cs.filter((x) => x.st !== 'no'), ...cs.filter((x) => x.st === 'no')];
