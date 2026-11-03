@@ -1182,6 +1182,15 @@ const children=pid=>S.folders.filter(f=>(f.parentId||null)===(pid||null)).sort((
 function folderOptions(sel,disabled){const out=[];const walk=(pid,d)=>children(pid).forEach(f=>{out.push(`<option value="${f.id}" ${f.id===sel?"selected":""} ${disabled&&disabled.has(f.id)?"disabled":""}>${"   ".repeat(d)}${d?"└ ":""}${esc(f.name)} · ${lvlName(d)}</option>`);walk(f.id,d+1);});walk(null,0);return out.join("");}
 const sById=id=>S.series.find(s=>s.id===id);
 const vById=id=>S.versions.find(v=>v.id===id);
+/* Nomor meeting dimulai lagi dari 1 setiap ganti bulan: "Meeting ke-1 November" (urutan internal tetap berlanjut) */
+const BLN_L=["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+function mL(sid,no,date){if(!no)return "ke-"+(no||1);const vs=sid?versionsOf(sid):[];const v=vs.find(x=>x.no===no);let d=date||(v&&v.date)||"";
+  if(!d&&!v){const lv=vs[vs.length-1];d=(lv&&lv.next)||new Date().toISOString().slice(0,10);}
+  const mk=String(d).slice(0,7);if(!/^\d{4}-\d{2}$/.test(mk))return "ke-"+no;
+  const n=vs.filter(x=>(x.no||0)<no&&String(x.date||"").slice(0,7)===mk).length+1,[y,m]=mk.split("-");
+  return `ke-${n} ${BLN_L[+m-1]}${+y!==new Date().getFullYear()?" "+y:""}`;}
+const mV=v=>v?mL(v.seriesId,v.no,v.date):"";
+
 const versionsOf=sid=>S.versions.filter(v=>v.seriesId===sid).sort((a,b)=>(a.no||0)-(b.no||0));
 const latestV=sid=>{const vs=versionsOf(sid);return vs[vs.length-1]||null;};
 const prevOf=v=>{const vs=versionsOf(v.seriesId).filter(x=>(x.no||0)<(v.no||0));return vs[vs.length-1]||null;};
@@ -1205,10 +1214,10 @@ function nextInfo(sid){const s=sById(sid),v=latestV(sid);if(!s||!v)return null;c
   const rr=seriesRows(sid).filter(r=>clean(r.tl));if(!v.next&&rr.length&&rr.every(r=>r.st==="close"))return{k:"done",cls:"close",lb:"Semua close",sub:"Tidak perlu meeting lanjutan",n};
   if(!v.next)return{k:"none",cls:"grey",lb:"Belum dijadwalkan",sub:"Tanggal next meeting belum diisi",n};
   const d=daysTo(v.next);
-  if(d<0)return{k:"over",d,cls:"open",lb:`Lewat jatuh tempo · ${-d} hari`,sub:"Konfirmasi: ada meeting atau tidak?",date:v.next,n};
-  if(d===0)return{k:"due",d,cls:"open",lb:"Jatuh tempo hari ini",sub:`Meeting ke-${n} dijadwalkan hari ini`,date:v.next,n};
-  if(d<=NEAR)return{k:"near",d,cls:"continue",lb:`Hampir jatuh tempo · ${d} hari lagi`,sub:`Meeting ke-${n}`,date:v.next,n};
-  return{k:"plan",d,cls:"plan",lb:`${d} hari lagi`,sub:`Meeting ke-${n}`,date:v.next,n};}
+  if(d<0)return{k:"over",d,cls:"open",lb:`Lewat jatuh tempo · ${-d} hari`,sub:"Konfirmasi: ada meeting atau tidak?",date:v.next,n,lab:mL(sid,n,v.next)};
+  if(d===0)return{k:"due",d,cls:"open",lb:"Jatuh tempo hari ini",sub:`Meeting ${mL(sid,n,v.next)} dijadwalkan hari ini`,date:v.next,n,lab:mL(sid,n,v.next)};
+  if(d<=NEAR)return{k:"near",d,cls:"continue",lb:`Hampir jatuh tempo · ${d} hari lagi`,sub:`Meeting ${mL(sid,n,v.next)}`,date:v.next,n,lab:mL(sid,n,v.next)};
+  return{k:"plan",d,cls:"plan",lb:`${d} hari lagi`,sub:`Meeting ${mL(sid,n,v.next)}`,date:v.next,n,lab:mL(sid,n,v.next)};}
 const NORD={over:0,due:1,near:2,plan:3,none:4,done:5,ended:6};
 const nextPill=(sid,act)=>{const x=nextInfo(sid);if(!x)return"";const p=`<span class="pill st-${x.cls}">${esc(x.lb)}</span>`;
   return act&&["over","due","none"].includes(x.k)?`<button class="pbtn" type="button" data-act="nextAsk" data-id="${sid}" title="${esc(x.sub)}">${p}</button>`:p;};
@@ -1222,7 +1231,7 @@ function nextAsk(sid){
   openModal(mHead(head)+`<div class="mb">
     <div class="stamp"><b>${esc(s.title)}</b> · Meeting terakhir ke-${v.no} (${fmtD(v.date)})${v.next?` · next meeting dijadwalkan <b>${fmtD(v.next)}</b>`:""}. Masih ada <b>${open}</b> tindak lanjut Open/Continue.</div>
     <div class="nask">
-      <div class="uc"><b>Ada meeting</b><p>Meeting ke-${x.n} dilaksanakan. Isi hasilnya lewat form live atau upload form Word/Excel.</p><button class="btn pri" type="button" id="naYes">Isi Meeting ke-${x.n}</button></div>
+      <div class="uc"><b>Ada meeting</b><p>Meeting ${x.lab||"ke-"+x.n} dilaksanakan. Isi hasilnya lewat form live atau upload form Word/Excel.</p><button class="btn pri" type="button" id="naYes">Isi Meeting ${x.lab||"ke-"+x.n}</button></div>
       <div class="uc"><b>${x.k==="none"?"Jadwalkan":"Diundur"}</b><p>${x.k==="none"?"Tentukan tanggal next meeting supaya bisa dipantau.":"Meeting belum terlaksana dan dipindah ke tanggal lain."}</p>
         <div class="rowx"><input type="date" id="naDate" value="${esc(v.next&&daysTo(v.next)>0?v.next:"")}" min="${iso(today())}" aria-label="Tanggal next meeting"><button class="btn" type="button" id="naRes">Simpan jadwal</button></div></div>
       <div class="uc ucx"><b>Tidak ada meeting</b><p>Notulensi selesai. Semua ${open} tindak lanjut Open/Continue otomatis menjadi <b>Close</b>. Riwayat tetap tersimpan dan bisa dibuka kembali.</p>
@@ -1439,7 +1448,7 @@ function renderUnits(P,fid){const box=$("unitCards");if(!box)return;
         <div class="ust">${st("o",D("open"),c.open,"Open")}${st("c",D("continue"),c.continue,"Continue")}${st("g",D("close"),c.close,"Close")}${st(late?"v":"z",'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2" stroke-linecap="round"/></svg>',late,"Jatuh tempo")}</div>
         <div class="ubar"><i style="width:${p}%"></i></div>
         <div class="umeta"><span><b>${p}%</b> tindak lanjut close</span><span class="tm">${up?`Next meeting ${fmtD(up.x.date)} · <span class="pill st-${up.x.cls}">${esc(up.x.lb)}</span>`:nx.some(o=>o.x.k==="none")?`<span class="pill st-grey">Next meeting belum dijadwalkan</span>`:"Tidak ada jadwal"}</span></div>
-        ${ser.length?`<div class="sites">${ser.map(s=>{const x=nextInfo(s.id),cc=cnt(seriesRows(s.id)),v=latestV(s.id);return `<button type="button" data-act="openS" data-id="${s.id}"><span class="n">${esc(s.title)}<small>${v?`Meeting ke-${v.no} · ${fmtD(v.date)}`:""}</small></span><span class="x">${cc.open+cc.continue} aktif</span>${x?`<span class="pill st-${x.cls}">${esc(x.lb)}</span>`:"<span></span>"}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 6l6 6-6 6"/></svg></button>`;}).join("")}</div>`:`<div class="stamp">Belum ada notulensi di unit ini.</div>`}
+        ${ser.length?`<div class="sites">${ser.map(s=>{const x=nextInfo(s.id),cc=cnt(seriesRows(s.id)),v=latestV(s.id);return `<button type="button" data-act="openS" data-id="${s.id}"><span class="n">${esc(s.title)}<small>${v?`Meeting ${mV(v)} · ${fmtD(v.date)}`:""}</small></span><span class="x">${cc.open+cc.continue} aktif</span>${x?`<span class="pill st-${x.cls}">${esc(x.lb)}</span>`:"<span></span>"}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M9 6l6 6-6 6"/></svg></button>`;}).join("")}</div>`:`<div class="stamp">Belum ada notulensi di unit ini.</div>`}
       </div></section>`;}).join("");}
 function renderNext(fid){const set=folderSet(fid);if(S.nmF===undefined)S.nmF=load("rn2-nmf","")||"";
   const all=S.series.filter(s=>!set||set.has(s.folderId)).map(s=>({s,v:latestV(s.id),x:nextInfo(s.id)})).filter(o=>o.v&&o.x);
@@ -1449,8 +1458,8 @@ function renderNext(fid){const set=folderSet(fid);if(S.nmF===undefined)S.nmF=loa
   $("nmSub").innerHTML=`<button type="button" class="nmchip" data-act="nmF" data-k="" aria-pressed="${!S.nmF}">Semua aktif <b>${aktif}</b></button>`+NMK.filter(([k])=>n(k)).map(([k,l,c])=>`<button type="button" class="nmchip c-${c}" data-act="nmF" data-k="${k}" aria-pressed="${S.nmF===k}">${l} <b>${n(k)}</b></button>`).join("");
   $("nmList").innerHTML=act.length?`<div class="tbl-wrap" style="max-height:420px;overflow:auto"><table><thead><tr><th>Notulensi</th><th>Meeting terakhir</th><th>Next meeting</th><th>Status</th><th>Tindak lanjut</th><th></th></tr></thead><tbody>${act.map(({s,v,x})=>{const c=cnt(seriesRows(s.id));return `<tr class="${x.k==="over"?"nm-over":""}">
     <td style="min-width:220px"><button class="fn" type="button" data-act="openS" data-id="${s.id}">${IC.series}<span>${esc(s.title)}</span></button><div class="stamp" style="margin-left:36px">${esc(fPathName(s.folderId))}</div></td>
-    <td style="white-space:nowrap">Meeting ke-${v.no}<div class="stamp">${fmtD(v.date)}</div></td>
-    <td style="white-space:nowrap">${x.date?`<b>${fmtD(x.date)}</b><div class="stamp">Meeting ke-${x.n}</div>`:`<span class="muted">—</span>`}</td>
+    <td style="white-space:nowrap">Meeting ${mV(v)}<div class="stamp">${fmtD(v.date)}</div></td>
+    <td style="white-space:nowrap">${x.date?`<b>${fmtD(x.date)}</b><div class="stamp">Meeting ${x.lab||"ke-"+x.n}</div>`:`<span class="muted">—</span>`}</td>
     <td>${nextPill(s.id)}</td>
     <td style="min-width:150px">${c.total?stackBar(c):""}<div class="stamp num" style="margin-top:4px"><span style="color:var(--red-fg)">${c.open} open</span> · <span style="color:var(--yellow-fg)">${c.continue} cont.</span> · <span style="color:#24774E">${c.close} close</span></div></td>
     <td style="text-align:right;white-space:nowrap">${x.k==="over"||x.k==="due"?`<button class="btn sm pri ed-only" type="button" data-act="nextAsk" data-id="${s.id}">Konfirmasi</button>`:x.k==="none"?`<button class="btn sm ed-only" type="button" data-act="nextAsk" data-id="${s.id}">Atur</button>`:x.k==="ended"?`<button class="btn sm ed-only" type="button" data-act="reopen" data-id="${s.id}">Buka kembali</button>`:""}</td></tr>`;}).join("")}</tbody></table></div>`
@@ -1464,7 +1473,7 @@ function renderResults(snaps,P){
   $("resTbl").innerHTML=list.length?`<div class="tbl-wrap" style="max-height:520px;overflow:auto"><table class="restbl"><thead><tr><th>Status</th><th>Tindak Lanjut</th><th>Topik</th><th>PIC</th><th>Due Date</th><th>Notulensi</th></tr></thead><tbody>${list.map(({r,s,v})=>{const st=r.st||"open",dl=eDue(r)?daysTo(eDue(r)):null;
     return `<tr class="r-${st}"><td>${pill(st)}</td><td style="min-width:220px;white-space:pre-line">${esc(r.tl||"—")}${r.ket?`<div class="stamp" style="margin-top:3px">Ket: ${esc(r.ket)}</div>`:""}</td><td style="min-width:140px">${esc(r.topik||"—")}${r.sec?`<div class="stamp">${esc(r.sec)}</div>`:""}</td><td>${esc(r.pic||"—")}</td>
     <td style="white-space:nowrap"><span class="${isLate(r)?"late":""}" style="${isLate(r)?"color:var(--red-fg);font-weight:700":""}">${esc(dueLabel(r))}</span>${isLate(r)?`<div style="color:var(--red-fg);font-size:11.5px;font-weight:600">Telat ${-dl} hari</div>`:""}</td>
-    <td style="min-width:180px"><button class="lnk" style="text-decoration:none;text-align:left" type="button" data-act="openS" data-id="${s.id}" data-v="${v.id}">${esc(s.title)}</button><div class="stamp">Meeting ke-${v.no} · ${fmtD(v.date)} · ${esc(fPathName(s.folderId))}</div></td></tr>`;}).join("")}</tbody></table></div>`
+    <td style="min-width:180px"><button class="lnk" style="text-decoration:none;text-align:left" type="button" data-act="openS" data-id="${s.id}" data-v="${v.id}">${esc(s.title)}</button><div class="stamp">Meeting ${mV(v)} · ${fmtD(v.date)} · ${esc(fPathName(s.folderId))}</div></td></tr>`;}).join("")}</tbody></table></div>`
     :`<div class="empty"><b>Tidak ada tindak lanjut ${S.dtab==="all"?"":ST[S.dtab]}</b>${items.length?"Pilih status lain.":"Belum ada notulensi pada filter ini."}</div>`;
 }
 function seriesTable(list,compact){
@@ -1472,7 +1481,7 @@ function seriesTable(list,compact){
   list=[...list].sort((a,b)=>(b.v?.date||"").localeCompare(a.v?.date||""));
   return `<div class="tbl-wrap"><table><thead><tr><th>Notulensi</th>${compact?"":"<th>Folder</th>"}<th>Meeting terakhir</th>${compact?"":"<th>Next meeting</th>"}<th>Tindak lanjut</th><th>Status</th></tr></thead><tbody>${list.map(({s,v,rows})=>{const rr=rows||seriesRows(s.id),c=cnt(rr),st=vStatus({rows:rr});
     return `<tr><td style="min-width:220px"><button class="fn" type="button" data-act="openS" data-id="${s.id}" data-v="${v?.id||""}">${IC.series}<span>${esc(s.title)}</span></button>${compact?`<div class="stamp" style="margin-left:36px">${esc(fPathName(s.folderId))}</div>`:""}</td>${compact?"":`<td class="muted">${esc(fPathName(s.folderId))}</td>`}
-    <td style="white-space:nowrap">Meeting ke-${v?.no||1}<div class="stamp">${fmtD(v?.date)}</div></td>${compact?"":`<td style="white-space:nowrap">${(()=>{const x=nextInfo(s.id);return x?`${nextPill(s.id,true)}<div class="stamp" style="margin-top:3px">${x.date?fmtD(x.date):esc(x.sub)}</div>`:"";})()}</td>`}
+    <td style="white-space:nowrap">Meeting ${v?mV(v):"ke-1"}<div class="stamp">${fmtD(v?.date)}</div></td>${compact?"":`<td style="white-space:nowrap">${(()=>{const x=nextInfo(s.id);return x?`${nextPill(s.id,true)}<div class="stamp" style="margin-top:3px">${x.date?fmtD(x.date):esc(x.sub)}</div>`:"";})()}</td>`}
     <td style="min-width:${compact?120:170}px">${c.total?stackBar(c):""}<div class="stamp num" style="margin-top:4px"><span style="color:var(--red-fg)">${c.open} open</span> · <span style="color:var(--yellow-fg)">${c.continue} cont.</span> · <span style="color:#24774E">${c.close} close</span></div></td>
     <td>${pill(st)}</td></tr>`;}).join("")}</tbody></table></div>`;
 }
@@ -1531,20 +1540,20 @@ function renderSeries(){
         ${cols.map(c=>td("kt",cell(r,"x:"+c.id,esc((r.x||{})[c.id]||"")))).join("")}</tr>`;}).join("");}).join("")}`).join("");
   const c=cnt(vrows);
   const nbar=!isLatest||!nx?"":nx.k==="ended"?`<div class="nbar nb-ended"><span class="nic">✓</span><div class="grow"><b>Notulensi selesai, tanpa meeting lanjutan</b><div class="stamp">Ditutup ${fmtD(en.date)}${en.from?` (jadwal next meeting ${fmtD(en.from)})`:""}${en.note?` · ${esc(en.note)}`:""}. Semua tindak lanjut Open/Continue otomatis menjadi Close.</div></div><button class="btn sm ed-only" type="button" data-act="reopen" data-id="${s.id}">Buka kembali</button></div>`
-    :nx.k==="done"?"":`<div class="nbar nb-${nx.k}"><span class="nic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span><div class="grow"><b>Next meeting${nx.date?": "+fmtD(nx.date):""}</b> <span class="pill st-${nx.cls}">${esc(nx.lb)}</span><div class="stamp">${nx.k==="over"?`Meeting ke-${nx.n} belum diisi. Apakah meeting dilaksanakan? Kalau tidak, notulensi ditutup dan semua tindak lanjut menjadi Close.`:nx.k==="none"?"Isi tanggal next meeting supaya bisa dipantau, atau tutup notulensi bila tidak ada meeting lanjutan.":esc(nx.sub)}</div></div>
+    :nx.k==="done"?"":`<div class="nbar nb-${nx.k}"><span class="nic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg></span><div class="grow"><b>Next meeting${nx.date?": "+fmtD(nx.date):""}</b> <span class="pill st-${nx.cls}">${esc(nx.lb)}</span><div class="stamp">${nx.k==="over"?`Meeting ${mL(s.id,nx.n,nx.date)} belum diisi. Apakah meeting dilaksanakan? Kalau tidak, notulensi ditutup dan semua tindak lanjut menjadi Close.`:nx.k==="none"?"Isi tanggal next meeting supaya bisa dipantau, atau tutup notulensi bila tidak ada meeting lanjutan.":esc(nx.sub)}</div></div>
       ${nx.k==="over"||nx.k==="due"?`<button class="btn sm pri ed-only" type="button" data-act="updMeeting" data-id="${s.id}">Ada meeting · isi ke-${nx.n}</button><button class="btn sm ed-only" type="button" data-act="nextAsk" data-id="${s.id}">${nx.k==="over"?"Diundur / tidak ada meeting":"Pilihan lain"}</button>`:`<button class="btn sm ed-only" type="button" data-act="nextAsk" data-id="${s.id}">${nx.k==="none"?"Atur next meeting":"Ubah"}</button>`}</div>`;
   box.innerHTML=`<div class="rowx"><button class="back" data-act="back">‹ Kembali</button><span class="crumb">${esc(fPathName(s.folderId))}</span></div>
    <div class="sh2"><h1>${esc(s.title)}</h1>${pill(st)}${jenisChip(s)}
      <button class="btn" type="button" data-act="word" data-id="${v.id}">${IC.word.replace('width="24" height="24"','width="18" height="18"')}Unduh Word</button>
      <button class="btn" type="button" data-act="xlsx" data-id="${v?.id||""}">${IC.excel.replace('width="24" height="24"','width="18" height="18"')}Excel</button>
-     ${en?`<button class="btn pri" type="button" data-act="reopen" data-id="${s.id}">Buka kembali</button>`:`<button class="btn pri" type="button" data-act="updMeeting" data-id="${s.id}">${IC.edit}Update Meeting ke-${(latest?.no||0)+1}</button>`}
+     ${en?`<button class="btn pri" type="button" data-act="reopen" data-id="${s.id}">Buka kembali</button>`:`<button class="btn pri" type="button" data-act="updMeeting" data-id="${s.id}">${IC.edit}Update Meeting ${mL(s.id,(latest?.no||0)+1)}</button>`}
      <button class="ib" type="button" id="sMenu" data-menu aria-label="Menu notulensi">${IC.kebab}</button></div>
    ${nbar}
    <div class="card cpad"><div class="ch"><h2>Riwayat meeting</h2><span class="stamp">${vs.length} meeting · klik untuk melihat isi tiap meeting</span></div>
-     <div class="tline">${vs.map(x=>{const dx=vDiff(x),cx=cnt(x.rows);return `<button class="tstep" type="button" data-act="pickV" data-id="${x.id}" aria-current="${x.id===v?.id}">${x.id===latest.id?`<span class="tag">Terbaru</span>`:""}<b>Meeting ke-${x.no}</b><small>${fmtD(x.date)}</small>${cx.total?stackBar(cx):""}<small>${esc(diffShort(dx))}</small></button>`;}).join("")}
-       ${en?`<div class="tstep endstep"><b>Selesai</b><small>${fmtD(en.date)}</small><small>Tanpa meeting lanjutan</small></div>`:`<button class="tstep add" type="button" data-act="updMeeting" data-id="${s.id}">+ Meeting ke-${(latest?.no||0)+1}<small>${latest?.next?"Rencana "+fmtD(latest.next):"Salin & update dari meeting terakhir"}</small></button>`}</div></div>
-   ${!isLatest?`<div class="oldbar">Anda melihat <b>Meeting ke-${v.no}</b> (${fmtD(v.date)}), bukan meeting terbaru.<button class="btn sm" type="button" data-act="pickV" data-id="${latest.id}">Lihat Meeting ke-${latest.no}</button></div>`:""}
-   <div class="card cpad"><div class="ch"><h2>Meeting ke-${v?.no} · ${fmtD(v?.date)}</h2>${v?.fixedAt?`<span class="stamp">Dikoreksi ${fmtTs(v.fixedAt)}</span>`:""}</div>
+     <div class="tline">${vs.map(x=>{const dx=vDiff(x),cx=cnt(x.rows);return `<button class="tstep" type="button" data-act="pickV" data-id="${x.id}" aria-current="${x.id===v?.id}">${x.id===latest.id?`<span class="tag">Terbaru</span>`:""}<b>Meeting ${mV(x)}</b><small>${fmtD(x.date)}</small>${cx.total?stackBar(cx):""}<small>${esc(diffShort(dx))}</small></button>`;}).join("")}
+       ${en?`<div class="tstep endstep"><b>Selesai</b><small>${fmtD(en.date)}</small><small>Tanpa meeting lanjutan</small></div>`:`<button class="tstep add" type="button" data-act="updMeeting" data-id="${s.id}">+ Meeting ${mL(s.id,(latest?.no||0)+1)}<small>${latest?.next?"Rencana "+fmtD(latest.next):"Salin & update dari meeting terakhir"}</small></button>`}</div></div>
+   ${!isLatest?`<div class="oldbar">Anda melihat <b>Meeting ${mV(v)}</b> (${fmtD(v.date)}), bukan meeting terbaru.<button class="btn sm" type="button" data-act="pickV" data-id="${latest.id}">Lihat Meeting ${mV(latest)}</button></div>`:""}
+   <div class="card cpad"><div class="ch"><h2>Meeting ${mV(v)} · ${fmtD(v?.date)}</h2>${v?.fixedAt?`<span class="stamp">Dikoreksi ${fmtTs(v.fixedAt)}</span>`:""}</div>
      <dl class="meta">${[["Agenda",v?.agenda],["Jam",v?.time],["Lokasi",v?.place],["Pimpinan",v?.lead],["Peserta",v?.people],["Next meeting",v?.next?fmtD(v.next):""],["Sumber",v?.source]].filter(x=>x[1]).map(x=>`<div><dt>${x[0]}</dt><dd>${esc(x[1])}</dd></div>`).join("")||`<div><dt>Info</dt><dd class="muted">Tidak ada data header meeting.</dd></div>`}</dl>
      ${v?.purpose?`<div style="margin-top:10px"><dt class="stamp" style="font-weight:600">Tujuan meeting</dt><dd style="margin:2px 0 0">${esc(v.purpose)}</dd></div>`:""}</div>
    ${isPersiapan(s)?ksCard(s.id):""}
@@ -1552,27 +1561,27 @@ function renderSeries(){
      <div class="sh" style="margin-bottom:10px;align-items:center"><div class="tt"><h2>Pokok Pembahasan &amp; Tindak Lanjut</h2><p>${c.total} tindak lanjut · ${c.open} Open · ${c.continue} Continue · ${c.close} Close</p></div>
        ${d?`<label class="switch"><input type="checkbox" id="hlT" ${S.hl?"checked":""}>Sorot perubahan</label>`:""}
        <div class="seg" role="group" aria-label="Filter baris">${[["all","Semua"],["open","Open"],["continue","Continue"],["close","Close"],...(d?[["changed","Berubah"]]:[])].map(([k,l])=>`<button type="button" data-act="rf" data-f="${k}" aria-pressed="${S.rf===k}">${l}</button>`).join("")}</div></div>
-     ${d?`<div class="chg-sum" style="margin-bottom:12px"><span class="stamp" style="font-weight:600">Dibanding Meeting ke-${d.prev.no} (${fmtD(d.prev.date)}):</span>${diffChips(d)}</div>`:""}
+     ${d?`<div class="chg-sum" style="margin-bottom:12px"><span class="stamp" style="font-weight:600">Dibanding Meeting ${mV(d.prev)} (${fmtD(d.prev.date)}):</span>${diffChips(d)}</div>`:""}
      <div class="tbl-wrap" style="max-height:72vh;overflow:auto"><table class="ntbl ${S.hl?"hl":""}"><thead><tr><th>No</th><th>Topik</th><th>Hasil Pembahasan</th><th>Tindak Lanjut</th><th>PIC</th><th>Due Date</th><th>Status</th>${KS?`<th class="srch">Sumber Data<small>Plan → Aktual · Hasil</small></th>`:""}${cols.map(c=>`<th>${esc(c.name)}</th>`).join("")}</tr></thead>
        <tbody>${body||`<tr><td colspan="${7+cols.length+(KS?1:0)}"><div class="empty"><b>Tidak ada baris</b>${S.rf==="all"?`Notulensi ini belum punya tindak lanjut.<br><button class="btn pri sm ed-only" type="button" data-act="fixMeeting" data-sid="${s.id}" data-vid="${v.id}" style="margin-top:10px">Isi / koreksi tindak lanjut</button>`:"Tidak ada baris dengan filter ini."}</div></td></tr>`}</tbody></table></div>
      <div class="legend2" style="margin-top:10px"><span><i style="background:var(--r-close)"></i>Close (baris hijau)</span><span><i style="background:var(--r-cont)"></i>Continue</span><span><i style="background:#fff"></i>Open</span>${d?`<span><i style="background:#fff;box-shadow:inset 3px 0 0 var(--upd)"></i>Diubah (nilai lama dicoret)</span><span><span class="pill upd">Baru</span>Tindak lanjut baru</span>`:""}</div>
-     ${d&&d.archived.length?`<details class="removed" style="margin-top:12px"><summary style="cursor:pointer"><b>${d.archived.length} tindak lanjut sudah Close di Meeting ke-${d.prev.no}</b> <span class="stamp">— tidak dibawa ke meeting ini, tetap tersimpan di arsip Meeting ke-${d.prev.no}</span></summary><ul style="margin:6px 0 0;padding-left:18px">${d.archived.map(r=>`<li style="text-decoration:none;color:var(--fg)">${esc(r.tl||r.topik)}${r.pic?` <span class="muted">· ${esc(r.pic)}</span>`:""} <button class="lnk" type="button" data-act="pickV" data-id="${d.prev.id}">lihat</button></li>`).join("")}</ul></details>`:""}
+     ${d&&d.archived.length?`<details class="removed" style="margin-top:12px"><summary style="cursor:pointer"><b>${d.archived.length} tindak lanjut sudah Close di Meeting ${mV(d.prev)}</b> <span class="stamp">— tidak dibawa ke meeting ini, tetap tersimpan di arsip Meeting ${mV(d.prev)}</span></summary><ul style="margin:6px 0 0;padding-left:18px">${d.archived.map(r=>`<li style="text-decoration:none;color:var(--fg)">${esc(r.tl||r.topik)}${r.pic?` <span class="muted">· ${esc(r.pic)}</span>`:""} <button class="lnk" type="button" data-act="pickV" data-id="${d.prev.id}">lihat</button></li>`).join("")}</ul></details>`:""}
      ${d&&S.hl&&d.removed.length?`<div class="removed" style="margin-top:12px"><b>Dihapus di meeting ini</b><ul style="margin:6px 0 0;padding-left:18px">${d.removed.map(r=>`<li>${esc(r.tl||r.topik)}${r.pic?" · "+esc(r.pic):""}</li>`).join("")}</ul></div>`:""}
    </div>
    ${(()=>{const ph=files.filter(f=>f.versionId===v.id&&f.kind==="photo").sort((a,b)=>(a.at||0)-(b.at||0));const wd=files.find(f=>f.versionId===v.id&&f.kind==="word");
-     return `<div class="card cpad"><div class="ch"><h2>Dokumentasi Meeting ke-${v.no}</h2><span class="stamp">${ph.length} foto</span><button class="btn sm pri" type="button" id="phBtn">+ Foto dokumentasi</button></div>
+     return `<div class="card cpad"><div class="ch"><h2>Dokumentasi Meeting ${mV(v)}</h2><span class="stamp">${ph.length} foto</span><button class="btn sm pri" type="button" id="phBtn">+ Foto dokumentasi</button></div>
      ${ph.length?`<div class="phgrid">${ph.map((f,i)=>{const src=photoSrc(f);return `<figure class="ph">${src?`<img src="${esc(src)}" alt="Foto dokumentasi ${i+1}" loading="lazy" data-phv="${i}" tabindex="0" role="button" title="Klik untuk memperbesar">`:`<div class="phload">Memuat…</div>`}<figcaption>Foto ${i+1}<button class="ib" type="button" data-delph="${f.id}" aria-label="Hapus foto" style="color:var(--red-fg)">${IC.trash}</button></figcaption></figure>`;}).join("")}</div>`:`<div class="stamp">Belum ada foto. Upload foto dokumentasi meeting ini; file Word notulensi otomatis dibuat ulang lengkap dengan fotonya.</div>`}
      <div class="wordbar">${IC.word}<div class="grow"><b>${wd?esc(wd.name):"File Word notulensi belum dibuat"}</b><div class="stamp">${wd?`Dibuat ${fmtTs(wd.at)} · ${fmtSize(wd.size)} · berisi header, tabel tindak lanjut berwarna, perubahan, dan ${ph.length} foto`:"Klik Buat Word untuk membuat file notulensi meeting ini."}</div></div>
        <button class="btn sm" type="button" id="wdRegen">${wd?"Buat ulang":"Buat Word"}</button><button class="btn sm pri" type="button" data-act="word" data-id="${v.id}">${IC.dl}Unduh</button></div></div>`;})()}
-   <div class="card cpad vfiles"><div class="ch"><h2>Lampiran Meeting ke-${v.no}</h2><span class="stamp">${files.filter(f=>f.versionId===v.id&&f.kind!=="photo").length} file · maks. 20 MB per file</span><button class="btn sm pri" type="button" id="attBtn">+ Lampiran meeting ini</button></div>
+   <div class="card cpad vfiles"><div class="ch"><h2>Lampiran Meeting ${mV(v)}</h2><span class="stamp">${files.filter(f=>f.versionId===v.id&&f.kind!=="photo").length} file · maks. 20 MB per file</span><button class="btn sm pri" type="button" id="attBtn">+ Lampiran meeting ini</button></div>
      ${(()=>{const fl=f=>`<div class="fl">${fileIcon(f.name)}<a href="#" data-act="openFile" data-id="${f.id}">${esc(f.name)}</a><span class="stamp">${fmtSize(f.size)} · ${fmtTs(f.at).slice(0,11)}</span><button class="ib" type="button" data-delf="${f.id}" aria-label="Hapus file" style="color:var(--red-fg)">${IC.trash}</button></div>`;
        const mine=files.filter(f=>f.versionId===v.id&&f.kind!=="photo").sort((a,b)=>(b.at||0)-(a.at||0));const others=vs.filter(x=>x.id!==v.id).map(x=>({x,fs:files.filter(f=>f.versionId===x.id&&f.kind!=="photo")})).filter(o=>o.fs.length);const gen=files.filter(f=>!f.versionId);
        return (mine.length?`<div style="display:flex;flex-direction:column;gap:6px">${mine.map(fl).join("")}</div>`:`<div class="stamp">Belum ada lampiran untuk meeting ini. Tambahkan file sumber, foto, atau dokumen pendukung meeting ini.</div>`)
-        +(others.length||gen.length?`<details style="margin-top:12px"><summary class="stamp" style="cursor:pointer;font-weight:600">Lampiran meeting lain (${others.reduce((n,o)=>n+o.fs.length,0)+gen.length})</summary>${others.map(o=>`<h3>Meeting ke-${o.x.no} · ${fmtD(o.x.date)}</h3><div style="display:flex;flex-direction:column;gap:6px">${o.fs.map(fl).join("")}</div>`).join("")}${gen.length?`<h3>Umum</h3><div style="display:flex;flex-direction:column;gap:6px">${gen.map(fl).join("")}</div>`:""}</details>`:"");})()}
+        +(others.length||gen.length?`<details style="margin-top:12px"><summary class="stamp" style="cursor:pointer;font-weight:600">Lampiran meeting lain (${others.reduce((n,o)=>n+o.fs.length,0)+gen.length})</summary>${others.map(o=>`<h3>Meeting ${mV(o.x)} · ${fmtD(o.x.date)}</h3><div style="display:flex;flex-direction:column;gap:6px">${o.fs.map(fl).join("")}</div>`).join("")}${gen.length?`<h3>Umum</h3><div style="display:flex;flex-direction:column;gap:6px">${gen.map(fl).join("")}</div>`:""}</details>`:"");})()}
    </div>`;
   box.querySelectorAll("[data-delf]").forEach(b=>b.onclick=()=>deleteItem("file",b.dataset.delf));
   box.querySelectorAll("[data-delph]").forEach(b=>b.onclick=()=>{const f=S.files.find(x=>x.id===b.dataset.delph);if(!f)return;
-    openModal(mHead("Hapus foto?")+`<div class="mb">Foto dihapus dan file Word Meeting ke-${v.no} dibuat ulang tanpa foto ini.</div><div class="mf"><button class="btn" type="button" data-x>Batal</button><button class="btn pri" style="background:#C93B36;border-color:#C93B36" type="button" id="dpy">Hapus foto</button></div>`,
+    openModal(mHead("Hapus foto?")+`<div class="mb">Foto dihapus dan file Word Meeting ${mV(v)} dibuat ulang tanpa foto ini.</div><div class="mf"><button class="btn" type="button" data-x>Batal</button><button class="btn pri" style="background:#C93B36;border-color:#C93B36" type="button" id="dpy">Hapus foto</button></div>`,
       bx=>bx.querySelector("#dpy").onclick=async()=>{closeModal();try{await delFile(f);S.files=S.files.filter(x=>x.id!==f.id);await generateWord(v);}catch(err){toast("Gagal: "+errMsg(err));}});});
   box.querySelectorAll("[data-phv]").forEach(im=>{const go2=()=>openPhotos(files.filter(f=>f.versionId===v.id&&f.kind==="photo").sort((a,b)=>(a.at||0)-(b.at||0)),+im.dataset.phv);im.onclick=go2;im.onkeydown=e=>{if(e.key==="Enter")go2();};});
   $("phBtn").onclick=async()=>{const fs=await pickPhotos();if(!fs.length)return;const prep=await preparePhotos(fs);if(!prep.length)return;
@@ -1608,9 +1617,9 @@ function edCount(){const E=S.edit;if(E.mode==="new")return{txt:`${E.rows.filter(
   return{ch,nw,rm,txt:`<b>${ch}</b> baris diubah · <b>${nw}</b> baru · <b>${rm}</b> dihapus`};}
 function renderEdit(){
   const E=S.edit,box=$("v-edit");if(!E){go("dash",{force:true});return;}
-  const head=E.mode==="next"?`Update Meeting ke-${E.no}`:E.mode==="fix"?`Koreksi Meeting ke-${E.no}`:"Notulensi baru";
-  const sub=E.mode==="next"?`Isi disalin dari Meeting ke-${E.no-1}. Ubah status, tambah pembahasan, tindak lanjut, keterangan, atau due date, lalu simpan. Meeting ke-${E.no-1} tetap tersimpan sebagai riwayat.`
-    :E.mode==="fix"?`Memperbaiki isi Meeting ke-${E.no} tanpa membuat meeting baru. Pakai ini untuk salah ketik atau hasil baca file yang kurang tepat.`
+  const head=E.mode==="next"?`Update Meeting ${E.mode==="next"?mL(E.sid,E.no,E.date):mL(E.sid,E.no)}`:E.mode==="fix"?`Koreksi Meeting ${E.mode==="next"?mL(E.sid,E.no,E.date):mL(E.sid,E.no)}`:"Notulensi baru";
+  const sub=E.mode==="next"?`Isi disalin dari Meeting ${mL(E.sid,E.no-1)}. Ubah status, tambah pembahasan, tindak lanjut, keterangan, atau due date, lalu simpan. Meeting ${mL(E.sid,E.no-1)} tetap tersimpan sebagai riwayat.`
+    :E.mode==="fix"?`Memperbaiki isi Meeting ${E.mode==="next"?mL(E.sid,E.no,E.date):mL(E.sid,E.no)} tanpa membuat meeting baru. Pakai ini untuk salah ketik atau hasil baca file yang kurang tepat.`
     :"Isi notulensi meeting pertama. Setiap meeting berikutnya dibuat lewat tombol Update Meeting.";
   const M=E.meta,groups=[];E.rows.forEach((r,i)=>{const lg=groups[groups.length-1];if(!lg||lg.sec!==(r.sec||"")||lg.bab!==(r.bab||""))groups.push({sec:r.sec||"",bab:r.bab||"",idx:[]});groups[groups.length-1].idx.push(i);});
   const hasBab=E.rows.some(r=>r.bab);let lastB=null,bi=-1;
@@ -1648,7 +1657,7 @@ function renderEdit(){
      <label class="f w2">Pimpinan rapat<input type="text" id="m_lead" value="${esc(M.lead)}"></label>
      <label class="f w4">Peserta<input type="text" id="m_people" value="${esc(M.people)}" placeholder="Pisahkan dengan koma"></label>
    </div></div>
-   ${arch.length?`<div class="oldbar" style="background:var(--green-soft);color:#1F6A45"><span><b>${arch.length} tindak lanjut sudah Close</b> di Meeting ke-${E.no-1}, jadi tidak dibawa ke meeting ini. Arsipnya tetap ada di Meeting ke-${E.no-1}.</span><button class="btn sm" type="button" id="showArch">Lihat</button><button class="btn sm" type="button" id="bringArch">Bawa kembali</button></div>
+   ${arch.length?`<div class="oldbar" style="background:var(--green-soft);color:#1F6A45"><span><b>${arch.length} tindak lanjut sudah Close</b> di Meeting ${mL(E.sid,E.no-1)}, jadi tidak dibawa ke meeting ini. Arsipnya tetap ada di Meeting ${mL(E.sid,E.no-1)}.</span><button class="btn sm" type="button" id="showArch">Lihat</button><button class="btn sm" type="button" id="bringArch">Bawa kembali</button></div>
      <div class="removed" id="archList" hidden><ul style="margin:0;padding-left:18px">${arch.map(r=>`<li style="text-decoration:none;color:var(--fg)">${esc(r.tl||r.topik)}${r.pic?` <span class="muted">· ${esc(r.pic)}</span>`:""}</li>`).join("")}</ul></div>`:""}
    <div class="card" style="overflow:hidden">
      <div class="rowx" style="padding:12px 16px;border-bottom:1px solid var(--line)"><b style="margin-right:auto">Pokok Pembahasan &amp; Tindak Lanjut</b>
@@ -1659,7 +1668,7 @@ function renderEdit(){
    </div>
    <div class="card cpad"><div class="ch"><h2>Dokumentasi meeting ini</h2><span class="stamp">${E.photos.length} foto baru${E.mode!=="new"&&E.vid&&E.mode==="fix"?` · ${S.files.filter(f=>f.versionId===E.vid&&f.kind==="photo").length} foto tersimpan`:""}</span><button class="btn sm" type="button" id="edPh">+ Tambah foto</button></div>
      ${E.photos.length?`<div class="phgrid">${E.photos.map((p,i)=>`<figure class="ph"><img src="${p.url}" alt="Foto ${i+1}"><figcaption>${esc(p.name)}<button class="ib" type="button" data-rmph="${i}" aria-label="Buang foto" style="color:var(--red-fg)">${IC.trash}</button></figcaption></figure>`).join("")}</div>`:`<div class="stamp">Foto yang ditambahkan di sini diunggah saat disimpan, lalu file Word notulensi meeting ini dibuat otomatis lengkap dengan fotonya.</div>`}</div>
-   <div class="savebar"><span class="grow" id="edCnt">${edCount().txt}</span><button class="btn" type="button" id="edCancel">Batal</button><button class="btn pri" type="button" id="edSave">${E.mode==="next"?`Simpan sebagai Meeting ke-${E.no}`:E.mode==="fix"?"Simpan koreksi":"Simpan notulensi"}</button></div>`;
+   <div class="savebar"><span class="grow" id="edCnt">${edCount().txt}</span><button class="btn" type="button" id="edCancel">Batal</button><button class="btn pri" type="button" id="edSave">${E.mode==="next"?`Simpan sebagai Meeting ${E.mode==="next"?mL(E.sid,E.no,E.date):mL(E.sid,E.no)}`:E.mode==="fix"?"Simpan koreksi":"Simpan notulensi"}</button></div>`;
   wireEdit();
 }
 function autosize(t){t.style.height="auto";t.style.height=Math.max(34,t.scrollHeight+2)+"px";}
@@ -1732,7 +1741,7 @@ async function saveEdit(){
   const SC=covMap(E.rows);E.rows.forEach((r,i)=>{const mg={};MF.forEach(f=>{mg[f]=!!SC.cov[i][f];if(SC.cov[i][f]){const t=E.rows[SC.top[i][f]];if(f==="due"){r.due=t.due;r.dueText=t.dueText||"";}else if(f!=="bahas"||clean(r.bahas))r[f]=t[f];}});r.mg=mg;});
   const rows=E.rows.filter(r=>clean(r.tl)||clean(r.topik)||clean(r.bahas)).map(r=>({mg:r.mg,k:r.k,...(clean(r.bab)?{bab:clean(r.bab)}:{}),sec:clean(r.sec),topik:r.topik.trim(),bahas:r.bahas.trim(),tl:r.tl.trim(),pic:r.pic.trim(),due:r.due||"",dueText:r.due?"":(r.dueText||""),st:r.st||"open",ket:(r.ket||"").trim(),...(r.src?{src:r.src}:{}),...(E.cols.length?{x:Object.fromEntries(E.cols.map(c=>[c.id,((r.x||{})[c.id]||"").trim()]))}:{})}));
   const cols=E.cols.map(c=>({id:c.id,name:clean(c.name)||"Kolom"}));
-  if(E.mode==="next"){const lv=latestV(E.sid);if(lv&&lv.no>=E.no)return toast(`Meeting ke-${lv.no} sudah dibuat orang lain. Tutup editor lalu update dari meeting terbaru.`);}
+  if(E.mode==="next"){const lv=latestV(E.sid);if(lv&&lv.no>=E.no)return toast(`Meeting ${mV(lv)} sudah dibuat orang lain. Tutup editor lalu update dari meeting terbaru.`);}
   btn.disabled=true;toast("Menyimpan…",true);
   try{const meta={date:E.meta.date,time:clean(E.meta.time),place:clean(E.meta.place),lead:clean(E.meta.lead),people:clean(E.meta.people),agenda:clean(E.meta.agenda),next:E.meta.next||"",purpose:E.meta.purpose||"",outline:E.outline||[]};
     let sid=E.sid,vid;
@@ -1742,7 +1751,7 @@ async function saveEdit(){
     if(E.mode==="next"){vid=(await S.db.collection("versions").add({seriesId:sid,no:E.no,...meta,rows,cols,kind:"update",basedOn:E.vid,createdAt:Date.now(),...stamp()})).id;await S.db.collection("series").doc(sid).update(stamp());}
     else{await S.db.collection("versions").doc(E.vid).update({...meta,rows,cols,fixedAt:Date.now(),...stamp()});vid=E.vid;}
     const photos=E.photos,title=E.mode==="new"?clean(E.title):sById(sid)?.title,fid=E.mode==="new"?E.folderId:sById(sid)?.folderId;
-    S.edit=null;S.rf="all";toast(E.mode==="next"?`Meeting ke-${E.no} tersimpan sebagai dokumen baru`:E.mode==="fix"?"Koreksi tersimpan":"Notulensi tersimpan");
+    S.edit=null;S.rf="all";toast(E.mode==="next"?`Meeting ${E.mode==="next"?mL(E.sid,E.no,E.date):mL(E.sid,E.no)} tersimpan sebagai dokumen baru`:E.mode==="fix"?"Koreksi tersimpan":"Notulensi tersimpan");
     go("series",{sid,vid,force:true});
     const vobj={id:vid,seriesId:sid,no:E.no,...meta,rows,cols};
     const up=photos.length?await uploadPhotos(photos,{folderId:fid||null,seriesId:sid,versionId:vid}):[];
@@ -1758,14 +1767,14 @@ function inMeetingOrder(rows,ref){const pos=new Map(ref.map((r,i)=>[r.k,i])),out
 async function downloadForm(sid,fmt,jenis){
   if(!S.downloads)return toast("Unduhan tidak tersedia di tampilan ini");
   const s=sById(sid),lv=latestV(sid),fv=formVersion(sid);if(!fv)return;jenis=jenis||s.jenis||"";if(hasPct({jenis})||hasPct(s))fv.rows=inMeetingOrder(seriesRows(sid).map(({_v,auto,...r})=>r),lv.rows||[]);
-  const base=`Form Update Meeting ke-${fv.no} - ${(s.title||"Notulensi").replace(/[\\/:*?"<>|]+/g,"-").slice(0,80)}`;
+  const base=`Form Update Meeting ${mV(fv)} - ${(s.title||"Notulensi").replace(/[\\/:*?"<>|]+/g,"-").slice(0,80)}`;
   try{toast("Menyiapkan form…",true);let blob,name;
     if(fmt==="word"){blob=buildDocx(fv,s.title,[],{form:true,prevDate:lv.date,jenis});name=base+".docx";}
     else{const cols=fv.cols||[];const SD=hasPct({jenis})||hasPct(s),sdRows=[];
       const tb=SD&&!cols.length?await tplBook({title:s.title||"",meta:{agenda:lv.agenda||"",lokasi:lv.place||"",lead:lv.lead||"",people:lv.people||"",jenis},rows:fv.rows,sid,keys:true}):null;
       if(tb){await S.downloads.save({filename:base+".xlsx",data:tb});toast("Form siap diisi (format sama dengan template). Setelah selesai, upload kembali di sini.");return;}
       const X=await loadXlsx();
-      const aoa=[["FORM UPDATE MEETING"],[`Lanjutan dari Meeting ke-${lv.no} (${fmtD(lv.date)}). Ubah Status, perbarui isi, tambah baris baru dengan Kode kosong. Jangan ubah kolom Kode.`],[],
+      const aoa=[["FORM UPDATE MEETING"],[`Lanjutan dari Meeting ${mV(lv)} (${fmtD(lv.date)}). Ubah Status, perbarui isi, tambah baris baru dengan Kode kosong. Jangan ubah kolom Kode.`],[],
         ["Judul Notulensi",s.title],["Meeting ke-",fv.no],["Tanggal",""],["Jam",""],["Agenda",lv.agenda||""],["Lokasi",lv.place||""],["Pimpinan Rapat",lv.lead||""],["Peserta",lv.people||""],["Next Meeting",""],["Jenis Notulensi",jenis],
         ["No","Bab","Topik","Hasil Pembahasan","Tindak Lanjut","PIC","Due Date","Status",...(SD?["Sumber Data","","Hasil (%)","Nilai Sub Bab","Nilai Bab"]:[]),...cols.map(c=>c.name),"Kode"]];
       let no=0,lt=null,lb="";fv.rows.forEach(r=>{if(r.bab&&r.bab!==lb){lb=r.bab;aoa.push([r.bab]);}const same=lt&&lt.sec===r.sec&&norm(lt.topik)===norm(r.topik)&&r.topik;if(!same)no++;lt=r;
@@ -1782,12 +1791,12 @@ function updateChooser(sid){
   const s=sById(sid),lv=latestV(sid);if(!s||!lv)return openEditor("next",sid);
   if(s.ended)return reopenAsk(sid,()=>updateChooser(sid));
   const carry=(lv.rows||[]).filter(r=>r.st!=="close"),closed=(lv.rows||[]).length-carry.length,n=(lv.no||0)+1;
-  openModal(mHead(`Update Meeting ke-${n}`)+`<div class="mb">
-    <div class="stamp"><b>${esc(s.title)}</b> · lanjutan dari Meeting ke-${lv.no} (${fmtD(lv.date)}). ${carry.length} tindak lanjut Open/Continue dibawa${closed?`, ${closed} yang sudah Close tidak dibawa (tetap di arsip)`:""}.</div>
+  openModal(mHead(`Update Meeting ${mL(sid,n,lv.next)}`)+`<div class="mb">
+    <div class="stamp"><b>${esc(s.title)}</b> · lanjutan dari Meeting ${mV(lv)} (${fmtD(lv.date)}). ${carry.length} tindak lanjut Open/Continue dibawa${closed?`, ${closed} yang sudah Close tidak dibawa (tetap di arsip)`:""}.</div>
     ${jenisPick(s.jenis||"","uj")}
     <div class="upd2">
       <div class="uc"><b>1. Isi langsung di web</b><p>Form live: ubah status, tambah pembahasan atau tindak lanjut, lalu simpan. Perubahan langsung terlihat.</p><button class="btn pri" type="button" id="ucLive">Buka form live</button></div>
-      <div class="uc"><b>2. Pakai form file</b><p>Unduh form yang sudah terisi, edit di Word atau Excel, lalu upload kembali sebagai Meeting ke-${n}.</p>
+      <div class="uc"><b>2. Pakai form file</b><p>Unduh form yang sudah terisi, edit di Word atau Excel, lalu upload kembali sebagai Meeting ${mL(sid,n,lv.next)}.</p>
         <div class="rowx"><span class="stamp" style="min-width:64px">Langkah 1</span><button class="btn sm" type="button" id="ucWord">${IC.word.replace('width="24" height="24"','width="18" height="18"')}Unduh form Word</button><button class="btn sm" type="button" id="ucXls">${IC.excel.replace('width="24" height="24"','width="18" height="18"')}Unduh form Excel</button></div>
         <div class="rowx" style="margin-top:8px"><span class="stamp" style="min-width:64px">Langkah 2</span><button class="btn sm pri" type="button" id="ucUp">Upload hasil isian</button></div>
         <p class="stamp" style="margin-top:8px">Kolom <b>Kode</b> di form dipakai untuk mencocokkan baris lama. Jangan diubah; baris baru biarkan kosong.</p></div>
@@ -1813,7 +1822,7 @@ function newMeetingFlow(){
   openModal(mHead("Meeting Baru")+`<form class="mb" id="nm">
     <div class="choice">
       <label><input type="radio" name="nmk" value="next" ${run.length?"checked":"disabled"}><span><b>Lanjutan dari notulensi yang sudah berjalan</b><small>Meeting berikutnya untuk topik yang sama. Isi meeting terakhir disalin, tinggal diupdate.</small>
-        <select id="nmS" style="margin-top:8px;width:100%" ${run.length?"":"disabled"}>${run.map(x=>`<option value="${x.s.id}">${esc(x.s.title)} — terakhir Meeting ke-${x.v.no}, ${fmtD(x.v.date)} (${esc(fPathName(x.s.folderId))})</option>`).join("")||"<option>Belum ada notulensi berjalan</option>"}</select></span></label>
+        <select id="nmS" style="margin-top:8px;width:100%" ${run.length?"":"disabled"}>${run.map(x=>`<option value="${x.s.id}">${esc(x.s.title)} — terakhir Meeting ${mV(x.v)}, ${fmtD(x.v.date)} (${esc(fPathName(x.s.folderId))})</option>`).join("")||"<option>Belum ada notulensi berjalan</option>"}</select></span></label>
       <label><input type="radio" name="nmk" value="web" ${run.length?"":"checked"}><span><b>Notulensi baru — isi di web</b><small>Pakai format standar: Bab, Topik, Hasil Pembahasan, Tindak Lanjut, PIC, Due Date, Status, Keterangan.</small></span></label>
       <label><input type="radio" name="nmk" value="upload"><span><b>Notulensi baru — upload file Word / Excel</b><small>File dibaca otomatis menjadi Meeting ke-1. Bisa pakai template Excel standar di bawah.</small></span></label>
     </div>
@@ -1853,7 +1862,7 @@ function renderFiles(){
   const items=[
     ...children(here).filter(f=>!q||f.name.toLowerCase().includes(q)).map(f=>({k:"folder",t:"folder",id:f.id,name:f.name,date:f.createdAt||0,size:-1,f})),
     ...S.series.filter(s=>(s.folderId||null)===here&&(!q||s.title.toLowerCase().includes(q))).map(s=>{const v=latestV(s.id);return{k:"series",t:"notulensi",id:s.id,name:s.title,date:parseD(v?.date)?.getTime()||s.createdAt||0,size:-1,s,v};}),
-    ...meetingsIn(here).map(v=>{const sr=sById(v.seriesId);return{k:"meeting",t:"notulensi",id:v.id,name:`${sr.title} · Meeting ke-${v.no}`,date:parseD(v.date)?.getTime()||v.createdAt||0,size:-1,s:sr,v};}).filter(it=>!q||it.name.toLowerCase().includes(q)),
+    ...meetingsIn(here).map(v=>{const sr=sById(v.seriesId);return{k:"meeting",t:"notulensi",id:v.id,name:`${sr.title} · Meeting ${mV(v)}`,date:parseD(v.date)?.getTime()||v.createdAt||0,size:-1,s:sr,v};}).filter(it=>!q||it.name.toLowerCase().includes(q)),
     ...S.files.filter(f=>(f.folderId||null)===here&&(!f.seriesId||here)&&(!q||f.name.toLowerCase().includes(q))).map(f=>({k:"file",t:ftypeOf(f.name),id:f.id,name:f.name,date:f.at||0,size:f.size||0,f}))];
   const tord=Object.fromEntries(FTYPES.map((x,i)=>[x[0],i]));
   const cmp=(a,b)=>{let r=0;if(FS.k==="name")r=a.name.localeCompare(b.name,"id",{numeric:true,sensitivity:"base"});else if(FS.k==="date")r=a.date-b.date;else if(FS.k==="size")r=a.size-b.size;else r=tord[a.t]-tord[b.t]||a.name.localeCompare(b.name,"id",{numeric:true});return r*FS.d;};
@@ -1866,7 +1875,7 @@ function renderFiles(){
     if(it.k==="meeting"){const s=it.s,v=it.v,c=cnt(v.rows||[]);return `<tr><td style="min-width:240px"><button class="fn" type="button" data-act="openS" data-id="${s.id}" data-v="${v.id}">${IC.series}<span>${esc(it.name)}</span></button></td>
       <td style="white-space:nowrap">Notulensi</td><td style="white-space:nowrap">${c.total} tindak lanjut${c.total?`<div style="width:110px;margin-top:4px">${stackBar(c)}</div>`:""}</td><td style="white-space:nowrap">${fmtD(v.date)}</td><td>${pill(sStatus(s.id))}</td>
       <td class="c"><button class="ib" type="button" data-act="rowMenu" data-menu data-k="series" data-id="${s.id}" aria-label="Menu">${IC.kebab}</button></td></tr>`;}
-    const f=it.f;const fv=f.versionId&&S.versions.find(x=>x.id===f.versionId);return `<tr draggable="true" data-drag="file:${f.id}"><td style="min-width:220px"><button class="fn" type="button" data-act="openFile" data-id="${f.id}">${fileIcon(f.name)}<span>${esc(f.name)}</span></button></td><td style="white-space:nowrap">${FTYPES.find(x=>x[0]===it.t)[1]}</td><td class="muted">${fmtSize(f.size)}</td><td style="white-space:nowrap">${fmtTs(f.at).slice(0,11)}</td><td>${fv?`<button class="pill st-grey" type="button" data-act="openS" data-id="${f.seriesId}" data-v="${fv.id}" style="border:0;cursor:pointer">Sumber Meeting ke-${fv.no}</button>`:""}</td><td class="c"><button class="ib" type="button" data-act="rowMenu" data-menu data-k="file" data-id="${f.id}" aria-label="Menu">${IC.kebab}</button></td></tr>`;};
+    const f=it.f;const fv=f.versionId&&S.versions.find(x=>x.id===f.versionId);return `<tr draggable="true" data-drag="file:${f.id}"><td style="min-width:220px"><button class="fn" type="button" data-act="openFile" data-id="${f.id}">${fileIcon(f.name)}<span>${esc(f.name)}</span></button></td><td style="white-space:nowrap">${FTYPES.find(x=>x[0]===it.t)[1]}</td><td class="muted">${fmtSize(f.size)}</td><td style="white-space:nowrap">${fmtTs(f.at).slice(0,11)}</td><td>${fv?`<button class="pill st-grey" type="button" data-act="openS" data-id="${f.seriesId}" data-v="${fv.id}" style="border:0;cursor:pointer">Sumber Meeting ${mV(fv)}</button>`:""}</td><td class="c"><button class="ib" type="button" data-act="rowMenu" data-menu data-k="file" data-id="${f.id}" aria-label="Menu">${IC.kebab}</button></td></tr>`;};
   let body="";
   if(FS.group){let cur=null;items.forEach(it=>{if(it.t!==cur){cur=it.t;const n=items.filter(x=>x.t===cur).length;body+=`<tr class="grprow"><td colspan="6">${FTYPES.find(x=>x[0]===cur)[1]} <span class="muted">(${n})</span></td></tr>`;}body+=row(it);});}
   else body=items.map(row).join("");
@@ -1953,7 +1962,7 @@ async function notuBulk(root){
   if(S.view==="files")renderFiles();
   toast(`${rep.length} file notulensi diproses`);
   openModal(mHead("Jadikan Notulensi selesai")+`<div class="mb"><div class="note ok"><b>${rep.length} dari ${list.length} file</b> sekarang tampil sebagai Meeting dan bisa dikoreksi.</div>
-    ${rep.length?`<div class="tbl-wrap" style="margin-top:10px"><table><thead><tr><th>Notulensi</th><th>Meeting</th><th>Isi</th></tr></thead><tbody>${rep.map(r=>`<tr><td><button class="lnk" type="button" data-go="${r.sid}" style="text-align:left">${esc(r.title)}</button><div class="stamp">${esc(r.folder)} · ${esc(r.file)}</div></td><td style="white-space:nowrap">Meeting ke-${r.no}${r.existed?` <span class="pill st-grey">sudah ada</span>`:""}</td><td style="white-space:nowrap">${r.rows} tindak lanjut</td></tr>`).join("")}</tbody></table></div>`:""}
+    ${rep.length?`<div class="tbl-wrap" style="margin-top:10px"><table><thead><tr><th>Notulensi</th><th>Meeting</th><th>Isi</th></tr></thead><tbody>${rep.map(r=>`<tr><td><button class="lnk" type="button" data-go="${r.sid}" style="text-align:left">${esc(r.title)}</button><div class="stamp">${esc(r.folder)} · ${esc(r.file)}</div></td><td style="white-space:nowrap">Meeting ${r.sid?mL(r.sid,r.no):"ke-"+r.no}${r.existed?` <span class="pill st-grey">sudah ada</span>`:""}</td><td style="white-space:nowrap">${r.rows} tindak lanjut</td></tr>`).join("")}</tbody></table></div>`:""}
     ${notes.length?`<details style="margin-top:12px" open><summary class="stamp" style="cursor:pointer;font-weight:600">Catatan (${notes.length})</summary><ul style="margin:6px 0 0;padding-left:18px">${notes.map(n=>`<li class="stamp">${esc(n)}</li>`).join("")}</ul></details>`:""}</div>
     <div class="mf"><button class="btn pri" type="button" data-x>Selesai</button></div>`,bx=>{bx.style.maxWidth="820px";bx.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>{closeModal();go("series",{sid:b.dataset.go,vid:null});});});
 }
@@ -2043,8 +2052,8 @@ function deleteItem(k,id){
        closeModal();toast("Terhapus");if(k==="series"&&S.view==="series")go(S.backTo&&S.backTo!=="series"?S.backTo:"files");}catch(err){toast("Gagal menghapus: "+errMsg(err));}});
 }
 function deleteVersion(v){
-  openModal(mHead(`Hapus Meeting ke-${v.no}?`)+`<div class="mb"><div class="warnbox">Hanya Meeting ke-${v.no} (${fmtD(v.date)}) yang dihapus. Meeting ke-${v.no-1} kembali menjadi yang terbaru.</div></div><div class="mf"><button class="btn" type="button" data-x>Batal</button><button class="btn pri" style="background:#C93B36;border-color:#C93B36" type="button" id="dy">Ya, hapus</button></div>`,
-   box=>box.querySelector("#dy").onclick=async()=>{try{for(const f of S.files.filter(f=>f.versionId===v.id))await delFile(f);await S.db.collection("versions").doc(v.id).delete();S.vid=null;closeModal();toast(`Meeting ke-${v.no} dihapus`);}catch(err){toast("Gagal: "+errMsg(err));}});
+  openModal(mHead(`Hapus Meeting ${mV(v)}?`)+`<div class="mb"><div class="warnbox">Hanya Meeting ${mV(v)} (${fmtD(v.date)}) yang dihapus. Meeting ${mL(v.seriesId,v.no-1)} kembali menjadi yang terbaru.</div></div><div class="mf"><button class="btn" type="button" data-x>Batal</button><button class="btn pri" style="background:#C93B36;border-color:#C93B36" type="button" id="dy">Ya, hapus</button></div>`,
+   box=>box.querySelector("#dy").onclick=async()=>{try{for(const f of S.files.filter(f=>f.versionId===v.id))await delFile(f);await S.db.collection("versions").doc(v.id).delete();S.vid=null;closeModal();toast(`Meeting ${mV(v)} dihapus`);}catch(err){toast("Gagal: "+errMsg(err));}});
 }
 
 /* ================= PHOTOS + WORD (.docx) ================= */
@@ -2104,19 +2113,19 @@ function buildDocx(v,title,photos,opt={}){const FM=!!opt.form;
   const SV=sById(v.seriesId),KS=!FM&&SV&&hasPct(SV)&&v.seriesId?kesiapan(v.seriesId,v.no):null;
   body.push(wP(wRun("NOTULENSI MEETING",{b:true,sz:28}),{al:"center",af:40}));
   body.push(wP(wRun(title,{b:true,sz:24}),{al:"center",af:40}));
-  body.push(wP(wRun(FM?`FORM UPDATE · Meeting ke-${v.no} (lanjutan dari Meeting ke-${v.no-1}, ${fmtD(opt.prevDate)})`:`Meeting ke-${v.no}${d?` · update dari Meeting ke-${d.prev.no} (${fmtD(d.prev.date)})`:""}`,{sz:18,color:"5B6B66"}),{al:"center",af:FM?60:160}));
+  body.push(wP(wRun(FM?`FORM UPDATE · Meeting ${mV(v)} (lanjutan dari Meeting ${mL(v.seriesId,v.no-1)}, ${fmtD(opt.prevDate)})`:`Meeting ${mV(v)}${d?` · update dari Meeting ${mV(d.prev)} (${fmtD(d.prev.date)})`:""}`,{sz:18,color:"5B6B66"}),{al:"center",af:FM?60:160}));
   if(FM)body.push(wP(wRun("Cara isi: lengkapi Tanggal dan header, ubah Status (Open / Continue / Close), perbarui Hasil Pembahasan, Tindak Lanjut, PIC, atau Due Date. Untuk tindak lanjut baru tambahkan baris dan biarkan kolom Kode kosong. Jangan ubah isi kolom Kode. Simpan, lalu upload di web: notulensi ini → Update Meeting → Upload hasil isian.",{i:true,sz:16,color:"1D5C45"}),{al:"center",af:160}));
   const hw=[2000,5700,2000,5698],hc=(l,val)=>wTc(wP(wRun(l,{b:true})),{w:hw[0],fill:"EEF5F1"})+wTc(wP(wRun(val||(FM?"":"-"))),{w:hw[1]});
   const hc2=(l,val)=>wTc(wP(wRun(l,{b:true})),{w:hw[2],fill:"EEF5F1"})+wTc(wP(wRun(val||(FM?"":"-"))),{w:hw[3]});
   body.push(wTbl([wTr(hc("Tanggal",v.date?fmtD(v.date):"")+hc2("Agenda",v.agenda)),wTr(hc("Jam",v.time)+hc2("Next Meeting",v.next?fmtD(v.next):"")),wTr(hc("Peserta",v.people)+hc2("Lokasi",v.place)),wTr(hc("Pimpinan Rapat",v.lead)+hc2("Meeting ke-",String(v.no))),...((opt.jenis??sById(v.seriesId)?.jenis)?[wTr(hc("Jenis Notulensi",opt.jenis??sById(v.seriesId)?.jenis)+hc2("",FM?"":" "))]:[])],hw));
   let secN=1;
   if(v.purpose){body.push(wP(wRun(`${secN++}. Tujuan Meeting`,{b:true,sz:20}),{bf:200,af:60,keep:true}));body.push(wP(wRun(v.purpose)));}
-  if(KS){body.push(wP(wRun(`${secN++}. Kesiapan Project (posisi Meeting ke-${v.no})`,{b:true,sz:20}),{bf:200,af:60,keep:true}));
+  if(KS){body.push(wP(wRun(`${secN++}. Kesiapan Project (posisi Meeting ${mV(v)})`,{b:true,sz:20}),{bf:200,af:60,keep:true}));
     const kw=[7000,2800,2800,2798],kh=(t,i)=>wTc(wP(wRun(t,{b:true,color:"FFFFFF"}),{al:i?"center":"left"}),{w:kw[i],fill:"5B21B6"}),kc=(t,i,b)=>wTc(wP(wRun(t,{b:!!b}),{al:i?"center":"left"}),{w:kw[i],fill:b?"EDE7FD":""});
     body.push(wTbl([wTr(["Bab","Nilai Bab","Bobot","Nilai × Bobot"].map(kh).join(""),true),...KS.babs.map(b=>wTr([b.title,fmtPct(b.pct),fmtPct(b.w),fmtPct(b.val)].map((t,i)=>kc(t,i)).join(""))),wTr(["Total kesiapan","","",fmtPct(KS.pct)].map((t,i)=>kc(t,i,1)).join(""))],kw));}
   body.push(wP(wRun(`${secN++}. Pokok Pembahasan, Kesepakatan dan Tindak Lanjut`,{b:true,sz:20}),{bf:200,af:60,keep:true}));
   if(d){const s=d.s,parts=[];if(s.closed)parts.push(s.closed+" menjadi Close");if(s.status)parts.push(s.status+" status berubah");if(s.added)parts.push(s.added+" tindak lanjut baru");if(s.due)parts.push(s.due+" due date diubah");if(s.content)parts.push(s.content+" isi diperbarui");if(s.removed)parts.push(s.removed+" dihapus");
-    body.push(wP(wRun(`Perubahan dibanding Meeting ke-${d.prev.no}: `,{b:true,color:UPD})+wRun(parts.join(", ")||"tidak ada perubahan",{color:UPD})));
+    body.push(wP(wRun(`Perubahan dibanding Meeting ${mV(d.prev)}: `,{b:true,color:UPD})+wRun(parts.join(", ")||"tidak ada perubahan",{color:UPD})));
     body.push(wP(wRun("Keterangan warna: baris hijau = Close, baris kuning = Continue, sel biru = tindak lanjut baru, teks dicoret = nilai sebelumnya.",{i:true,sz:16,color:"5B6B66"}),{af:100}));}
   // column widths
   const base=[520,2100,3900,3900,1700,1450,1100,...(KS?[900]:[])];const nExtra=cols.length;
@@ -2139,7 +2148,7 @@ function buildDocx(v,title,photos,opt={}){const FM=!!opt.form;
         rows.push(wTr(cells.join("")));});});
     body.push(wTbl(rows,widths));
   });
-  if(d&&d.archived&&d.archived.length)body.push(wP(wRun(`${d.archived.length} tindak lanjut sudah Close di Meeting ke-${d.prev.no} dan tidak dibawa lagi (lihat arsip Meeting ke-${d.prev.no}).`,{i:true,sz:16,color:"5B6B66"}),{bf:80}));
+  if(d&&d.archived&&d.archived.length)body.push(wP(wRun(`${d.archived.length} tindak lanjut sudah Close di Meeting ${mV(d.prev)} dan tidak dibawa lagi (lihat arsip Meeting ${mV(d.prev)}).`,{i:true,sz:16,color:"5B6B66"}),{bf:80}));
   if(d&&d.removed.length){body.push(wP(wRun("Dihapus di meeting ini:",{b:true,color:UPD}),{bf:120}));d.removed.forEach(r=>body.push(wP(wRun("• "+(r.tl||r.topik)+(r.pic?" — "+r.pic:""),{strike:true,color:UPD}))));}
   // photos
   const rels=[],media=[];
@@ -2162,7 +2171,7 @@ function docxPack(B,rels,media){
   const docRels=`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rIdStyles" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/>${rels.join("")}</Relationships>`;
   return zipStore([{name:"[Content_Types].xml",data:ct},{name:"_rels/.rels",data:rootRels},{name:"word/document.xml",data:doc},{name:"word/styles.xml",data:styles},{name:"word/_rels/document.xml.rels",data:docRels},...media],"application/vnd.openxmlformats-officedocument.wordprocessingml.document");
 }
-const wordName=(title,v)=>`Notulensi ${(title||"Meeting").replace(/[\\/:*?"<>|]+/g,"-").slice(0,90)} - Meeting ${v.no} - ${fmtD(v.date)}.docx`;
+const wordName=(title,v)=>`Notulensi ${(title||"Meeting").replace(/[\\/:*?"<>|]+/g,"-").slice(0,90)} - Meeting ${mV(v)} - ${fmtD(v.date)}.docx`;
 async function generateWord(v,newPhotos=[],opt={}){
   if(!S.db||!v)return;const s=sById(v.seriesId);const title=opt.title||s?.title||"Notulensi";
   toast("Membuat file Word notulensi…",true);
@@ -2172,7 +2181,7 @@ async function generateWord(v,newPhotos=[],opt={}){
     if(blob.size>MAXB){toast("File Word melebihi 20 MB, kurangi jumlah foto");return null;}
     if(opt.save!==false){for(const f of S.files.filter(f=>f.versionId===v.id&&f.kind==="word"))try{await delFile(f);}catch(e){}
       await storeFile(new File([blob],name,{type:blob.type}),{folderId:s?.folderId??opt.folderId??null,seriesId:v.seriesId,versionId:v.id,kind:"word"});}
-    toast(`Word Meeting ke-${v.no} tersimpan${photos.length?` dengan ${photos.length} foto dokumentasi`:""}`);
+    toast(`Word Meeting ${mV(v)} tersimpan${photos.length?` dengan ${photos.length} foto dokumentasi`:""}`);
     return blob;
   }catch(err){toast("Gagal membuat Word: "+errMsg(err));return null;}
 }
@@ -2227,7 +2236,7 @@ async function uploadTree(list,base){
       if(r.skip){notes.push(r.skip);continue;}
       g.files.forEach(x=>tag.set(x,{seriesId:r.sid,versionId:r.vid}));
       rep.push({...r,folder:nm,file:best.x.file.name,rows:best.p.rows.length,att:g.files.length-1});
-      parsed.filter(o=>o!==best).forEach(o=>notes.push(`${o.x.file.name} disimpan sebagai lampiran Meeting ke-${r.no} ${r.title}`));
+      parsed.filter(o=>o!==best).forEach(o=>notes.push(`${o.x.file.name} disimpan sebagai lampiran Meeting ${r.sid?mL(r.sid,r.no):"ke-"+r.no} ${r.title}`));
     }catch(err){notes.push(`${nm}: gagal dibaca (${errMsg(err)})`);}}
   let ok=0,dup=0,fail=0,i=0;
   for(const x of ok0){i++;toast(`Mengunggah ${i}/${ok0.length}: ${x.file.name}`,true);
@@ -2239,7 +2248,7 @@ async function uploadTree(list,base){
   const ser=[...new Map(rep.map(r=>[r.sid,r])).values()];toast(`Upload folder selesai · ${ok} file`);
   openModal(mHead("Upload folder selesai")+`<div class="mb">
     <div class="note ok"><b>${ok} file</b> tersimpan${wrap?` (isi folder ${esc(wrap)})`:""}${dup?` · ${dup} sudah ada, dilewati`:""}${big.length?` · ${big.length} lebih dari 20 MB, dilewati`:""}${fail?` · ${fail} gagal`:""}.</div>
-    ${rep.length?`<h3 style="margin:14px 0 6px">Notulensi terbaca (${rep.length} meeting)</h3><div class="tbl-wrap"><table><thead><tr><th>Notulensi</th><th>Meeting</th><th>Isi</th></tr></thead><tbody>${rep.map(r=>`<tr><td><button class="lnk" type="button" data-go="${r.sid}" style="text-align:left">${esc(r.title)}</button><div class="stamp">${esc(r.folder)} · ${esc(r.file)}</div></td><td style="white-space:nowrap">Meeting ke-${r.no}${r.created?` <span class="pill upd">Notulensi baru</span>`:r.existed?` <span class="pill st-grey">sudah ada</span>`:""}</td><td style="white-space:nowrap">${r.rows} tindak lanjut<div class="stamp">${r.att} lampiran</div></td></tr>`).join("")}</tbody></table></div>`:`<p class="stamp">Tidak ada folder bertanggal berisi file notulensi Word/Excel. Semua file disimpan sebagai berkas.</p>`}
+    ${rep.length?`<h3 style="margin:14px 0 6px">Notulensi terbaca (${rep.length} meeting)</h3><div class="tbl-wrap"><table><thead><tr><th>Notulensi</th><th>Meeting</th><th>Isi</th></tr></thead><tbody>${rep.map(r=>`<tr><td><button class="lnk" type="button" data-go="${r.sid}" style="text-align:left">${esc(r.title)}</button><div class="stamp">${esc(r.folder)} · ${esc(r.file)}</div></td><td style="white-space:nowrap">Meeting ${r.sid?mL(r.sid,r.no):"ke-"+r.no}${r.created?` <span class="pill upd">Notulensi baru</span>`:r.existed?` <span class="pill st-grey">sudah ada</span>`:""}</td><td style="white-space:nowrap">${r.rows} tindak lanjut<div class="stamp">${r.att} lampiran</div></td></tr>`).join("")}</tbody></table></div>`:`<p class="stamp">Tidak ada folder bertanggal berisi file notulensi Word/Excel. Semua file disimpan sebagai berkas.</p>`}
     ${notes.length?`<details style="margin-top:12px"><summary class="stamp" style="cursor:pointer;font-weight:600">Catatan (${notes.length})</summary><ul style="margin:6px 0 0;padding-left:18px">${notes.map(n=>`<li class="stamp">${esc(n)}</li>`).join("")}</ul></details>`:""}
     <p class="stamp" style="margin-top:12px">Aturan: folder bernama tanggal (mis. “12 Oktober 2026”) yang berisi notulensi Word/Excel menjadi <b>Meeting ke-n</b> dari notulensi di folder induknya. File lain di folder itu menjadi lampiran meeting tersebut.</p></div>
     <div class="mf">${ser.length?`<button class="btn" type="button" id="utDash">Lihat Dashboard</button>`:""}<button class="btn pri" type="button" data-x>Selesai</button></div>`,bx=>{bx.style.maxWidth="820px";
@@ -2471,11 +2480,11 @@ function chooseTarget(file,parsed,folderId){const unitId=unitOf(folderId);
     openModal(mHead("Upload notulensi")+`<form class="mb" id="ct">
       <div class="note ok"><b>${esc(file.name)}</b> terbaca: ${parsed.rows.length} tindak lanjut${parsed.rows.some(r=>r.key)?` (${parsed.rows.filter(r=>r.key).length} cocok lewat Kode)`:""}${parsed.date?`, tanggal meeting ${fmtD(parsed.date)}`:""}.${parsed.ai?" (dirangkum otomatis)":""}</div>
       ${importPreview(parsed.rows)}
-      ${dup?`<div class="note">File dengan nama ini sudah pernah diupload sebagai Meeting ke-${dup.no} di “${esc(sById(dup.seriesId)?.title||"")}”.</div>`:""}
+      ${dup?`<div class="note">File dengan nama ini sudah pernah diupload sebagai Meeting ${mV(dup)} di “${esc(sById(dup.seriesId)?.title||"")}”.</div>`:""}
       <div class="choice">
         <label><input type="radio" name="tg" value="new" ${guess&&!parsed.forceNew?"":"checked"}><span><b>Notulensi baru</b><small>Dibuat sebagai Meeting ke-1 di ${esc(fPathName(unitId))}.</small></span></label>
         <label><input type="radio" name="tg" value="next" ${guess&&!parsed.forceNew?"checked":""} ${cands.length?"":"disabled"}><span><b>Update dari notulensi yang sudah ada</b><small>Jadi meeting berikutnya. Baris yang sama dicocokkan otomatis, perubahan ditandai, baris lama yang tidak disebut tetap dibawa.</small>
-          <select id="ctS" style="margin-top:8px;width:100%" ${cands.length?"":"disabled"}>${cands.map(x=>`<option value="${x.s.id}" ${guess&&guess.s.id===x.s.id?"selected":""}>${esc(x.s.title)} — Meeting ke-${x.v.no}, ${fmtD(x.v.date)} (${esc(fPathName(x.s.folderId))})</option>`).join("")||"<option>Belum ada notulensi</option>"}</select></span></label>
+          <select id="ctS" style="margin-top:8px;width:100%" ${cands.length?"":"disabled"}>${cands.map(x=>`<option value="${x.s.id}" ${guess&&guess.s.id===x.s.id?"selected":""}>${esc(x.s.title)} — Meeting ${mV(x.v)}, ${fmtD(x.v.date)} (${esc(fPathName(x.s.folderId))})</option>`).join("")||"<option>Belum ada notulensi</option>"}</select></span></label>
       </div>
       <label class="f">Judul notulensi (untuk notulensi baru)<input type="text" id="ctT" value="${esc(parsed.title)}"></label>
       ${jenisPick(normJenis(parsed.jenis)||S.pendingJenis||(guess&&!parsed.forceNew?guess.s.jenis:"")||"","cj")}
@@ -2486,7 +2495,7 @@ function chooseTarget(file,parsed,folderId){const unitId=unitOf(folderId);
       let warned="";const W=box.querySelector("#ctW");
       box.querySelector("#ct").onsubmit=e=>{e.preventDefault();
         if(box.querySelector("[name=tg]:checked").value==="next"){const sid=box.querySelector("#ctS").value,x=cands.find(c=>c.s.id===sid),d=box.querySelector("#ctD").value;
-          if(x&&d&&(x.v.date||"")>d){W.hidden=false;W.innerHTML=`Tanggal meeting <b>${fmtD(d)}</b> lebih awal dari Meeting ke-${x.v.no} (${fmtD(x.v.date)}) di “${esc(x.s.title)}”. Kemungkinan file ini milik notulensi lain. Pilih notulensi yang benar, atau pilih <b>Notulensi baru</b>.`;return;}
+          if(x&&d&&(x.v.date||"")>d){W.hidden=false;W.innerHTML=`Tanggal meeting <b>${fmtD(d)}</b> lebih awal dari Meeting ${mV(x.v)} (${fmtD(x.v.date)}) di “${esc(x.s.title)}”. Kemungkinan file ini milik notulensi lain. Pilih notulensi yang benar, atau pilih <b>Notulensi baru</b>.`;return;}
           if(x&&unitOf(x.s.folderId)!==unitId&&warned!==sid){warned=sid;W.hidden=false;W.innerHTML=`Notulensi “${esc(x.s.title)}” ada di <b>${esc(fPathName(x.s.folderId))}</b>, bukan di folder yang sedang dibuka (<b>${esc(fPathName(folderId))}</b>). Klik <b>Simpan</b> sekali lagi kalau memang benar.`;return;}}
         const jn=readJenisPick(box,"cj");if(box.querySelector("[name=tg]:checked").value==="new"&&!jn){W.hidden=false;W.innerHTML="Pilih kategori notulensi dulu (Persiapan, Permasalahan, atau Lainnya).";return;}
         done=true;const mode=box.querySelector("[name=tg]:checked").value;const r={jenis:jn,jt,mode,sid:box.querySelector("#ctS").value,title:clean(box.querySelector("#ctT").value)||parsed.title,date:box.querySelector("#ctD").value};S.onModalClose=null;closeModal();res(r);};});
@@ -2503,7 +2512,7 @@ async function importMeetingFolder(file,p,folderId,fdate,fname){
   let s=ss.length===1?ss[0]:ss.map(x=>({x,j:jac(x.title,title)})).sort((a,b)=>b.j-a.j).find(o=>o.j>=0.3)?.x||null;
   const colNames=m.cols||[];
   if(s){const same=versionsOf(s.id).find(v=>v.date===date);if(same)return{sid:s.id,vid:same.id,no:same.no,title:s.title,existed:true};
-    const lv=latestV(s.id);if(lv&&(lv.date||"")>date)return{skip:`${fname}: tanggal ${fmtD(date)} lebih lama dari Meeting ke-${lv.no} (${fmtD(lv.date)}), file disimpan sebagai berkas saja`};
+    const lv=latestV(s.id);if(lv&&(lv.date||"")>date)return{skip:`${fname}: tanggal ${fmtD(date)} lebih lama dari Meeting ${mV(lv)} (${fmtD(lv.date)}), file disimpan sebagai berkas saja`};
     const no=(lv?.no||0)+1,cols=mkColsFrom(lv?.cols,colNames),merged=await mergeRows(lv?.rows||[],withXCols(p.rows,cols));
     const vid=(await S.db.collection("versions").add({seriesId:s.id,no,...metaOf(m,date,file.name),rows:merged,cols,kind:"upload",basedOn:lv?.id||null,createdAt:Date.now(),...stamp()})).id;
     await S.db.collection("series").doc(s.id).update({...(s.ended?{ended:null}:{}),...(!s.jenis&&normJenis(m.jenis)?{jenis:normJenis(m.jenis)}:{}),...stamp()});s.ended=null;
@@ -2528,7 +2537,7 @@ async function importNotulensi(file,folderId,batch,forceNew,forceSid,existingFil
     if(!series||latestV(series.id)?.id!==replaceVid)return toast('Hanya Meeting terakhir yang dapat diganti dari file sumber.');
     const confirmed=await new Promise(resolve=>{
       S.onModalClose=()=>resolve(false);
-      openModal(mHead(`Ganti isi Meeting ke-${original.no} dari sumber?`)+`<div class="mb"><div class="note"><b>${esc(file.name)}</b> akan mengganti isi <b>Meeting ke-${original.no}</b> di ${esc(series.title)}. Tidak membuat Meeting ke-${original.no+1}, dan Meeting sebelumnya tetap tersimpan. Perubahan manual di Meeting ini akan diganti hasil pembacaan file.</div>${importPreview(rows)}</div><div class="mf"><button class="btn" type="button" data-x>Batal</button><button class="btn pri" type="button" id="replaceSourceOk">Ganti isi dari file ini</button></div>`,
+      openModal(mHead(`Ganti isi Meeting ${mV(original)} dari sumber?`)+`<div class="mb"><div class="note"><b>${esc(file.name)}</b> akan mengganti isi <b>Meeting ${mV(original)}</b> di ${esc(series.title)}. Tidak membuat Meeting ${mL(original.seriesId,original.no+1)}, dan Meeting sebelumnya tetap tersimpan. Perubahan manual di Meeting ini akan diganti hasil pembacaan file.</div>${importPreview(rows)}</div><div class="mf"><button class="btn" type="button" data-x>Batal</button><button class="btn pri" type="button" id="replaceSourceOk">Ganti isi dari file ini</button></div>`,
         box=>{box.style.maxWidth='950px';box.querySelector('#replaceSourceOk').onclick=()=>{S.onModalClose=null;closeModal();resolve(true);};});
     });
     if(!confirmed)return toast('Penggantian dokumen dibatalkan');
@@ -2541,7 +2550,7 @@ async function importNotulensi(file,folderId,batch,forceNew,forceSid,existingFil
       try{await storeFile(file,{folderId:series.folderId||null,seriesId:series.id,versionId:replaceVid});}
       catch(err){toast('Isi diperbarui, tetapi lampiran file belum tersimpan: '+errMsg(err));}
       go('series',{sid:series.id,vid:replaceVid,force:true});
-      toast(`Isi Meeting ke-${original.no} diperbarui sesuai file sumber`);
+      toast(`Isi Meeting ${mV(original)} diperbarui sesuai file sumber`);
     }catch(err){toast('Gagal mengganti isi meeting: '+errMsg(err));}
     return;
   }
@@ -2557,7 +2566,7 @@ async function importNotulensi(file,folderId,batch,forceNew,forceSid,existingFil
       const cols=mkCols([]);vid=(await S.db.collection("versions").add({seriesId:sid,no,...meta,rows:withX(rows,cols).map(r=>({...r,st:r.st||"open"})),cols,kind:"upload",createdAt:Date.now(),...stamp()})).id;}
     try{if(existingFileId){const ef=S.files.find(x=>x.id===existingFileId);if(ef){const{id:_i,...rest}=ef;await S.db.collection("files").doc(existingFileId).update({...rest,seriesId:sid,versionId:vid});ef.seriesId=sid;ef.versionId=vid;}}
       else await storeFile(file,{folderId:sById(sid)?.folderId??folderId,seriesId:sid,versionId:vid});}catch(e){}
-    toast(`${file.name} tersimpan sebagai Meeting ke-${no}`);
+    toast(`${file.name} tersimpan sebagai Meeting ${mL(sid,no,meta.date)}`);
     if(!batch)go("series",{sid,vid});
   }catch(err){toast("Gagal menyimpan "+file.name+": "+errMsg(err));}
 }
@@ -2567,7 +2576,7 @@ async function exportXlsx(v){
   if(!v)return;if(!S.downloads)return toast("Unduhan tidak tersedia di tampilan ini");
   try{toast("Membuat file Excel…",true);const s=sById(v.seriesId);
     if(hasPct(s)&&!(v.cols||[]).length){const blob=await tplBook({title:s?.title||"",meta:{tgl:fmtD(v.date),jam:v.time||"",agenda:v.agenda||"",lokasi:v.place||"",lead:v.lead||"",people:v.people||"",next:v.next?fmtD(v.next):"",jenis:s.jenis||""},rows:v.rows||[],sid:v.seriesId,keys:true});
-      if(blob){await S.downloads.save({filename:`${(s?.title||"Notulensi").replace(/[\\/:*?"<>|]+/g,"-").slice(0,90)} - Meeting ${v.no} - ${fmtD(v.date)}.xlsx`,data:blob});toast("File Excel siap (format sama dengan template upload)");return;}}
+      if(blob){await S.downloads.save({filename:`${(s?.title||"Notulensi").replace(/[\\/:*?"<>|]+/g,"-").slice(0,90)} - Meeting ${mV(v)} - ${fmtD(v.date)}.xlsx`,data:blob});toast("File Excel siap (format sama dengan template upload)");return;}}
     const X=await loadXlsx();const d=vDiff(v);
     const aoa=[["NOTULENSI MEETING"],[s?.title||""],[],["Meeting ke-",v.no],["Tanggal",fmtD(v.date)],["Jam",v.time||""],["Agenda",v.agenda||""],["Lokasi",v.place||""],["Pimpinan",v.lead||""],["Peserta",v.people||""],["Next Meeting",v.next?fmtD(v.next):""],[],
       ["No","Bab","Topik","Hasil Pembahasan","Tindak Lanjut","PIC","Due Date","Status",...(hasPct(s)?["Sumber Data","","Hasil (%)","Nilai Sub Bab","Nilai Bab"]:[]),...(v.cols||[]).map(c=>c.name),"Perubahan"]];const lbl=f=>f.startsWith("x:")?((v.cols||[]).find(c=>c.id===f.slice(2))?.name||"Kolom"):FIELDS.find(x=>x[0]===f)[1];
@@ -2577,7 +2586,7 @@ async function exportXlsx(v){
     const ws=X.utils.aoa_to_sheet(aoa);ws["!cols"]=[{wch:5},{wch:26},{wch:24},{wch:46},{wch:46},{wch:18},{wch:14},{wch:11},{wch:30},{wch:40}];
     const wb=X.utils.book_new();X.utils.book_append_sheet(wb,ws,"Meeting "+v.no);if(hasPct(s)){const hi=aoa.findIndex(r=>r[0]==="No"&&r[1]==="Bab"),o={first:hi+2,last:aoa.length,m:14+(v.cols||[]).length,totLabel:ksTot(s).toUpperCase()};xlCalc(X,ws,o);addSdSheets(X,wb,ws,sdRows,8,"Meeting "+v.no,o);}
     if(d&&d.removed.length){const rs=X.utils.aoa_to_sheet([["Dihapus di Meeting ke-"+v.no],["Item","Topik","PIC","Status terakhir"],...d.removed.map(r=>[r.tl,r.topik,r.pic,ST[r.st||"open"]])]);X.utils.book_append_sheet(wb,rs,"Dihapus");}
-    const fname=`${(s?.title||"Notulensi").replace(/[\\/:*?"<>|]+/g,"-").slice(0,90)} - Meeting ${v.no} - ${fmtD(v.date)}.xlsx`;
+    const fname=`${(s?.title||"Notulensi").replace(/[\\/:*?"<>|]+/g,"-").slice(0,90)} - Meeting ${mV(v)} - ${fmtD(v.date)}.xlsx`;
     await S.downloads.save({filename:fname,data:hasPct(s)?xlsxBlob(X,wb):new Blob([X.write(wb,{type:"array",bookType:"xlsx"})],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"})});toast("File Excel siap");
   }catch(err){if(err&&err.code==="cancelled")return toast("Unduhan dibatalkan");toast("Gagal membuat Excel: "+errMsg(err));}
 }
@@ -2591,7 +2600,7 @@ function renderCal(){
   for(let i=0;i<42;i++){const d=new Date(start);d.setDate(start.getDate()+i);const di=iso(d);if(i>=35&&d.getMonth()!==mo-1)break;
     const evs=S.versions.filter(v=>v.date===di&&(!set||set.has(sById(v.seriesId)?.folderId)));
     const pl=S.series.filter(s=>!s.ended&&(!set||set.has(s.folderId))).map(s=>({s,v:latestV(s.id)})).filter(o=>o.v&&o.v.next===di);
-    cells+=`<div class="dc ${d.getMonth()!==mo-1?"out":""} ${di===tIso?"today":""}"><span class="dn">${d.getDate()}</span>${pl.map(({s,v})=>`<button class="ev plan ${di<tIso?"miss":""}" data-act="openS" data-id="${s.id}" title="Rencana ${esc(s.title)} · Meeting ke-${v.no+1}${di<tIso?" · belum dikonfirmasi":""}">Rencana M${v.no+1} · ${esc(s.title)}</button>`).join("")}${evs.map(v=>`<button class="ev st-${vStatus(v)}" data-act="openS" data-id="${v.seriesId}" data-v="${v.id}" title="${esc(sById(v.seriesId)?.title||"")} · Meeting ke-${v.no}">M${v.no} · ${esc(sById(v.seriesId)?.title||"")}</button>`).join("")}</div>`;}
+    cells+=`<div class="dc ${d.getMonth()!==mo-1?"out":""} ${di===tIso?"today":""}"><span class="dn">${d.getDate()}</span>${pl.map(({s,v})=>`<button class="ev plan ${di<tIso?"miss":""}" data-act="openS" data-id="${s.id}" title="Rencana ${esc(s.title)} · Meeting ${mL(v.seriesId,v.no+1,v.next)}${di<tIso?" · belum dikonfirmasi":""}">Rencana M${v.no+1} · ${esc(s.title)}</button>`).join("")}${evs.map(v=>`<button class="ev st-${vStatus(v)}" data-act="openS" data-id="${v.seriesId}" data-v="${v.id}" title="${esc(sById(v.seriesId)?.title||"")} · Meeting ${mV(v)}">M${v.no} · ${esc(sById(v.seriesId)?.title||"")}</button>`).join("")}</div>`;}
   $("cal").innerHTML=`<div class="cal">${["Sen","Sel","Rab","Kam","Jum","Sab","Min"].map(d=>`<div class="dh">${d}</div>`).join("")}${cells}</div><div class="legend2" style="margin-top:12px">${STK.map(k=>`<span><i class="d-${k}" style="border:0"></i>${ST[k]}</span>`).join("")}<span><i style="background:#fff;border:1.5px dashed #2F6FB5"></i>Rencana next meeting</span><span>M2 = Meeting ke-2</span></div>`;
 }
 $("calFolder").onchange=renderCal;
@@ -2878,11 +2887,11 @@ function fixFromFile(sid,vid){if(!S.canEdit)return toast("Mode lihat: hanya edit
     const s=sById(sid),v=vById(vid);if(!s||!v)return;toast("Membaca "+f.name+"…",true);let p;try{p=await readNotulensi(f);}catch(err){return toast(f.name+" tidak bisa dibaca: "+errMsg(err));}
     if(!p.rows.length)return toast("Tabel tindak lanjut tidak ditemukan di "+f.name);toast("Siap");
     const grp=[...new Set(p.rows.map(r=>clean(r.sec||r.bab||"")).filter(Boolean))];
-    openModal(mHead(`Koreksi Meeting ke-${v.no} dari file`)+`<div class="mb">
+    openModal(mHead(`Koreksi Meeting ${mV(v)} dari file`)+`<div class="mb">
       <div class="note ok"><b>${esc(f.name)}</b> terbaca: <b>${p.rows.length}</b> tindak lanjut${grp.length?` dalam ${grp.length} Bab (${grp.map(esc).join(", ")})`:""}.</div>
-      <div class="note">Isi <b>Meeting ke-${v.no}</b> (${fmtD(v.date)}, sekarang ${(v.rows||[]).length} tindak lanjut) diganti dengan isi file ini. Tanggal meeting tetap ${fmtD(v.date)}; meeting lain tidak berubah. Plan/Aktual yang sudah diisi tetap dipakai bila tindak lanjutnya sama.</div>
+      <div class="note">Isi <b>Meeting ${mV(v)}</b> (${fmtD(v.date)}, sekarang ${(v.rows||[]).length} tindak lanjut) diganti dengan isi file ini. Tanggal meeting tetap ${fmtD(v.date)}; meeting lain tidak berubah. Plan/Aktual yang sudah diisi tetap dipakai bila tindak lanjutnya sama.</div>
       <div style="margin-top:10px">${jenisPick(normJenis(p.meta.jenis)||s.jenis||"","fj")}</div></div>
-      <div class="mf"><button class="btn" type="button" data-x>Batal</button><button class="btn pri" type="button" id="fjOk">Ganti isi Meeting ke-${v.no}</button></div>`,
+      <div class="mf"><button class="btn" type="button" data-x>Batal</button><button class="btn pri" type="button" id="fjOk">Ganti isi Meeting ${mV(v)}</button></div>`,
     box=>{box.style.maxWidth="680px";wireJenisPick(box,"fj");box.querySelector("#fjOk").onclick=async()=>{const j=readJenisPick(box,"fj");const btn=box.querySelector("#fjOk");btn.disabled=true;toast("Menyimpan koreksi…",true);
       try{const m=p.meta,cols=mkColsFrom(v.cols,m.cols),neu=withXCols(p.rows,cols),old=v.rows||[],map=await matchRows(old,neu),pm=new Map(old.map(r=>[r.k,r]));
         const rows=neu.map((r,i)=>{const kk=map.get(i),o=kk&&pm.get(kk);return{...r,k:kk||r.k,st:r.st||"open",...(o&&o.src&&(!r.src||srcItems(o.src).length>1)?{src:o.src}:{})};});
@@ -2890,7 +2899,7 @@ function fixFromFile(sid,vid){if(!S.canEdit)return toast("Mode lihat: hanya edit
         await S.db.collection("versions").doc(vid).update({rows,cols,outline:m.outline||[],...meta,source:f.name,fixedAt:Date.now(),...stamp()});
         if(j)await saveJenisIf(sid,j);closeModal();
         try{await storeFile(f,{folderId:s.folderId||null,seriesId:sid,versionId:vid});}catch(e){}
-        toast(`Meeting ke-${v.no} dikoreksi dari ${f.name}`);go("series",{sid,vid});}
+        toast(`Meeting ${mV(v)} dikoreksi dari ${f.name}`);go("series",{sid,vid});}
       catch(err){btn.disabled=false;toast("Gagal: "+errMsg(err));}};});};i.click();}
 
 
@@ -2944,7 +2953,7 @@ function ksCard(sid){const s=sById(sid),K=kesiapan(sid),SW=subWord(K);
     +b.subs.map(x=>`<tr class="kss${x.warn.length?" kswarn":""}" data-bk="${bi}" hidden><td>${K.mode==="bab"?`<span class="kscode">${esc(x.code)}</span>${esc(subTitle(x.title)||x.title)}`:esc(x.label)}<div class="stamp">${esc(methodTxt(x))}</div>${x.warn.length?`<div class="kwt">⚠ ${esc(x.warn[0])}</div>`:""}</td>
       <td class="num">${x.w!=null?fmtPct(x.w):"—"}</td><td><button type="button" class="kspct" data-act="ksSub" data-id="${sid}" data-c="${esc(x.code)}">${fmtPct(x.pct)}</button>${ksBar(x.pct)}</td><td class="num">${x.val!=null?fmtPct(x.val):"—"}</td><td>${st(x.c)}</td></tr>`).join("")).join("");
   const chips=K.babs.map(b=>`<button type="button" data-act="ksCalc" data-id="${sid}" data-b="${b.no}"><span>${esc(b.title)}</span><b>${fmtPct(b.pct)}</b>${ksBar(b.pct)}<em>${b.w!=null?`Nilai ${fmtPct(b.val)} dari bobot ${fmtPct(b.w)}`:"Belum ada data"}</em></button>`).join("");
-  return `<div class="card cpad ks" id="ksBox"><div class="ch"><h2>${ksName(s)}</h2><span class="stamp">${esc(s.jenis)} · ${ksNo(sid)?`posisi Meeting ke-${ksNo(sid)}`:"posisi terkini"} · klik angka untuk melihat perhitungannya</span></div>
+  return `<div class="card cpad ks" id="ksBox"><div class="ch"><h2>${ksName(s)}</h2><span class="stamp">${esc(s.jenis)} · ${ksNo(sid)?`posisi Meeting ${mL(sid,ksNo(sid))}`:"posisi terkini"} · klik angka untuk melihat perhitungannya</span></div>
     <div class="kstop"><button type="button" class="ksbig ks-${pctCls(K.pct)}" data-act="ksCalc" data-id="${sid}" title="Lihat perhitungan total"><small>${ksTot(s)}</small><b>${fmtPct(K.pct)}</b><small>target 100%</small></button>
       <div class="ksbabs">${chips||`<span class="stamp">Belum ada tindak lanjut</span>`}</div></div>
     ${K.warn?`<div class="note" style="margin-top:10px">${K.warn} peringatan perlu diverifikasi (bertanda ⚠).</div>`:""}
