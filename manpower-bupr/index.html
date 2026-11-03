@@ -1807,11 +1807,13 @@ function resumeVacant(D) {
 }
 
 // ---------- filter tahap pelamar (kolom Pelamar di MPP & halaman Data Pelamar) ----------
-const PST_NAMES = ['Sourcing', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU', 'FU MCU', 'On Site', 'Induksi'];
+// patokan = tanggal terakhir yang diisi di form Edit Pelamar; MCU & FU MCU dihitung satu tahap
+const PST_NAMES = ['Sourcing', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU / FU MCU', 'On Site', 'Induksi'];
+function pstStage(c) { let k = 0; (Array.isArray(c.dates) ? c.dates : []).forEach((d, i) => { if (d) k = i + 1; }); return k >= 5 ? k - 1 : k; }
 ui.pst = ui.pst || '';
 function pstOk(c) {
   const f = ui.pst; if (!f) return true;
-  const [m, v] = f.split(':'), k = Number(v), st = Number(c.stage) || 0;
+  const [m, v] = f.split(':'), k = Number(v), st = pstStage(c);
   if (m === 'at') return st === k && (c.st === 'pr' || c.st === 'hd');
   if (m === 'ge') return st >= k;
   if (m === 'st') return c.st === v;
@@ -4603,7 +4605,7 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
   }, true);
   try { after(); } catch (e) {}
 })();
-</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script><script src="../unit-population-detail.js?v=20261023-explorer-v2"></script><script src="../mp-private.js?v=20261025"></script><script src="../activity-log.js?v=20261024" data-kind="manpower"></script><script src="../otp-login.js?v=20261025"></script><script src="../candidate-resume.js?v=20261103"></script><script id="portal-name-sync">
+</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script><script src="../unit-population-detail.js?v=20261023-explorer-v2"></script><script src="../mp-private.js?v=20261025"></script><script src="../activity-log.js?v=20261024" data-kind="manpower"></script><script src="../otp-login.js?v=20261025"></script><script src="../candidate-resume.js?v=20261103b"></script><script id="portal-name-sync">
 // Nama portal mengikuti "Edit nama portal" di Monitoring MPP Achievement (tabel portal_display_settings).
 (function () {
   var KEY = 'portal-name:' + 'bupr';

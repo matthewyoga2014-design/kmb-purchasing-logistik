@@ -79,11 +79,13 @@ function resumeVacant(D) {
 }
 
 // ---------- filter tahap pelamar (kolom Pelamar di MPP & halaman Data Pelamar) ----------
-const PST_NAMES = ['Sourcing', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU', 'FU MCU', 'On Site', 'Induksi'];
+// patokan = tanggal terakhir yang diisi di form Edit Pelamar; MCU & FU MCU dihitung satu tahap
+const PST_NAMES = ['Sourcing', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU / FU MCU', 'On Site', 'Induksi'];
+function pstStage(c) { let k = 0; (Array.isArray(c.dates) ? c.dates : []).forEach((d, i) => { if (d) k = i + 1; }); return k >= 5 ? k - 1 : k; }
 ui.pst = ui.pst || '';
 function pstOk(c) {
   const f = ui.pst; if (!f) return true;
-  const [m, v] = f.split(':'), k = Number(v), st = Number(c.stage) || 0;
+  const [m, v] = f.split(':'), k = Number(v), st = pstStage(c);
   if (m === 'at') return st === k && (c.st === 'pr' || c.st === 'hd');
   if (m === 'ge') return st >= k;
   if (m === 'st') return c.st === v;

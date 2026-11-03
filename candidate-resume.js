@@ -20,8 +20,10 @@
   const nn = (s) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 
   // tahap 0 = lamaran/sourcing, 1..7 = tanggal di form (Psikologi Test … Induksi)
-  const STAGES = ['Lamaran / Sourcing', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU', 'FU MCU', 'On Site', 'Induksi'];
-  const UP_OF_STAGE = { 0: ['sumber'], 1: ['st0'], 2: ['st1'], 3: ['st2'], 4: ['st3'], 7: ['st6'] };
+  // MCU & FU MCU satu tahap: FU MCU hanya bila diperlukan
+  const STAGES = ['Lamaran / Sourcing', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU / FU MCU', 'On Site', 'Induksi'];
+  const LAST = STAGES.length - 1;
+  const UP_OF_STAGE = { 0: ['sumber'], 1: ['st0'], 2: ['st1'], 3: ['st2'], 4: ['st3'], 6: ['st6'] };
   const UP_LABEL = { sumber: 'Berkas Lamaran / CV', st0: 'Hasil Psikologi Test', st1: 'Hasil Interview User', st2: 'Offering Letter (dokumen)', st3: 'Hasil MCU', st6: 'Bukti Induksi' };
   const STOP_LABEL = { 'Tidak Lolos': 'Tidak lolos', 'No Response': 'Tidak ada respon', 'Menolak OL': 'Menolak offering', 'Mundur': 'Mundur / kabur' };
 
@@ -103,10 +105,13 @@
   function build(c, p) {
     const dates = Array.isArray(c.dates) ? c.dates : [];
     const files = c.files || {};
-    const stDate = (i) => i === 0 ? c.apply : dates[i - 1];
-    const stage = Math.max(0, Math.min(7, Number(c.stage) || 0));
+    // tanggal form: dates[0]=Psikotes,1=Interview,2=Offering,3=MCU,4=FU MCU,5=On Site,6=Induksi
+    const stDate = (i) => i === 0 ? c.apply : i <= 3 ? dates[i - 1] : i === 4 ? (dates[3] || dates[4]) : dates[i];
+    const stLabel = (i) => i === 4 && dates[3] && dates[4] ? `MCU ${fmtD(dates[3])} · FU MCU ${fmtD(dates[4])}` : (i === 4 && !dates[3] && dates[4] ? 'FU MCU ' + fmtD(dates[4]) : fmtD(stDate(i)));
+    let raw = 0; dates.forEach((d, i) => { if (d) raw = i + 1; });          // patokan: tanggal terakhir yang diisi di form
+    const stage = raw >= 5 ? raw - 1 : raw;
     const pctArr = G('STAGE_PCT', [0, 25, 40, 55, 70, 80, 95, 100]);
-    const pct = pctArr[stage] ?? 0;
+    const pct = (c.status === 'Diterima') ? 100 : (pctArr[raw] ?? 0);
     const status = c.status || 'Aktif';
     const kind = status === 'Diterima' ? 'ok' : status === 'Hold' ? 'hd' : (c.st === 'no' || STOP_LABEL[status]) ? 'no' : 'pr';
     const lastDate = [c.apply, ...dates].filter(isD).sort().pop();
@@ -115,9 +120,9 @@
     const chip = (k) => files[k] ? `<a class="fchip2" href="${escH(fu(files[k]))}" title="${escH(files[k].name || UP_LABEL[k])}">${escH(UP_LABEL[k])}</a>` : '';
     const posName = `${escH(p.jabatan || '')} · ${G('isVacant', () => false)(p) ? 'Vacant' : escH(p.nama || '')} #${escH(p.no)}`;
     let head, sub;
-    if (kind === 'ok') { head = 'Diterima — ' + STAGES[stage]; sub = 'Pelamar sudah diterima'; }
+    if (kind === 'ok') { head = 'Diterima' + (raw ? ' — ' + STAGES[stage] : ''); sub = 'Pelamar sudah diterima' + (stage < LAST ? ' · tanggal tahapan di form belum lengkap' : ''); }
     else if (kind === 'no') { head = `Berhenti di ${STAGES[stage]}`; sub = (STOP_LABEL[status] || status) + (c.reason && c.reason !== STOP_LABEL[status] ? ' · ' + escH(c.reason) : ''); }
-    else { head = `Sedang di tahap ${STAGES[stage]}`; sub = stage < 7 ? `Berikutnya: ${STAGES[stage + 1]}` : 'Semua tahap sudah dilalui'; if (kind === 'hd') sub = 'Status Hold · ' + sub; }
+    else { head = `Sedang di tahap ${STAGES[stage]}`; sub = stage < LAST ? `Berikutnya: ${STAGES[stage + 1]}` : 'Semua tahap sudah dilalui'; if (kind === 'hd') sub = 'Status Hold · ' + sub; }
     const tl = STAGES.map((nm, i) => {
       const d = stDate(i); const done = i <= stage && (i === 0 || !!d || i < stage);
       let cls = i < stage ? 'done' : i === stage ? (kind === 'no' ? 'stop' : kind === 'ok' ? 'done ok' : 'cur') : (i === stage + 1 && kind !== 'no' && kind !== 'ok' ? 'next' : 'todo');
@@ -130,7 +135,7 @@
       const ups = (UP_OF_STAGE[i] || []);
       const fl = ups.map((k) => files[k] ? chip(k) : (i <= stage ? `<span class="miss">${escH(UP_LABEL[k])} belum diupload</span>` : '')).join('');
       return `<div class="rs-st ${cls}"><span class="rs-dot">${cls.includes('stop') ? '!' : (i < stage || cls.includes('ok')) ? '✓' : i + 1}</span><div>
-        <div class="rs-l"><b>${nm}</b>${d ? `<span>${fmtD(d)}</span>` : (done ? '<span style="color:#A8A5C4">tanggal belum diisi</span>' : '')}${tag}</div>${fl ? `<div class="rs-f">${fl}</div>` : ''}</div></div>`;
+        <div class="rs-l"><b>${nm}</b>${d ? `<span>${stLabel(i)}</span>` : (done ? '<span style="color:#A8A5C4">tanggal belum diisi</span>' : '')}${tag}</div>${fl ? `<div class="rs-f">${fl}</div>` : ''}</div></div>`;
     }).join('');
     const nDocs = Object.keys(UP_LABEL).filter((k) => files[k]).length;
     const docs = Object.keys(UP_LABEL).map((k) => `<div class="rs-doc ${files[k] ? 'y' : 'n'}"><i>${files[k] ? '✓' : '–'}</i><div><span>${escH(UP_LABEL[k])}</span>${files[k] ? `<a class="fchip2" style="all:unset;cursor:pointer;color:#5B21B6;font-weight:600;font-size:12.5px;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" href="${escH(fu(files[k]))}" title="${escH(files[k].name || UP_LABEL[k])}">${escH(files[k].name || 'Lihat berkas')}</a>` : '<span style="font-size:12.5px;color:#A8A5C4">Belum ada</span>'}</div></div>`).join('');
@@ -138,7 +143,7 @@
       `RESUME PELAMAR`, `Nama: ${c.name}`, `Posisi: ${p.jabatan || ''} (${G('isVacant', () => false)(p) ? 'Vacant' : p.nama || ''} #${p.no})${p.ptk ? ' · ' + p.ptk : ''}`,
       `Status: ${status} · Progres ${pct}%`, `Posisi proses: ${head.replace(/<[^>]+>/g, '')}${sub ? ' (' + sub.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&') + ')' : ''}`,
       `Sumber: ${c.sumber || '-'} · Tgl lamaran: ${c.apply ? fmtD(c.apply) : '-'}`, '', 'Tahapan:',
-      ...STAGES.map((nm, i) => `${i <= stage ? '✓' : '·'} ${nm}: ${stDate(i) ? fmtD(stDate(i)) : (i <= stage ? 'tanggal belum diisi' : 'belum')}`),
+      ...STAGES.map((nm, i) => `${i <= stage ? '✓' : '·'} ${nm}: ${stDate(i) ? stLabel(i) : (i <= stage ? 'tanggal belum diisi' : 'belum')}`),
       '', `Berkas (${nDocs}/6): ` + Object.keys(UP_LABEL).map((k) => `${files[k] ? '✓' : '✗'} ${UP_LABEL[k]}`).join(', '),
       c.note ? `\nKeterangan: ${c.note}` : '',
     ].join('\n').trim();
