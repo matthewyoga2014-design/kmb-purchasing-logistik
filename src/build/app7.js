@@ -174,7 +174,7 @@ function pagePelamar(D) {
   const all = []; D.P.forEach((p, idx) => candidates(p).forEach((c) => all.push({ ...c, p, idx })));
   const cnt = (t) => all.filter((c) => PT_OF(c) === t).length;
   const q = ui.pq2.toLowerCase();
-  const rows = all.filter((c) => (ui.pt === 'semua' || PT_OF(c) === ui.pt) && (!q || `${c.name} ${c.p.jabatan} ${c.sumber || ''} ${c.note} ${c.p.ptk || ''}`.toLowerCase().includes(q)))
+  const rows = all.filter((c) => (ui.pt === 'semua' || PT_OF(c) === ui.pt) && pstOk(c) && (!q || `${c.name} ${c.p.jabatan} ${c.sumber || ''} ${c.note} ${c.p.ptk || ''}`.toLowerCase().includes(q)))
     .sort((a, b) => (isOpen(b.p) - isOpen(a.p)) || (a.p.no - b.p.no));
   const reasons = {}; all.filter((c) => PT_OF(c) === 'tidak').forEach((c) => { reasons[c.status] = (reasons[c.status] || 0) + 1; });
   return `<div class="mhead"><div><div class="eyebrow">Monitoring Manpower KTA - TRA</div><h1>Data Pelamar</h1><p>Seluruh pelamar dari semua PTK: aktif, tidak aktif, dan yang sudah diterima.</p></div>
@@ -182,7 +182,7 @@ function pagePelamar(D) {
     ${DL ? '<button type="button" class="btn btn-g" id="csvPel">Export CSV</button>' : ''}${(DL || IS_TOP) ? '<button type="button" class="btn btn-g" id="printBtn">Print</button>' : ''}</div></div>
   <div class="mstats"><div><b>${all.length}</b><span>Total pelamar</span></div><div><b style="color:var(--primary)">${cnt('aktif')}</b><span>Aktif (proses + hold)</span></div><div><b style="color:var(--crit)">${cnt('tidak')}</b><span>Tidak aktif</span></div><div><b style="color:var(--good)">${cnt('diterima')}</b><span>Diterima</span></div><div><b>${Object.entries(reasons).map(([k, n]) => `${n}`).join('/') || 0}</b><span>${Object.keys(reasons).join(' / ') || 'Alasan tidak aktif'}</span></div></div>
   <div class="card" style="padding:16px 0 6px">
-    <div class="toolbar" style="padding:0 16px"><div class="seg" role="group" aria-label="Kategori pelamar">${[['aktif', `Aktif (${cnt('aktif')})`], ['tidak', `Tidak Aktif (${cnt('tidak')})`], ['diterima', `Diterima (${cnt('diterima')})`], ['semua', `Semua (${all.length})`]].map(([k, l]) => `<button type="button" data-pt="${k}" aria-pressed="${ui.pt === k}">${l}</button>`).join('')}</div><span class="small">${rows.length} pelamar</span></div>
+    <div class="toolbar" style="padding:0 16px"><div class="seg" role="group" aria-label="Kategori pelamar">${[['aktif', `Aktif (${cnt('aktif')})`], ['tidak', `Tidak Aktif (${cnt('tidak')})`], ['diterima', `Diterima (${cnt('diterima')})`], ['semua', `Semua (${all.length})`]].map(([k, l]) => `<button type="button" data-pt="${k}" aria-pressed="${ui.pt === k}">${l}</button>`).join('')}</div>${pstSelect('pstSel2')}<span class="small">${rows.length} pelamar</span></div>
     <div class="tw"><table class="t mt"><thead><tr><th>No</th><th>Nama Kandidat</th><th>Jabatan</th><th>PTK</th><th>Status PTK</th><th>Status Kandidat</th><th>Tahap Terakhir</th><th>Tgl Lamaran</th><th>Sumber</th><th>Berkas</th><th>Keterangan</th>${CAN_EDIT ? '<th>Aksi</th>' : ''}</tr></thead><tbody>
     ${rows.map((c, i) => `<tr><td>${i + 1}</td><td class="b"><button type="button" class="rs-name" data-resume="${c.idx}:${c.fromHist || c.ci == null ? '' : c.ci}:${encodeURIComponent(c.name || '')}" title="Lihat resume pelamar">${esc(c.name)}</button></td><td>${esc(c.p.jabatan)}<div class="small">${isVacant(c.p) ? 'Vacant' : esc(c.p.nama)} #${c.p.no}</div></td><td class="ptkc small">${esc(c.p.ptk || '-')}</td>
       <td>${hasPTK(c.p) ? `<span class="stt ${isOpen(c.p) ? 'open' : 'close'}">${esc(c.p.status)}</span>` : '-'}</td>

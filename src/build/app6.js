@@ -78,10 +78,53 @@ function resumeVacant(D) {
   }).join('') || '<div class="empty">Tidak ada posisi vacant.</div>'}</div>`;
 }
 
+// ---------- filter tahap pelamar (kolom Pelamar di MPP & halaman Data Pelamar) ----------
+const PST_NAMES = ['Sourcing', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU', 'FU MCU', 'On Site', 'Induksi'];
+ui.pst = ui.pst || '';
+function pstOk(c) {
+  const f = ui.pst; if (!f) return true;
+  const [m, v] = f.split(':'), k = Number(v), st = Number(c.stage) || 0;
+  if (m === 'at') return st === k && (c.st === 'pr' || c.st === 'hd');
+  if (m === 'ge') return st >= k;
+  if (m === 'st') return c.st === v;
+  return true;
+}
+function pstLabel(f) {
+  if (!f) return 'Semua pelamar';
+  const [m, v] = f.split(':');
+  if (m === 'at') return 'Sedang di ' + PST_NAMES[+v];
+  if (m === 'ge') return 'Sudah sampai ' + PST_NAMES[+v];
+  return v === 'ok' ? 'Diterima' : v === 'no' ? 'Tidak lolos / tidak aktif' : v === 'hd' ? 'Hold' : f;
+}
+function pstSelect(id) {
+  const o = (v, l) => `<option value="${v}" ${ui.pst === v ? 'selected' : ''}>${l}</option>`;
+  return `<select id="${id || 'pstSel'}" class="pst-sel${ui.pst ? ' on' : ''}" aria-label="Filter tahap pelamar" title="Filter pelamar per tahap">${o('', 'Semua tahap')}
+    <optgroup label="Sedang di tahap (masih proses)">${PST_NAMES.map((n, i) => o('at:' + i, 'Sedang di ' + n)).join('')}</optgroup>
+    <optgroup label="Sudah sampai tahap (termasuk yang lanjut)">${PST_NAMES.slice(1).map((n, i) => o('ge:' + (i + 1), n + ' ke atas')).join('')}</optgroup>
+    <optgroup label="Status">${o('st:hd', 'Hold')}${o('st:ok', 'Diterima')}${o('st:no', 'Tidak lolos / tidak aktif')}</optgroup></select>`;
+}
+function pstList(cs) {
+  const L = [...cs.filter((x) => x.st !== 'no'), ...cs.filter((x) => x.st === 'no')];
+  return ui.pst ? L.filter(pstOk) : L;
+}
+function pstBar(D) {
+  if (!ui.pst) return '';
+  let n = 0, pos = 0; D.P.forEach((p) => { const m = candidates(p).filter(pstOk).length; n += m; if (m) pos++; });
+  return `<div class="pst-bar"><span>Filter pelamar: <b>${esc(pstLabel(ui.pst))}</b> · ${n} kandidat di ${pos} posisi</span><button type="button" class="btn btn-g btn-sm" data-pstreset>Hapus filter</button></div>`;
+}
+(function () {
+  const st = document.createElement('style');
+  st.textContent = '.pst-sel{display:block;margin-top:4px;max-width:170px;font:inherit;font-size:11.5px;font-weight:600;text-transform:none;letter-spacing:0;border:1px solid #DCD9EA;border-radius:8px;padding:3px 6px;background:#fff;color:#1C1A33;cursor:pointer}.pst-sel.on{border-color:#6D28D9;background:#F5F0FF;color:#6D28D9}.toolbar .pst-sel{display:inline-block;margin:0 8px 0 auto;max-width:220px;font-size:12.5px;padding:6px 8px}.pst-bar{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;background:#F5F0FF;border:1px solid #DDD0FA;border-radius:12px;padding:8px 12px;margin:0 0 10px;font-size:13px}@media print{.pst-sel,.pst-bar button{display:none!important}}';
+  document.head.appendChild(st);
+  document.addEventListener('change', (e) => { if (e.target.id === 'pstSel' || e.target.id === 'pstSel2') { ui.pst = e.target.value; if (ui.pst && ui.pt !== 'semua' && !ui.pst.startsWith('at:') && ui.pst !== 'st:hd') ui.pt = 'semua'; render(); } });
+  document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('[data-pstreset]')) { ui.pst = ''; render(); } });
+})();
+
 // ---------- MPP page (compact, like the reference web) ----------
 function pageMPP(D) {
   const q = ui.mq.toLowerCase();
   const rows = D.P.map((p, i) => [p, i]).filter(([p]) => {
+    if (ui.pst && !candidates(p).some(pstOk)) return false;
     if (ui.mf !== 'semua' && (!hasPTK(p) || (p.status || '').toLowerCase() !== ui.mf)) return false;
     return !q || `${p.nama} ${p.jabatan} ${p.section} ${p.group} ${p.ket} ${p.ptk} ${candidates(p).map((c) => c.name).join(' ')}`.toLowerCase().includes(q);
   });
@@ -89,7 +132,7 @@ function pageMPP(D) {
   const kc = (k) => ({ 'JATUH TEMPO': 'crit', 'HAMPIR JATUH TEMPO': 'warn', 'ON TRACK': 'good', 'SELESAI': 'good' }[k] || 'mute');
   const all = D.allCands, c = (s) => all.filter((x) => x.st === s).length;
   const pq = ui.pq.toLowerCase();
-  const prow = all.filter((x) => (ui.pf === 'semua' || x.st === ui.pf) && (!pq || `${x.name} ${x.p.jabatan} ${x.note} ${x.sumber || ''}`.toLowerCase().includes(pq))).sort((a, b) => (isOpen(b.p) - isOpen(a.p)) || (a.p.no - b.p.no));
+  const prow = all.filter((x) => (ui.pf === 'semua' || x.st === ui.pf) && pstOk(x) && (!pq || `${x.name} ${x.p.jabatan} ${x.note} ${x.sumber || ''}`.toLowerCase().includes(pq))).sort((a, b) => (isOpen(b.p) - isOpen(a.p)) || (a.p.no - b.p.no));
   return `<div class="mhead"><div><div class="eyebrow">Monitoring Manpower KTA - TRA</div><h1>MPP KTA - TRA</h1><p>Planning manpower dan monitoring PTK/rekrutmen.</p></div>
     <div class="mtools">
       <input type="search" id="mq" placeholder="Cari nama / jabatan / kandidat" value="${esc(ui.mq)}" aria-label="Cari di MPP">
@@ -99,15 +142,15 @@ function pageMPP(D) {
       ${(DL || IS_TOP) ? '<button type="button" class="btn btn-g" id="printBtn">Print</button>' : ''}
     </div></div>
   <div class="mstats"><div><b>${D.planning}</b><span>Planning</span></div><div><b>${D.actual}</b><span>Actual</span></div><div><b>${D.vacant}</b><span>Vacant</span></div><div><b>${cnt('open') + cnt('continue')}</b><span>Open</span></div><div><b>${cnt('close')}</b><span>Close</span></div></div>
-  <div class="card" style="padding:6px 0;margin-bottom:18px"><div class="tw"><table class="t mt">
-    <thead><tr><th>No</th><th>Nama</th><th>Jabatan</th><th>Pelamar</th><th>Keterangan</th><th>PTK</th><th>Status</th><th>Progress</th><th>Due Date</th><th>Ket. PTK</th><th>Aksi</th></tr></thead>
+  ${pstBar(D)}<div class="card" style="padding:6px 0;margin-bottom:18px"><div class="tw"><table class="t mt">
+    <thead><tr><th>No</th><th>Nama</th><th>Jabatan</th><th>Pelamar${pstSelect()}</th><th>Keterangan</th><th>PTK</th><th>Status</th><th>Progress</th><th>Due Date</th><th>Ket. PTK</th><th>Aksi</th></tr></thead>
     <tbody>${rows.map(([p, i]) => {
       const cs = candidates(p), fl = cs.filter(inFlight), si = stageIdx(p), k = ketPTK(p);
       return `<tr>
         <td>${p.no}</td>
         <td class="${isVacant(p) ? 'vacn' : 'b'}">${esc(p.nama)}</td>
         <td>${esc(p.jabatan)}<div class="small">${esc(p.group || p.section || '')}</div></td>
-        <td>${cs.length ? `<button type="button" class="pcount" data-cands="${i}">${cs.length} Pelamar</button>${cs.length ? `<div class="plist">${[...cs.filter((x) => x.st !== 'no'), ...cs.filter((x) => x.st === 'no')].map((x) => `<div class="${x.st === 'no' ? 'off' : 'on'}"><b>${esc(x.name)}</b><span>${x.st === 'no' ? esc(String(x.status || 'Tidak Lolos').toUpperCase()) : x.st === 'ok' ? 'DITERIMA' : x.status === 'Hold' ? 'HOLD · ' + STAGE_UP[x.stage] : STAGE_UP[x.stage] + ' ' + STAGE_PCT[x.stage] + '%'}</span></div>`).join('')}</div>` : ''}` : '<span class="dash">-</span>'}</td>
+        <td>${cs.length ? `<button type="button" class="pcount" data-cands="${i}">${cs.length} Pelamar</button>${cs.length ? `<div class="plist">${pstList(cs).map((x) => `<div class="${x.st === 'no' ? 'off' : 'on'}"><b>${esc(x.name)}</b><span>${x.st === 'no' ? esc(String(x.status || 'Tidak Lolos').toUpperCase()) : x.st === 'ok' ? 'DITERIMA' : x.status === 'Hold' ? 'HOLD · ' + STAGE_UP[x.stage] : STAGE_UP[x.stage] + ' ' + STAGE_PCT[x.stage] + '%'}</span></div>`).join('')}</div>` : ''}` : '<span class="dash">-</span>'}</td>
         <td class="ket">${esc(p.ket || '-')}</td>
         <td class="ptkc">${esc(p.ptk || '-')}</td>
         <td>${hasPTK(p) ? `<span class="stt ${/close/i.test(p.status) ? 'close' : /continue/i.test(p.status) ? 'cont' : 'open'}">${esc(p.status)}</span>` : '<span class="dash">-</span>'}</td>
