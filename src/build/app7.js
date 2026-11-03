@@ -144,7 +144,7 @@ function candForm(idx, ci) {
   Object.keys(C_UPLOADS).forEach((k) => { const box = document.getElementById('up_u_' + k); if (box) box.innerHTML = upInner('u_' + k); });
   document.querySelector('#frm .fgrid').classList.add('c3');
   const back = document.createElement('div'); back.className = 'cm-back';
-  back.innerHTML = `<button type="button" class="btn btn-g btn-sm" data-cands="${idx}">← Daftar Pelamar</button><span class="small">${isVacant(p) ? 'Vacant' : esc(p.nama)} #${p.no} • ${esc(p.ptk || '')}</span>`;
+  back.innerHTML = `<button type="button" class="btn btn-g btn-sm" data-cands="${idx}">← Daftar Pelamar</button>${c ? `<button type="button" class="rs-btn" style="margin-left:6px" data-resume="${idx}:${ci}:">Resume</button>` : ''}<span class="small">${isVacant(p) ? 'Vacant' : esc(p.nama)} #${p.no} • ${esc(p.ptk || '')}</span>`;
   document.getElementById('frm').prepend(back);
 }
 
@@ -155,7 +155,7 @@ function openCands(idx) {
   const dl = (c) => { const parts = []; if (c.apply) parts.push(`Lamaran ${fmt(c.apply)}`); (c.dates || []).forEach((d, i) => { if (d) parts.push(`${STAGE_SHORT[i + 1]} ${isDate(d) ? fmt(d) : esc(d)}`); }); return parts.length ? `<div class="cc-dates">${parts.join(' • ')}</div>` : ''; };
   document.getElementById('dialog').innerHTML = `<div class="cm-h"><h2 id="mTitle">Pelamar — ${esc(p.jabatan)} (${isVacant(p) ? 'Vacant' : esc(p.nama)} #${p.no})</h2><button type="button" class="x" id="mClose" aria-label="Tutup">×</button></div>
     <div class="cm-sum"><div><b>${cs.length} pelamar</b><span>Progress tertinggi ${STAGE_UP[hi]} (${STAGE_PCT[hi]}%)</span></div>${CAN_EDIT ? '<button type="button" class="btn btn-y" id="addCand">+ Tambah Pelamar</button>' : ''}</div>
-    <div class="cm-list">${cs.map((c) => `<div class="cc"><div class="cc-h"><div><b>${esc(c.name)}</b><div class="cc-meta"><span class="hs ${C_BADGE[c.status] || 'no'}">${esc(c.status)}</span><span>${esc(c.sumber || 'Sumber belum diisi')}</span>${c.fromHist ? '<span class="hs hist">riwayat</span>' : ''}</div></div>
+    <div class="cm-list">${cs.map((c) => `<div class="cc"><div class="cc-h"><div><b>${esc(c.name)}</b> <button type="button" class="rs-btn" data-resume="${idx}:${c.fromHist || c.ci == null ? '' : c.ci}:${encodeURIComponent(c.name || '')}">Resume</button><div class="cc-meta"><span class="hs ${C_BADGE[c.status] || 'no'}">${esc(c.status)}</span><span>${esc(c.sumber || 'Sumber belum diisi')}</span>${c.fromHist ? '<span class="hs hist">riwayat</span>' : ''}</div></div>
       ${CAN_EDIT && !c.fromHist ? `<div class="acts"><button type="button" class="btn btn-g btn-sm" data-ecand="${c.ci}">Edit</button><button type="button" class="btn btn-g btn-sm red" data-dcand="${c.ci}">Hapus</button></div>` : ''}</div>
       <div class="cc-pg"><span class="tr"><i style="width:${STAGE_PCT[c.stage]}%"></i></span><b>${STAGE_PCT[c.stage]}%</b><span>${STAGE_UP[c.stage]}</span></div>
       ${dl(c)}${c.note ? `<div class="cc-note">${esc(c.note)}</div>` : ''}
@@ -184,7 +184,7 @@ function pagePelamar(D) {
   <div class="card" style="padding:16px 0 6px">
     <div class="toolbar" style="padding:0 16px"><div class="seg" role="group" aria-label="Kategori pelamar">${[['aktif', `Aktif (${cnt('aktif')})`], ['tidak', `Tidak Aktif (${cnt('tidak')})`], ['diterima', `Diterima (${cnt('diterima')})`], ['semua', `Semua (${all.length})`]].map(([k, l]) => `<button type="button" data-pt="${k}" aria-pressed="${ui.pt === k}">${l}</button>`).join('')}</div><span class="small">${rows.length} pelamar</span></div>
     <div class="tw"><table class="t mt"><thead><tr><th>No</th><th>Nama Kandidat</th><th>Jabatan</th><th>PTK</th><th>Status PTK</th><th>Status Kandidat</th><th>Tahap Terakhir</th><th>Tgl Lamaran</th><th>Sumber</th><th>Berkas</th><th>Keterangan</th>${CAN_EDIT ? '<th>Aksi</th>' : ''}</tr></thead><tbody>
-    ${rows.map((c, i) => `<tr><td>${i + 1}</td><td class="b">${esc(c.name)}</td><td>${esc(c.p.jabatan)}<div class="small">${isVacant(c.p) ? 'Vacant' : esc(c.p.nama)} #${c.p.no}</div></td><td class="ptkc small">${esc(c.p.ptk || '-')}</td>
+    ${rows.map((c, i) => `<tr><td>${i + 1}</td><td class="b"><button type="button" class="rs-name" data-resume="${c.idx}:${c.fromHist || c.ci == null ? '' : c.ci}:${encodeURIComponent(c.name || '')}" title="Lihat resume pelamar">${esc(c.name)}</button></td><td>${esc(c.p.jabatan)}<div class="small">${isVacant(c.p) ? 'Vacant' : esc(c.p.nama)} #${c.p.no}</div></td><td class="ptkc small">${esc(c.p.ptk || '-')}</td>
       <td>${hasPTK(c.p) ? `<span class="stt ${isOpen(c.p) ? 'open' : 'close'}">${esc(c.p.status)}</span>` : '-'}</td>
       <td><span class="hs ${C_BADGE[c.status] || 'no'}">${esc(c.status)}</span>${c.fromHist ? ' <span class="hs hist">riwayat</span>' : ''}</td>
       <td><div class="pg"><span class="tr"><i style="width:${STAGE_PCT[c.stage]}%"></i></span><b>${STAGE_PCT[c.stage]}%</b></div><div class="pgl">${STAGE_UP[c.stage]}</div></td>
