@@ -1,4 +1,13 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Monitoring APD KMB</title><meta name="description" content="Monitoring APD KMB: stok gudang, pembagian, penggantian, dan pengembalian helm, kaos, sepatu safety."><meta name="theme-color" content="#6D28D9"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2716%27 fill=%27%236D28D9%27/%3E%3Ctext x=%2732%27 y=%2740%27 font-family=%27Arial%27 font-weight=%27700%27 font-size=%2734%27 fill=%27white%27 text-anchor=%27middle%27%3EM%3C/text%3E%3C/svg%3E"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"><style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style><style id="css">
+<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Monitoring APD KMB</title><meta name="description" content="Monitoring APD KMB: stok gudang, pembagian, penggantian, dan pengembalian helm, kaos, sepatu safety."><meta name="theme-color" content="#6D28D9"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2716%27 fill=%27%236D28D9%27/%3E%3Ctext x=%2732%27 y=%2740%27 font-family=%27Arial%27 font-weight=%27700%27 font-size=%2734%27 fill=%27white%27 text-anchor=%27middle%27%3EM%3C/text%3E%3C/svg%3E"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"><style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}.rptbar input[type="date"] { font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); margin-left: 6px; }
+.rptbar label { display: inline-flex; align-items: center; }
+table.rpt td:nth-child(n+3), table.rpt th:nth-child(n+3) { text-align: right; }
+table.rpt tr.rsub td { background: var(--card-2); border-bottom: 2px solid var(--line); }
+.opgrp { margin-top: 14px; }
+.opgrp > b { display: block; font-size: 13.5px; margin-bottom: 6px; }
+.opvars { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.opvars label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.opvars input { font: inherit; font-size: 14px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); color: var(--ink); width: 100%; }
+</style><style id="css">
 /* Layout: white sidebar + lavender content; gradient KPI row, then 12-col card grid (charts, resumes, recruitment tables). Mirrors the KTA-TRA / KMB monitoring pages. */
 :root {
   --bg: #F2F1FA; --card: #FFFFFF; --card-2: #F7F6FD; --side: #FFFFFF;
@@ -1097,7 +1106,7 @@ const DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const HELM_DOT = { Putih: '#FFFFFF', Kuning: '#F5C518', Biru: '#2563EB' };
 
 const S = { perms: {}, asked: false, sb: null, user: null, role: '', state: null, revision: 0, ver: null, people: [], access: null, audit: null, share: null, grant: null, grants: null, saving: false, noAccess: false, loaded: false };
-const ui = { page: 'dashboard', person: '', q: '', site: 'ALL', period: 'bulanan', year: new Date().getFullYear(), hq: '', ht: 'ALL', wh: 'ALL', rq: 'pending' };
+const ui = { page: 'dashboard', person: '', q: '', site: 'ALL', period: 'bulanan', year: new Date().getFullYear(), hq: '', ht: 'ALL', wh: 'ALL', rq: 'pending', rFrom: '', rTo: '', rWh: 'ALL' };
 // link anonim ?k= tidak dipakai lagi: semua wajib masuk dengan email yang diundang (Pusat Monitoring)
 const SHARE_KEY = new URLSearchParams(location.search).get('share') || '', HUB = '../';
 let GUEST_ROLE = '';
@@ -1122,7 +1131,7 @@ const isOwner = () => S.role === 'owner';
 const PERM_FIXED = ['dashboard', 'setting'];
 function permOf(id, k) {
   if (S.role === 'owner') return true; if (S.role !== 'editor' && S.role !== 'viewer') return false;
-  if (id === 'setting' || id === 'stock' || id === 'images' || id === 'ga' || id === 'deleted') return false;
+  if (id === 'setting' || id === 'stock' || id === 'report' || id === 'images' || id === 'ga' || id === 'deleted') return false;
   id = id === 'detail' ? 'people' : id;
   if (k === 'v' && PERM_FIXED.includes(id)) return true;
   const p = ((S.perms || {})[S.role] || {})[id]; if (p && typeof p[k] === 'boolean') return p[k];
@@ -1169,11 +1178,11 @@ const whOf = (x) => { const w = String(x || '').trim(); return w || WH[0] || 'Wo
 // setiap gerakan stok: jenis, ukuran/warna, kondisi (NEW / REUSE), gudang, jumlah (+/-)
 function moves(d = S.state) {
   const m = [];
-  d.stockIn.forEach((x) => m.push({ date: x.date, p: 0, t: x.type, v: variant(x), g: x.grade === 'REUSE' ? 'REUSE' : 'NEW', w: whOf(x.location), n: qty(x.qty) }));
-  d.adjust.forEach((x) => m.push({ date: x.date, p: qty(x.qty) > 0 ? 0 : 3, t: x.type, v: variant(x), g: x.grade === 'REUSE' ? 'REUSE' : 'NEW', w: whOf(x.location), n: qty(x.qty) }));
-  d.transfers.forEach((x) => { m.push({ date: x.date, p: 1.5, t: x.type, v: variant(x), g: x.grade === 'REUSE' ? 'REUSE' : 'NEW', w: whOf(x.from), n: -qty(x.qty) }); m.push({ date: x.date, p: 1.6, t: x.type, v: variant(x), g: x.grade === 'REUSE' ? 'REUSE' : 'NEW', w: whOf(x.to), n: qty(x.qty) }); });
-  d.returns.forEach((x) => { const r = d.receipts.find((y) => y.id === x.receiptId); if (r && x.action === 'REUSE') m.push({ date: x.date, p: 1, t: r.type, v: variant(r), g: 'REUSE', w: whOf(x.warehouse || (r.source === 'NEW' || r.source === 'REUSE' ? r.warehouse : '')), n: qty(x.qty) }); });
-  d.receipts.forEach((x) => { if ((d.stockResetReceiptIds || []).includes(x.id)) return; if (x.source === 'NEW' || x.source === 'REUSE') m.push({ date: x.date, p: 2, t: x.type, v: variant(x), g: x.source, w: whOf(x.warehouse), n: -qty(x.qty) }); });
+  d.stockIn.forEach((x) => m.push({ k: 'in', date: x.date, p: 0, t: x.type, v: variant(x), g: x.grade === 'REUSE' ? 'REUSE' : 'NEW', w: whOf(x.location), n: qty(x.qty) }));
+  d.adjust.forEach((x) => m.push({ k: 'adj', date: x.date, p: qty(x.qty) > 0 ? 0 : 3, t: x.type, v: variant(x), g: x.grade === 'REUSE' ? 'REUSE' : 'NEW', w: whOf(x.location), n: qty(x.qty) }));
+  d.transfers.forEach((x) => { m.push({ k: 'xf', date: x.date, p: 1.5, t: x.type, v: variant(x), g: x.grade === 'REUSE' ? 'REUSE' : 'NEW', w: whOf(x.from), n: -qty(x.qty) }); m.push({ k: 'xf', date: x.date, p: 1.6, t: x.type, v: variant(x), g: x.grade === 'REUSE' ? 'REUSE' : 'NEW', w: whOf(x.to), n: qty(x.qty) }); });
+  d.returns.forEach((x) => { const r = d.receipts.find((y) => y.id === x.receiptId); if (r && x.action === 'REUSE') m.push({ k: 'ret', date: x.date, p: 1, t: r.type, v: variant(r), g: 'REUSE', w: whOf(x.warehouse || (r.source === 'NEW' || r.source === 'REUSE' ? r.warehouse : '')), n: qty(x.qty) }); });
+  d.receipts.forEach((x) => { if ((d.stockResetReceiptIds || []).includes(x.id)) return; if (x.source === 'NEW' || x.source === 'REUSE') m.push({ k: 'out', date: x.date, p: 2, t: x.type, v: variant(x), g: x.source, w: whOf(x.warehouse), n: -qty(x.qty) }); });
   return m;
 }
 function stock(type, d = S.state, wh = 'ALL') {
@@ -1322,6 +1331,7 @@ async function loadGrants() { const { data } = await S.sb.from('kta_print_grants
 
 // ---------- tampilan ----------
 const IC = {
+  report: '<path d="M5 20V10M10 20V4M15 20v-7M20 20V8M3 20h18" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
   dashboard: '<path d="M4 4h7v7H4zM13 4h7v4h-7zM13 10h7v10h-7zM4 13h7v7H4z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
   requests: '<path d="M9 4h6l1 2h3v14H5V6h3zM9 11h6M9 15h4" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>',
   ga: '<path d="M6 3h9l4 4v14H6zM14 3v5h5M9 12h7M9 16h7M9 8h3" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>',
@@ -1342,6 +1352,7 @@ const PAGES = [
   { id: 'out', label: 'Manpower Keluar', grp: 'Pengelolaan APD' },
   { id: 'stock', label: 'Stok & Gudang', grp: 'Pengelolaan APD', owner: true },
   { id: 'history', label: 'Riwayat Transaksi', grp: 'Pengelolaan APD' },
+  { id: 'report', label: 'Laporan Pemakaian', grp: 'Pengelolaan APD', owner: true },
   { id: 'images', label: 'Gambar APD', grp: 'Pengelolaan APD', owner: true },
   { id: 'guide', label: 'Tata Cara', grp: 'Sistem' },
   { id: 'deleted', label: 'Riwayat Hapus', grp: 'Sistem', owner: true },
@@ -1387,7 +1398,7 @@ function render() {
   if (PAGES.some((p) => p.id === ui.page && p.owner) && !isOwner()) ui.page = 'dashboard';
   if (!permOf(ui.page, 'v')) ui.page = 'dashboard';
   if (ui.wh !== 'ALL' && !WH.includes(ui.wh)) ui.wh = 'ALL';
-  const map = { dashboard: pageDash, requests: pageRequests, ga: pageGA, people: () => pagePeople(false), out: () => pagePeople(true), detail: pageDetail, stock: pageStock, history: pageHistory, images: pageImages, guide: pageGuide, deleted: pageDeleted, setting: pageSetting };
+  const map = { dashboard: pageDash, requests: pageRequests, ga: pageGA, people: () => pagePeople(false), out: () => pagePeople(true), detail: pageDetail, stock: pageStock, history: pageHistory, report: pageReport, images: pageImages, guide: pageGuide, deleted: pageDeleted, setting: pageSetting };
   $('view').innerHTML = S.loaded ? (map[ui.page] || pageDash)() : '<div class="empty"><span class="spin"></span><p>Menyiapkan Monitoring APD…</p></div>';
   navCounts(); guardSync();
 }
@@ -1571,7 +1582,7 @@ function pageStock() {
   const inRows = [...S.state.stockIn].filter((x) => wh === 'ALL' || whOf(x.location) === wh).sort((a, b) => b.date.localeCompare(a.date)).map((x) => `<tr><td class="nw">${fmt(x.date)}</td><td>${esc(tLabel(x.type))}</td><td>${esc(vText(x.type, variant(x)))}</td><td>${tag(x.grade === 'NEW' ? 'BARU' : 'LAYAK')}</td><td class="b">${x.qty}</td><td>${esc(whOf(x.location))}</td><td>${esc(x.note || '—')}</td><td class="nw"><button type="button" class="btn btn-g btn-sm" data-stock="${esc(x.id)}|">Edit</button> <button type="button" class="btn btn-g btn-sm red" data-del="stock:${esc(x.id)}">Hapus</button></td></tr>`).join('') || '<tr><td colspan="8" class="empty">Belum ada stok masuk.</td></tr>';
   const xf = [...S.state.transfers].filter((x) => wh === 'ALL' || x.from === wh || x.to === wh).sort((a, b) => b.date.localeCompare(a.date)).map((x) => `<tr><td class="nw">${fmt(x.date)}</td><td>${esc(tLabel(x.type))}</td><td>${esc(vText(x.type, variant(x)))}</td><td>${x.grade === 'REUSE' ? 'Bekas layak' : 'Baru'}</td><td class="b">${x.qty}</td><td>${esc(x.from)} → ${esc(x.to)}</td><td>${esc(x.note || '—')}</td><td><button type="button" class="btn btn-g btn-sm red" data-del="transfer:${esc(x.id)}">Hapus</button></td></tr>`).join('');
   const adj = [...S.state.adjust].filter((x) => wh === 'ALL' || whOf(x.location) === wh).sort((a, b) => b.date.localeCompare(a.date)).map((x) => `<tr><td class="nw">${fmt(x.date)}</td><td>${esc(tLabel(x.type))}</td><td>${esc(vText(x.type, variant(x)))}</td><td>${x.grade === 'REUSE' ? 'Bekas layak' : 'Baru'}</td><td>${esc(whOf(x.location))}</td><td class="b" style="color:${x.qty > 0 ? 'var(--good)' : 'var(--crit)'}">${x.qty > 0 ? '+' : ''}${x.qty}</td><td>${esc(x.note || '—')}</td><td>${esc(x.by || '—')}</td><td><button type="button" class="btn btn-g btn-sm red" data-del="adjust:${esc(x.id)}">Hapus</button></td></tr>`).join('');
-  return header('Inventory', 'Stok APD Gudang', 'Stok dihitung per gudang. Hanya Pemilik yang bisa mengubah stok, mutasi, dan koreksi.', '<button type="button" class="btn btn-p" data-stock="|">+ Stok Masuk</button>') +
+  return header('Inventory', 'Stok APD Gudang', 'Stok dihitung per gudang. Hanya Pemilik yang bisa mengubah stok, mutasi, dan koreksi.', '<button type="button" class="btn btn-g" id="openBtn">Input Stok Awal</button><button type="button" class="btn btn-p" data-stock="|">+ Stok Masuk</button>') +
     `<div class="toolbar">${seg}<span class="small">Kelola daftar gudang di Pengaturan → Gudang.</span></div><div class="grid">${cards}</div>
     <div class="grid"><div class="card s12"><div class="ch"><div><div class="eyebrow">Per gudang</div><h2>Stok per Gudang</h2><p>Jumlah baru + bekas layak per ukuran/warna di setiap gudang.</p></div></div><div class="tw"><table class="t"><thead><tr><th>Jenis</th><th>Ukuran / Warna</th>${WH.map((w) => `<th>${esc(w)}</th>`).join('')}<th>Total</th></tr></thead><tbody>${mx}</tbody></table></div></div></div>
     <div class="grid"><div class="card s12"><div class="ch"><div><div class="eyebrow">Riwayat</div><h2>Stok Masuk Gudang</h2><p>APD yang sudah dipakai karyawan dicatat lewat Detail Karyawan → Catat APD Lama, bukan di sini.</p></div></div><div class="tw"><table class="t"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Ukuran</th><th>Kondisi</th><th>Qty</th><th>Gudang</th><th>Keterangan</th><th>Aksi</th></tr></thead><tbody>${inRows}</tbody></table></div></div></div>
@@ -1596,6 +1607,104 @@ function pageHistory() {
   return header('Audit trail', 'Riwayat Transaksi APD', isOwner() ? 'Stok masuk, mutasi, koreksi, APD lama, pembagian, dan pengembalian.' : 'Riwayat APD karyawan. Riwayat stok gudang khusus Pemilik.', isOwner() ? '<button type="button" class="btn btn-g" id="xlsBtn">Download Excel</button>' : '') +
     `<div class="card"><div class="toolbar"><input type="search" id="hq" placeholder="Cari karyawan / aktivitas" value="${esc(ui.hq)}" aria-label="Cari transaksi"><div class="seg" role="group" aria-label="Jenis APD">${['ALL', ...TYPES].map((t) => `<button type="button" data-ht="${esc(t)}" aria-pressed="${ui.ht === t}">${t === 'ALL' ? 'Semua' : esc(tLabel(t))}</button>`).join('')}</div><span class="small">${list.length} transaksi</span></div>
     <div class="tw"><table class="t"><thead><tr><th>Tanggal</th><th>Jenis</th><th>Aktivitas</th><th>Qty</th><th>Karyawan / Gudang</th><th>Asal / Keterangan</th>${can() ? '<th>Aksi</th>' : ''}</tr></thead><tbody>${list.map((x) => `<tr><td class="nw">${fmt(x.d)}</td><td>${esc(tLabel(x.t))}</td><td>${tag(x.l)}</td><td class="b">${x.n}</td><td>${x.pid ? `<a href="#" data-person="${esc(x.pid)}">${esc(x.who)}</a>` : esc(x.who)}</td><td>${esc(x.from)}</td>${can() ? `<td class="nw">${!ownerKinds.includes(x.kind) || isOwner() ? `${x.edit ? `<button type="button" class="btn btn-g btn-sm" ${x.edit}>Edit</button> ` : ''}<button type="button" class="btn btn-g btn-sm red" data-del="${x.kind}:${esc(x.id)}">Hapus</button>` : ''}</td>` : ''}</tr>`).join('') || `<tr><td colspan="7" class="empty">Belum ada transaksi.</td></tr>`}</tbody></table></div></div>`;
+}
+
+// ---------- laporan pemakaian (rekonsiliasi stok) ----------
+// Stok awal periode + masuk + kembali layak ± mutasi ± koreksi − dibagikan = stok akhir
+function rptRange() {
+  const t = today();
+  if (!ui.rFrom) ui.rFrom = t.slice(0, 8) + '01';
+  if (!ui.rTo) ui.rTo = t;
+  if (ui.rFrom > ui.rTo) [ui.rFrom, ui.rTo] = [ui.rTo, ui.rFrom];
+  if (ui.rWh !== 'ALL' && !WH.includes(ui.rWh)) ui.rWh = 'ALL';
+  return { a: ui.rFrom, b: ui.rTo, w: ui.rWh };
+}
+function rptData() {
+  const { a, b, w } = rptRange();
+  const rows = {}, key = (t, v) => t + '|' + v;
+  TYPES.forEach((t) => (VARIANTS[t] || []).forEach((v) => { rows[key(t, v)] = { t, v, awal: 0, masuk: 0, kembali: 0, mutasi: 0, koreksi: 0, keluar: 0, akhir: 0 }; }));
+  moves().forEach((x) => {
+    if (w !== 'ALL' && x.w !== w) return;
+    if (x.date > b) return;
+    const r = rows[key(x.t, x.v)] || (rows[key(x.t, x.v)] = { t: x.t, v: x.v, awal: 0, masuk: 0, kembali: 0, mutasi: 0, koreksi: 0, keluar: 0, akhir: 0 });
+    r.akhir += x.n;
+    if (x.date < a) { r.awal += x.n; return; }
+    if (x.k === 'in') r.masuk += x.n; else if (x.k === 'ret') r.kembali += x.n; else if (x.k === 'xf') r.mutasi += x.n; else if (x.k === 'adj') r.koreksi += x.n; else if (x.k === 'out') r.keluar += -x.n;
+  });
+  const list = TYPES.flatMap((t) => Object.values(rows).filter((r) => r.t === t)).filter((r) => r.v !== 'BELUM DIISI' || r.awal || r.akhir || r.masuk || r.keluar || r.koreksi || r.kembali || r.mutasi);
+  const reset = S.state.stockResetReceiptIds || [];
+  const dist = S.state.receipts.filter((r) => (r.source === 'NEW' || r.source === 'REUSE') && !reset.includes(r.id) && r.date >= a && r.date <= b && (w === 'ALL' || whOf(r.warehouse) === w))
+    .map((r) => { const p = person(r.person) || {}; return { r, name: personName(r.person), pos: p.position || '—', site: p.site || '—' }; })
+    .sort((x, y) => x.r.date.localeCompare(y.r.date) || x.name.localeCompare(y.name, 'id'));
+  const destroyed = S.state.returns.filter((x) => x.action === 'DESTROY' && x.date >= a && x.date <= b).reduce((s, x) => s + qty(x.qty), 0);
+  return { a, b, w, list, dist, destroyed };
+}
+function pageReport() {
+  const D = rptData(), sum = (k, t) => D.list.filter((r) => !t || r.t === t).reduce((s, r) => s + r[k], 0);
+  const presets = [['bulan', 'Bulan ini'], ['lalu', 'Bulan lalu'], ['tahun', 'Tahun ini'], ['semua', 'Semua']];
+  const seg = `<div class="seg" role="group" aria-label="Gudang">${['ALL', ...WH].map((w) => `<button type="button" data-rwh="${esc(w)}" aria-pressed="${D.w === w}">${w === 'ALL' ? 'Semua gudang' : esc(w)}</button>`).join('')}</div>`;
+  const bar = `<div class="card"><div class="toolbar rptbar"><label class="small">Dari <input type="date" id="rFrom" value="${esc(D.a)}"></label><label class="small">Sampai <input type="date" id="rTo" value="${esc(D.b)}"></label><div class="seg" role="group" aria-label="Periode cepat">${presets.map(([k, l]) => `<button type="button" data-rp="${k}">${l}</button>`).join('')}</div></div><div class="toolbar" style="margin:0">${seg}</div></div>`;
+  const kpi = `<div class="kpis">
+    <div class="kpi k1"><span class="ic">▣</span><div><div class="lb">Stok Awal</div><div class="v">${sum('awal')}</div><div class="ds">per ${fmt(D.a)}</div></div></div>
+    <div class="kpi k2"><span class="ic">＋</span><div><div class="lb">Masuk</div><div class="v">${sum('masuk') + sum('kembali')}</div><div class="ds">${sum('masuk')} stok masuk · ${sum('kembali')} kembali layak</div></div></div>
+    <div class="kpi k3"><span class="ic">➤</span><div><div class="lb">Dibagikan</div><div class="v">${sum('keluar')}</div><div class="ds">${new Set(D.dist.map((x) => x.r.person)).size} karyawan · ${new Set(D.dist.map((x) => x.site)).size} site</div></div></div>
+    <div class="kpi k4"><span class="ic">▤</span><div><div class="lb">Stok Akhir</div><div class="v">${sum('akhir')}</div><div class="ds">per ${fmt(D.b)}${sum('koreksi') ? ` · koreksi ${sum('koreksi') > 0 ? '+' : ''}${sum('koreksi')}` : ''}</div></div></div></div>`;
+  const showMut = D.w !== 'ALL' || sum('mutasi') !== 0;
+  const num = (n, sign) => n ? `${sign && n > 0 ? '+' : ''}${n}` : '<span class="small">0</span>';
+  const rec = TYPES.map((t) => {
+    const rs = D.list.filter((r) => r.t === t); if (!rs.length) return '';
+    const line = (r, b) => `<tr class="${b ? 'rsub' : ''}"><td>${b ? '<b>Subtotal ' + esc(tLabel(t)) + '</b>' : esc(tLabel(t))}</td><td>${b ? '' : esc(vText(t, r.v))}</td><td>${num(r.awal)}</td><td>${num(r.masuk)}</td><td>${num(r.kembali)}</td>${showMut ? `<td>${num(r.mutasi, 1)}</td>` : ''}<td>${num(r.koreksi, 1)}</td><td class="b" style="color:${r.keluar ? 'var(--crit)' : ''}">${r.keluar ? '−' + r.keluar : '<span class="small">0</span>'}</td><td class="b">${r.akhir}</td></tr>`;
+    const st = { awal: sum('awal', t), masuk: sum('masuk', t), kembali: sum('kembali', t), mutasi: sum('mutasi', t), koreksi: sum('koreksi', t), keluar: sum('keluar', t), akhir: sum('akhir', t) };
+    return rs.map((r) => line(r)).join('') + line(st, true);
+  }).join('') || `<tr><td colspan="9" class="empty">Belum ada stok. Mulai dari <a href="#" id="openBtn2">Input Stok Awal</a>.</td></tr>`;
+  const recCard = `<div class="grid"><div class="card s12"><div class="ch"><div><div class="eyebrow">Rekonsiliasi</div><h2>Mutasi Stok per Ukuran</h2><p>Stok awal + masuk + kembali layak${showMut ? ' ± mutasi' : ''} ± koreksi − dibagikan = stok akhir. ${D.w === 'ALL' ? 'Semua gudang.' : 'Gudang ' + esc(D.w) + '.'}</p></div></div><div class="tw"><table class="t rpt"><thead><tr><th>Jenis</th><th>Ukuran / Warna</th><th>Stok Awal</th><th>Masuk</th><th>Kembali Layak</th>${showMut ? '<th>Mutasi</th>' : ''}<th>Koreksi</th><th>Dibagikan</th><th>Stok Akhir</th></tr></thead><tbody>${rec}</tbody></table></div>${D.destroyed ? `<p class="small" style="margin-top:8px">${D.destroyed} unit APD kembali tidak layak dan dimusnahkan pada periode ini (tidak menambah stok).</p>` : ''}</div></div>`;
+  // per site
+  const sites = [...new Set(D.dist.map((x) => x.site))].sort((x, y) => x.localeCompare(y, 'id'));
+  const siteRows = sites.map((st) => { const ds = D.dist.filter((x) => x.site === st), per = TYPES.map((t) => ds.filter((x) => x.r.type === t).reduce((s, x) => s + qty(x.r.qty), 0)); return `<tr><td class="b">${esc(st)}</td><td>${new Set(ds.map((x) => x.r.person)).size}</td>${per.map((n) => `<td class="${n ? 'b' : 'small'}">${n}</td>`).join('')}<td class="b">${per.reduce((s, n) => s + n, 0)}</td></tr>`; }).join('');
+  const siteCard = `<div class="card s12"><div class="ch"><div><div class="eyebrow">Ke mana</div><h2>Pemakaian per Site</h2><p>APD dari gudang yang dibagikan ke karyawan, dikelompokkan menurut jobsite karyawan.</p></div></div><div class="tw"><table class="t"><thead><tr><th>Site</th><th>Karyawan</th>${TYPES.map((t) => `<th>${esc(tLabel(t))}</th>`).join('')}<th>Total</th></tr></thead><tbody>${siteRows || `<tr><td colspan="${TYPES.length + 3}" class="empty">Belum ada pembagian APD pada periode ini.</td></tr>`}</tbody>${siteRows ? `<tfoot><tr><td class="b">Total</td><td class="b">${new Set(D.dist.map((x) => x.r.person)).size}</td>${TYPES.map((t) => `<td class="b">${sum('keluar', t)}</td>`).join('')}<td class="b">${sum('keluar')}</td></tr></tfoot>` : ''}</table></div></div>`;
+  const det = D.dist.map((x) => `<tr><td class="nw">${fmt(x.r.date)}</td><td class="b"><a href="#" data-person="${esc(x.r.person)}">${esc(x.name)}</a></td><td>${esc(x.pos)}</td><td>${esc(x.site)}</td><td>${esc(tLabel(x.r.type))}</td><td>${esc(vText(x.r.type, variant(x.r)))}</td><td>${x.r.source === 'NEW' ? 'Baru' : 'Bekas layak'}</td><td class="b">${x.r.qty}</td><td>${esc(whOf(x.r.warehouse))}</td><td>${esc(x.r.note || '—')}</td></tr>`).join('');
+  const detCard = `<div class="card s12"><div class="ch"><div><div class="eyebrow">Ke siapa</div><h2>Rincian Pembagian</h2><p>${D.dist.length} transaksi. APD lama dan APD dari pihak luar tidak mengurangi stok, jadi tidak masuk laporan ini.</p></div></div><div class="tw"><table class="t"><thead><tr><th>Tanggal</th><th>Nama</th><th>Jabatan</th><th>Site</th><th>Jenis</th><th>Ukuran</th><th>Kondisi</th><th>Qty</th><th>Dari Gudang</th><th>Keterangan</th></tr></thead><tbody>${det || '<tr><td colspan="10" class="empty">Belum ada pembagian APD pada periode ini.</td></tr>'}</tbody></table></div></div>`;
+  return header('Laporan', 'Laporan Pemakaian APD', `Periode ${fmt(D.a)} – ${fmt(D.b)}: dari mana stok datang, dibagikan ke siapa dan ke site mana, dan berapa sisanya.`, '<button type="button" class="btn btn-g" id="rptXls">Download Excel</button>') +
+    bar + kpi + recCard + `<div class="grid">${siteCard}</div><div class="grid">${detCard}</div>`;
+}
+function rptPreset(k) {
+  const t = today(), y = Number(t.slice(0, 4)), m = Number(t.slice(5, 7));
+  const last = (yy, mm) => new Date(yy, mm, 0).getDate();
+  if (k === 'bulan') { ui.rFrom = t.slice(0, 8) + '01'; ui.rTo = t; }
+  if (k === 'lalu') { const yy = m === 1 ? y - 1 : y, mm = m === 1 ? 12 : m - 1, p = yy + '-' + String(mm).padStart(2, '0'); ui.rFrom = p + '-01'; ui.rTo = p + '-' + last(yy, mm); }
+  if (k === 'tahun') { ui.rFrom = y + '-01-01'; ui.rTo = t; }
+  if (k === 'semua') { const ds = [...S.state.stockIn, ...S.state.receipts, ...S.state.adjust, ...S.state.transfers, ...S.state.returns].map((x) => x.date).filter(Boolean).sort(); ui.rFrom = ds[0] && ds[0] < t ? ds[0] : t; ui.rTo = ds.length && ds[ds.length - 1] > t ? ds[ds.length - 1] : t; }
+  render();
+}
+function exportReport() {
+  if (!isOwner()) return;
+  if (!window.XLSX) { toast('Modul Excel belum termuat. Coba lagi sebentar.', true); return; }
+  const D = rptData(), wb = XLSX.utils.book_new(), add = (n, rows, w) => { const ws = XLSX.utils.aoa_to_sheet(rows); ws['!cols'] = w.map((x) => ({ wch: x })); XLSX.utils.book_append_sheet(wb, ws, n); };
+  const head = [['LAPORAN PEMAKAIAN APD KMB'], ['Periode', D.a + ' s/d ' + D.b], ['Gudang', D.w === 'ALL' ? 'Semua gudang' : D.w], ['Dicetak', today()], []];
+  add('REKAP STOK', [...head, ['Jenis', 'Ukuran/Warna', 'Stok Awal', 'Masuk', 'Kembali Layak', 'Mutasi', 'Koreksi', 'Dibagikan', 'Stok Akhir'],
+    ...D.list.map((r) => [tLabel(r.t), vText(r.t, r.v), r.awal, r.masuk, r.kembali, r.mutasi, r.koreksi, r.keluar, r.akhir]),
+    ['TOTAL', '', ...['awal', 'masuk', 'kembali', 'mutasi', 'koreksi', 'keluar', 'akhir'].map((k) => D.list.reduce((s, r) => s + r[k], 0))]], [18, 16, 11, 9, 13, 9, 9, 11, 11]);
+  const sites = [...new Set(D.dist.map((x) => x.site))].sort();
+  add('PER SITE', [...head, ['Site', 'Jumlah Karyawan', ...TYPES.map(tLabel), 'Total'], ...sites.map((st) => { const ds = D.dist.filter((x) => x.site === st), per = TYPES.map((t) => ds.filter((x) => x.r.type === t).reduce((s, x) => s + qty(x.r.qty), 0)); return [st, new Set(ds.map((x) => x.r.person)).size, ...per, per.reduce((s, n) => s + n, 0)]; })], [22, 16, ...TYPES.map(() => 14), 10]);
+  add('RINCIAN PEMBAGIAN', [...head, ['Tanggal', 'Nama', 'Jabatan', 'Site', 'Jenis', 'Ukuran/Warna', 'Kondisi', 'Jumlah', 'Dari Gudang', 'Keterangan'], ...D.dist.map((x) => [x.r.date, x.name, x.pos, x.site, tLabel(x.r.type), vText(x.r.type, variant(x.r)), x.r.source === 'NEW' ? 'Baru' : 'Bekas layak', Number(x.r.qty), whOf(x.r.warehouse), x.r.note || ''])], [12, 26, 22, 18, 16, 14, 12, 8, 16, 30]);
+  XLSX.writeFile(wb, `Laporan_Pemakaian_APD_${D.a}_sd_${D.b}.xlsx`, { compression: true });
+}
+function openingForm() {
+  if (!isOwner()) return;
+  const has = S.state.stockIn.filter((x) => x.opening);
+  const grid = TYPES.map((t) => { const vs = (VARIANTS[t] || []).length ? VARIANTS[t] : ['']; return `<div class="opgrp"><b>${esc(tLabel(t))}</b><div class="opvars">${vs.map((v) => `<label><span>${v ? esc(vText(t, v)) : 'Jumlah'}</span><input type="number" min="0" step="1" inputmode="numeric" placeholder="0" data-op="${esc(t)}|${esc(v)}"></label>`).join('')}</div></div>`; }).join('');
+  modal(`${mh('Gudang', 'Input Stok Awal')}<div class="srcnote">Isi jumlah fisik yang ada di gudang saat mulai pencatatan. Ukuran yang dikosongkan tidak disimpan.${has.length ? ` <b>Sudah ada ${has.length} baris stok awal</b> — input ini akan menambah, bukan mengganti.` : ''}</div><form id="opForm"><div class="fgrid">
+    <div class="fld"><label for="op_d">Tanggal stok awal</label><input id="op_d" type="date" name="date" required value="${today()}"></div><div class="fld"><label for="op_w">Gudang</label>${whSel('op_w', ui.wh !== 'ALL' ? ui.wh : WH[0], 'location')}</div>
+    <div class="fld"><label for="op_g">Kondisi</label><select id="op_g" name="grade"><option value="NEW">Barang baru</option><option value="REUSE">Bekas layak</option></select></div>
+    <div class="fld"><label for="op_n">Keterangan</label><input id="op_n" name="note" value="Stok awal"></div></div>${grid}<p class="small" id="op_tot" style="margin:10px 0 0">Total 0 unit</p>${actions('Simpan Stok Awal')}</form>`);
+  const tot = () => { $('op_tot').textContent = 'Total ' + [...$('opForm').querySelectorAll('[data-op]')].reduce((s, i) => s + Math.max(0, Math.floor(Number(i.value) || 0)), 0) + ' unit'; };
+  $('opForm').addEventListener('input', tot);
+  $('opForm').onsubmit = (e) => {
+    e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)), n = structuredClone(S.state); let k = 0;
+    $('opForm').querySelectorAll('[data-op]').forEach((i) => { const q = Math.floor(Number(i.value) || 0); if (q < 1) return; const [t, v] = i.dataset.op.split('|'); n.stockIn.push({ id: uid(), date: f.date, type: t, grade: f.grade, variant: v, qty: q, location: f.location, note: f.note || 'Stok awal', opening: true }); k++; });
+    if (!k) { toast('Isi minimal satu jumlah stok.', true); return; }
+    persist(n, `Stok awal tersimpan (${k} ukuran).`);
+  };
 }
 
 // ---------- gambar, tata cara, riwayat hapus ----------
@@ -1927,6 +2036,10 @@ document.addEventListener('click', async (e) => {
   if (c('#syncBtn')) { await loadAll(); toast('Data APD & karyawan sudah terbaru.'); return; }
   if (c('#printBtn')) { if (!PRINT_OK()) { askPrint(); return; } window.print(); return; }
   if (c('#xlsBtn')) { exportExcel(); return; }
+  if (c('#rptXls')) { exportReport(); return; }
+  if (c('#openBtn') || c('#openBtn2')) { e.preventDefault(); openingForm(); return; }
+  const rp = c('[data-rp]'); if (rp) { rptPreset(rp.dataset.rp); return; }
+  const rw = c('[data-rwh]'); if (rw) { ui.rWh = rw.dataset.rwh; render(); return; }
   if (c('#bkBtn') && isOwner()) { download(`Backup_APD_KMB_${today()}.json`, JSON.stringify({ date: today(), state: S.state }, null, 1)); return; }
   if (c('#rsBtn') && isOwner()) { $('rsIn').click(); return; }
   const per = c('[data-period]'); if (per) { ui.period = per.dataset.period; render(); return; }
@@ -1975,6 +2088,7 @@ document.addEventListener('input', (e) => {
 document.addEventListener('change', async (e) => {
   if (e.target.id === 'siteSel') { ui.site = e.target.value; render(); }
   if (e.target.id === 'yearSel') { ui.year = Number(e.target.value); render(); }
+  if ((e.target.id === 'rFrom' || e.target.id === 'rTo') && e.target.value) { ui[e.target.id] = e.target.value; render(); }
   const ui2 = e.target.dataset && e.target.dataset.upimg;
   if (ui2 && isOwner()) {
     const f = e.target.files && e.target.files[0]; e.target.value = ''; if (!f) return;
