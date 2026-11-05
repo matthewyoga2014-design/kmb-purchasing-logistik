@@ -22,15 +22,26 @@ table.rpt tr.rsub td { background: var(--card-2); border-bottom: 2px solid var(-
 /* tabel rekonsiliasi: kolom rata & garis halus antar kolom sampai bawah */
 table.rpt { table-layout: fixed; min-width: 860px; border: 1px solid var(--line); border-radius: 12px; border-collapse: separate; border-spacing: 0; overflow: hidden; }
 table.rpt > thead > tr > th { background: var(--card-2); border-bottom: 1px solid var(--line); vertical-align: middle; padding: 11px 10px; }
-table.rpt > thead > tr > th, table.rpt > tbody > tr:not(.rdet) > td { border-right: 1px solid var(--line); vertical-align: middle; }
-table.rpt > thead > tr > th:last-child, table.rpt > tbody > tr:not(.rdet) > td:last-child { border-right: 0; }
-table.rpt > thead > tr > th:nth-child(n+3), table.rpt > tbody > tr:not(.rdet) > td:nth-child(n+3) { text-align: center; font-variant-numeric: tabular-nums; }
-table.rpt > tbody > tr:not(.rdet) > td { border-bottom: 1px solid var(--line); }
+table.rpt > thead > tr > th, table.rpt > tbody > tr > td { border-right: 1px solid var(--line); vertical-align: middle; }
+table.rpt > thead > tr > th:last-child, table.rpt > tbody > tr > td:last-child { border-right: 0; }
+table.rpt > thead > tr > th:nth-child(n+3), table.rpt > tbody > tr > td:nth-child(n+3) { text-align: center; font-variant-numeric: tabular-nums; }
+table.rpt > tbody > tr > td { border-bottom: 1px solid var(--line); }
 table.rpt > tbody > tr.rmain > td { border-top: 0; border-bottom: 1px solid #F1D58A; }
 table.rpt > tbody > tr.rmain > td:first-child { border-left: 0; box-shadow: inset 5px 0 0 #F59E0B; padding-left: 16px; }
 table.rpt > tbody > tr.rsub > td { border-bottom: 2px solid #D9D6EC; }
 table.rpt > tbody > tr:last-child > td { border-bottom: 0; }
 table.rpt > tbody > tr.rdet > td { border-bottom: 1px solid var(--line); padding: 10px 12px 12px 22px; }
+/* baris penerima (di dalam tabel utama) */
+table.rpt > tbody > tr.rdh2 > td { background: #F1EAFF; color: var(--primary-ink); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: .03em; padding: 8px 10px; border-bottom: 1px solid #DCCFFB; }
+table.rpt > tbody > tr.rdr > td { background: #FBF9FF; font-size: 13px; color: var(--ink-2); padding: 9px 10px; border-bottom: 1px solid #ECE6FB; }
+table.rpt > tbody > tr.rdh2 > td:first-child, table.rpt > tbody > tr.rdr > td:first-child { box-shadow: inset 5px 0 0 #A78BFA; padding-left: 16px; text-align: left; }
+table.rpt > tbody > tr.rdh2 > td:nth-child(2), table.rpt > tbody > tr.rdr > td:nth-child(2) { text-align: left; white-space: nowrap; }
+table.rpt > tbody > tr.rdr > td small { display: block; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+table.rpt > tbody > tr.rdr a { font-weight: 700; color: var(--primary-ink); text-decoration: none; }
+table.rpt > tbody > tr.rdr a:hover { text-decoration: underline; }
+.rno { display: inline-block; min-width: 20px; font-size: 11px; color: var(--muted); font-weight: 700; }
+.rq { font-size: 15px; color: var(--crit); }
+table.rpt .docl { justify-content: center; margin: 0; }
 /* subtotal: warna sama dengan baris jenis */
 table.rpt > tbody > tr.rsub > td { background: #FFF6DB; color: var(--ink); font-size: 15.5px; font-weight: 700; padding-top: 13px; padding-bottom: 13px; border-bottom: 2px solid #F1D58A; }
 table.rpt > tbody > tr.rsub > td:nth-child(n+3) { font-size: 17px; font-weight: 800; }
@@ -1713,9 +1724,20 @@ function pageReport() {
   const who = (t, v) => { const m = new Map(); D.dist.filter((x) => x.r.type === t && (v == null || variant(x.r) === v)).forEach((x) => { const c = m.get(x.r.person) || { id: x.r.person, name: x.name, site: x.site, n: 0, d: x.r.date }; c.n += qty(x.r.qty); c.d = x.r.date; m.set(x.r.person, c); }); return [...m.values()]; };
   const whoHtml = (t, v) => { const ps = who(t, v); return ps.length ? `<div class="pchips">${ps.map((c) => `<a href="#" data-person="${esc(c.id)}" title="${esc(c.site)} · terakhir ${fmt(c.d)}">${esc(c.name)}${c.n > 1 ? ` <b>×${c.n}</b>` : ''}<small>${esc(c.site)}</small></a>`).join('')}</div>` : '<span class="small">—</span>'; };
   const cols = showMut ? 9 : 8;
+  // baris penerima memakai kolom yang sama dengan tabel utama agar garis kolom lurus sampai bawah
   const sizeDetail = (t, v) => {
     const ds = D.dist.filter((x) => x.r.type === t && variant(x.r) === v); if (!ds.length) return '';
-    return `<tr class="rdet"><td colspan="${cols}"><div class="rdw"><div class="rdh">Dibagikan ke <b>${new Set(ds.map((x) => x.r.person)).size} orang</b> · ${ds.reduce((a, x) => a + qty(x.r.qty), 0)} unit ${esc(tLabel(t))} ${esc(vText(t, v))}</div><table class="rdt"><colgroup><col style="width:5%"><col style="width:10%"><col style="width:15%"><col style="width:15%"><col style="width:11%"><col style="width:8%"><col style="width:6%"><col style="width:10%"><col style="width:10%"><col style="width:10%"></colgroup><thead><tr><th>No</th><th>Tanggal</th><th>Nama</th><th>Jabatan</th><th>Site</th><th>Kondisi</th><th>Qty</th><th>Dari Gudang</th><th>Keterangan</th><th>Bukti</th></tr></thead><tbody>${ds.map((x, i) => `<tr><td>${i + 1}</td><td class="nw">${fmt(x.r.date)}</td><td class="b"><a href="#" data-person="${esc(x.r.person)}">${esc(x.name)}</a></td><td>${esc(x.pos)}</td><td>${esc(x.site)}</td><td>${x.r.source === 'NEW' ? 'Baru' : 'Bekas layak'}</td><td class="b">${x.r.qty}</td><td>${esc(whOf(x.r.warehouse))}</td><td>${esc(x.r.note || '—')}</td><td>${arr(x.r.files).length ? `<div class="docl">${docChips(x.r.files)}</div>` : '<span class="nodoc">Belum ada</span>'}</td></tr>`).join('')}</tbody></table></div></td></tr>`;
+    const n = new Set(ds.map((x) => x.r.person)).size;
+    const cells = (a) => `<td>${a[0]}</td><td>${a[1]}</td><td colspan="2">${a[2]}</td><td>${a[3]}</td><td${showMut ? ' colspan="2"' : ''}>${a[4]}</td><td>${a[5]}</td><td>${a[6]}</td>`;
+    const head = `<tr class="rdh2">${cells([`Penerima · ${n} orang`, 'Tanggal', 'Jabatan · Site', 'Kondisi', 'Dari Gudang', 'Qty', 'Bukti'])}</tr>`;
+    return head + ds.map((x, i) => `<tr class="rdr">${cells([
+      `<span class="rno">${i + 1}</span><a href="#" data-person="${esc(x.r.person)}">${esc(x.name)}</a>`,
+      `<span class="nw">${fmt(x.r.date)}</span>`,
+      `${esc(x.pos)}<small>${esc(x.site)}</small>`,
+      x.r.source === 'NEW' ? 'Baru' : 'Bekas layak',
+      `${esc(whOf(x.r.warehouse))}${x.r.note ? `<small>${esc(x.r.note)}</small>` : ''}`,
+      `<b class="rq">${x.r.qty}</b>`,
+      arr(x.r.files).length ? `<div class="docl">${docChips(x.r.files)}</div>` : '<span class="nodoc">Belum ada</span>'])}</tr>`).join('');
   };
   const busy = (r) => r.awal || r.masuk || r.kembali || r.mutasi || r.koreksi || r.keluar || r.akhir;
   const hidden = D.list.filter((r) => !busy(r)).length;
