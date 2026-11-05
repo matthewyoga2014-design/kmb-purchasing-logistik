@@ -3,6 +3,13 @@
 table.rpt td:nth-child(n+3), table.rpt th:nth-child(n+3) { text-align: right; }
 table.rpt tr.rsub td { background: var(--card-2); border-bottom: 2px solid var(--line); }
 .opgrp { margin-top: 14px; }
+.docl { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
+.docl[hidden] { display: none; }
+.dchip { display: inline-flex; align-items: center; gap: 4px; }
+.dchip a { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--primary-ink); background: var(--primary-soft); border-radius: 7px; padding: 4px 9px; text-decoration: none; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dchip a:hover { text-decoration: underline; }
+.dchip a i { font-style: normal; font-size: 10px; background: var(--card); border-radius: 4px; padding: 1px 4px; }
+.nodoc { font-size: 12px; color: var(--warn); }
 .opgrp > b { display: block; font-size: 13.5px; margin-bottom: 6px; }
 .opvars { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
 .opvars label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
@@ -1555,6 +1562,7 @@ function pageDetail() {
       return `<div class="lot"><div class="lmain"><div><b>${SRC_LABEL[r.source]} · ${fmt(r.date)} · ${r.qty} unit · ${esc(vText(t, variant(r)))}</b> ${tag(r.condition || 'BELUM DIPERIKSA')}</div>
         <small>Masih dipegang: <b>${rem} unit</b>${r.source === 'OLD' ? ' · APD lama tidak menentukan jadwal ganti' : ` · Jatah ${r.months} bulan · Ganti ${fmt(addMonths(r.date, r.months))}`}</small>
         <small>Asal: ${esc(r.source === 'OLD' ? 'APD lama / milik pribadi' : r.source === 'EXTERNAL' ? r.warehouse || 'Pihak luar' : 'Gudang ' + whOf(r.warehouse))}${r.requestId ? ' · dari permintaan APD' : ''}${r.note ? ' · ' + esc(r.note) : ''}</small>
+        ${arr(r.files).length ? `<div class="docl">${docChips(r.files)}</div>` : can() && r.source !== 'OLD' ? '<small class="nodoc">Belum ada bukti serah terima</small>' : ''}
         ${back.map((x) => `<small class="ret">↳ ${fmt(x.date)} · ${x.qty} unit ${x.action === 'REUSE' ? 'dikembalikan layak → stok bekas gudang ' + esc(whOf(x.warehouse || r.warehouse)) : 'tidak layak → dimusnahkan'}${x.note ? ' · ' + esc(x.note) : ''}${can() ? ` <a href="#" data-editret="${esc(x.id)}">Edit</a> · <a href="#" class="red" data-del="return:${esc(x.id)}">Hapus</a>` : ''}</small>`).join('')}</div>
         ${can() ? `<div class="acts"><button type="button" class="btn btn-g btn-sm" data-rcpt="${esc(p.id)}|${t}|${esc(r.id)}|">Edit</button><button type="button" class="btn btn-g btn-sm red" data-del="receipt:${esc(r.id)}">Hapus</button>${p.status === 'OUT' && rem > 0 ? `<button type="button" class="btn btn-p btn-sm" data-ret="${esc(r.id)}">↩ Pengembalian</button>` : ''}</div>` : ''}</div>`;
     }).join('') || '<div class="small" style="padding:6px 0">Belum ada catatan. Gunakan <b>Catat APD Lama</b> untuk APD yang sudah dimiliki, atau <b>Bagikan APD</b> dari gudang.</div>';
@@ -1662,8 +1670,8 @@ function pageReport() {
   const sites = [...new Set(D.dist.map((x) => x.site))].sort((x, y) => x.localeCompare(y, 'id'));
   const siteRows = sites.map((st) => { const ds = D.dist.filter((x) => x.site === st), per = TYPES.map((t) => ds.filter((x) => x.r.type === t).reduce((s, x) => s + qty(x.r.qty), 0)); return `<tr><td class="b">${esc(st)}</td><td>${new Set(ds.map((x) => x.r.person)).size}</td>${per.map((n) => `<td class="${n ? 'b' : 'small'}">${n}</td>`).join('')}<td class="b">${per.reduce((s, n) => s + n, 0)}</td></tr>`; }).join('');
   const siteCard = `<div class="card s12"><div class="ch"><div><div class="eyebrow">Ke mana</div><h2>Pemakaian per Site</h2><p>APD dari gudang yang dibagikan ke karyawan, dikelompokkan menurut jobsite karyawan.</p></div></div><div class="tw"><table class="t"><thead><tr><th>Site</th><th>Karyawan</th>${TYPES.map((t) => `<th>${esc(tLabel(t))}</th>`).join('')}<th>Total</th></tr></thead><tbody>${siteRows || `<tr><td colspan="${TYPES.length + 3}" class="empty">Belum ada pembagian APD pada periode ini.</td></tr>`}</tbody>${siteRows ? `<tfoot><tr><td class="b">Total</td><td class="b">${new Set(D.dist.map((x) => x.r.person)).size}</td>${TYPES.map((t) => `<td class="b">${sum('keluar', t)}</td>`).join('')}<td class="b">${sum('keluar')}</td></tr></tfoot>` : ''}</table></div></div>`;
-  const det = D.dist.map((x) => `<tr><td class="nw">${fmt(x.r.date)}</td><td class="b"><a href="#" data-person="${esc(x.r.person)}">${esc(x.name)}</a></td><td>${esc(x.pos)}</td><td>${esc(x.site)}</td><td>${esc(tLabel(x.r.type))}</td><td>${esc(vText(x.r.type, variant(x.r)))}</td><td>${x.r.source === 'NEW' ? 'Baru' : 'Bekas layak'}</td><td class="b">${x.r.qty}</td><td>${esc(whOf(x.r.warehouse))}</td><td>${esc(x.r.note || '—')}</td></tr>`).join('');
-  const detCard = `<div class="card s12"><div class="ch"><div><div class="eyebrow">Ke siapa</div><h2>Rincian Pembagian</h2><p>${D.dist.length} transaksi. APD lama dan APD dari pihak luar tidak mengurangi stok, jadi tidak masuk laporan ini.</p></div></div><div class="tw"><table class="t"><thead><tr><th>Tanggal</th><th>Nama</th><th>Jabatan</th><th>Site</th><th>Jenis</th><th>Ukuran</th><th>Kondisi</th><th>Qty</th><th>Dari Gudang</th><th>Keterangan</th></tr></thead><tbody>${det || '<tr><td colspan="10" class="empty">Belum ada pembagian APD pada periode ini.</td></tr>'}</tbody></table></div></div>`;
+  const det = D.dist.map((x) => `<tr><td class="nw">${fmt(x.r.date)}</td><td class="b"><a href="#" data-person="${esc(x.r.person)}">${esc(x.name)}</a></td><td>${esc(x.pos)}</td><td>${esc(x.site)}</td><td>${esc(tLabel(x.r.type))}</td><td>${esc(vText(x.r.type, variant(x.r)))}</td><td>${x.r.source === 'NEW' ? 'Baru' : 'Bekas layak'}</td><td class="b">${x.r.qty}</td><td>${esc(whOf(x.r.warehouse))}</td><td>${esc(x.r.note || '—')}</td><td>${arr(x.r.files).length ? `<div class="docl">${docChips(x.r.files)}</div>` : '<span class="nodoc">Belum ada</span>'}</td></tr>`).join('');
+  const detCard = `<div class="card s12"><div class="ch"><div><div class="eyebrow">Ke siapa</div><h2>Rincian Pembagian</h2><p>${D.dist.length} transaksi. APD lama dan APD dari pihak luar tidak mengurangi stok, jadi tidak masuk laporan ini.</p></div></div><div class="tw"><table class="t"><thead><tr><th>Tanggal</th><th>Nama</th><th>Jabatan</th><th>Site</th><th>Jenis</th><th>Ukuran</th><th>Kondisi</th><th>Qty</th><th>Dari Gudang</th><th>Keterangan</th><th>Bukti</th></tr></thead><tbody>${det || '<tr><td colspan="11" class="empty">Belum ada pembagian APD pada periode ini.</td></tr>'}</tbody></table></div></div>`;
   return header('Laporan', 'Laporan Pemakaian APD', `Periode ${fmt(D.a)} – ${fmt(D.b)}: dari mana stok datang, dibagikan ke siapa dan ke site mana, dan berapa sisanya.`, '<button type="button" class="btn btn-g" id="rptXls">Download Excel</button>') +
     bar + kpi + recCard + `<div class="grid">${siteCard}</div><div class="grid">${detCard}</div>`;
 }
@@ -1686,7 +1694,7 @@ function exportReport() {
     ['TOTAL', '', ...['awal', 'masuk', 'kembali', 'mutasi', 'koreksi', 'keluar', 'akhir'].map((k) => D.list.reduce((s, r) => s + r[k], 0))]], [18, 16, 11, 9, 13, 9, 9, 11, 11]);
   const sites = [...new Set(D.dist.map((x) => x.site))].sort();
   add('PER SITE', [...head, ['Site', 'Jumlah Karyawan', ...TYPES.map(tLabel), 'Total'], ...sites.map((st) => { const ds = D.dist.filter((x) => x.site === st), per = TYPES.map((t) => ds.filter((x) => x.r.type === t).reduce((s, x) => s + qty(x.r.qty), 0)); return [st, new Set(ds.map((x) => x.r.person)).size, ...per, per.reduce((s, n) => s + n, 0)]; })], [22, 16, ...TYPES.map(() => 14), 10]);
-  add('RINCIAN PEMBAGIAN', [...head, ['Tanggal', 'Nama', 'Jabatan', 'Site', 'Jenis', 'Ukuran/Warna', 'Kondisi', 'Jumlah', 'Dari Gudang', 'Keterangan'], ...D.dist.map((x) => [x.r.date, x.name, x.pos, x.site, tLabel(x.r.type), vText(x.r.type, variant(x.r)), x.r.source === 'NEW' ? 'Baru' : 'Bekas layak', Number(x.r.qty), whOf(x.r.warehouse), x.r.note || ''])], [12, 26, 22, 18, 16, 14, 12, 8, 16, 30]);
+  add('RINCIAN PEMBAGIAN', [...head, ['Tanggal', 'Nama', 'Jabatan', 'Site', 'Jenis', 'Ukuran/Warna', 'Kondisi', 'Jumlah', 'Dari Gudang', 'Keterangan', 'Bukti Serah Terima'], ...D.dist.map((x) => [x.r.date, x.name, x.pos, x.site, tLabel(x.r.type), vText(x.r.type, variant(x.r)), x.r.source === 'NEW' ? 'Baru' : 'Bekas layak', Number(x.r.qty), whOf(x.r.warehouse), x.r.note || '', arr(x.r.files).length ? arr(x.r.files).map((d) => d.name).join(', ') : 'Belum ada'])], [12, 26, 22, 18, 16, 14, 12, 8, 16, 30, 30]);
   XLSX.writeFile(wb, `Laporan_Pemakaian_APD_${D.a}_sd_${D.b}.xlsx`, { compression: true });
 }
 function openingForm() {
@@ -1790,6 +1798,44 @@ function personForm(id) {
     <div class="fld"><label for="pf_s">Jobsite</label><input id="pf_s" name="site" required value="${esc(p.site)}"></div><div class="fld"><label for="pf_st">Status</label><select id="pf_st" name="status"><option value="AKTIF" ${p.status === 'AKTIF' ? 'selected' : ''}>Aktif</option><option value="OUT" ${p.status === 'OUT' ? 'selected' : ''}>Keluar</option></select></div></div>${actions('Simpan')}</form>`);
   $('pForm').onsubmit = (e) => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); const n = structuredClone(S.state); n.personOverrides = { ...(n.personOverrides || {}), [id]: { name: f.name.trim(), position: f.position.trim(), site: f.site.trim(), status: f.status } }; persist(n, 'Data karyawan diperbarui di Monitoring APD.'); };
 }
+// ---------- bukti serah terima (file di Supabase Storage, bucket privat apd-docs) ----------
+const DOC_BUCKET = 'apd-docs';
+let RF_DOCS = null;
+const docIcon = (d) => /pdf/.test(d.type || '') || /\.pdf$/i.test(d.name || '') ? 'PDF' : 'IMG';
+function docChips(files, rm) {
+  return arr(files).map((d, i) => `<span class="dchip"><a href="#" data-doc="${esc(d.id)}" title="${esc(d.name || 'Bukti')}"><i>${docIcon(d)}</i>${esc(d.name || 'Bukti')}</a>${rm ? `<button type="button" class="upx" data-docrm="${i}" aria-label="Hapus berkas">×</button>` : ''}</span>`).join('');
+}
+function docList() {
+  const el = $('rf_fl'); if (!el || !RF_DOCS) return;
+  el.innerHTML = docChips(RF_DOCS.list, true) + (RF_DOCS.busy ? `<span class="upst"><span class="spin sm"></span>Mengunggah ${RF_DOCS.busy} berkas…</span>` : '');
+  el.hidden = !el.innerHTML;
+}
+async function docUpload(inp) {
+  const fs = [...(inp.files || [])]; inp.value = ''; const w = inp._upkW && inp._upkW.querySelector('.upk-wf'); if (w) w.textContent = '';
+  if (!fs.length || !RF_DOCS) return; const box = RF_DOCS;
+  for (const f of fs) {
+    if (!/^(application\/pdf|image\/(png|jpeg|webp))$/.test(f.type)) { toast(`${f.name}: format belum didukung. Gunakan PDF, JPG, atau PNG.`, true); continue; }
+    if (f.size > 20 * 1024 * 1024) { toast(`${f.name}: ukuran lebih dari 20 MB.`, true); continue; }
+    box.busy++; docList();
+    try {
+      const ext = (f.name.match(/\.[A-Za-z0-9]+$/) || [''])[0].toLowerCase();
+      const id = 'penerimaan/' + today().slice(0, 7) + '/' + (crypto.randomUUID ? crypto.randomUUID() : uid()) + ext;
+      const { error } = await S.sb.storage.from(DOC_BUCKET).upload(id, f, { contentType: f.type, upsert: false });
+      if (error) throw error;
+      box.list.push({ id, name: f.name, type: f.type, size: f.size, at: new Date().toISOString(), by: (S.user && S.user.email) || '' });
+    } catch (er) {
+      const m = (er && er.message) || '';
+      toast(/policy|security|denied|unauthor|403/i.test(m) ? 'Akun ini tidak bisa mengunggah bukti APD.' : /size|large/i.test(m) ? `${f.name}: ukuran terlalu besar.` : 'Upload gagal' + (m ? ': ' + m : '.'), true);
+    } finally { box.busy--; if (RF_DOCS === box) docList(); }
+  }
+}
+async function docOpen(id) {
+  const w = window.open('', '_blank'); if (w) w.document.write('<p style="font-family:sans-serif;padding:20px">Membuka bukti…</p>');
+  try {
+    const { data, error } = await S.sb.storage.from(DOC_BUCKET).download(id); if (error || !data) throw error || new Error('Berkas tidak ditemukan');
+    const u = URL.createObjectURL(data); if (w) w.location.href = u; else location.href = u; setTimeout(() => URL.revokeObjectURL(u), 60000);
+  } catch (e) { if (w) w.close(); toast('Bukti tidak bisa dibuka: ' + ((e && e.message) || 'periksa akses.'), true); }
+}
 function receiptForm(pid, type, rid, src, req) {
   if (!can()) return; const p = person(pid); if (!p) return;
   const r = S.state.receipts.find((x) => x.id === rid) || { person: pid, type, date: today(), qty: req ? req.qty : 1, source: src || 'OLD', condition: 'LAYAK', months: 6, note: req ? 'Permintaan: ' + (req.reason || '') : '', variant: req ? req.variant : '', warehouse: WH[0] };
@@ -1803,18 +1849,23 @@ function receiptForm(pid, type, rid, src, req) {
     <div class="fld"><label for="rf_d">Tanggal diterima</label><input id="rf_d" type="date" name="date" required value="${esc(r.date)}"></div><div class="fld"><label for="rf_q">Jumlah</label><input id="rf_q" type="number" name="qty" min="1" step="1" required value="${r.qty}"></div>
     <div class="fld"><label for="rf_c">Kondisi saat ini</label><select id="rf_c" name="condition">${['BELUM DIPERIKSA', 'LAYAK', 'TIDAK LAYAK'].map((c) => `<option ${r.condition === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
     <div class="fld" id="rf_mw"><label for="rf_m">Jatah ganti (bulan)</label><input id="rf_m" type="number" name="months" min="1" max="120" step="1" value="${r.months || 6}"><small class="small">Tanggal diterima + bulan = jadwal ganti.</small></div>
-    <div class="fld full"><label for="rf_n">Keterangan / bukti</label><input id="rf_n" name="note" value="${esc(r.note || '')}"></div></div><div class="small" id="rf_h" style="margin-top:8px"></div>${actions(req ? 'Bagikan & Selesaikan Permintaan' : rid ? 'Simpan Perubahan' : 'Simpan')}</form>`);
+    <div class="fld full"><label for="rf_n">Keterangan</label><input id="rf_n" name="note" value="${esc(r.note || '')}"></div>
+    <div class="fld full"><label for="rf_f">Bukti serah terima / foto (PDF, JPG, PNG · maks 20 MB)</label><div class="docl" id="rf_fl"></div><input id="rf_f" type="file" accept="application/pdf,image/png,image/jpeg,image/webp" multiple data-upk-title="Bukti serah terima APD"></div></div><div class="small" id="rf_h" style="margin-top:8px"></div>${actions(req ? 'Bagikan & Selesaikan Permintaan' : rid ? 'Simpan Perubahan' : 'Simpan')}</form>`);
   const mode = () => {
     const s = $('rf_s').value, old = s === 'OLD', ext = s === 'EXTERNAL', gd = s === 'NEW' || s === 'REUSE';
     $('rf_gw').hidden = !gd; $('rf_ew').hidden = !ext; $('rf_mw').hidden = old;
     const t = $('rf_t').value, v = $('rf_v').value || 'BELUM DIISI', z = variantStocks(t, S.state, $('rf_g').value)[v] || { NEW: 0, REUSE: 0 };
     $('rf_h').textContent = old ? 'APD lama tidak mengurangi stok gudang.' : ext ? 'APD pihak luar tidak mengurangi stok; jadwal ganti tetap dihitung.' : `Tersedia di ${$('rf_g').value}: baru ${z.NEW}, bekas layak ${z.REUSE}. Stok berkurang setelah disimpan.`;
   };
+  RF_DOCS = { list: arr(r.files).slice(), busy: 0 }; docList();
+  $('rf_f').addEventListener('change', (e) => docUpload(e.target));
   $('rf_s').onchange = mode; $('rf_g').onchange = mode; $('rf_t').onchange = () => { $('rf_vw').innerHTML = vSel($('rf_t').value, '', 'rf_v'); $('rf_v').onchange = mode; mode(); }; $('rf_v').onchange = mode; mode();
   $('rForm').onsubmit = (e) => {
     e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); const t = req ? req.type : f.type;
     const w = f.source === 'OLD' ? '' : f.source === 'EXTERNAL' ? f.ext : f.wh;
     const v = { id: rid || uid(), person: pid, type: t, date: f.date, qty: Number(f.qty), source: f.source, warehouse: w, variant: f.variant, months: f.source === 'OLD' ? 0 : Number(f.months || 6), condition: f.condition, note: f.note };
+    if (RF_DOCS && RF_DOCS.busy) { toast('Tunggu upload bukti selesai dulu.', true); return; }
+    if (RF_DOCS && RF_DOCS.list.length) v.files = RF_DOCS.list;
     if (req) v.requestId = req.id; else if (rid) { const o = S.state.receipts.find((x) => x.id === rid); if (o && o.requestId) v.requestId = o.requestId; }
     const n = structuredClone(S.state); if (rid) { const i = n.receipts.findIndex((x) => x.id === rid); if (i < 0) return; n.receipts[i] = v; } else n.receipts.push(v);
     if (req) { const x = n.requests.find((y) => y.id === req.id); if (x) { x.status = 'fulfilled'; x.receiptId = v.id; x.fulfilledBy = S.user.email; x.fulfilledAt = today(); } }
@@ -2037,6 +2088,8 @@ document.addEventListener('click', async (e) => {
   if (c('#printBtn')) { if (!PRINT_OK()) { askPrint(); return; } window.print(); return; }
   if (c('#xlsBtn')) { exportExcel(); return; }
   if (c('#rptXls')) { exportReport(); return; }
+  const dc = c('[data-doc]'); if (dc) { e.preventDefault(); docOpen(dc.dataset.doc); return; }
+  const dr = c('[data-docrm]'); if (dr && RF_DOCS) { RF_DOCS.list.splice(Number(dr.dataset.docrm), 1); docList(); return; }
   if (c('#openBtn') || c('#openBtn2')) { e.preventDefault(); openingForm(); return; }
   const rp = c('[data-rp]'); if (rp) { rptPreset(rp.dataset.rp); return; }
   const rw = c('[data-rwh]'); if (rw) { ui.rWh = rw.dataset.rwh; render(); return; }
