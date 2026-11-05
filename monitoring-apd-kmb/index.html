@@ -658,6 +658,16 @@ body.locked > *:not(#lockScr):not(#toast):not(.modal):not(#modal) { visibility: 
 .lot .lmain { display: grid; gap: 3px; min-width: 0; flex: 1 1 320px; font-size: 13px; }
 .lot small { color: var(--muted); font-size: 12px; } .lot small.ret { color: var(--ink-2); } .lot small b { color: var(--ink); }
 .lot .acts { display: flex; gap: 6px; flex-wrap: wrap; }
+/* warna per asal APD: lama = abu/cokelat, baru = ungu, bekas layak = teal, pihak luar = oranye */
+.lot.src-OLD { border-left: 4px solid #94A3B8; background: #F8FAFC; }
+.lot.src-NEW { border-left: 4px solid #7C3AED; background: #FAF7FF; }
+.lot.src-REUSE { border-left: 4px solid #0D9488; background: #F3FBFA; }
+.lot.src-EXTERNAL { border-left: 4px solid #EA580C; background: #FFF8F2; }
+.srcb { display: inline-block; font-size: 11px; font-weight: 800; letter-spacing: .02em; border-radius: 6px; padding: 2px 8px; margin-right: 2px; vertical-align: 1px; }
+.srcb.src-OLD { background: #E2E8F0; color: #334155; }
+.srcb.src-NEW { background: #EDE5FF; color: #5B21B6; }
+.srcb.src-REUSE { background: #CCFBF1; color: #115E59; }
+.srcb.src-EXTERNAL { background: #FFEDD5; color: #9A3412; }
 .apdcard { display: flex; gap: 14px; align-items: flex-start; } .apdcard > img { width: 92px; height: 92px; background: var(--card-2); border-radius: 14px; padding: 8px; flex-shrink: 0; }
 .apdcard .big { font-size: 30px; font-weight: 800; margin: 2px 0; font-variant-numeric: tabular-nums; } .apdcard .big small { font-size: 13px; color: var(--muted); font-weight: 600; }
 .apdpic .pv { height: 200px; background: var(--card-2); border-radius: 14px; padding: 16px; margin: 10px 0 14px; }
@@ -1560,7 +1570,7 @@ function pageDetail() {
     const last = latest(p.id, t), d = due(p.id, t), old = lots.filter((x) => x.source === 'OLD').reduce((a, x) => a + heldLot(x), 0);
     const items = lots.map((r) => {
       const rem = heldLot(r), back = S.state.returns.filter((x) => x.receiptId === r.id);
-      return `<div class="lot"><div class="lmain"><div><b>${SRC_LABEL[r.source]} · ${fmt(r.date)} · ${r.qty} unit · ${esc(vText(t, variant(r)))}</b> ${tag(r.condition || 'BELUM DIPERIKSA')}</div>
+      return `<div class="lot src-${r.source}"><div class="lmain"><div><span class="srcb src-${r.source}">${SRC_LABEL[r.source]}</span> <b>${fmt(r.date)} · ${r.qty} unit · ${esc(vText(t, variant(r)))}</b> ${tag(r.condition || 'BELUM DIPERIKSA')}</div>
         <small>Masih dipegang: <b>${rem} unit</b>${!hasPlan(r) ? ' · Jatah ganti belum diisi (klik Edit untuk mengisi)' : ` · Jatah ${r.months} bulan · Ganti ${fmt(addMonths(r.date, r.months))}${last && last.id === r.id ? ' · <b>dasar jadwal ganti</b>' : ' · <span class="small">jadwal mengikuti APD yang lebih baru</span>'}`}</small>
         <small>Asal: ${esc(r.source === 'OLD' ? 'APD lama / milik pribadi' : r.source === 'EXTERNAL' ? r.warehouse || 'Pihak luar' : 'Gudang ' + whOf(r.warehouse))}${r.requestId ? ' · dari permintaan APD' : ''}${r.note ? ' · ' + esc(r.note) : ''}</small>
         ${arr(r.files).length ? `<div class="docl">${docChips(r.files)}</div>` : can() && r.source !== 'OLD' ? '<small class="nodoc">Belum ada bukti serah terima</small>' : ''}
