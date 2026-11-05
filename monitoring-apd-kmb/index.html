@@ -19,6 +19,18 @@ table.rdt th { font-size: 11px; color: var(--muted); font-weight: 700; backgroun
 .pchips a small { font-weight: 600; font-size: 10.5px; opacity: .75; }
 .pchips a b { color: inherit; }
 table.rpt tr.rsub td { background: var(--card-2); border-bottom: 2px solid var(--line); }
+/* tabel rekonsiliasi: kolom rata & garis halus antar kolom sampai bawah */
+table.rpt { table-layout: fixed; min-width: 860px; border: 1px solid var(--line); border-radius: 12px; border-collapse: separate; border-spacing: 0; overflow: hidden; }
+table.rpt > thead > tr > th { background: var(--card-2); border-bottom: 1px solid var(--line); vertical-align: middle; padding: 11px 10px; }
+table.rpt > thead > tr > th, table.rpt > tbody > tr:not(.rdet) > td { border-right: 1px solid var(--line); vertical-align: middle; }
+table.rpt > thead > tr > th:last-child, table.rpt > tbody > tr:not(.rdet) > td:last-child { border-right: 0; }
+table.rpt > thead > tr > th:nth-child(n+3), table.rpt > tbody > tr:not(.rdet) > td:nth-child(n+3) { text-align: center; font-variant-numeric: tabular-nums; }
+table.rpt > tbody > tr:not(.rdet) > td { border-bottom: 1px solid var(--line); }
+table.rpt > tbody > tr.rmain > td { border-top: 0; border-bottom: 1px solid #F1D58A; }
+table.rpt > tbody > tr.rmain > td:first-child { border-left: 0; box-shadow: inset 5px 0 0 #F59E0B; padding-left: 16px; }
+table.rpt > tbody > tr.rsub > td { border-bottom: 2px solid #D9D6EC; }
+table.rpt > tbody > tr:last-child > td { border-bottom: 0; }
+table.rpt > tbody > tr.rdet > td { border-bottom: 1px solid var(--line); padding: 10px 12px 12px 22px; }
 .opgrp { margin-top: 14px; }
 .docl { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
 .docl[hidden] { display: none; }
@@ -1703,7 +1715,7 @@ function pageReport() {
     const st = { awal: sum('awal', t), masuk: sum('masuk', t), kembali: sum('kembali', t), mutasi: sum('mutasi', t), koreksi: sum('koreksi', t), keluar: sum('keluar', t), akhir: sum('akhir', t) };
     return rs.map((r) => line(r)).join('') + line(st, true);
   }).join('') || `<tr><td colspan="${cols}" class="empty">${D.list.some(busy) || !hidden ? 'Belum ada stok.' : 'Belum ada pergerakan stok pada periode ini.'} Mulai dari <a href="#" id="openBtn2">Input Stok Awal</a>.</td></tr>`;
-  const recCard = `<div class="grid"><div class="card s12"><div class="ch"><div><div class="eyebrow">Rekonsiliasi</div><h2>Mutasi Stok per Ukuran</h2><p>Stok awal + masuk + kembali layak${showMut ? ' ± mutasi' : ''} ± koreksi − dibagikan = stok akhir. Di bawah tiap ukuran tercantum rincian siapa saja yang menerima. ${D.w === 'ALL' ? 'Semua gudang.' : 'Gudang ' + esc(D.w) + '.'}</p></div>${hidden ? `<button type="button" class="btn btn-g btn-sm" data-rall>${ui.rAll ? 'Sembunyikan ukuran kosong' : `Tampilkan semua ukuran (+${hidden})`}</button>` : ''}</div><div class="tw"><table class="t rpt"><thead><tr><th>Jenis</th><th>Ukuran / Warna</th><th>Stok Awal</th><th>Masuk</th><th>Kembali Layak</th>${showMut ? '<th>Mutasi</th>' : ''}<th>Koreksi</th><th>Dibagikan</th><th>Stok Akhir</th></tr></thead><tbody>${rec}</tbody></table></div>${D.destroyed ? `<p class="small" style="margin-top:8px">${D.destroyed} unit APD kembali tidak layak dan dimusnahkan pada periode ini (tidak menambah stok).</p>` : ''}</div></div>`;
+  const recCard = `<div class="grid"><div class="card s12"><div class="ch"><div><div class="eyebrow">Rekonsiliasi</div><h2>Mutasi Stok per Ukuran</h2><p>Stok awal + masuk + kembali layak${showMut ? ' ± mutasi' : ''} ± koreksi − dibagikan = stok akhir. Di bawah tiap ukuran tercantum rincian siapa saja yang menerima. ${D.w === 'ALL' ? 'Semua gudang.' : 'Gudang ' + esc(D.w) + '.'}</p></div>${hidden ? `<button type="button" class="btn btn-g btn-sm" data-rall>${ui.rAll ? 'Sembunyikan ukuran kosong' : `Tampilkan semua ukuran (+${hidden})`}</button>` : ''}</div><div class="tw"><table class="t rpt"><colgroup><col style="width:18%"><col style="width:10%">${Array.from({ length: showMut ? 7 : 6 }, () => `<col style="width:${(72 / (showMut ? 7 : 6)).toFixed(2)}%">`).join('')}</colgroup><thead><tr><th>Jenis</th><th>Ukuran / Warna</th><th>Stok Awal</th><th>Masuk</th><th>Kembali Layak</th>${showMut ? '<th>Mutasi</th>' : ''}<th>Koreksi</th><th>Dibagikan</th><th>Stok Akhir</th></tr></thead><tbody>${rec}</tbody></table></div>${D.destroyed ? `<p class="small" style="margin-top:8px">${D.destroyed} unit APD kembali tidak layak dan dimusnahkan pada periode ini (tidak menambah stok).</p>` : ''}</div></div>`;
   // per site
   const sites = [...new Set(D.dist.map((x) => x.site))].sort((x, y) => x.localeCompare(y, 'id'));
   const siteRows = sites.map((st) => { const ds = D.dist.filter((x) => x.site === st), per = TYPES.map((t) => ds.filter((x) => x.r.type === t).reduce((s, x) => s + qty(x.r.qty), 0)); return `<tr><td class="b">${esc(st)}</td><td>${new Set(ds.map((x) => x.r.person)).size}</td>${per.map((n) => `<td class="${n ? 'b' : 'small'}">${n}</td>`).join('')}<td class="b">${per.reduce((s, n) => s + n, 0)}</td></tr>`; }).join('');
