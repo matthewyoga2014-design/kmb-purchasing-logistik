@@ -1,6 +1,12 @@
 <!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Monitoring APD KMB</title><meta name="description" content="Monitoring APD KMB: stok gudang, pembagian, penggantian, dan pengembalian helm, kaos, sepatu safety."><meta name="theme-color" content="#6D28D9"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2716%27 fill=%27%236D28D9%27/%3E%3Ctext x=%2732%27 y=%2740%27 font-family=%27Arial%27 font-weight=%27700%27 font-size=%2734%27 fill=%27white%27 text-anchor=%27middle%27%3EM%3C/text%3E%3C/svg%3E"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"><style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}.rptbar input[type="date"] { font: inherit; font-size: 13px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); margin-left: 6px; }
 .rptbar label { display: inline-flex; align-items: center; }
 table.rpt td:nth-child(n+3), table.rpt th:nth-child(n+3) { text-align: right; }
+table.rpt td.pw, table.rpt th:last-child { text-align: left; min-width: 220px; }
+.pchips { display: flex; flex-wrap: wrap; gap: 5px; }
+.pchips a { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 700; color: var(--primary-ink); background: var(--primary-soft); border-radius: 999px; padding: 3px 10px; text-decoration: none; white-space: nowrap; }
+.pchips a:hover { background: var(--primary); color: #fff; }
+.pchips a small { font-weight: 600; font-size: 10.5px; opacity: .75; }
+.pchips a b { color: inherit; }
 table.rpt tr.rsub td { background: var(--card-2); border-bottom: 2px solid var(--line); }
 .opgrp { margin-top: 14px; }
 .docl { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 6px; }
@@ -1123,7 +1129,7 @@ const DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const HELM_DOT = { Putih: '#FFFFFF', Kuning: '#F5C518', Biru: '#2563EB' };
 
 const S = { perms: {}, asked: false, sb: null, user: null, role: '', state: null, revision: 0, ver: null, people: [], access: null, audit: null, share: null, grant: null, grants: null, saving: false, noAccess: false, loaded: false };
-const ui = { page: 'dashboard', person: '', q: '', site: 'ALL', period: 'bulanan', year: new Date().getFullYear(), hq: '', ht: 'ALL', wh: 'ALL', rq: 'pending', rFrom: '', rTo: '', rWh: 'ALL' };
+const ui = { page: 'dashboard', person: '', q: '', site: 'ALL', period: 'bulanan', year: new Date().getFullYear(), hq: '', ht: 'ALL', wh: 'ALL', rq: 'pending', rFrom: '', rTo: '', rWh: 'ALL', rAll: false };
 // link anonim ?k= tidak dipakai lagi: semua wajib masuk dengan email yang diundang (Pusat Monitoring)
 const SHARE_KEY = new URLSearchParams(location.search).get('share') || '', HUB = '../';
 let GUEST_ROLE = '';
@@ -1670,13 +1676,18 @@ function pageReport() {
     <div class="kpi k4"><span class="ic">▤</span><div><div class="lb">Stok Akhir</div><div class="v">${sum('akhir')}</div><div class="ds">per ${fmt(D.b)}${sum('koreksi') ? ` · koreksi ${sum('koreksi') > 0 ? '+' : ''}${sum('koreksi')}` : ''}</div></div></div></div>`;
   const showMut = D.w !== 'ALL' || sum('mutasi') !== 0;
   const num = (n, sign) => n ? `${sign && n > 0 ? '+' : ''}${n}` : '<span class="small">0</span>';
+  // penerima per ukuran: nama (jumlah), urut tanggal
+  const who = (t, v) => { const m = new Map(); D.dist.filter((x) => x.r.type === t && (v == null || variant(x.r) === v)).forEach((x) => { const c = m.get(x.r.person) || { id: x.r.person, name: x.name, site: x.site, n: 0, d: x.r.date }; c.n += qty(x.r.qty); c.d = x.r.date; m.set(x.r.person, c); }); return [...m.values()]; };
+  const whoHtml = (t, v) => { const ps = who(t, v); return ps.length ? `<div class="pchips">${ps.map((c) => `<a href="#" data-person="${esc(c.id)}" title="${esc(c.site)} · terakhir ${fmt(c.d)}">${esc(c.name)}${c.n > 1 ? ` <b>×${c.n}</b>` : ''}<small>${esc(c.site)}</small></a>`).join('')}</div>` : '<span class="small">—</span>'; };
+  const busy = (r) => r.awal || r.masuk || r.kembali || r.mutasi || r.koreksi || r.keluar || r.akhir;
+  const hidden = D.list.filter((r) => !busy(r)).length;
   const rec = TYPES.map((t) => {
-    const rs = D.list.filter((r) => r.t === t); if (!rs.length) return '';
-    const line = (r, b) => `<tr class="${b ? 'rsub' : ''}"><td>${b ? '<b>Subtotal ' + esc(tLabel(t)) + '</b>' : esc(tLabel(t))}</td><td>${b ? '' : esc(vText(t, r.v))}</td><td>${num(r.awal)}</td><td>${num(r.masuk)}</td><td>${num(r.kembali)}</td>${showMut ? `<td>${num(r.mutasi, 1)}</td>` : ''}<td>${num(r.koreksi, 1)}</td><td class="b" style="color:${r.keluar ? 'var(--crit)' : ''}">${r.keluar ? '−' + r.keluar : '<span class="small">0</span>'}</td><td class="b">${r.akhir}</td></tr>`;
+    const rs = D.list.filter((r) => r.t === t && (ui.rAll || busy(r))); if (!rs.length) return '';
+    const line = (r, b) => `<tr class="${b ? 'rsub' : ''}"><td>${b ? '<b>Subtotal ' + esc(tLabel(t)) + '</b>' : esc(tLabel(t))}</td><td>${b ? '' : esc(vText(t, r.v))}</td><td>${num(r.awal)}</td><td>${num(r.masuk)}</td><td>${num(r.kembali)}</td>${showMut ? `<td>${num(r.mutasi, 1)}</td>` : ''}<td>${num(r.koreksi, 1)}</td><td class="b" style="color:${r.keluar ? 'var(--crit)' : ''}">${r.keluar ? '−' + r.keluar : '<span class="small">0</span>'}</td><td class="b">${r.akhir}</td><td class="pw">${b ? '' : whoHtml(t, r.v)}</td></tr>`;
     const st = { awal: sum('awal', t), masuk: sum('masuk', t), kembali: sum('kembali', t), mutasi: sum('mutasi', t), koreksi: sum('koreksi', t), keluar: sum('keluar', t), akhir: sum('akhir', t) };
     return rs.map((r) => line(r)).join('') + line(st, true);
-  }).join('') || `<tr><td colspan="9" class="empty">Belum ada stok. Mulai dari <a href="#" id="openBtn2">Input Stok Awal</a>.</td></tr>`;
-  const recCard = `<div class="grid"><div class="card s12"><div class="ch"><div><div class="eyebrow">Rekonsiliasi</div><h2>Mutasi Stok per Ukuran</h2><p>Stok awal + masuk + kembali layak${showMut ? ' ± mutasi' : ''} ± koreksi − dibagikan = stok akhir. ${D.w === 'ALL' ? 'Semua gudang.' : 'Gudang ' + esc(D.w) + '.'}</p></div></div><div class="tw"><table class="t rpt"><thead><tr><th>Jenis</th><th>Ukuran / Warna</th><th>Stok Awal</th><th>Masuk</th><th>Kembali Layak</th>${showMut ? '<th>Mutasi</th>' : ''}<th>Koreksi</th><th>Dibagikan</th><th>Stok Akhir</th></tr></thead><tbody>${rec}</tbody></table></div>${D.destroyed ? `<p class="small" style="margin-top:8px">${D.destroyed} unit APD kembali tidak layak dan dimusnahkan pada periode ini (tidak menambah stok).</p>` : ''}</div></div>`;
+  }).join('') || `<tr><td colspan="10" class="empty">${D.list.some(busy) || !hidden ? 'Belum ada stok.' : 'Belum ada pergerakan stok pada periode ini.'} Mulai dari <a href="#" id="openBtn2">Input Stok Awal</a>.</td></tr>`;
+  const recCard = `<div class="grid"><div class="card s12"><div class="ch"><div><div class="eyebrow">Rekonsiliasi</div><h2>Mutasi Stok per Ukuran</h2><p>Stok awal + masuk + kembali layak${showMut ? ' ± mutasi' : ''} ± koreksi − dibagikan = stok akhir. Kolom <b>Dibagikan ke</b> menunjukkan siapa saja yang menerima ukuran itu. ${D.w === 'ALL' ? 'Semua gudang.' : 'Gudang ' + esc(D.w) + '.'}</p></div>${hidden ? `<button type="button" class="btn btn-g btn-sm" data-rall>${ui.rAll ? 'Sembunyikan ukuran kosong' : `Tampilkan semua ukuran (+${hidden})`}</button>` : ''}</div><div class="tw"><table class="t rpt"><thead><tr><th>Jenis</th><th>Ukuran / Warna</th><th>Stok Awal</th><th>Masuk</th><th>Kembali Layak</th>${showMut ? '<th>Mutasi</th>' : ''}<th>Koreksi</th><th>Dibagikan</th><th>Stok Akhir</th><th>Dibagikan ke</th></tr></thead><tbody>${rec}</tbody></table></div>${D.destroyed ? `<p class="small" style="margin-top:8px">${D.destroyed} unit APD kembali tidak layak dan dimusnahkan pada periode ini (tidak menambah stok).</p>` : ''}</div></div>`;
   // per site
   const sites = [...new Set(D.dist.map((x) => x.site))].sort((x, y) => x.localeCompare(y, 'id'));
   const siteRows = sites.map((st) => { const ds = D.dist.filter((x) => x.site === st), per = TYPES.map((t) => ds.filter((x) => x.r.type === t).reduce((s, x) => s + qty(x.r.qty), 0)); return `<tr><td class="b">${esc(st)}</td><td>${new Set(ds.map((x) => x.r.person)).size}</td>${per.map((n) => `<td class="${n ? 'b' : 'small'}">${n}</td>`).join('')}<td class="b">${per.reduce((s, n) => s + n, 0)}</td></tr>`; }).join('');
@@ -1700,9 +1711,10 @@ function exportReport() {
   if (!window.XLSX) { toast('Modul Excel belum termuat. Coba lagi sebentar.', true); return; }
   const D = rptData(), wb = XLSX.utils.book_new(), add = (n, rows, w) => { const ws = XLSX.utils.aoa_to_sheet(rows); ws['!cols'] = w.map((x) => ({ wch: x })); XLSX.utils.book_append_sheet(wb, ws, n); };
   const head = [['LAPORAN PEMAKAIAN APD KMB'], ['Periode', D.a + ' s/d ' + D.b], ['Gudang', D.w === 'ALL' ? 'Semua gudang' : D.w], ['Dicetak', today()], []];
-  add('REKAP STOK', [...head, ['Jenis', 'Ukuran/Warna', 'Stok Awal', 'Masuk', 'Kembali Layak', 'Mutasi', 'Koreksi', 'Dibagikan', 'Stok Akhir'],
-    ...D.list.map((r) => [tLabel(r.t), vText(r.t, r.v), r.awal, r.masuk, r.kembali, r.mutasi, r.koreksi, r.keluar, r.akhir]),
-    ['TOTAL', '', ...['awal', 'masuk', 'kembali', 'mutasi', 'koreksi', 'keluar', 'akhir'].map((k) => D.list.reduce((s, r) => s + r[k], 0))]], [18, 16, 11, 9, 13, 9, 9, 11, 11]);
+  const whoX = (t, v) => { const m = new Map(); D.dist.filter((x) => x.r.type === t && variant(x.r) === v).forEach((x) => { const c = m.get(x.r.person) || { name: x.name, site: x.site, n: 0 }; c.n += qty(x.r.qty); m.set(x.r.person, c); }); return [...m.values()].map((c) => `${c.name} (${c.site}${c.n > 1 ? ', ' + c.n : ''})`).join('; '); };
+  add('REKAP STOK', [...head, ['Jenis', 'Ukuran/Warna', 'Stok Awal', 'Masuk', 'Kembali Layak', 'Mutasi', 'Koreksi', 'Dibagikan', 'Stok Akhir', 'Dibagikan ke'],
+    ...D.list.map((r) => [tLabel(r.t), vText(r.t, r.v), r.awal, r.masuk, r.kembali, r.mutasi, r.koreksi, r.keluar, r.akhir, whoX(r.t, r.v)]),
+    ['TOTAL', '', ...['awal', 'masuk', 'kembali', 'mutasi', 'koreksi', 'keluar', 'akhir'].map((k) => D.list.reduce((s, r) => s + r[k], 0))]], [18, 16, 11, 9, 13, 9, 9, 11, 11, 60]);
   const sites = [...new Set(D.dist.map((x) => x.site))].sort();
   add('PER SITE', [...head, ['Site', 'Jumlah Karyawan', ...TYPES.map(tLabel), 'Total'], ...sites.map((st) => { const ds = D.dist.filter((x) => x.site === st), per = TYPES.map((t) => ds.filter((x) => x.r.type === t).reduce((s, x) => s + qty(x.r.qty), 0)); return [st, new Set(ds.map((x) => x.r.person)).size, ...per, per.reduce((s, n) => s + n, 0)]; })], [22, 16, ...TYPES.map(() => 14), 10]);
   add('RINCIAN PEMBAGIAN', [...head, ['Tanggal', 'Nama', 'Jabatan', 'Site', 'Jenis', 'Ukuran/Warna', 'Kondisi', 'Jumlah', 'Dari Gudang', 'Keterangan', 'Bukti Serah Terima'], ...D.dist.map((x) => [x.r.date, x.name, x.pos, x.site, tLabel(x.r.type), vText(x.r.type, variant(x.r)), x.r.source === 'NEW' ? 'Baru' : 'Bekas layak', Number(x.r.qty), whOf(x.r.warehouse), x.r.note || '', arr(x.r.files).length ? arr(x.r.files).map((d) => d.name).join(', ') : 'Belum ada'])], [12, 26, 22, 18, 16, 14, 12, 8, 16, 30, 30]);
@@ -2103,6 +2115,7 @@ document.addEventListener('click', async (e) => {
   const dr = c('[data-docrm]'); if (dr && RF_DOCS) { RF_DOCS.list.splice(Number(dr.dataset.docrm), 1); docList(); return; }
   if (c('#openBtn') || c('#openBtn2')) { e.preventDefault(); openingForm(); return; }
   const rp = c('[data-rp]'); if (rp) { rptPreset(rp.dataset.rp); return; }
+  if (c('[data-rall]')) { ui.rAll = !ui.rAll; render(); return; }
   const rw = c('[data-rwh]'); if (rw) { ui.rWh = rw.dataset.rwh; render(); return; }
   if (c('#bkBtn') && isOwner()) { download(`Backup_APD_KMB_${today()}.json`, JSON.stringify({ date: today(), state: S.state }, null, 1)); return; }
   if (c('#rsBtn') && isOwner()) { $('rsIn').click(); return; }
