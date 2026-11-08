@@ -249,10 +249,9 @@
     const L = ((rowOf(site, nama) || {}).files || []);
     return `<div class="fsec">Berkas Karyawan <span class="small" style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted,#6b6985)">· ${L.length} berkas · tersimpan juga di Google Drive</span></div>
       <div class="kfiles">${L.length ? L.map((f) => `<div class="kfile"><span class="kk">${esc(f.kind || 'Berkas')}</span><a class="fchip2" href="${fileUrl(f)}" title="${esc(f.name)}">${esc(f.name)}</a><span class="small">${fsize(f.size)}</span><button type="button" class="upx" data-kfdel="${esc(f.id)}" aria-label="Hapus ${esc(f.name)}" title="Hapus berkas">×</button></div>`).join('') : '<p class="small" style="margin:0">Belum ada berkas.</p>'}</div>
-      <div class="kdrop" id="kDrop"><div class="row2"><label class="small" style="display:flex;gap:6px;align-items:center;margin:0">Jenis <select id="kKind" style="width:auto;padding:6px 8px">${['Otomatis dari nama file'].concat(KINDS).map((k, i) => `<option value="${i ? esc(k) : ''}">${esc(k)}</option>`).join('')}</select></label>
-        <button type="button" class="btn btn-p" id="kPick"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4M6 10l6-6 6 6M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Upload berkas</button></div>
-        <div class="small" style="margin-top:6px">Bisa pilih beberapa file sekaligus, atau seret file ke sini · PDF / JPG / PNG / dokumen, maks 20 MB per file</div><div id="kProg"></div>
-        <input type="file" id="kIn" multiple hidden></div>`;
+      <div class="fgrid"><div class="fld"><label>Upload Berkas Karyawan</label><div class="upw" id="kUpw"><button type="button" class="btn btn-g btn-sm upbtn" id="kPick"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Upload</button><small>atau seret berkas ke sini · bisa beberapa file · maks 20 MB per file</small></div></div>
+        <div class="fld"><label for="kKind">Jenis berkas</label><select id="kKind">${['Otomatis dari nama file'].concat(KINDS).map((k, i) => `<option value="${i ? esc(k) : ''}">${esc(k)}</option>`).join('')}</select></div></div>
+      <div id="kProg"></div><input type="file" id="kIn" multiple hidden>`;
   }
   function mountFiles(site, nama) {
     const frm = document.getElementById('frm'), er = document.getElementById('ferr');
@@ -261,12 +260,15 @@
     if (!box) { box = document.createElement('div'); box.id = 'kBox'; frm.insertBefore(box, er); }
     if (!nama) { box.innerHTML = '<div class="fsec">Berkas Karyawan</div><p class="small" style="margin:0 0 6px">Simpan data karyawan ini dulu, lalu buka lagi untuk upload berkas.</p>'; return; }
     box.innerHTML = filesHtml(site, nama);
-    const inp = document.getElementById('kIn'), drop = document.getElementById('kDrop');
-    document.getElementById('kPick').onclick = () => inp.click();
-    inp.onchange = () => { const fs = [...inp.files]; inp.value = ''; if (fs.length) uploadFiles(site, nama, fs); };
-    ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
-    ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
-    drop.addEventListener('drop', (e) => { const fs = [...((e.dataTransfer && e.dataTransfer.files) || [])]; if (fs.length) uploadFiles(site, nama, fs); });
+    const inp = document.getElementById('kIn'), drop = document.getElementById('kUpw');
+    const go = (fs) => { closePicker(); if (fs.length) uploadFiles(site, nama, fs); };
+    document.getElementById('kPick').onclick = (e) => { e.preventDefault(); e.stopPropagation(); openPicker(inp, go); };
+    inp.onchange = () => { const fs = [...inp.files]; inp.value = ''; go(fs); };
+    // kotak upload di form: terima beberapa file sekaligus (event tidak diteruskan ke pengunggah 1-file milik form pelamar)
+    ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); e.stopPropagation(); if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy'; drop.classList.add('drag'); }));
+    drop.addEventListener('dragleave', (e) => { e.stopPropagation(); if (!drop.contains(e.relatedTarget)) drop.classList.remove('drag'); });
+    drop.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); drop.classList.remove('drag'); go([...((e.dataTransfer && e.dataTransfer.files) || [])]); });
+    drop.addEventListener('click', (e) => { if (e.target === drop || e.target.tagName === 'SMALL') { e.stopPropagation(); openPicker(inp, go); } });
     box.onclick = async (e) => {
       const b = e.target.closest('[data-kfdel]'); if (!b) return;
       e.preventDefault(); e.stopPropagation();
@@ -280,6 +282,37 @@
       } catch (err) { toast('Gagal menghapus berkas: ' + ((err && err.message) || 'periksa koneksi'), true); }
     };
   }
+  // panel "Sisipkan file" yang sama dengan upload berkas pelamar (dibuat oleh halaman); versi banyak file
+  const PK_MULTI = 'Upload satu atau beberapa file sekaligus: PDF, JPG, PNG, atau dokumen. Maks 20 MB per file.';
+  let PK_GO = null;
+  function openPicker(inp, go) {
+    let pk = document.getElementById('upPick');
+    if (!pk) {   // minta halaman membuat panelnya sekali lewat tombol upload tersembunyi
+      const tmp = document.createElement('div'); tmp.className = 'upw'; tmp.style.display = 'none';
+      tmp.innerHTML = '<div class="fld"><label>Berkas</label><button type="button" data-uppick="_k"></button><input type="file" data-upfile="_k" hidden></div>';
+      document.body.appendChild(tmp); tmp.querySelector('button').click(); tmp.remove();
+      pk = document.getElementById('upPick');
+    }
+    if (!pk) { inp.click(); return; }
+    const info = pk.querySelector('.upk-i span');
+    if (info && !pk._orig) pk._orig = info.textContent;
+    if (info) info.textContent = PK_MULTI;
+    pk._inp = inp; PK_GO = go;
+    document.getElementById('upPkT').textContent = 'Berkas Karyawan';
+    if (!pk._kmulti) {
+      pk._kmulti = true;
+      const z = document.getElementById('upPkZ');
+      z.addEventListener('drop', (e) => {   // banyak file sekaligus saat panel dibuka dari Berkas Karyawan
+        if (!PK_GO || pk._inp !== document.getElementById('kIn')) return;
+        e.preventDefault(); e.stopImmediatePropagation(); z.classList.remove('on');
+        const fs = [...((e.dataTransfer && e.dataTransfer.files) || [])]; const g = PK_GO; g(fs);
+      }, true);
+      new MutationObserver(() => { if (pk.hidden) { const sp = pk.querySelector('.upk-i span'); if (sp && pk._orig) sp.textContent = pk._orig; PK_GO = null; } }).observe(pk, { attributes: true, attributeFilter: ['hidden'] });
+    }
+    pk.hidden = false;
+    setTimeout(() => { const b = document.getElementById('upPkB'); if (b) b.focus(); }, 30);
+  }
+  function closePicker() { const pk = document.getElementById('upPick'); if (pk && !pk.hidden) pk.hidden = true; }
   async function saveFiles(site, nama, files) {
     const cur = rowOf(site, nama) || {};
     await upsertRows([{ site_id: site, pkey: key(nama), data: { ...cur, _nama: cur._nama || nama, files }, updated_at: new Date().toISOString(), updated_by: WEB.user.email }]);
