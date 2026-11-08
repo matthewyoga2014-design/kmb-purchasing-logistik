@@ -4214,22 +4214,27 @@ function muColDesired(cur,pref){
 function muColHidden(key,labels,pref){ const def=(MU_COLT[key]&&MU_COLT[key].defHidden)||[], ord=(pref&&pref.order)||[];
   return new Set([...((pref&&pref.hidden)||[]),...def.filter(l=>labels.includes(l)&&!ord.includes(l))]); }
 function muColApply(t,pref,key){
-  const h=muColHead(t); if(!h) return; const cur=[...h.children].map(muColLabel), N=cur.length;
-  if(new Set(cur.filter(Boolean)).size!==cur.filter(Boolean).length) return;
-  const want=muColDesired(cur,pref), hid=muColHidden(key,cur,pref), sig=want.join("|")+"#"+[...hid].join("|");
-  if(t.dataset.colSig===sig && cur.join("|")===want.join("|") && t.rows.length===Number(t.dataset.colRows||-1)) return;
-  const idx=want.map(l=>cur.indexOf(l));
-  const V=N-cur.filter(l=>hid.has(l)).length;
+  const h=muColHead(t); if(!h) return; const SEP="\u0001";
+  // urutan asli = urutan render; baris yang baru dirender (mis. setelah filter) selalu dalam urutan asli
+  const tagged=r=>r.children.length>0&&[...r.children].every(c=>c.dataset.colL!=null);
+  let orig; if(tagged(h) && t.dataset.colOrig) orig=t.dataset.colOrig.split(SEP); else { orig=[...h.children].map(muColLabel); t.dataset.colOrig=orig.join(SEP); }
+  const N=orig.length;
+  if(new Set(orig.filter(Boolean)).size!==orig.filter(Boolean).length) return;
+  const want=muColDesired(orig,pref), hid=muColHidden(key,orig,pref), sig=want.join(SEP)+"#"+[...hid].join(SEP);
+  const V=N-orig.filter(l=>hid.has(l)).length;
   // baris dengan sel gabungan (mis. "Belum dijadwalkan"): lebar gabungan disesuaikan dengan jumlah kolom yang tampil
   const span=row=>{ const cs=[...row.children], big=cs.filter(c=>(Number(c.dataset.span0)||c.colSpan||1)>1); if(big.length!==1) return;
     const c=big[0]; if(!c.dataset.span0) c.dataset.span0=c.colSpan; const others=cs.filter(x=>x!==c&&x.style.display!=="none").reduce((n,x)=>n+(x.colSpan||1),0);
     c.colSpan=Math.max(1,V-others); };
-  const fix=row=>{ const cs=[...row.children]; if(cs.length!==N||cs.some(c=>(Number(c.dataset.span0)||c.colSpan||1)>1)){ if(row.tagName==="TR") span(row); return; }
-    idx.forEach(i=>row.appendChild(cs[i]));
-    cs.forEach((c,i)=>{ const off=hid.has(cur[i]); if(off){ c.style.display="none"; c.dataset.colHid="1"; } else if(c.dataset.colHid){ c.style.display=""; delete c.dataset.colHid; } }); };
+  const fix=row=>{ const tg=tagged(row); if(tg&&row.dataset.colSig===sig) return; const cs=[...row.children];
+    if(cs.length!==N||cs.some(c=>(Number(c.dataset.span0)||c.colSpan||1)>1)){ if(row.tagName==="TR") span(row); return; }
+    const rc=tg?cs.map(c=>c.dataset.colL):orig;
+    cs.forEach((c,i)=>{ c.dataset.colL=rc[i]; });
+    want.forEach(l=>{ const k=rc.indexOf(l); if(k>=0) row.appendChild(cs[k]); });
+    cs.forEach((c,i)=>{ const off=hid.has(rc[i]); if(off){ c.style.display="none"; c.dataset.colHid="1"; } else if(c.dataset.colHid){ c.style.display=""; delete c.dataset.colHid; } });
+    row.dataset.colSig=sig; };
   const cg=t.querySelector(":scope > colgroup"); if(cg) fix(cg);
-  [...t.rows].forEach(fix);
-  t.dataset.colSig=sig; t.dataset.colRows=t.rows.length; }
+  [...t.rows].forEach(fix); }
 function muColApplyAll(){ const P=muColPrefs();
   Object.entries(MU_COLT).forEach(([k,d])=>document.querySelectorAll(d.sel).forEach(t=>{ try{ muColApply(t,P[k],k); }catch(e){} }));
   document.querySelectorAll("[data-colcfg][data-needwrite]").forEach(b=>b.hidden=!canWrite); }
