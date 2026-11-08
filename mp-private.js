@@ -217,8 +217,11 @@
     const clean = (o) => { const c = { ...(o || {}) }; delete c._nama; return c; };
     const changed = PF.filter((f) => (cur || {})[f[0]] !== data[f[0]] && !((cur || {})[f[0]] == null && data[f[0]] == null)).map((f) => f[1]);
     const renamed = oldName && key(oldName) !== key(newName);
-    if (!renamed && JSON.stringify(clean(cur)) === JSON.stringify(clean(data))) return false;
+    const noFiles = (o) => { const c = clean(o); delete c.files; return c; };
+    if (!renamed && JSON.stringify(noFiles(cur)) === JSON.stringify(noFiles(data))) return false;
     data._nama = newName;
+    const latest = (PV.rows[site] || {})[key(oldName || newName)] || (PV.rows[site] || {})[key(newName)];
+    if (latest && Array.isArray(latest.files) && latest.files.length) data.files = latest.files;
     await upsertRows([{ site_id: site, pkey: key(newName), data, updated_at: new Date().toISOString(), updated_by: WEB.user.email }]);
     if (renamed) {
       const r = await WEB.sb.from(T).delete().eq('site_id', site).eq('pkey', key(oldName));
@@ -226,6 +229,92 @@
     }
     if (window.KTALog) KTALog.log(`Ubah data pribadi ${newName}`, (renamed ? [`Nama: ${oldName} → ${newName}`] : []).concat(changed.length ? ['Kolom diubah: ' + changed.join(', ')] : []));
     return true;
+  }
+
+  // ---------- Berkas karyawan (KTP, KK, ijazah, …) → storage privat → disalin ke Google Drive ----------
+  // Metadata disimpan di data pribadi (files[]); objek di bucket kta-web-docs. Sinkron Drive Pemilik
+  // (±10 menit) menyalinnya ke "Monitoring Manpower › <jobsite> › Berkas Karyawan › <Nama>".
+  const KINDS = ['KTP', 'Kartu Keluarga', 'NPWP', 'Ijazah', 'Transkrip Nilai', 'Sertifikat / SIO', 'SIM', 'Kartu BPJS', 'Buku Rekening', 'Pas Foto', 'CV', 'Kontrak Kerja', 'Surat Keterangan', 'Lainnya'];
+  const MAXB = 20 * 1024 * 1024;
+  const guessKind = (n) => {
+    const t = String(n || '').toLowerCase();
+    return /ktp|e-?ktp/.test(t) ? 'KTP' : /\bkk\b|kartu.?keluarga/.test(t) ? 'Kartu Keluarga' : /npwp/.test(t) ? 'NPWP' : /ijazah|ijasah/.test(t) ? 'Ijazah'
+      : /transkrip/.test(t) ? 'Transkrip Nilai' : /sertif|sio|simper|\bk3\b/.test(t) ? 'Sertifikat / SIO' : /\bsim\b/.test(t) ? 'SIM' : /bpjs/.test(t) ? 'Kartu BPJS'
+      : /rek|tabungan|buku.?bank/.test(t) ? 'Buku Rekening' : /foto|photo|pas/.test(t) ? 'Pas Foto' : /\bcv\b|resume|riwayat/.test(t) ? 'CV'
+      : /kontrak|pkwt|perjanjian/.test(t) ? 'Kontrak Kerja' : /surat|skck|keterangan/.test(t) ? 'Surat Keterangan' : 'Lainnya';
+  };
+  const fsize = (n) => !n ? '' : n < 1048576 ? Math.max(1, Math.round(n / 1024)) + ' KB' : (n / 1048576).toFixed(1) + ' MB';
+  const rowOf = (site, nama) => (PV.rows[site] || {})[key(nama)] || null;
+  function filesHtml(site, nama) {
+    const L = ((rowOf(site, nama) || {}).files || []);
+    return `<div class="fsec">Berkas Karyawan <span class="small" style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted,#6b6985)">· ${L.length} berkas · tersimpan juga di Google Drive</span></div>
+      <div class="kfiles">${L.length ? L.map((f) => `<div class="kfile"><span class="kk">${esc(f.kind || 'Berkas')}</span><a class="fchip2" href="${fileUrl(f)}" title="${esc(f.name)}">${esc(f.name)}</a><span class="small">${fsize(f.size)}</span><button type="button" class="upx" data-kfdel="${esc(f.id)}" aria-label="Hapus ${esc(f.name)}" title="Hapus berkas">×</button></div>`).join('') : '<p class="small" style="margin:0">Belum ada berkas.</p>'}</div>
+      <div class="kdrop" id="kDrop"><div class="row2"><label class="small" style="display:flex;gap:6px;align-items:center;margin:0">Jenis <select id="kKind" style="width:auto;padding:6px 8px">${['Otomatis dari nama file'].concat(KINDS).map((k, i) => `<option value="${i ? esc(k) : ''}">${esc(k)}</option>`).join('')}</select></label>
+        <button type="button" class="btn btn-p" id="kPick"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 16V4M6 10l6-6 6 6M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Upload berkas</button></div>
+        <div class="small" style="margin-top:6px">Bisa pilih beberapa file sekaligus, atau seret file ke sini · PDF / JPG / PNG / dokumen, maks 20 MB per file</div><div id="kProg"></div>
+        <input type="file" id="kIn" multiple hidden></div>`;
+  }
+  function mountFiles(site, nama) {
+    const frm = document.getElementById('frm'), er = document.getElementById('ferr');
+    if (!frm || !er) return;
+    let box = document.getElementById('kBox');
+    if (!box) { box = document.createElement('div'); box.id = 'kBox'; frm.insertBefore(box, er); }
+    if (!nama) { box.innerHTML = '<div class="fsec">Berkas Karyawan</div><p class="small" style="margin:0 0 6px">Simpan data karyawan ini dulu, lalu buka lagi untuk upload berkas.</p>'; return; }
+    box.innerHTML = filesHtml(site, nama);
+    const inp = document.getElementById('kIn'), drop = document.getElementById('kDrop');
+    document.getElementById('kPick').onclick = () => inp.click();
+    inp.onchange = () => { const fs = [...inp.files]; inp.value = ''; if (fs.length) uploadFiles(site, nama, fs); };
+    ['dragenter', 'dragover'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add('over'); }));
+    ['dragleave', 'drop'].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.remove('over'); }));
+    drop.addEventListener('drop', (e) => { const fs = [...((e.dataTransfer && e.dataTransfer.files) || [])]; if (fs.length) uploadFiles(site, nama, fs); });
+    box.onclick = async (e) => {
+      const b = e.target.closest('[data-kfdel]'); if (!b) return;
+      e.preventDefault(); e.stopPropagation();
+      const row = rowOf(site, nama) || {}, f = (row.files || []).find((x) => x.id === b.dataset.kfdel); if (!f) return;
+      if (!confirm(`Hapus berkas "${f.name}"? Berkas ikut terhapus dari Google Drive saat sinkron berikutnya.`)) return;
+      try {
+        await saveFiles(site, nama, (row.files || []).filter((x) => x.id !== f.id));
+        await WEB.sb.storage.from(WEB_BUCKET).remove([f.id]);
+        if (window.KTALog) KTALog.log(`Hapus berkas karyawan ${nama}`, [`${f.kind}: ${f.name}`]);
+        toast('Berkas dihapus.'); mountFiles(site, nama);
+      } catch (err) { toast('Gagal menghapus berkas: ' + ((err && err.message) || 'periksa koneksi'), true); }
+    };
+  }
+  async function saveFiles(site, nama, files) {
+    const cur = rowOf(site, nama) || {};
+    await upsertRows([{ site_id: site, pkey: key(nama), data: { ...cur, _nama: cur._nama || nama, files }, updated_at: new Date().toISOString(), updated_by: WEB.user.email }]);
+  }
+  async function uploadFiles(site, nama, list) {
+    if (!ok()) { toast('Masuk dengan akun Pemilik/Editor untuk upload berkas.', true); return; }
+    const big = list.filter((f) => f.size > MAXB); list = list.filter((f) => f.size <= MAXB);
+    if (big.length) toast(`${big.length} file dilewati karena lebih dari 20 MB: ${big.map((f) => f.name).join(', ')}`, true);
+    if (!list.length) return;
+    const pick = (document.getElementById('kKind') || {}).value || '';
+    const prog = () => document.getElementById('kProg');
+    let done = 0, fail = 0; const added = [];
+    const show = () => { const el = prog(); if (el) el.innerHTML = `<div class="small" style="margin-top:8px">Mengunggah ${done + fail}/${list.length}…</div><div class="kbar"><i style="width:${(done + fail) / list.length * 100}%"></i></div>`; };
+    show();
+    const used = new Set(((rowOf(site, nama) || {}).files || []).map((f) => f.name.toLowerCase()));
+    for (const f of list) {
+      try {
+        const r = await WEB_ASSETS.upload(f);
+        const kind = pick || guessKind(f.name);
+        let name = f.name.toLowerCase().startsWith(kind.toLowerCase()) ? f.name : `${kind} - ${f.name}`, n = 2;
+        const base = name.replace(/(\.[^.]+)?$/, ''), ext = (name.match(/\.[^.]+$/) || [''])[0];
+        while (used.has(name.toLowerCase())) name = `${base} (${n++})${ext}`;
+        used.add(name.toLowerCase());
+        added.push({ id: r.id, name, kind, size: f.size, mime: f.type || '', at: new Date().toISOString(), by: WEB.user.email });
+        done++;
+      } catch (err) { fail++; toast(`Gagal upload ${f.name}: ${err.code === 'too_large' ? 'file terlalu besar' : (err.message || 'periksa koneksi')}`, true); }
+      show();
+    }
+    if (added.length) {
+      try { await saveFiles(site, nama, (((rowOf(site, nama) || {}).files) || []).concat(added)); }
+      catch (err) { toast('Berkas terunggah tetapi gagal dicatat: ' + ((err && err.message) || 'periksa koneksi'), true); }
+      if (window.KTALog) KTALog.log(`Upload berkas karyawan ${nama}`, added.map((x) => `${x.kind}: ${x.name}`));
+    }
+    if (document.getElementById('kBox')) mountFiles(site, nama);
+    if (added.length) toast(`${added.length} berkas tersimpan${fail ? `, ${fail} gagal` : ''}. Tersalin ke Google Drive dalam ±10 menit.`, !!fail);
   }
   function pvForm(site, p) {
     const cur = getP(p, site) || {};
@@ -242,6 +331,7 @@
         toast('Data lengkap ' + p.nama + ' tersimpan.'); setTimeout(render, 0); return true;
       },
     });
+    mountFiles(s0, p.nama);
   }
   // Form Edit / Tambah MP Aktif & MP Out: tambahkan semua kolom data pribadi untuk Pemilik & Editor
   const _mpForm = mpForm;
@@ -267,6 +357,7 @@
     };
     openForm(F);
     if (dangerFn) FORM.dangerFn = dangerFn;
+    mountFiles(site, p && p.nama);
   };
 
   // ---------- MP Out → MP Aktif ----------
@@ -407,7 +498,7 @@
   }, true);
 
   const css = document.createElement('style');
-  css.textContent = '.ab.inb{color:var(--good,#15803d)}.ab.pvb{color:var(--primary-ink)}.lnk{background:none;border:0;padding:0;color:var(--accent,#5b3fd6);font:inherit;text-decoration:underline;cursor:pointer}';
+  css.textContent = '.kfiles{display:flex;flex-direction:column;gap:6px;margin:4px 0 10px}.kfile{display:flex;align-items:center;gap:8px;flex-wrap:wrap;border:1px solid var(--line,#e4e2f0);border-radius:10px;padding:6px 8px}.kfile .kk{font-size:11px;font-weight:800;color:var(--muted,#6b6985);min-width:96px}.kfile .fchip2{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.kfile .small{margin-left:auto}.kdrop{border:2px dashed #cfc4f3;border-radius:12px;background:#fbf9ff;padding:12px;margin-bottom:10px}.kdrop.over{border-color:var(--primary,#6d28d9);background:#f1ebfe}.kdrop .row2{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.kbar{height:7px;border-radius:4px;background:#ece9f6;overflow:hidden;margin-top:4px}.kbar i{display:block;height:100%;background:linear-gradient(90deg,#7c3aed,#a78bfa)}.ab.inb{color:var(--good,#15803d)}.ab.pvb{color:var(--primary-ink)}.lnk{background:none;border:0;padding:0;color:var(--accent,#5b3fd6);font:inherit;text-decoration:underline;cursor:pointer}';
   document.head.appendChild(css);
   if (WEB.ready) render();
 })();

@@ -10,6 +10,7 @@ const APPS: Record<string, { name: string; web: string }> = {
   "kmb": { name: "KMB", web: "manpower-kmb/" },
   "apd": { name: "APD KMB", web: "monitoring-apd-kmb/" },
 };
+const KARYAWAN = "Berkas Karyawan";
 const appOf = (a: unknown) => (typeof a === "string" && APPS[a] ? a : "kta-tra");
 const BASE = "https://matthewyoga2014-design.github.io/kmb-purchasing-logistik/";
 const PAGE = BASE + "manpower-kta-tra/izin.html";
@@ -162,6 +163,15 @@ Deno.serve(async (req) => {
           seen.push({ storage_id: f.id, state: r.id, cand: c.name || "", jabatan: p.jabatan || "", name: f.name || String(f.id).split("/").pop(), last_seen: now });
         }
       }
+      // berkas karyawan (MP Aktif / MP Out) dari data pribadi -> folder "Berkas Karyawan/<Nama>"
+      const { data: prv } = await admin.from("kta_mp_private").select("site_id,pkey,data");
+      for (const r of prv || []) {
+        const fs = Array.isArray(r.data?.files) ? r.data.files : [];
+        for (const f of fs as any[]) {
+          if (!f || !f.id) continue;
+          seen.push({ storage_id: f.id, state: r.site_id, cand: r.data?._nama || r.pkey, jabatan: KARYAWAN, name: f.name || String(f.id).split("/").pop(), last_seen: now });
+        }
+      }
       if (seen.length) await admin.from("kta_drive_files").upsert(seen, { onConflict: "storage_id" });
       // 2) Drive menyimpan semua berkas di arsip yang objek storage-nya masih ada.
       //    Editor menghapus pelamar di web -> berkas tetap di Drive (objek storage tidak dihapus).
@@ -176,7 +186,7 @@ Deno.serve(async (req) => {
       for (const x of (reg || []).filter((x) => live.has(x.storage_id))) {
         const { data: su } = await admin.storage.from("kta-web-docs").createSignedUrl(x.storage_id, 900);
         if (!su?.signedUrl) return json({ ok: false, error: "sign" }, 500); // jangan kirim daftar tidak lengkap
-        out.push({ state: x.state, cand: x.cand, jabatan: x.jabatan, name: x.name, id: x.storage_id, url: su.signedUrl });
+        out.push({ state: x.state, cand: x.cand, jabatan: x.jabatan, name: x.name, id: x.storage_id, url: su.signedUrl, group: x.jabatan === KARYAWAN ? KARYAWAN : "Berkas Pelamar" });
       }
       return json({ ok: true, files: out });
     }
