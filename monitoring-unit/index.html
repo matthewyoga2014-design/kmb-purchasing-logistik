@@ -722,6 +722,12 @@ tr.slots>td{background:#FBFAFF;padding:10px 14px 16px!important;border-bottom:1p
 /* tombol edit */
 #kirimTbl{table-layout:fixed}#kirimTbl col.kc-act{width:330px}
 #tKirim tr.ki-row>td.n{text-align:left}
+th.mu-rsz-rel{position:relative}
+th.mu-rsz-th>.mu-rsz{position:absolute;top:0;right:-4px;width:9px;height:100%;cursor:col-resize;z-index:3;touch-action:none}
+th.mu-rsz-th>.mu-rsz::after{content:"";position:absolute;top:22%;bottom:22%;left:4px;width:2px;border-radius:2px;background:transparent;transition:background .12s}
+th.mu-rsz-th:hover>.mu-rsz::after{background:#C9C2EC}th.mu-rsz-th>.mu-rsz:hover::after{background:#6D28D9}
+body.mu-rsz-on,body.mu-rsz-on *{cursor:col-resize!important;user-select:none!important}
+@media print{th.mu-rsz-th>.mu-rsz{display:none}}
 .mcd-seg{display:flex;gap:4px;margin:0 18px 6px;padding:4px;background:#F3F0FB;border-radius:11px}
 .mcd-seg button{flex:1;border:0;background:transparent;border-radius:8px;padding:8px 10px;font:inherit;font-weight:700;font-size:13px;color:#5B5675;cursor:pointer}
 .mcd-seg button.on{background:#fff;color:#5B21B6;box-shadow:0 1px 3px rgba(30,20,80,.12)}
@@ -4234,7 +4240,42 @@ function muColApply(t,pref,key){
     cs.forEach((c,i)=>{ const off=hid.has(rc[i]); if(off){ c.style.display="none"; c.dataset.colHid="1"; } else if(c.dataset.colHid){ c.style.display=""; delete c.dataset.colHid; } });
     row.dataset.colSig=sig; };
   const cg=t.querySelector(":scope > colgroup"); if(cg) fix(cg);
-  [...t.rows].forEach(fix); }
+  [...t.rows].forEach(fix);
+  t.dataset.colKey=key; muColWidths(t,pref); }
+/* Lebar kolom manual: seret garis di tepi kanan judul kolom; klik dua kali untuk kembali otomatis */
+const MU_COLW_LIVE={};
+function muColHeads(t){ return [...t.querySelectorAll(":scope > thead > tr:first-child, tr.rk-ch")]; }
+function muColWidths(t,pref){
+  const key=t.dataset.colKey, W={...((pref&&pref.w)||{}),...(MU_COLW_LIVE[key]||{})}, cg=t.querySelector(":scope > colgroup");
+  muColHeads(t).forEach(r=>[...r.children].forEach(th=>{ const l=th.dataset.colL||muColLabel(th); if(!l||th.colSpan>1) return;
+    if(!th.querySelector(":scope > .mu-rsz")){ const h=document.createElement("span"); h.className="mu-rsz"; h.title="Seret untuk mengubah lebar kolom · klik dua kali untuk otomatis"; th.appendChild(h); th.classList.add("mu-rsz-th"); if(getComputedStyle(th).position==="static") th.classList.add("mu-rsz-rel"); }
+    const w=W[l]; const v=w?w+"px":"";
+    if(th.dataset.wv!==v){ th.dataset.wv=v; th.style.width=v; th.style.minWidth=v; th.style.maxWidth=v; } }));
+  if(cg) [...cg.children].forEach(c=>{ const l=c.dataset.colL; if(!l) return; const w=W[l];
+    if(w){ if(c.dataset.w0==null) c.dataset.w0=c.style.width||""; c.style.width=w+"px"; } else if(c.dataset.w0!=null){ c.style.width=c.dataset.w0; delete c.dataset.w0; } });
+  if(Object.keys(W).length){ t.style.minWidth=""; }
+}
+document.addEventListener("pointerdown",e=>{
+  const hd=e.target.closest&&e.target.closest(".mu-rsz"); if(!hd) return;
+  const th=hd.parentElement, t=th.closest("table"), key=t&&t.dataset.colKey; if(!key) return;
+  e.preventDefault(); e.stopPropagation();
+  const l=th.dataset.colL||muColLabel(th), x0=e.clientX, w0=th.getBoundingClientRect().width;
+  document.body.classList.add("mu-rsz-on");
+  const mv=ev=>{ const w=Math.max(36,Math.round(w0+ev.clientX-x0)); MU_COLW_LIVE[key]={...(MU_COLW_LIVE[key]||{}),[l]:w};
+    document.querySelectorAll(MU_COLT[key].sel).forEach(x=>{ if(x.dataset.colKey===key) muColWidths(x,muColPrefs()[key]); }); };
+  const up=async()=>{ document.removeEventListener("pointermove",mv); document.removeEventListener("pointerup",up); document.body.classList.remove("mu-rsz-on");
+    const w=(MU_COLW_LIVE[key]||{})[l]; if(!w||!canWrite) return;
+    const P=muColPrefs()[key]||{}; if(await muColSave(key,{...P,w:{...(P.w||{}),[l]:w}})){ delete MU_COLW_LIVE[key][l]; toast("Lebar kolom disimpan."); } };
+  document.addEventListener("pointermove",mv); document.addEventListener("pointerup",up);
+},true);
+document.addEventListener("dblclick",async e=>{
+  const hd=e.target.closest&&e.target.closest(".mu-rsz"); if(!hd) return; e.preventDefault(); e.stopPropagation();
+  const th=hd.parentElement, t=th.closest("table"), key=t&&t.dataset.colKey; if(!key) return;
+  const l=th.dataset.colL||muColLabel(th); if(MU_COLW_LIVE[key]) delete MU_COLW_LIVE[key][l];
+  const P=muColPrefs()[key]||{}, w={...(P.w||{})}; delete w[l];
+  if(canWrite && await muColSave(key,{...P,w})) toast("Lebar kolom kembali otomatis.");
+  document.querySelectorAll(MU_COLT[key].sel).forEach(x=>muColWidths(x,muColPrefs()[key]));
+},true);
 function muColApplyAll(){ const P=muColPrefs();
   Object.entries(MU_COLT).forEach(([k,d])=>document.querySelectorAll(d.sel).forEach(t=>{ try{ muColApply(t,P[k],k); }catch(e){} }));
   document.querySelectorAll("[data-colcfg][data-needwrite]").forEach(b=>b.hidden=!canWrite); }
@@ -4284,7 +4325,7 @@ function muColDialog(key){
     else if(a==="dn"){ swap(l,1); draw(); }
     else if(a==="reset"){ b.disabled=true; if(await muColSave(key,null)){ toast("Kolom kembali seperti awal."); dlg.close(); muColApplyAll(); render(); if(key==="item") renderKirim(); if(key==="dashitem") render(); } else b.disabled=false; }
     else if(a==="save"){ if(order.every(x=>hid.has(x))){ toast("Sisakan minimal satu kolom."); return; } b.disabled=true;
-      if(await muColSave(key,{order:order.slice(),hidden:order.filter(x=>hid.has(x))})){ toast("Susunan kolom disimpan."); dlg.close(); muColApplyAll(); if(key==="item") renderKirim(); if(key==="dashitem") render(); } else b.disabled=false; } };
+      if(await muColSave(key,{...(P.w?{w:P.w}:{}),order:order.slice(),hidden:order.filter(x=>hid.has(x))})){ toast("Susunan kolom disimpan."); dlg.close(); muColApplyAll(); if(key==="item") renderKirim(); if(key==="dashitem") render(); } else b.disabled=false; } };
   // seret (mouse & sentuh)
   dlg.onpointerdown=e=>{ const g=e.target.closest(".mcd-g"); if(!g) return; e.preventDefault(); const li=g.closest("li"), ul=li.parentNode; li.classList.add("drag"); try{ g.setPointerCapture(e.pointerId); }catch(err){}
     const body=dlg.querySelector(".mcd-body");
