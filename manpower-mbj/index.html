@@ -1156,6 +1156,21 @@ const MP_COLS = [
   ['statusData', 'Verifikasi Data', (p) => esc(p.statusData || ''), false],
   ['catatanHR', 'Catatan Kepegawaian', (p) => esc(p.catatanHR || ''), false],
 ];
+// ---------- tombol cetak Form Data Karyawan (lihat ../form-data-karyawan.js) ----------
+function fdkBtn(p, site, siteId) {
+  const d = { nama: p.nama || '', jabatan: p.jabatan || '', dept: p.dept || '', lokasi: site || (typeof PROJ !== 'undefined' && (PROJ.short || PROJ.name)) || '', poh: p.poh || '', masuk: p.masuk || '', jk: p.jk || '', kontrak: p.kontrak || '', akhir: p.akhir || '', pendidikan: p.pendidikan || '' };
+  const v = window.KMBPriv && KMBPriv.get(p, siteId || (typeof WEB_ID !== 'undefined' ? WEB_ID : ''));
+  if (v) {
+    const jkLP = (x) => /^(l|laki|pria)/i.test(x || '') ? 'L' : /^(p|perempuan|wanita)/i.test(x || '') ? 'P' : (x || '');
+    const tg = (x) => (/^\d{4}-\d{2}-\d{2}$/.test(x || '') ? fmt(x) : (x || ''));
+    Object.assign(d, { nip: v.nip || '', ktp: v.nik || '', kk: v.kk || '', npwp: v.npwp || '', agama: v.agama || '', kawin: v.status || '', tempatLahir: v.tmpLahir || '', lahir: v.tglLahir || '',
+      hp: v.hp || v.wa || '', alamat: v.alamat || '', alamatDom: v.alamatDom || '', rek: v.rek || '', bank: v.bank || '', rekNama: v.rekNama || '', bpjsKes: v.bpjsKes || '', bpjsTk: v.bpjsTk || '',
+      ortu: [v.ayah ? [v.ayah, '', 'L', v.ayahPend || '', v.ayahKerja || ''] : null, v.ibu ? [v.ibu, '', 'P', v.ibuPend || '', v.ibuKerja || ''] : null].filter(Boolean),
+      sdr: [1, 2, 3, 4].filter((n) => v['sdr' + n]).map((n) => [v['sdr' + n], tg(v['sdr' + n + 'Tgl']), jkLP(v['sdr' + n + 'Jk']), '', '']),
+      em: v.emNama ? [[v.emNama, v.emHub || '', v.emHp || v.emWa || '']] : [] });
+  }
+  return `<button type="button" class="fdk-mini" data-fdk="${esc(JSON.stringify(d))}" title="Cetak Form Data Karyawan ${esc(p.nama || '')}">Form</button>`;
+}
 function masaKerja(a, b) {
   if (!a) return '';
   const s = new Date(a + 'T00:00:00Z'), e = new Date((b || TODAY) + 'T00:00:00Z');
@@ -1176,7 +1191,7 @@ function pageKaryawan(D) {
     <div class="seg" role="group" aria-label="Pilih data">${[['aktif', 'MP Aktif'], ['out', 'MP Out']].map(([k, l]) => `<button type="button" data-kt="${k}" aria-pressed="${ui.kt === k}">${l}</button>`).join('')}</div>
     <span class="pill">${src.length} data</span>
     <input type="search" id="kq" placeholder="Cari nama, jabatan, atau POH" value="${esc(ui.kq)}" aria-label="Cari karyawan">
-    <button type="button" class="btn btn-g" id="colBtn" aria-pressed="${!!ui.allCols}">${ui.allCols ? 'Kolom Ringkas' : 'Semua Kolom'}</button>
+    <button type="button" class="btn btn-g fdk-btn" data-fdk-blank title="Cetak Form Data Karyawan kosong">Form Kosong</button><button type="button" class="btn btn-g" id="colBtn" aria-pressed="${!!ui.allCols}">${ui.allCols ? 'Kolom Ringkas' : 'Semua Kolom'}</button>
     <button type="button" class="btn btn-p" data-sync="1">Sinkronkan Excel</button>
   </div>
   <div class="tw"><table class="t mpp"><thead><tr>${cols.map((c) => `<th>${c[1]}</th>`).join('')}</tr></thead><tbody>
@@ -1578,13 +1593,13 @@ function pageKaryawan(D) {
     <div class="seg" role="group" aria-label="Pilih data">${[['aktif', `MP Aktif (${DATA.aktif.length})`], ['out', `MP Out (${DATA.keluar.length})`]].map(([k, l]) => `<button type="button" data-kt="${k}" aria-pressed="${ui.kt === k}">${l}</button>`).join('')}</div>
     <input type="search" id="kq" placeholder="Cari nama, jabatan, atau POH" value="${esc(ui.kq)}" aria-label="Cari karyawan">
     ${CAN_EDIT ? '<button type="button" class="btn btn-g" data-sync="1">Sinkronkan Excel</button>' : ''}
-    <button type="button" class="btn btn-g" id="colBtn" aria-pressed="${!!ui.allCols}">${ui.allCols ? 'Kolom Ringkas' : 'Semua Kolom'}</button>
+    <button type="button" class="btn btn-g fdk-btn" data-fdk-blank title="Cetak Form Data Karyawan kosong">Form Kosong</button><button type="button" class="btn btn-g" id="colBtn" aria-pressed="${!!ui.allCols}">${ui.allCols ? 'Kolom Ringkas' : 'Semua Kolom'}</button>
     ${CAN_EDIT ? `<button type="button" class="btn btn-p" data-addmp="${out ? 'out' : 'aktif'}">+ Tambah Data</button>` : ''}
     ${DL ? `<button type="button" class="btn btn-g" data-csv="${out ? 'out' : 'aktif'}">Export CSV</button>` : ''}
   </div>
   <div class="small" style="margin:-4px 0 10px">${src.length} data</div>
-  <div class="tw"><table class="t mpp"><thead><tr>${CAN_EDIT ? '<th>Aksi</th>' : ''}${cols.map((c) => `<th>${c[1]}</th>`).join('')}</tr></thead><tbody>
-  ${rows.map(([p, i]) => `<tr>${act(p, i)}${cols.map((c) => `<td class="nw">${c[2](p, i)}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${cols.length + 1}" class="empty">Tidak ada data.</td></tr>`}
+  <div class="tw"><table class="t mpp"><thead><tr>${CAN_EDIT ? '<th>Aksi</th>' : ''}${DL ? '<th class="fdk-col">Form</th>' : ''}${cols.map((c) => `<th>${c[1]}</th>`).join('')}</tr></thead><tbody>
+  ${rows.map(([p, i]) => `<tr>${act(p, i)}${DL ? `<td class="nw fdk-col">${fdkBtn(p, '')}</td>` : ''}${cols.map((c) => `<td class="nw">${c[2](p, i)}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${cols.length + 1}" class="empty">Tidak ada data.</td></tr>`}
   </tbody></table></div>
   <p class="note">MP Aktif → MP Out terhubung. ${CAN_EDIT ? 'Gunakan tombol <b>MP OUT</b> pada data aktif untuk memindahkan data ke MP Out sekaligus membuat posisi yang sesuai di MPP menjadi Vacant. ' : ''}Data pribadi (NIK, KK, NPWP, nomor HP, rekening, BPJS, alamat, data keluarga) tidak disimpan di web ini.</p></div>`;
 }
@@ -4368,13 +4383,13 @@ if (PROJ.sites) {
     <div class="card"><div class="toolbar">
       <div class="seg" role="group" aria-label="Pilih data">${[['aktif', `MP Aktif (${nA})`], ['out', `MP Out (${nO})`]].map(([k, l]) => `<button type="button" data-kt="${k}" aria-pressed="${ui.kt === k}">${l}</button>`).join('')}</div>
       <input type="search" id="kq" placeholder="Cari nama, jabatan, POH, atau jobsite" value="${esc(ui.kq || '')}" aria-label="Cari karyawan">
-      <button type="button" class="btn btn-g" id="colBtn" aria-pressed="${!!ui.allCols}">${ui.allCols ? 'Kolom Ringkas' : 'Semua Kolom'}</button>
+      <button type="button" class="btn btn-g fdk-btn" data-fdk-blank title="Cetak Form Data Karyawan kosong">Form Kosong</button><button type="button" class="btn btn-g" id="colBtn" aria-pressed="${!!ui.allCols}">${ui.allCols ? 'Kolom Ringkas' : 'Semua Kolom'}</button>
       ${CAN_EDIT ? `<button type="button" class="btn btn-p" data-addmp="${out ? 'out' : 'aktif'}" title="Ditambahkan ke jobsite ${esc(siteName())}">+ Tambah Data (${esc(siteName())})</button>` : ''}
       ${DL ? `<button type="button" class="btn btn-g" data-csv="${out ? 'out' : 'aktif'}">Export CSV</button>` : ''}
     </div>
     <div class="small" style="margin:-4px 0 10px">${rows.length} data · ${PROJ.sites.map((s) => `${esc(s.name)} ${all.filter((r) => r.site.id === s.id).length}`).join(' · ')}</div>
-    <div class="tw"><table class="t mpp"><thead><tr>${CAN_EDIT ? '<th>Aksi</th>' : ''}<th>Jobsite</th>${cols.map((c) => `<th>${c[1]}</th>`).join('')}</tr></thead><tbody>
-    ${rows.map((r, k) => `<tr>${act(r)}<td class="nw"><span class="hs ${r.site.id === WEB_ID ? 'pr' : 'hist'}">${esc(r.site.name)}</span></td>${cols.map((c) => `<td class="nw">${c[2](r.p, k)}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${cols.length + 2}" class="empty">Tidak ada data.</td></tr>`}
+    <div class="tw"><table class="t mpp"><thead><tr>${CAN_EDIT ? '<th>Aksi</th>' : ''}${DL ? '<th class="fdk-col">Form</th>' : ''}<th>Jobsite</th>${cols.map((c) => `<th>${c[1]}</th>`).join('')}</tr></thead><tbody>
+    ${rows.map((r, k) => `<tr>${act(r)}${DL ? `<td class="nw fdk-col">${fdkBtn(r.p, r.site.name, r.site.id)}</td>` : ''}<td class="nw"><span class="hs ${r.site.id === WEB_ID ? 'pr' : 'hist'}">${esc(r.site.name)}</span></td>${cols.map((c) => `<td class="nw">${c[2](r.p, k)}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${cols.length + 2}" class="empty">Tidak ada data.</td></tr>`}
     </tbody></table></div>
     <p class="note">MP Aktif mengikuti MPP tiap jobsite. ${CAN_EDIT ? 'Edit data di jobsite lain otomatis membuka jobsite tersebut. ' : ''}Data pribadi (NIK, KK, NPWP, nomor HP, rekening, BPJS, alamat, data keluarga) tidak disimpan di web ini.</p></div>`;
   };
@@ -4602,7 +4617,7 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
   }, true);
   try { after(); } catch (e) {}
 })();
-</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script><script src="../unit-population-detail.js?v=20261023-explorer-v2"></script><script src="../mp-private.js?v=20261025"></script><script src="../activity-log.js?v=20261024" data-kind="manpower"></script><script src="../otp-login.js?v=20261025"></script><script src="../candidate-resume.js?v=20261103b"></script><script id="portal-name-sync">
+</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script><script src="../unit-population-detail.js?v=20261023-explorer-v2"></script><script src="../mp-private.js?v=20261108"></script><script src="../activity-log.js?v=20261024" data-kind="manpower"></script><script src="../otp-login.js?v=20261025"></script><script src="../form-data-karyawan.js?v=20261108"></script><script src="../candidate-resume.js?v=20261103b"></script><script id="portal-name-sync">
 // Nama portal mengikuti "Edit nama portal" di Monitoring MPP Achievement (tabel portal_display_settings).
 (function () {
   var KEY = 'portal-name:' + 'mbj';

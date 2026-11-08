@@ -49,6 +49,8 @@
     for (const s of Object.keys(PV.rows)) if (PV.rows[s][k]) return PV.rows[s][k];
     return null;
   }
+  // dipakai tombol cetak Form Data Karyawan (hanya terisi untuk Pemilik & Editor yang login)
+  window.KMBPriv = { get: (p, site) => (ok() ? getP(p, site) : null) };
   function siteOf(p) {
     const k = key(p && p.nama);
     if (PV.rows[WEB_ID] && PV.rows[WEB_ID][k]) return WEB_ID;
