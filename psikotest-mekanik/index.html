@@ -113,6 +113,8 @@ table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 const SUPA={url:"https://yoviojbfyvgpllxisjvy.supabase.co",key:"sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9"};
 const OWNER="matthewyoga2014@gmail.com";
 const TOKEN=new URLSearchParams(location.search).get("t");
+const LINKK=(()=>{const p=new URLSearchParams(location.search).get("k");try{if(p){localStorage.setItem("pk-link",p);history.replaceState(null,"",location.pathname)}return p||localStorage.getItem("pk-link")}catch(e){return p}})();
+let LINKINFO=null;
 const LEVELS=["Helper","Junior","Middle","Senior","Supervisor"];
 const POSISI=[["Helper Mekanik","Helper"],["Junior Mekanik","Junior"],["Middle Mekanik","Middle"],["Pengawas / Foreman","Middle"],["Senior Mekanik","Senior"],["Supervisor Plant","Supervisor"]];
 const DEF={wTeknis:60,wKinerja:40,gTop:81,gMid:66,gPass:56,showScore:false,linkDays:7,
@@ -136,9 +138,9 @@ const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
 const fdate=d=>d?new Date(d).toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}):"–";
 const fdt=d=>d?new Date(d).toLocaleString("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"–";
 const canEdit=()=>ROLE==="owner"||ROLE==="editor";
-const ROLE_CAN={editor:{link:1,kinerja:1,hapus:1,resume:1,excel:1,nik:1},viewer:{resume:1,excel:1,nik:1}};
+const ROLE_CAN={editor:{link:1,kinerja:1,hapus:1,resume:1,excel:1,nik:1},viewer:{resume:1,excel:1,nik:1},viewlink:{resume:1,excel:1}};
 function can(p){if(ROLE==="owner")return true;return !!(ROLE_CAN[ROLE]||{})[p]}
-const showNik=()=>ROLE!=="viewer"||can("nik");
+const showNik=()=>can("nik");
 const fsec=s=>s>=3600?Math.floor(s/3600)+" jam "+Math.round(s%3600/60)+" mnt":s>=60?Math.round(s/60)+" menit":s+" detik";
 async function gasPost(action,data){const url=S.settings.gasUrl||(Exam.info&&Exam.info.gas_url);if(!url)throw new Error("URL Apps Script belum diatur");
   const r=await fetch(url,{method:"POST",body:JSON.stringify({action,...data})});return r.json()}
@@ -200,7 +202,7 @@ function gate(msg,showForm=true){
    <label class="f">Password <span class="small" style="font-weight:400">(kosongkan untuk menerima kode lewat email)</span><input type="password" id="gP" autocomplete="current-password"></label>
    <div id="gOtp" hidden><label class="f">Kode 6 angka dari email<input id="gC" inputmode="numeric" maxlength="8" placeholder="123456"></label></div>
    <button class="btn pri" type="submit" id="gB">Masuk</button></form>`:""}
-   <p class="small muted" id="gM" style="margin-top:10px">${msg||"Peserta tes tidak perlu login. Gunakan link tes yang dikirim HR."}</p>
+   <p class="small muted" id="gM" style="margin-top:10px">${msg||"Editor & Viewer: buka link akses yang dikirim Pemilik (tanpa login). Peserta tes: gunakan link tes dari HR."}</p>
    ${USER?`<button class="btn sm" id="gOut">Keluar dari ${esc(USER.email)}</button>`:""}
   </div></div>`;
   const f=$("gF");let otpSent=false;
@@ -215,10 +217,13 @@ function gate(msg,showForm=true){
 }
 async function boot(){
   if(!window.supabase?.createClient){document.body.innerHTML='<div class="gate"><div class="box">Gagal memuat layanan. Periksa koneksi internet lalu muat ulang.</div></div>';return}
-  SB=window.supabase.createClient(SUPA.url,SUPA.key,{auth:{persistSession:!TOKEN,autoRefreshToken:!TOKEN,detectSessionInUrl:!TOKEN,storageKey:"kmb-psikotest-auth"}});
+  SB=window.supabase.createClient(SUPA.url,SUPA.key,{auth:{persistSession:!TOKEN,autoRefreshToken:!TOKEN,detectSessionInUrl:!TOKEN,storageKey:"kmb-psikotest-auth"},global:{headers:LINKK&&!TOKEN?{"x-pk-link":LINKK}:{}}});
   if(TOKEN){return Exam.start()}
   const {data:{session}}=await SB.auth.getSession();
   USER=session?.user||null;
+  if(!USER&&LINKK){const li=await SB.rpc("pk_link_info");
+    if(li.error||!li.data){try{localStorage.removeItem("pk-link")}catch(e){}return gate("Link akses ini sudah dicabut atau tidak berlaku. Minta link baru ke Pemilik.",false)}
+    LINKINFO=li.data;ROLE=li.data.role==="editor"?"editor":"viewlink";await loadAll();renderShell();setInterval(()=>{if(!document.hidden&&$("modal").hidden)refresh()},30000);return}
   if(!USER)return gate();
   const r=await SB.rpc("pk_role");ROLE=r.data||"none";
   if(!["owner","editor","viewer"].includes(ROLE))return gate("Email "+USER.email+" belum terdaftar untuk web Psikotest ini. Minta Pemilik menambahkan email Anda sebagai Editor atau Viewer.",false);
@@ -226,16 +231,16 @@ async function boot(){
   setInterval(()=>{if(!document.hidden&&$("modal").hidden)refresh()},30000);
 }
 async function q(p){const r=await p;if(r.error)throw r.error;return r.data}
+function mergeSettings(sd){sd=sd||{};S.settings={...DEF,...sd,proctorDef:{...DEF.proctorDef,...(sd.proctorDef||{})},timerDef:{...DEF.timerDef,...(sd.timerDef||{})}}}
 async function loadAll(){
+  if(ROLE==="viewlink"){const d=await q(SB.rpc("pk_view_data"));S.modules=d.modules||[];S.sessions=d.sessions||[];S.attempts=d.attempts||[];S.kinerja=d.kinerja||[];mergeSettings(d.settings);return}
   const [m,s,a,st,kn]=await Promise.all([
     q(SB.from("pk_modules").select("*").order("sort").order("created_at")),
     q(SB.from("pk_sessions").select("*").order("created_at",{ascending:false})),
     q(SB.from("pk_attempts").select("id,session_id,module_id,started_at,deadline,submitted_at,correct,total,score,by_topic,late,violations,events,device_id,cur_index")),
     q(SB.from("pk_settings").select("data").eq("id",1).maybeSingle()),
     q(SB.from("pk_kinerja").select("*").order("created_at",{ascending:false}))]);
-  S.modules=m;S.sessions=s;S.attempts=a;S.kinerja=kn||[];const sd=st?.data||{};
-  S.settings={...DEF,...sd,proctorDef:{...DEF.proctorDef,...(sd.proctorDef||{})},timerDef:{...DEF.timerDef,...(sd.timerDef||{})},
-    perms:{editor:{...DEF.perms.editor,...(sd.perms?.editor||{})},viewer:{...DEF.perms.viewer,...(sd.perms?.viewer||{})}}};
+  S.modules=m;S.sessions=s;S.attempts=a;S.kinerja=kn||[];mergeSettings(st?.data);
   if(canEdit()){const qc=await q(SB.from("pk_questions").select("module_id"));S.qcount={};qc.forEach(x=>S.qcount[x.module_id]=(S.qcount[x.module_id]||0)+1)}
 }
 let PDRAW=null,HDRAW=null;
@@ -251,9 +256,9 @@ function renderShell(){
   if(ROLE==="owner")tabs.push(["bank","Bank Soal"],["pengaturan","Pengaturan"]);
   if(!tabs.find(t=>t[0]===TAB))TAB=tabs[0][0];
   $("app").innerHTML=`<header class="top"><div class="logo">PT</div><div><h1>Psikotest & Uji Kompetensi Mekanik</h1><small>KMB · Plant Tambang</small></div><div class="sp"></div>
-   <span class="badge">${ROLE==="owner"?"PEMILIK":ROLE==="editor"?"EDITOR":"VIEWER"}</span><button class="btn sm ghost" id="out">Keluar</button></header>
+   <span class="badge">${ROLE==="owner"?"PEMILIK":ROLE==="editor"?"EDITOR":"VIEWER"}${LINKINFO?.label?" · "+esc(LINKINFO.label):""}</span><button class="btn sm ghost" id="out">Keluar</button></header>
    <nav class="tabs" id="tabs">${tabs.map(([k,l])=>`<button data-t="${k}" class="${k===TAB?"on":""}">${l}</button>`).join("")}</nav><main id="main"></main>`;
-  $("out").onclick=async()=>{await SB.auth.signOut();location.reload()};
+  $("out").onclick=async()=>{if(LINKINFO){if(!confirm("Keluar dari akses link ini? Anda perlu membuka link dari Pemilik lagi untuk masuk."))return;try{localStorage.removeItem("pk-link")}catch(e){}}else await SB.auth.signOut();location.href=location.pathname};
   $("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;TAB=b.dataset.t;[...$("tabs").children].forEach(x=>x.classList.toggle("on",x===b));renderTab()};
   renderTab();
 }
@@ -454,7 +459,7 @@ function proctorCard(s,c){
    <div class="row" style="gap:16px;margin-bottom:8px"><span><b style="font-size:20px;color:${pel.length?"var(--bad)":"var(--ok)"}">${c.viol||0}</b> pelanggaran</span><span><b style="font-size:20px">${foto.length}</b> foto tersimpan di Drive</span></div>
    ${pel.length?`<ul class="small" style="margin:0 0 8px;padding-left:18px">${pel.map(e=>`<li>${new Date(e.t).toLocaleTimeString("id-ID")} – ${esc(LBL[e.type]||e.type)}${e.d?" ("+esc(e.d)+")":""} · <span class="muted">${esc(e.sheet)}</span></li>`).join("")}</ul>`:'<p class="small muted" style="margin:0 0 8px">Tidak ada pelanggaran tercatat.</p>'}
    <div id="pGal" class="small muted">Memuat foto…</div></div>`}
-function drawGallery(list,links){const el=$("pGal");if(!el)return;
+function drawGallery(list,links){const el=$("pGal");if(!el)return;if(ROLE==="viewlink"){el.innerHTML="Foto hanya dapat dilihat Pemilik & Editor.";return}
   if(!list.length){el.innerHTML=links&&links.length?`<div class="row small">${links.map(f=>`<a class="btn sm" target="_blank" rel="noopener" href="${esc(f.u)}">${esc(f.k)} ${new Date(f.t).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"})}</a>`).join("")}</div><p class="small muted">Foto tes ini tersimpan di Google Drive (dibuat sebelum fitur galeri).</p>`:"Belum ada foto.";return}
   const KL={selfie:"Selfie",identitas:"Kartu identitas",mulai:"Mulai tes",berkala:"Berkala",pelanggaran:"Saat pelanggaran"};
   const tm=t=>new Date(t).toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
@@ -736,7 +741,8 @@ async function importExcel(file){
 async function vPengaturan(m){
   const g=setg();
   m.innerHTML=`<div class="grid g2">
-   <div><div class="card"><h2>Akun Editor & Viewer</h2><p class="sub"><b>Editor</b>: kirim tes, atur waktu, lihat hasil, isi penilaian kinerja. <b>Viewer</b>: hanya melihat hasil. Peserta tes tidak perlu akun.</p><div id="acc">Memuat…</div></div>
+   <div><div class="card"><h2>Link akses Editor & Viewer</h2><p class="sub">Tanpa login: siapa pun yang membuka link ini langsung masuk. <b>Editor</b>: kirim tes, atur waktu, lihat hasil, isi penilaian kinerja. <b>Viewer</b>: hanya melihat hasil (NIK, foto, dan detail jawaban disembunyikan). Link bisa dicabut kapan saja.</p><div id="lnk">Memuat…</div></div>
+   <details class="card"><summary style="cursor:pointer;font-weight:700">Akun email (opsional, login dengan kode email)</summary><div id="acc" style="margin-top:10px">Memuat…</div></details>
 </div></div>
    <div class="card"><h2>Penilaian</h2>
    <form id="sF" class="grid">
@@ -752,8 +758,23 @@ async function vPengaturan(m){
     n.rekKontrak={};n.rekNew={};g.cat.forEach(c=>{n.rekKontrak[c.k]=fd.get("rk"+c.k);n.rekNew[c.k]=fd.get("rn"+c.k);const mm=n.scale.filter(x=>x.k===c.k);c.min=mm.length?Math.min(...mm.map(x=>x.min)):0});n.cat=g.cat;
     try{await save(n);syncDrive()}catch(err){toast("Gagal: "+err.message)}};
   $("sReset").onclick=async()=>{if(!confirm("Kembalikan penilaian ke bawaan?"))return;try{await save({...DEF,gasUrl:g.gasUrl});vPengaturan(m)}catch(err){toast("Gagal: "+err.message)}};
-  drawAccess();
+  drawAccess();drawLinks();
 }
+function linkUrl(t){return location.origin+location.pathname+"?k="+t}
+function linkMsg(l){const url=linkUrl(l.token);return `Halo${l.label?" "+l.label:""}, berikut link akses ${l.role==="editor"?"EDITOR":"VIEWER"} web Psikotest & Uji Kompetensi Mekanik PT Karunia Mandiri Berkarya:\n${url}\n\nCukup buka link ini, tidak perlu login. Mohon link tidak dibagikan ke orang lain.${l.role==="editor"?"\n\nSebagai Editor, Anda bisa mengirim link tes ke peserta, mengatur waktu tes, melihat hasil, dan mengisi penilaian kinerja.":"\n\nSebagai Viewer, Anda bisa melihat hasil tes dan penilaian kinerja."}`}
+function linkShare(l){const t=linkMsg(l);openModal(`<div class="head"><h2>Kirim link ${l.role==="editor"?"Editor":"Viewer"}${l.label?" – "+esc(l.label):""}</h2><button class="btn sm" onclick="closeModal()">Tutup</button></div>
+  <div class="linkbox" style="margin-bottom:10px"><input readonly value="${esc(linkUrl(l.token))}"><button class="btn sm" id="lkC">Salin link</button></div>
+  <textarea id="lkT" rows="9" style="width:100%">${esc(t)}</textarea>
+  <div class="row" style="margin-top:10px"><a class="btn pri" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(t)}">Kirim via WhatsApp</a><a class="btn" target="_blank" rel="noopener" href="https://mail.google.com/mail/?view=cm&su=${encodeURIComponent("Akses web Psikotest Mekanik KMB")}&body=${encodeURIComponent(t)}">Kirim via Gmail</a><button class="btn" id="lkM">Salin pesan</button></div>`);
+  $("lkC").onclick=()=>copyText(linkUrl(l.token));$("lkM").onclick=()=>copyText($("lkT").value)}
+async function drawLinks(){const el=$("lnk");if(!el)return;
+  try{const rows=await q(SB.from("pk_links").select("*").eq("revoked",false).order("created_at",{ascending:false}));
+    el.innerHTML=`${rows.map(l=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 0"><span><b>${esc(l.label||"(tanpa nama)")}</b> <span class="chip">${l.role}</span><br><span class="small muted">Dibuat ${fdate(l.created_at)} · ${l.last_used?"terakhir dipakai "+fdt(l.last_used):"belum dipakai"}</span></span><span class="row"><button class="btn sm pri" data-ls="${l.token}">Kirim</button><button class="btn sm dan" data-lr="${l.token}">Cabut</button></span></div>`).join("")||'<p class="small muted">Belum ada link.</p>'}
+     <form id="lkF" class="row" style="margin-top:10px"><input id="lkN" placeholder="Nama, mis. Pak Djarot" required style="flex:1;min-width:140px"><select id="lkR"><option value="editor">Editor</option><option value="viewer">Viewer</option></select><button class="btn pri">Buat link</button></form>`;
+    $("lkF").onsubmit=async e=>{e.preventDefault();try{const l=await q(SB.from("pk_links").insert({role:$("lkR").value,label:$("lkN").value.trim()}).select().single());await drawLinks();linkShare(l)}catch(err){toast("Gagal: "+err.message)}};
+    el.querySelectorAll("[data-ls]").forEach(b=>b.onclick=()=>linkShare(rows.find(x=>x.token===b.dataset.ls)));
+    el.querySelectorAll("[data-lr]").forEach(b=>b.onclick=async()=>{const l=rows.find(x=>x.token===b.dataset.lr);if(!confirm("Cabut link "+(l.label||"")+"? Orang yang memakai link ini tidak bisa masuk lagi."))return;try{await q(SB.from("pk_links").update({revoked:true}).eq("token",l.token));drawLinks();toast("Link dicabut")}catch(err){toast("Gagal: "+err.message)}});
+  }catch(e){el.innerHTML='<div class="notice warn">Gagal memuat link: '+esc(e.message)+'</div>'}}
 function inviteText(email,role){const url=location.origin+location.pathname;
   return `Halo, Anda didaftarkan sebagai ${role==="editor"?"EDITOR":"VIEWER"} di web Psikotest & Uji Kompetensi Mekanik PT Karunia Mandiri Berkarya.\n\nLink: ${url}\n\nCara masuk:\n1. Buka link di atas\n2. Isi email: ${email}\n3. Kolom password dikosongkan, klik Masuk\n4. Buka email Anda (cek juga folder Spam), ketik kode 6 angka di web\n\n${role==="editor"?"Sebagai Editor, Anda bisa mengirim link tes ke peserta, mengatur waktu tes, melihat hasil, dan mengisi penilaian kinerja.":"Sebagai Viewer, Anda bisa melihat hasil tes dan penilaian kinerja."}`}
 function inviteBox(email,role){const t=inviteText(email,role);
