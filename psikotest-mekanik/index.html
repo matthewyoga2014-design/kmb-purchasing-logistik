@@ -348,12 +348,13 @@ function vHasil(m){
    <div class="sheet-wrap"><table class="sheet" id="hT"></table></div><p class="small muted" id="hInfo"></p></div>`;
   const draw=()=>{const k=$("hQ").value.toLowerCase(),g=$("hG").value,r=$("hR").value,st=$("hS").value;
     const rows=resultRows().filter(({s,c})=>(s.nama+" "+(s.nik||"")).toLowerCase().includes(k)&&(!g||s.grade_target===g)&&(!r||(c.akhir!=null&&String(+!!c.grade.ok)===r))&&(!st||c.status===st));
-    $("hT").innerHTML=`<thead><tr><th>No</th><th>Tanggal</th><th>Nama</th><th>NIK</th><th>Grade</th><th>Jenis</th><th class="num">Nilai</th><th>Huruf · Kategori</th><th>Hasil</th><th>Rekomendasi</th><th class="num">⚠</th><th>Status</th></tr></thead>
+    $("hT").innerHTML=`<thead><tr><th>No</th><th>Tanggal</th><th>Nama</th><th>NIK</th><th>Grade</th><th>Jenis</th><th class="num">Nilai</th><th>Huruf · Kategori</th><th>Hasil</th><th>Rekomendasi</th><th class="num">⚠</th><th>Status</th>${can("hapus")?"<th></th>":""}</tr></thead>
      <tbody>${rows.map(({s,c},i)=>`<tr data-id="${s.id}"><td class="num">${i+1}</td><td>${fdate(s.created_at)}</td><td><b>${esc(s.nama)}</b></td><td>${esc(s.nik||"")}</td><td>${esc(s.grade_target||s.level||"")}</td><td>${esc(s.jenis)}</td>
       <td class="num"><b>${fmt(c.akhir)}</b>${c.late?" ⏱":""}</td><td>${catChip(c.cat)}</td>
-      <td>${c.teknis==null?"–":`<span class="chip ${c.grade.ok?"st-Selesai":"st-Kedaluwarsa"}">${esc(c.grade.grade)}</span>`}</td><td class="wrap" style="min-width:180px">${esc(c.rek||"–")}</td><td class="num">${c.viol||""}</td><td><span class="chip st-${c.status.split(" ")[0]}">${c.status}</span></td></tr>`).join("")||`<tr><td colspan="12" class="empty">Belum ada data.</td></tr>`}</tbody>`;
+      <td>${c.teknis==null?"–":`<span class="chip ${c.grade.ok?"st-Selesai":"st-Kedaluwarsa"}">${esc(c.grade.grade)}</span>`}</td><td class="wrap" style="min-width:180px">${esc(c.rek||"–")}</td><td class="num">${c.viol||""}</td><td><span class="chip st-${c.status.split(" ")[0]}">${c.status}</span></td>${can("hapus")?`<td><button class="btn sm dan" data-del="${s.id}" title="Hapus hasil">Hapus</button></td>`:""}</tr>`).join("")||`<tr><td colspan="13" class="empty">Belum ada data.</td></tr>`}</tbody>`;
     $("hInfo").textContent=rows.length+" peserta · ⚠ = jumlah pelanggaran · ⏱ = waktu habis";
-    $("hT").querySelectorAll("tr[data-id]").forEach(tr=>tr.onclick=()=>showResume(tr.dataset.id))};
+    $("hT").querySelectorAll("tr[data-id]").forEach(tr=>tr.onclick=()=>showResume(tr.dataset.id));
+    $("hT").querySelectorAll("[data-del]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();delSession(b.dataset.del)})};
   ["hQ","hG","hR","hS"].forEach(id=>$(id).oninput=draw);draw();HDRAW=()=>{if($("hT"))draw()};
   $("hRef").onclick=async()=>{await refresh();renderTab();toast("Data diperbarui")};
   if($("hSync"))$("hSync").onclick=async()=>{toast("Menyinkronkan…");try{const r=await gasPost("sync",{});toast(r.ok?"Google Sheet diperbarui":"Gagal: "+r.error,4000)}catch(e){toast("Gagal: "+e.message,4000)}};
@@ -378,6 +379,9 @@ function exportXlsx(){if(!window.XLSX)return toast("Pustaka Excel belum termuat"
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(kin.length?kin:[{Info:"Belum ada data"}]),"Penilaian Kinerja");
   XLSX.writeFile(wb,"Hasil_Psikotest_Mekanik_"+new Date().toISOString().slice(0,10)+".xlsx")}
 
+async function delSession(id){const s=S.sessions.find(x=>x.id===id);if(!s)return;
+  if(!confirm("Hapus hasil tes "+s.nama+"? Jawaban, nilai, dan foto di web ikut terhapus (foto di Google Drive tetap ada)."))return;
+  try{await q(SB.from("pk_sessions").delete().eq("id",id));S.sessions=S.sessions.filter(x=>x.id!==id);S.attempts=S.attempts.filter(a=>a.session_id!==id);closeModal();renderTab();syncDrive();toast("Hasil tes dihapus")}catch(e){toast("Gagal: "+e.message)}}
 /* ====================== RESUME PESERTA ====================== */
 async function loadPhotos(sid){try{return await q(SB.from("pk_photos").select("id,kind,taken_at,thumb,url").eq("session_id",sid).order("taken_at"))}catch(e){return []}}
 function showResume(id){
@@ -385,7 +389,7 @@ function showResume(id){
   const tops=Object.entries(c.topics).map(([t,v])=>[t,v.total?100*v.benar/v.total:0,v]).sort((a,b)=>b[1]-a[1]);
   const kuat=tops.filter(t=>t[1]>=80).map(t=>t[0]),lemah=tops.filter(t=>t[1]<60).map(t=>t[0]);
   const cls=v=>v>=75?"g":v>=60?"y":"r";
-  openModal(`<div class="head"><h2>Resume Hasil Psikotest</h2><span class="noprint row"><button class="btn sm" id="rPrint">Cetak / PDF</button><button class="btn sm" onclick="closeModal()">Tutup</button></span></div>
+  openModal(`<div class="head"><h2>Resume Hasil Psikotest</h2><span class="noprint row"><button class="btn sm" id="rPrint">Cetak / PDF</button>${can("hapus")?`<button class="btn sm dan" id="rDel">Hapus</button>`:""}<button class="btn sm" onclick="closeModal()">Tutup</button></span></div>
   <div class="small muted" style="margin:-6px 0 12px">PT Karunia Mandiri Berkarya · Uji Kompetensi Mekanik Plant Tambang</div>
   <div class="grid g2">
    <div class="kv"><b>Nama</b><span>${esc(s.nama)}</span><b>NIK / NIP</b><span>${showNik()?esc(s.nik||"–"):"•••"}</span><b>Grade yang dituju</b><span>${esc(s.grade_target||s.level||"–")}${s.grade_saat_ini?" · grade saat ini "+esc(s.grade_saat_ini):""}</span><b>Jenis penilaian</b><span>${esc(s.jenis)}</span><b>Jobsite</b><span>${esc(s.jobsite||"–")}</span><b>Status</b><span>${c.status}${c.late?" · ada sheet yang waktunya habis":""}</span></div>
@@ -407,6 +411,7 @@ function showResume(id){
   ${proctorCard(s,c)}
   <div class="sign"><div>Dibuat oleh<br>Atasan Langsung</div><div>Diketahui oleh<br>HR Site</div><div>Disetujui oleh<br>PJO / Manager</div></div>`);
   {const links=c.mods.filter(x=>x.a).flatMap(x=>(x.a.events||[]).filter(e=>e.type==="foto").map(e=>{const [k,u]=String(e.d).split("|");return {k,u,t:e.t}}));loadPhotos(id).then(l=>drawGallery(l,links))}
+  if($("rDel"))$("rDel").onclick=()=>delSession(id);
   $("rPrint").onclick=()=>{document.body.classList.add("printing");setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove("printing"),500)},50)};
   const rk=$("rKinNew");if(rk)rk.onclick=()=>formKinerja(null,id);$("mbox").querySelectorAll("[data-kv]").forEach(b=>b.onclick=()=>viewKinerja(b.dataset.kv));
   const ks=$("rKepS");if(ks)ks.onclick=async()=>{try{const v=$("rKep").value.trim()||null;await q(SB.from("pk_sessions").update({keputusan:v,updated_at:new Date().toISOString()}).eq("id",id));s.keputusan=v;showResume(id);renderTab();toast("Keputusan disimpan");syncDrive()}catch(e){toast("Gagal: "+e.message)}};
