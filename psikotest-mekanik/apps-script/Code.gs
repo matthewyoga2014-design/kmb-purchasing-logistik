@@ -105,37 +105,31 @@ function syncAll() {
     const d = rpc_('pk_export', { p_secret: props_().getProperty('SYNC_SECRET') });
     const g = Object.assign({}, DEF, d.settings || {});
     const mods = d.modules || [], att = d.attempts || [];
-    const head = ['No', 'Tanggal', 'Nama', 'NIK', 'Jenis', 'Posisi', 'Level', 'Grade Saat Ini', 'Jobsite'].concat(mods.map(m => m.title))
-      .concat(['Nilai Teknis', 'Nilai Kinerja', 'Nilai Akhir', 'Huruf', 'Bobot', 'Kategori', 'Rekomendasi Grade', 'Rekomendasi', 'Status', 'Pelanggaran', 'Kelebihan', 'Perlu Ditingkatkan', 'Catatan', 'Diperbarui']);
-    const rows = [], topRows = [], prRows = [], topics = {};
+    const r1 = v => v == null ? '' : Math.round(v * 10) / 10, tz = 'Asia/Jakarta';
+    const hasil = [], rinci = [];
     (d.sessions || []).forEach((s, i) => {
       const a = att.filter(x => x.session_id === s.id), ids = s.module_ids || [];
       const done = ids.map(id => a.find(x => x.module_id === id)).filter(x => x && x.submitted_at);
       const teknis = done.length ? avg(done.map(x => +x.score)) : null, kin = kinerja(s.kinerja);
       const akhir = teknis != null ? (kin != null ? (teknis * g.wTeknis + kin * g.wKinerja) / ((+g.wTeknis + +g.wKinerja) || 1) : teknis) : kin;
       const c = category(g, akhir), rek = s.keputusan || (c ? (s.jenis === 'Akhir Kontrak' ? g.rekKontrak : g.rekNew)[c.k] : '');
+      const lulus = teknis == null ? '' : s.grade_target ? (teknis >= g.gPass ? 'Lulus ' : 'Tidak lulus ') + s.grade_target : grade(g, s.level, teknis);
       let status = done.length && done.length === ids.length ? 'Selesai' : a.length ? 'Sedang' : 'Belum mulai';
       if (status !== 'Selesai' && s.expires_at && new Date(s.expires_at) < new Date()) status = 'Kedaluwarsa';
-      const viol = a.reduce((x, y) => x + (+y.violations || 0), 0), r1 = v => v == null ? '' : Math.round(v * 10) / 10;
-      rows.push([i + 1, new Date(s.created_at), s.nama, s.nik || '', s.jenis, s.posisi || '', s.level || '', s.grade_saat_ini || '', s.jobsite || '']
-        .concat(mods.map(m => { const x = a.find(y => y.module_id === m.id); return x && x.submitted_at ? r1(+x.score) : ''; }))
-        .concat([r1(teknis), r1(kin), r1(akhir), c ? c.h : '', c ? c.b : '', c ? c.label : '', grade(g, s.level, teknis), rek, status, viol,
-          (s.kinerja && s.kinerja.kelebihan) || '', (s.kinerja && s.kinerja.kekurangan) || '', s.catatan || '', new Date()]));
-      const tp = {}; done.forEach(x => Object.keys(x.by_topic || {}).forEach(t => { tp[t] = tp[t] || { b: 0, n: 0 }; tp[t].b += +x.by_topic[t].benar; tp[t].n += +x.by_topic[t].total; topics[t] = 1; }));
-      if (done.length) topRows.push({ nama: s.nama, posisi: s.posisi || '', tp: tp });
-      a.forEach(x => { const m = mods.find(y => y.id === x.module_id) || {}; const ev = x.events || [];
+      hasil.push([i + 1, new Date(s.created_at), s.nama, s.nik || '', s.grade_target || s.level || '', s.jenis, s.jobsite || '', s.grade_saat_ini || '',
+        r1(teknis), r1(kin), r1(akhir), c ? c.h : '', c ? c.b : '', c ? c.label : '', lulus, rek,
+        a.reduce((x, y) => x + (+y.violations || 0), 0), status, (s.kinerja && s.kinerja.kelebihan) || '', (s.kinerja && s.kinerja.kekurangan) || '', s.catatan || '']);
+      a.forEach(x => { const m = mods.find(y => y.id === x.module_id) || {}, ev = x.events || [];
         const foto = ev.filter(e => e.type === 'foto').map(e => String(e.d).split('|')[1]).filter(String);
-        const pel = ev.filter(e => ['tab', 'fullscreen', 'kamera'].indexOf(e.type) >= 0).map(e => Utilities.formatDate(new Date(e.t), 'Asia/Jakarta', 'HH:mm:ss') + ' ' + e.type + (e.d ? ' (' + e.d + ')' : '')).join('\n');
-        prRows.push([s.nama, m.title || '', x.started_at ? new Date(x.started_at) : '', x.submitted_at ? new Date(x.submitted_at) : '', +x.violations || 0, pel, foto.length, foto[0] || '', foto[foto.length - 1] || '']); });
+        const topik = Object.keys(x.by_topic || {}).map(t => { const v = x.by_topic[t]; return t + ' ' + (v.total ? Math.round(100 * v.benar / v.total) : 0) + '%'; }).join('; ');
+        const pel = ev.filter(e => ['tab', 'fullscreen', 'kamera', 'auto-kirim'].indexOf(e.type) >= 0).map(e => Utilities.formatDate(new Date(e.t), tz, 'HH:mm:ss') + ' ' + e.type).join('; ');
+        rinci.push([s.nama, s.nik || '', s.grade_target || '', m.title || '', x.started_at ? new Date(x.started_at) : '', x.submitted_at ? new Date(x.submitted_at) : '',
+          x.submitted_at ? x.correct + '/' + x.total : '', x.submitted_at ? r1(+x.score) : '', topik, +x.violations || 0, pel, foto.length, foto[foto.length - 1] || '']); });
     });
     const ss = ss_();
-    write_(ss, 'Hasil Psikotest', head, rows);
-    const tl = Object.keys(topics);
-    write_(ss, 'Nilai per Topik (%)', ['Nama', 'Posisi'].concat(tl), topRows.map(r => [r.nama, r.posisi].concat(tl.map(t => r.tp[t] && r.tp[t].n ? Math.round(100 * r.tp[t].b / r.tp[t].n) : ''))));
-    write_(ss, 'Pengawasan', ['Nama', 'Sheet', 'Mulai', 'Selesai', 'Jumlah Pelanggaran', 'Rincian Pelanggaran', 'Jumlah Foto', 'Foto Pertama', 'Foto Terakhir'], prRows);
-    const sr = scaleRows(g);
-    write_(ss, 'Skala Nilai', ['Skor', 'Huruf', 'Bobot', 'Kategori', 'Rekomendasi Akhir Kontrak', 'Rekomendasi New Hire'], sr.map((r, i) => { const c = g.cat.find(x => x.k === r.k) || {}; return [r.min + ' - ' + (i ? sr[i - 1].min - 1 : 100), r.h, r.b, c.label, g.rekKontrak[r.k], g.rekNew[r.k]]; }));
-    const def = ss.getSheetByName('Sheet1'); if (def && ss.getSheets().length > 1) ss.deleteSheet(def);
+    write_(ss, 'Hasil Tes', ['No', 'Tanggal', 'Nama', 'NIK', 'Grade Dituju', 'Jenis', 'Jobsite', 'Grade Saat Ini', 'Nilai Teknis', 'Nilai Kinerja', 'Nilai Akhir', 'Huruf', 'Bobot', 'Kategori', 'Hasil', 'Rekomendasi', 'Pelanggaran', 'Status', 'Kelebihan', 'Perlu Ditingkatkan', 'Catatan'], hasil);
+    write_(ss, 'Rincian', ['Nama', 'NIK', 'Grade Dituju', 'Soal', 'Mulai', 'Selesai', 'Benar', 'Nilai', 'Nilai per Topik', 'Pelanggaran', 'Rincian Pelanggaran', 'Jumlah Foto', 'Foto Terakhir'], rinci);
+    ss.getSheets().forEach(sh => { if (['Hasil Tes', 'Rincian'].indexOf(sh.getName()) < 0 && ss.getSheets().length > 2) ss.deleteSheet(sh); });
   } finally { lock.releaseLock(); }
 }
 

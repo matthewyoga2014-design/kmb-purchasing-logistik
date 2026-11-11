@@ -120,7 +120,6 @@ const DEF={wTeknis:60,wKinerja:40,gTop:81,gMid:66,gPass:56,showScore:false,linkD
   proctorDef:{camera:true,photoSec:30,tabLimit:3,fullscreen:true,copyBlock:true,shuffle:false,shuffleOpt:true},
   timerDef:{mode:"total",perQ:60},
   perms:{editor:{link:true,bank:true,kinerja:true,hapus:true,pengaturan:true},viewer:{resume:true,excel:true,nik:true}}};
-const PERM_LABEL={editor:{link:"Membuat & membagikan link tes",bank:"Mengelola bank soal",kinerja:"Mengisi penilaian kinerja & keputusan",hapus:"Menghapus peserta / reset tes",pengaturan:"Mengubah pengaturan nilai & pengawasan"},viewer:{resume:"Membuka resume per peserta",excel:"Mengunduh Excel",nik:"Melihat NIK peserta"}};
 const TIMER_LABEL={total:"Total per sheet",per_soal:"Sama rata per soal",custom:"Berbeda tiap soal"};
 const KMB_IND=[
  ["Disiplin","Menaati tata tertib & peraturan perusahaan; riwayat teguran/SP."],
@@ -139,7 +138,7 @@ const FPK_A=["Inisiatif & Kreativitas","Kedisiplinan & Kerajinan","Komunikasi & 
 const FPK_B=["Pengetahuan & Kemampuan","Efisiensi & Efektivitas Kerja","Kecepatan & Ketelitian Kerja","Kualitas & Kerjasama Tim","Hasil & Pencapaian Target Kerja","Penguasaan Sistem & Administrasi","Pencatatan, Penyimpanan & Pengarsipan","Pemahaman & Pengoperasian Unit","Perawatan Unit & Alat Kerja","Kebersihan & Kepedulian K3"];
 const FPK_VAL={A:95,B:82,C:67,D:55,E:25};
 
-let SB=null,ROLE="none",USER=null,TAB="ringkasan",BANKSEL=null;
+let SB=null,ROLE="none",USER=null,TAB="kirim",BANKSEL=null;
 let S={modules:[],sessions:[],attempts:[],settings:{...DEF},questions:{}};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -148,7 +147,8 @@ const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null;
 const fdate=d=>d?new Date(d).toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}):"–";
 const fdt=d=>d?new Date(d).toLocaleString("id-ID",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"}):"–";
 const canEdit=()=>ROLE==="owner"||ROLE==="editor";
-function can(p){if(ROLE==="owner")return true;const pm=S.settings.perms||DEF.perms;if(ROLE==="editor")return !!(pm.editor||{})[p]&&true;if(ROLE==="viewer")return !!(pm.viewer||{})[p];return false}
+const ROLE_CAN={editor:{link:1,kinerja:1,hapus:1,resume:1,excel:1,nik:1},viewer:{resume:1,excel:1,nik:1}};
+function can(p){if(ROLE==="owner")return true;return !!(ROLE_CAN[ROLE]||{})[p]}
 const showNik=()=>ROLE!=="viewer"||can("nik");
 const fsec=s=>s>=3600?Math.floor(s/3600)+" jam "+Math.round(s%3600/60)+" mnt":s>=60?Math.round(s/60)+" menit":s+" detik";
 async function gasPost(action,data){const url=S.settings.gasUrl||(Exam.info&&Exam.info.gas_url);if(!url)throw new Error("URL Apps Script belum diatur");
@@ -210,7 +210,7 @@ function calc(s){
   if(teknis!=null)akhir=kin!=null?(teknis*g.wTeknis+kin*g.wKinerja)/((+g.wTeknis+ +g.wKinerja)||1):teknis;
   else if(kin!=null)akhir=kin;
   const cat=category(akhir);
-  const grade=gradeRec(s.level,teknis);
+  const grade=s.grade_target?(teknis==null?{grade:"–",note:""}:teknis>=g.gPass?{grade:"Lulus "+s.grade_target,note:"Nilai teknis "+fmt(teknis)+" ≥ batas lulus "+g.gPass,ok:true}:{grade:"Tidak lulus "+s.grade_target,note:"Nilai teknis "+fmt(teknis)+" < batas lulus "+g.gPass,ok:false}):gradeRec(s.level,teknis);
   const rekAuto=cat?((s.jenis==="Akhir Kontrak"?g.rekKontrak:g.rekNew)[cat.k]||""):"";
   return {mods,done,status,teknis,topics,kin,akhir,cat,grade,rek:s.keputusan||rekAuto,rekAuto,late:done.some(x=>x.a.late),viol:atts.reduce((x,y)=>x+(+y.violations||0),0)}
 }
@@ -265,115 +265,82 @@ async function loadAll(){
 let PDRAW=null,HDRAW=null;
 async function refresh(){try{await loadAll();
   // Hanya perbarui daftar/tabel; jangan gambar ulang form agar isian tidak hilang
-  if(TAB==="ringkasan")renderTab();else if(TAB==="peserta"&&PDRAW)PDRAW();else if(TAB==="hasil"&&HDRAW)HDRAW()}catch(e){console.error(e)}}
+  if(TAB==="kirim"&&PDRAW)PDRAW();else if(TAB==="hasil"&&HDRAW)HDRAW()}catch(e){console.error(e)}}
 
 /* ====================== SHELL ====================== */
 function renderShell(){
-  const tabs=[["ringkasan","Ringkasan"],["hasil","Sheet Hasil"]];
-  if(canEdit()){tabs.splice(1,0,["peserta","Peserta & Link Tes"]);if(can("bank"))tabs.push(["bank","Bank Soal"]);if(can("pengaturan")||ROLE==="owner")tabs.push(["pengaturan","Pengaturan"])}
-  $("app").innerHTML=`<header class="top"><div class="logo">PT</div><div><h1>Psikotest & Uji Kompetensi Mekanik</h1><small>KMB · Plant Tambang · Penentuan Grade</small></div><div class="sp"></div>
+  const tabs=[];
+  if(canEdit())tabs.push(["kirim","Kirim Tes"]);
+  tabs.push(["hasil","Hasil"]);
+  if(ROLE==="owner")tabs.push(["bank","Bank Soal"],["pengaturan","Pengaturan"]);
+  if(!tabs.find(t=>t[0]===TAB))TAB=tabs[0][0];
+  $("app").innerHTML=`<header class="top"><div class="logo">PT</div><div><h1>Psikotest & Uji Kompetensi Mekanik</h1><small>KMB · Plant Tambang</small></div><div class="sp"></div>
    <span class="badge">${ROLE==="owner"?"PEMILIK":ROLE==="editor"?"EDITOR":"VIEWER"}</span><button class="btn sm ghost" id="out">Keluar</button></header>
    <nav class="tabs" id="tabs">${tabs.map(([k,l])=>`<button data-t="${k}" class="${k===TAB?"on":""}">${l}</button>`).join("")}</nav><main id="main"></main>`;
   $("out").onclick=async()=>{await SB.auth.signOut();location.reload()};
   $("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;TAB=b.dataset.t;[...$("tabs").children].forEach(x=>x.classList.toggle("on",x===b));renderTab()};
-  if(!tabs.find(t=>t[0]===TAB))TAB="ringkasan";renderTab();
+  renderTab();
 }
-function renderTab(){const m=$("main");if(!m)return;({ringkasan:vRingkasan,peserta:vPeserta,hasil:vHasil,bank:vBank,pengaturan:vPengaturan}[TAB]||vRingkasan)(m)}
+function renderTab(){const m=$("main");if(!m)return;PDRAW=HDRAW=null;({kirim:vKirim,hasil:vHasil,bank:vBank,pengaturan:vPengaturan}[TAB]||vHasil)(m)}
 
-/* ====================== RINGKASAN ====================== */
-function vRingkasan(m){
-  const rows=S.sessions.map(s=>({s,c:calc(s)}));
-  const done=rows.filter(r=>r.c.akhir!=null);
-  const lulus=done.filter(r=>r.c.cat&&["A","B","C"].includes(r.c.cat.k));
-  const byCat={};setg().cat.forEach(c=>byCat[c.k]=0);done.forEach(r=>byCat[r.c.cat.k]++);const byH={};done.forEach(r=>byH[r.c.cat.h]=(byH[r.c.cat.h]||0)+1);
-  const byLvl={};LEVELS.forEach(l=>byLvl[l]={n:0,sum:0});done.forEach(r=>{if(byLvl[r.s.level]){byLvl[r.s.level].n++;byLvl[r.s.level].sum+=r.c.akhir}});
-  const top={};done.forEach(r=>Object.entries(r.c.topics).forEach(([t,v])=>{top[t]=top[t]||{b:0,n:0};top[t].b+=v.benar;top[t].n+=v.total}));
-  const topArr=Object.entries(top).map(([t,v])=>[t,v.n?100*v.b/v.n:0]).sort((a,b)=>a[1]-b[1]);
-  const byJenis={"New Hire":0,"Akhir Kontrak":0};done.forEach(r=>byJenis[r.s.jenis]=(byJenis[r.s.jenis]||0)+1);
-  
-  const recent=done.sort((a,b)=>new Date(b.s.updated_at||b.s.created_at)-new Date(a.s.updated_at||a.s.created_at)).slice(0,8);
-  const barCls=v=>v>=75?"g":v>=60?"y":"r";
-  m.innerHTML=`
-  <div class="grid g4" style="margin-bottom:14px">
-   <div class="kpi"><span>Total peserta</span><b>${S.sessions.length}</b></div>
-   <div class="kpi"><span>Sudah selesai</span><b>${done.length}</b></div>
-   <div class="kpi"><span>Rata-rata nilai akhir</span><b>${fmt(avg(done.map(r=>r.c.akhir)))}</b></div>
-   <div class="kpi"><span>Layak (Sangat Baik–Cukup)</span><b>${done.length?Math.round(100*lulus.length/done.length):0}%</b></div>
-  </div>
-  <div class="grid g2">
-   <div class="card"><h2>Kategori hasil</h2><p class="sub">Berdasarkan nilai akhir (tes teknis${setg().wKinerja?" + penilaian kinerja bila diisi":""}).</p>
-    <table class="sheet scale"><thead><tr><th class="num">Skor</th><th>Huruf</th><th class="num">Bobot</th><th>Kategori</th><th class="num">Peserta</th></tr></thead><tbody>
-    ${scaleRows().map((r,i,arr)=>{const first=i===0||arr[i-1].k!==r.k;const span=arr.filter(x=>x.k===r.k).length;const c=setg().cat.find(x=>x.k===r.k)||{};
-      return `<tr><td class="num">${r.min} – ${scaleMax(i)}</td><td><b>${esc(r.h)}</b></td><td class="num">${(+r.b).toFixed(2).replace(".",",")}</td>${first?`<td rowspan="${span}" style="vertical-align:middle"><span class="chip cat-${r.k}">${esc(c.label||"")}</span></td>`:""}<td class="num">${byH[r.h]||0}</td></tr>`}).join("")}
-    </tbody></table>
-    <p class="small muted" style="margin:10px 0 0">New Hire: ${byJenis["New Hire"]||0} · Akhir Kontrak: ${byJenis["Akhir Kontrak"]||0}</p></div>
-   <div class="card"><h2>Rata-rata per level jabatan</h2><p class="sub">Grade: Helper · Junior G1–G3 · Middle G4–G6 (termasuk Pengawas) · Senior G7–G9 · Supervisor G10</p>
-    ${LEVELS.map(l=>{const v=byLvl[l].n?byLvl[l].sum/byLvl[l].n:0;return `<div class="hbar"><span>${l} <span class="muted small">(${byLvl[l].n} org)</span></span><div class="bar ${barCls(v)}"><i style="width:${v}%"></i></div><b class="right">${byLvl[l].n?fmt(v):"–"}</b></div>`}).join("")}</div>
-   <div class="card"><h2>Penguasaan materi (semua peserta)</h2><p class="sub">Persentase jawaban benar per topik, dari yang terlemah.</p>
-    ${topArr.length?topArr.map(([t,v])=>`<div class="hbar"><span>${esc(t)}</span><div class="bar ${barCls(v)}"><i style="width:${v}%"></i></div><b class="right">${fmt(v,0)}%</b></div>`).join(""):'<div class="empty">Belum ada hasil tes.</div>'}</div>
-   <div class="card"><h2>Hasil terbaru</h2><p class="sub">Klik nama untuk melihat resume hasil.</p>
-    ${recent.length?`<table class="sheet"><tbody>${recent.map(r=>`<tr data-id="${r.s.id}"><td><b>${esc(r.s.nama)}</b><br><span class="small muted">${esc(r.s.posisi||"")} · ${esc(r.s.jenis)}</span></td><td class="num"><b>${fmt(r.c.akhir)}</b></td><td>${catChip(r.c.cat)}<br><span class="small">${esc(r.c.grade.grade)}</span></td></tr>`).join("")}</tbody></table>`:'<div class="empty">Belum ada hasil tes.</div>'}</div>
-  </div>`;
-  if(canEdit()||can("resume"))m.querySelectorAll("tr[data-id]").forEach(tr=>tr.onclick=()=>showResume(tr.dataset.id));
-}
-
-/* ====================== PESERTA & LINK ====================== */
-function vPeserta(m){
-  const act=S.modules.filter(x=>x.active);
-  m.innerHTML=`<div class="card"><h2>Buat link tes peserta</h2><p class="sub">Isi data peserta, pilih sheet tes, lalu bagikan link-nya. Jawaban otomatis masuk ke Sheet Hasil.</p>
-   <form id="fS" class="grid g2">
-    <label class="f">Nama lengkap<input name="nama" required></label>
-    <label class="f">NIK / NIP<input name="nik"></label>
-    <label class="f">Posisi yang dilamar / dinilai<select name="posisi" id="fPos">${POSISI.map(p=>`<option value="${esc(p[0])}" data-l="${p[1]}">${esc(p[0])} (${p[1]})</option>`).join("")}</select></label>
-    <label class="f">Level grade target<select name="level" id="fLvl">${LEVELS.map(l=>`<option>${l}</option>`).join("")}</select></label>
-    <label class="f">Jenis penilaian<select name="jenis"><option>New Hire</option><option>Akhir Kontrak</option></select></label>
-    <label class="f">Grade saat ini (khusus akhir kontrak)<input name="grade_saat_ini" placeholder="mis. G2"></label>
-    <label class="f">Jobsite<input name="jobsite" placeholder="mis. Workshop Rekondisi - Legok"></label>
-    <label class="f">Link berlaku sampai<input type="date" name="exp" value="${new Date(Date.now()+setg().linkDays*864e5).toISOString().slice(0,10)}"></label>
-    <div style="grid-column:1/-1"><div class="f small" style="font-weight:600;color:var(--mut);margin-bottom:6px">Sheet tes yang dikerjakan</div>
-     ${act.length?act.map(x=>`<label class="row" style="margin:4px 0"><input type="checkbox" name="mod" value="${x.id}" data-l="${x.level}"> <b>${esc(x.title)}</b> <span class="chip">${esc(x.grade?x.grade+" · ":"")}${esc(x.level)}</span> <span class="small muted">${x.duration_min} menit · ${S.qcount?.[x.id]||0} soal</span></label>`).join(""):'<div class="notice warn">Belum ada sheet tes aktif. Buka tab Bank Soal untuk menambah atau mengimpor soal.</div>'}</div>
-    <div style="grid-column:1/-1" class="card" ><h3>Batas waktu tes</h3>
-     <div class="grid g4"><label class="f">Mode waktu<select name="timer_mode" id="fTm">${Object.entries(TIMER_LABEL).map(([k,l])=>`<option value="${k}" ${setg().timerDef.mode===k?"selected":""}>${l}</option>`).join("")}</select></label>
-      <label class="f" id="fTotW">Total menit per sheet<input type="number" name="total_min" min="1" max="600" placeholder="ikut sheet"></label>
-      <label class="f" id="fPerW">Detik per soal<input type="number" name="per_q_sec" min="5" max="3600" value="${setg().timerDef.perQ}"></label></div>
-     <p class="small muted" id="fTmHelp" style="margin:6px 0 0"></p></div>
-    <div style="grid-column:1/-1" class="card"><h3>Pengawasan (anti-curang)</h3>
-     <div class="grid g2">
-      <label class="row"><input type="checkbox" name="camera" ${setg().proctorDef.camera?"checked":""}> Kamera wajib + selfie & foto ID di awal</label>
-      <label class="f">Foto otomatis tiap (detik)<input type="number" name="photoSec" min="10" max="600" value="${setg().proctorDef.photoSec}"></label>
-      <label class="row"><input type="checkbox" name="fullscreen" ${setg().proctorDef.fullscreen?"checked":""}> Wajib layar penuh</label>
-      <label class="f">Batas pindah tab/keluar layar penuh (0 = hanya dicatat)<input type="number" name="tabLimit" min="0" max="50" value="${setg().proctorDef.tabLimit}"></label>
-      <label class="row"><input type="checkbox" name="copyBlock" ${setg().proctorDef.copyBlock?"checked":""}> Blok salin teks & klik kanan + watermark nama</label>
-      <label class="row"><input type="checkbox" name="shuffle" ${setg().proctorDef.shuffle?"checked":""}> Acak urutan soal</label>
-      <label class="row"><input type="checkbox" name="shuffleOpt" ${setg().proctorDef.shuffleOpt?"checked":""}> Acak urutan pilihan jawaban</label></div>
-     <p class="small muted" style="margin:6px 0 0">Satu link hanya bisa dipakai di satu perangkat. Bila peserta ganti HP, buka menu Link → Izinkan perangkat lain.</p></div>
-    <div style="grid-column:1/-1" class="row"><button class="btn pri" type="submit">Buat link tes</button><span class="small muted">Peserta tidak perlu login.</span></div>
+/* ====================== KIRIM TES ====================== */
+function vKirim(m){
+  const act=S.modules.filter(x=>x.active);const grades=[...new Set(act.map(x=>x.grade).filter(Boolean))].sort((a,b)=>+a.slice(1)-+b.slice(1));
+  const pd=setg().proctorDef;
+  m.innerHTML=`<div class="card" style="max-width:760px;margin:0 auto 14px"><h2>Kirim tes ke peserta</h2><p class="sub">Isi data peserta, atur waktu, lalu bagikan link-nya. Peserta tidak perlu login.</p>
+   ${act.length?"":'<div class="notice warn" style="margin-bottom:10px">Belum ada soal. Pemilik perlu mengunggah file soal di menu Bank Soal.</div>'}
+   <form id="fS" class="grid">
+    <div class="grid g2"><label class="f">Nama peserta<input name="nama" required></label><label class="f">NIK / NIP<input name="nik"></label></div>
+    <div class="grid g2"><label class="f">Grade yang dituju<select name="grade" id="fG">${grades.map(g=>`<option>${g}</option>`).join("")}${act.some(x=>!x.grade)?'<option value="">Lainnya</option>':""}</select></label>
+     <label class="f">Jenis penilaian<select name="jenis"><option>New Hire</option><option>Akhir Kontrak</option></select></label></div>
+    <div><div class="small" style="font-weight:600;color:var(--mut);margin-bottom:4px">Soal yang dikerjakan</div><div id="fMods"></div></div>
+    <div><div class="small" style="font-weight:600;color:var(--mut);margin-bottom:6px">Waktu tes</div>
+     <div class="row" style="gap:6px;margin-bottom:8px"><label class="btn sm tmb"><input type="radio" name="timer_mode" value="total" checked hidden> Total waktu</label><label class="btn sm tmb"><input type="radio" name="timer_mode" value="per_soal" hidden> Per soal</label></div>
+     <div class="row" id="tTot"><input type="number" name="total_min" min="1" max="600" style="width:110px"> <span>menit untuk seluruh soal · peserta bebas bolak-balik soal</span></div>
+     <div class="row" id="tPer" hidden><input type="number" name="per_q_sec" min="5" max="3600" value="${setg().timerDef.perQ}" style="width:110px"> <span>detik untuk setiap soal · tidak bisa kembali ke soal sebelumnya</span></div></div>
+    <details><summary class="small" style="cursor:pointer;font-weight:600;color:var(--p)">Pengaturan lanjutan (pengawasan, masa berlaku, dll.)</summary>
+     <div class="grid g2" style="margin-top:10px">
+      <label class="f">Jobsite<input name="jobsite" placeholder="mis. Workshop Rekondisi - Legok"></label>
+      <label class="f">Link berlaku sampai<input type="date" name="exp" value="${new Date(Date.now()+setg().linkDays*864e5).toISOString().slice(0,10)}"></label>
+      <label class="f">Grade saat ini (akhir kontrak)<input name="grade_saat_ini" placeholder="mis. G1"></label>
+      <label class="row"><input type="checkbox" name="custom"> Pakai waktu berbeda tiap soal (dari Bank Soal)</label>
+      <label class="row"><input type="checkbox" name="camera" ${pd.camera?"checked":""}> Kamera wajib + foto berkala</label>
+      <label class="row"><input type="checkbox" name="fullscreen" ${pd.fullscreen?"checked":""}> Wajib layar penuh</label>
+      <label class="row"><input type="checkbox" name="copyBlock" ${pd.copyBlock?"checked":""}> Blok salin + watermark nama</label>
+      <label class="row"><input type="checkbox" name="shuffleOpt" ${pd.shuffleOpt?"checked":""}> Acak urutan pilihan jawaban</label>
+      <label class="row"><input type="checkbox" name="shuffle" ${pd.shuffle?"checked":""}> Acak urutan soal</label>
+      <label class="f">Batas pelanggaran (0 = hanya dicatat)<input type="number" name="tabLimit" min="0" max="50" value="${pd.tabLimit}"></label>
+     </div></details>
+    <div><button class="btn pri" type="submit" ${act.length?"":"disabled"}>Buat link tes</button></div>
    </form><div id="newLink"></div></div>
-   <div class="card"><div class="row" style="justify-content:space-between"><div><h2>Daftar peserta</h2><p class="sub">Status pengerjaan dan link setiap peserta.</p></div><input id="pSearch" placeholder="Cari nama / NIK…" style="max-width:240px"></div>
-    <div class="sheet-wrap"><table class="sheet"><thead><tr><th>Dibuat</th><th>Nama</th><th>Posisi</th><th>Jenis</th><th>Status</th><th>Berlaku s/d</th><th>Aksi</th></tr></thead><tbody id="pBody"></tbody></table></div></div>`;
-  const syncLvl=()=>{const o=$("fPos").selectedOptions[0];$("fLvl").value=o.dataset.l;tickMods()};
-  const tickMods=()=>{const l=$("fLvl").value;m.querySelectorAll('input[name=mod]').forEach(c=>c.checked=c.dataset.l===l)};
-  const tmUI=()=>{const v=$("fTm").value;$("fTotW").hidden=v!=="total";$("fPerW").hidden=v==="total";
-    $("fTmHelp").textContent=v==="total"?"Satu batas waktu untuk seluruh soal di setiap sheet. Kosongkan untuk memakai durasi bawaan sheet. Peserta bebas bolak-balik soal.":v==="per_soal"?"Setiap soal mendapat waktu yang sama. Waktu habis → otomatis lanjut, tidak bisa kembali ke soal sebelumnya.":"Waktu tiap soal mengikuti pengaturan per soal di Bank Soal; soal tanpa pengaturan memakai detik di atas. Tidak bisa kembali ke soal sebelumnya."};
-  if($("fTm")){$("fTm").onchange=tmUI;tmUI()}
-  if(!can("link")&&$("fS"))$("fS").closest(".card").hidden=true;
-  $("fPos").onchange=syncLvl;$("fLvl").onchange=tickMods;syncLvl();
-  $("fS").onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target);const mods=fd.getAll("mod");
-    if(!mods.length)return toast("Pilih minimal satu sheet tes");
-    const proctor={camera:!!fd.get("camera"),photoSec:Math.max(10,+fd.get("photoSec")||30),fullscreen:!!fd.get("fullscreen"),tabLimit:Math.max(0,+fd.get("tabLimit")||0),copyBlock:!!fd.get("copyBlock"),shuffle:!!fd.get("shuffle"),shuffleOpt:!!fd.get("shuffleOpt")};
-    const row={nama:fd.get("nama").trim(),nik:fd.get("nik").trim()||null,posisi:fd.get("posisi"),level:fd.get("level"),jenis:fd.get("jenis"),grade_saat_ini:fd.get("grade_saat_ini").trim()||null,jobsite:fd.get("jobsite").trim()||null,module_ids:mods,expires_at:fd.get("exp")?new Date(fd.get("exp")+"T23:59:59+07:00").toISOString():null,
-      timer_mode:fd.get("timer_mode"),per_q_sec:Math.min(3600,Math.max(5,+fd.get("per_q_sec")||60)),total_min:+fd.get("total_min")||null,proctor};
-    try{const s=await q(SB.from("pk_sessions").insert(row).select().single());S.sessions.unshift(s);e.target.reset();syncLvl();
-      $("newLink").innerHTML=shareBox(s);wireShare($("newLink"),s);drawList()}catch(err){toast("Gagal: "+err.message)}};
+   <div class="card"><div class="row" style="justify-content:space-between"><div><h2>Daftar link tes</h2><p class="sub">Status pengerjaan setiap peserta. Klik nama untuk melihat hasil.</p></div><input id="pSearch" placeholder="Cari nama / NIK…" style="max-width:240px"></div>
+    <div class="sheet-wrap"><table class="sheet"><thead><tr><th>Dibuat</th><th>Nama</th><th>Grade</th><th>Waktu</th><th>Status</th><th>Berlaku s/d</th><th>Aksi</th></tr></thead><tbody id="pBody"></tbody></table></div></div>`;
+  const f=$("fS");
+  const drawMods=()=>{const g=$("fG")?$("fG").value:"";const list=act.filter(x=>(x.grade||"")===g);
+    $("fMods").innerHTML=list.length?list.map(x=>`<label class="row" style="margin:3px 0"><input type="checkbox" name="mod" value="${x.id}" data-dur="${x.duration_min}" checked> <b>${esc(x.title)}</b> <span class="small muted">${S.qcount?.[x.id]||0} soal · bawaan ${x.duration_min} menit</span></label>`).join(""):'<span class="small muted">Tidak ada soal untuk pilihan ini.</span>';
+    const d=list.reduce((a,x)=>a+(+x.duration_min||0),0);if(d)f.total_min.value=d};
+  const tm=()=>{const v=f.querySelector("input[name=timer_mode]:checked").value;$("tTot").hidden=v!=="total";$("tPer").hidden=v==="total";f.querySelectorAll(".tmb").forEach(l=>l.classList.toggle("pri",l.querySelector("input").checked))};
+  if($("fG"))$("fG").onchange=drawMods;drawMods();f.querySelectorAll("input[name=timer_mode]").forEach(r=>r.onchange=tm);tm();
+  f.onsubmit=async e=>{e.preventDefault();const fd=new FormData(f);const mods=fd.getAll("mod");
+    if(!mods.length)return toast("Pilih minimal satu soal");
+    const g=fd.get("grade")||null;let mode=fd.get("timer_mode");if(mode==="per_soal"&&fd.get("custom"))mode="custom";
+    const proctor={camera:!!fd.get("camera"),photoSec:pd.photoSec||30,fullscreen:!!fd.get("fullscreen"),tabLimit:Math.max(0,+fd.get("tabLimit")||0),copyBlock:!!fd.get("copyBlock"),shuffle:!!fd.get("shuffle"),shuffleOpt:!!fd.get("shuffleOpt")};
+    const nm=mods.length;const tot=+fd.get("total_min")||null;
+    const row={nama:fd.get("nama").trim(),nik:fd.get("nik").trim()||null,grade_target:g,posisi:g?"Mekanik "+g:"Mekanik",level:levelOfGrade(g)||null,jenis:fd.get("jenis"),
+      grade_saat_ini:fd.get("grade_saat_ini").trim()||null,jobsite:fd.get("jobsite").trim()||null,module_ids:mods,
+      expires_at:fd.get("exp")?new Date(fd.get("exp")+"T23:59:59+07:00").toISOString():null,
+      timer_mode:mode,per_q_sec:Math.min(3600,Math.max(5,+fd.get("per_q_sec")||60)),total_min:mode==="total"&&tot?Math.max(1,Math.round(tot/nm)):null,proctor};
+    try{const s=await q(SB.from("pk_sessions").insert(row).select().single());S.sessions.unshift(s);f.nama.value="";f.nik.value="";
+      $("newLink").innerHTML=shareBox(s);wireShare($("newLink"),s);drawList();$("newLink").scrollIntoView({behavior:"smooth",block:"center"})}catch(err){toast("Gagal: "+err.message)}};
   const drawList=()=>{const k=($("pSearch").value||"").toLowerCase();
     const rows=S.sessions.filter(s=>(s.nama+" "+(s.nik||"")).toLowerCase().includes(k));
-    $("pBody").innerHTML=rows.length?rows.map(s=>{const c=calc(s);return `<tr data-id="${s.id}"><td>${fdate(s.created_at)}</td><td><b>${esc(s.nama)}</b><br><span class="small muted">${esc(s.nik||"")}</span>${c.viol?` <span class="chip st-Kedaluwarsa">${c.viol} pelanggaran</span>`:""}</td><td>${esc(s.posisi||"")}<br><span class="small muted">${esc(s.level||"")}</span></td><td>${esc(s.jenis)}</td><td><span class="chip st-${c.status.split(" ")[0]}">${c.status}</span> <span class="small muted">${c.done.length}/${c.mods.length}</span></td><td>${fdate(s.expires_at)}</td>
-      <td>${can("link")?'<button class="btn sm" data-a="link">Link</button> ':""}<button class="btn sm" data-a="res">Resume</button> ${can("kinerja")?'<button class="btn sm" data-a="kin">Kinerja</button> ':""}${can("hapus")?'<button class="btn sm dan" data-a="del">Hapus</button>':""}</td></tr>`}).join(""):`<tr><td colspan="7" class="empty">Belum ada peserta.</td></tr>`;
+    $("pBody").innerHTML=rows.length?rows.map(s=>{const c=calc(s);return `<tr data-id="${s.id}"><td>${fdate(s.created_at)}</td><td><b>${esc(s.nama)}</b><br><span class="small muted">${esc(s.nik||"")}</span></td><td>${esc(s.grade_target||s.level||"–")}</td>
+      <td class="small">${s.timer_mode==="total"?(s.total_min?s.total_min+" mnt":"bawaan"):s.timer_mode==="per_soal"?s.per_q_sec+" dtk/soal":"per soal (custom)"}</td>
+      <td><span class="chip st-${c.status.split(" ")[0]}">${c.status}</span>${c.viol?` <span class="chip st-Kedaluwarsa">⚠ ${c.viol}</span>`:""}</td><td>${fdate(s.expires_at)}</td>
+      <td style="white-space:nowrap"><button class="btn sm" data-a="link">Link</button> <button class="btn sm dan" data-a="del">Hapus</button></td></tr>`}).join(""):`<tr><td colspan="7" class="empty">Belum ada link tes.</td></tr>`;
     $("pBody").querySelectorAll("button").forEach(b=>b.onclick=async ev=>{ev.stopPropagation();const id=b.closest("tr").dataset.id,s=S.sessions.find(x=>x.id===id);
       if(b.dataset.a==="link"){openModal(`<div class="head"><h2>Link tes – ${esc(s.nama)}</h2><button class="btn sm" onclick="closeModal()">Tutup</button></div>${shareBox(s)}${resetBox(s)}`);wireShare($("mbox"),s)}
-      if(b.dataset.a==="res")showResume(id);
-      if(b.dataset.a==="kin")editKinerja(id);
-      if(b.dataset.a==="del"){if(!confirm("Hapus peserta "+s.nama+" beserta seluruh jawabannya?"))return;try{await q(SB.from("pk_sessions").delete().eq("id",id));S.sessions=S.sessions.filter(x=>x.id!==id);S.attempts=S.attempts.filter(a=>a.session_id!==id);drawList();toast("Peserta dihapus")}catch(err){toast("Gagal: "+err.message)}}});
+      if(b.dataset.a==="del"){if(!confirm("Hapus "+s.nama+" beserta seluruh jawabannya?"))return;try{await q(SB.from("pk_sessions").delete().eq("id",id));S.sessions=S.sessions.filter(x=>x.id!==id);S.attempts=S.attempts.filter(a=>a.session_id!==id);drawList();toast("Dihapus");syncDrive()}catch(err){toast("Gagal: "+err.message)}}});
     $("pBody").querySelectorAll("tr[data-id]").forEach(tr=>tr.onclick=()=>showResume(tr.dataset.id))};
   $("pSearch").oninput=drawList;drawList();PDRAW=()=>{if($("pBody"))drawList()};
 }
@@ -387,47 +354,52 @@ function resetBox(s){const c=calc(s);if(!c.mods.length)return"";
 window.resetAttempt=async id=>{if(!confirm("Hapus jawaban sheet ini agar peserta bisa mengulang dari awal?"))return;try{await q(SB.from("pk_attempts").delete().eq("id",id));S.attempts=S.attempts.filter(a=>a.id!==id);closeModal();renderTab();toast("Sheet direset");syncDrive()}catch(e){toast("Gagal: "+e.message)}};
 window.resetDevice=async id=>{try{await q(SB.from("pk_attempts").update({device_id:null}).eq("id",id));const a=S.attempts.find(x=>x.id===id);if(a)a.device_id=null;closeModal();toast("Peserta bisa melanjutkan dari perangkat lain")}catch(e){toast("Gagal: "+e.message)}};
 
-/* ====================== SHEET HASIL ====================== */
+
+/* ====================== HASIL ====================== */
 function resultRows(){return S.sessions.map(s=>({s,c:calc(s)}))}
 function vHasil(m){
-  m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2>Sheet Hasil Psikotest</h2><p class="sub">Semua jawaban peserta masuk otomatis ke sini. Klik baris untuk resume lengkap.</p></div>
-   <div class="row"><button class="btn" id="hRef">Muat ulang</button>${S.settings.gasUrl&&canEdit()?'<button class="btn" id="hSync">Sinkron ke Google Sheet</button>':""}<button class="btn pri" id="hXls">Unduh Excel</button></div></div>
-   <div class="row" style="margin-bottom:10px"><input id="hQ" placeholder="Cari nama / NIK / posisi" style="flex:1;min-width:180px">
-    <select id="hJ"><option value="">Semua jenis</option><option>New Hire</option><option>Akhir Kontrak</option></select>
-    <select id="hL"><option value="">Semua level</option>${LEVELS.map(l=>`<option>${l}</option>`).join("")}</select>
-    <select id="hK"><option value="">Semua kategori</option>${setg().cat.map(c=>`<option value="${c.k}">${esc(c.label)}</option>`).join("")}</select>
+  const all=resultRows(),done=all.filter(r=>r.c.akhir!=null),lulus=done.filter(r=>r.c.grade.ok);
+  const byH={};done.forEach(r=>byH[r.c.cat.h]=(byH[r.c.cat.h]||0)+1);
+  const grades=[...new Set(S.sessions.map(s=>s.grade_target).filter(Boolean))].sort((a,b)=>+a.slice(1)-+b.slice(1));
+  m.innerHTML=`<div class="grid g4" style="margin-bottom:14px">
+   <div class="kpi"><span>Peserta</span><b>${all.length}</b></div><div class="kpi"><span>Selesai tes</span><b>${done.length}</b></div>
+   <div class="kpi"><span>Lulus</span><b>${lulus.length}<small style="font-size:14px;color:var(--mut)"> / ${done.length}</small></b></div><div class="kpi"><span>Rata-rata nilai</span><b>${fmt(avg(done.map(r=>r.c.akhir)))}</b></div></div>
+  <div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2>Hasil tes</h2><p class="sub">Jawaban peserta masuk otomatis. Klik baris untuk resume lengkap & penilaian kinerja.</p></div>
+   <div class="row"><button class="btn" id="hRef">Muat ulang</button>${S.settings.gasUrl&&canEdit()?'<button class="btn" id="hSync">Sinkron Google Sheet</button>':""}<button class="btn pri" id="hXls">Unduh Excel</button></div></div>
+   <div class="row" style="gap:6px;margin-bottom:10px">${scaleRows().map(r=>`<span class="chip cat-${r.k}" title="Skor ${r.min} ke atas">${esc(r.h)}: ${byH[r.h]||0}</span>`).join("")}</div>
+   <div class="row" style="margin-bottom:10px"><input id="hQ" placeholder="Cari nama / NIK" style="flex:1;min-width:160px">
+    <select id="hG"><option value="">Semua grade</option>${grades.map(g=>`<option>${g}</option>`).join("")}</select>
+    <select id="hR"><option value="">Lulus & tidak</option><option value="1">Lulus</option><option value="0">Tidak lulus</option></select>
     <select id="hS"><option value="">Semua status</option><option>Selesai</option><option>Sedang</option><option>Belum mulai</option><option>Kedaluwarsa</option></select></div>
    <div class="sheet-wrap"><table class="sheet" id="hT"></table></div><p class="small muted" id="hInfo"></p></div>`;
-  const draw=()=>{const k=$("hQ").value.toLowerCase(),j=$("hJ").value,l=$("hL").value,ka=$("hK").value,st=$("hS").value;
-    const rows=resultRows().filter(({s,c})=>(s.nama+" "+(s.nik||"")+" "+(s.posisi||"")).toLowerCase().includes(k)&&(!j||s.jenis===j)&&(!l||s.level===l)&&(!ka||c.cat?.k===ka)&&(!st||c.status===st));
-    const mods=S.modules;
-    $("hT").innerHTML=`<thead><tr><th>No</th><th>Tanggal</th><th>Nama</th><th>NIK</th><th>Jenis</th><th>Posisi</th><th>Level</th><th>Jobsite</th>${mods.map(x=>`<th class="num" title="${esc(x.title)}">${esc(x.title.length>22?x.title.slice(0,22)+"…":x.title)}</th>`).join("")}<th class="num">Nilai Teknis</th><th class="num">Nilai Kinerja</th><th class="num">Nilai Akhir</th><th>Huruf · Kategori</th><th class="num">Bobot</th><th>Rekomendasi Grade</th><th>Rekomendasi</th><th class="num">Pelanggaran</th><th>Status</th></tr></thead>
-     <tbody>${rows.map(({s,c},i)=>`<tr data-id="${s.id}"><td class="num">${i+1}</td><td>${fdate(s.created_at)}</td><td><b>${esc(s.nama)}</b></td><td>${showNik()?esc(s.nik||""):"•••"}</td><td>${esc(s.jenis)}</td><td>${esc(s.posisi||"")}</td><td>${esc(s.level||"")}</td><td>${esc(s.jobsite||"")}</td>
-      ${mods.map(x=>{const a=c.mods.find(y=>y.m.id===x.id);return `<td class="num">${a?(a.a?.submitted_at?fmt(a.a.score)+(a.a.late?" ⏱":""):a.a?"…":"–"):""}</td>`}).join("")}
-      <td class="num">${fmt(c.teknis)}</td><td class="num">${fmt(c.kin)}</td><td class="num"><b>${fmt(c.akhir)}</b></td>
-      <td>${catChip(c.cat)}</td><td class="num">${c.cat?(+c.cat.b).toFixed(2).replace(".",","):"–"}</td><td>${esc(c.grade.grade)}</td><td>${esc(c.rek||"–")}</td><td class="num">${c.viol||""}</td><td><span class="chip st-${c.status.split(" ")[0]}">${c.status}</span></td></tr>`).join("")||`<tr><td colspan="${19+mods.length}" class="empty">Belum ada data.</td></tr>`}</tbody>`;
-    $("hInfo").textContent=rows.length+" baris · ⏱ = waktu habis, jawaban yang tersimpan dinilai otomatis";
-    if(canEdit()||can("resume"))$("hT").querySelectorAll("tr[data-id]").forEach(tr=>tr.onclick=()=>showResume(tr.dataset.id));};
-  ["hQ","hJ","hL","hK","hS"].forEach(id=>$(id).oninput=draw);draw();HDRAW=()=>{if($("hT"))draw()};
-  $("hRef").onclick=async()=>{await refresh();toast("Data diperbarui")};if($("hSync"))$("hSync").onclick=async()=>{toast("Menyinkronkan ke Google Sheet…");try{const r=await gasPost("sync",{});toast(r.ok?"Google Sheet diperbarui":"Gagal: "+r.error,4000)}catch(e){toast("Gagal: "+e.message,4000)}};
-  $("hXls").onclick=exportXlsx;if(!can("excel"))$("hXls").hidden=true;
+  const draw=()=>{const k=$("hQ").value.toLowerCase(),g=$("hG").value,r=$("hR").value,st=$("hS").value;
+    const rows=resultRows().filter(({s,c})=>(s.nama+" "+(s.nik||"")).toLowerCase().includes(k)&&(!g||s.grade_target===g)&&(!r||(c.akhir!=null&&String(+!!c.grade.ok)===r))&&(!st||c.status===st));
+    $("hT").innerHTML=`<thead><tr><th>No</th><th>Tanggal</th><th>Nama</th><th>NIK</th><th>Grade</th><th>Jenis</th><th class="num">Nilai Teknis</th><th class="num">Kinerja</th><th class="num">Nilai Akhir</th><th>Huruf · Kategori</th><th>Hasil</th><th>Rekomendasi</th><th class="num">⚠</th><th>Status</th></tr></thead>
+     <tbody>${rows.map(({s,c},i)=>`<tr data-id="${s.id}"><td class="num">${i+1}</td><td>${fdate(s.created_at)}</td><td><b>${esc(s.nama)}</b></td><td>${esc(s.nik||"")}</td><td>${esc(s.grade_target||s.level||"")}</td><td>${esc(s.jenis)}</td>
+      <td class="num">${fmt(c.teknis)}${c.late?" ⏱":""}</td><td class="num">${fmt(c.kin)}</td><td class="num"><b>${fmt(c.akhir)}</b></td><td>${catChip(c.cat)}</td>
+      <td>${c.teknis==null?"–":`<span class="chip ${c.grade.ok?"st-Selesai":"st-Kedaluwarsa"}">${esc(c.grade.grade)}</span>`}</td><td class="wrap" style="min-width:180px">${esc(c.rek||"–")}</td><td class="num">${c.viol||""}</td><td><span class="chip st-${c.status.split(" ")[0]}">${c.status}</span></td></tr>`).join("")||`<tr><td colspan="14" class="empty">Belum ada data.</td></tr>`}</tbody>`;
+    $("hInfo").textContent=rows.length+" peserta · ⚠ = jumlah pelanggaran · ⏱ = waktu habis";
+    $("hT").querySelectorAll("tr[data-id]").forEach(tr=>tr.onclick=()=>showResume(tr.dataset.id))};
+  ["hQ","hG","hR","hS"].forEach(id=>$(id).oninput=draw);draw();HDRAW=()=>{if($("hT"))draw()};
+  $("hRef").onclick=async()=>{await refresh();renderTab();toast("Data diperbarui")};
+  if($("hSync"))$("hSync").onclick=async()=>{toast("Menyinkronkan…");try{const r=await gasPost("sync",{});toast(r.ok?"Google Sheet diperbarui":"Gagal: "+r.error,4000)}catch(e){toast("Gagal: "+e.message,4000)}};
+  $("hXls").onclick=exportXlsx;
 }
-function exportXlsx(){
-  if(!window.XLSX)return toast("Pustaka Excel belum termuat");
-  const rows=resultRows();const mods=S.modules;
-  const main=rows.map(({s,c},i)=>{const o={No:i+1,Tanggal:fdate(s.created_at),Nama:s.nama,NIK:showNik()?(s.nik||""):"",Jenis:s.jenis,Posisi:s.posisi||"",Level:s.level||"","Grade Saat Ini":s.grade_saat_ini||"",Jobsite:s.jobsite||""};
-    mods.forEach(x=>{const a=c.mods.find(y=>y.m.id===x.id);o[x.title]=a&&a.a?.submitted_at?+(+a.a.score).toFixed(1):""});
-    Object.assign(o,{"Nilai Teknis":c.teknis!=null?+c.teknis.toFixed(1):"","Nilai Kinerja":c.kin!=null?+c.kin.toFixed(1):"","Nilai Akhir":c.akhir!=null?+c.akhir.toFixed(1):"",Huruf:c.cat?c.cat.h:"",Bobot:c.cat?+(+c.cat.b).toFixed(2):"",Kategori:c.cat?c.cat.label:"","Rekomendasi Grade":c.grade.grade,"Keterangan Grade":c.grade.note,Rekomendasi:c.rek||"",Pelanggaran:c.viol,Status:c.status,"Kelebihan":s.kinerja?.kelebihan||"","Perlu Ditingkatkan":s.kinerja?.kekurangan||"",Catatan:s.catatan||""});return o});
-  const topics=[...new Set(rows.flatMap(r=>Object.keys(r.c.topics)))];
-  const tp=rows.filter(r=>r.c.done.length).map(({s,c})=>{const o={Nama:s.nama,Posisi:s.posisi||""};topics.forEach(t=>{const v=c.topics[t];o[t]=v&&v.total?+(100*v.benar/v.total).toFixed(0):""});return o});
-  const wb=XLSX.utils.book_new();
-  const ws1=XLSX.utils.json_to_sheet(main);ws1["!cols"]=Object.keys(main[0]||{No:1}).map(k=>({wch:Math.max(8,Math.min(40,k.length+4))}));
-  XLSX.utils.book_append_sheet(wb,ws1,"Hasil Psikotest");
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(tp.length?tp:[{Info:"Belum ada data"}]),"Nilai per Topik (%)");
-  const ref=scaleRows().map((r,i)=>{const c=setg().cat.find(x=>x.k===r.k)||{};return {Skor:r.min+" - "+scaleMax(i),Huruf:r.h,Bobot:r.b,Kategori:c.label,"Rekomendasi Akhir Kontrak":setg().rekKontrak[r.k],"Rekomendasi New Hire":setg().rekNew[r.k]}});
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(ref),"Kategori");
-  XLSX.writeFile(wb,"Hasil_Psikotest_Mekanik_"+new Date().toISOString().slice(0,10)+".xlsx");
-}
+function exportRows(){const rows=resultRows();
+  const hasil=rows.map(({s,c},i)=>({No:i+1,Tanggal:fdate(s.created_at),Nama:s.nama,NIK:s.nik||"","Grade Dituju":s.grade_target||s.level||"",Jenis:s.jenis,Jobsite:s.jobsite||"","Grade Saat Ini":s.grade_saat_ini||"",
+    "Nilai Teknis":c.teknis!=null?+c.teknis.toFixed(1):"","Nilai Kinerja":c.kin!=null?+c.kin.toFixed(1):"","Nilai Akhir":c.akhir!=null?+c.akhir.toFixed(1):"",
+    Huruf:c.cat?c.cat.h:"",Bobot:c.cat?+(+c.cat.b).toFixed(2):"",Kategori:c.cat?c.cat.label:"",Hasil:c.teknis!=null?c.grade.grade:"",Rekomendasi:c.rek||"",Pelanggaran:c.viol,Status:c.status,
+    Kelebihan:s.kinerja?.kelebihan||"","Perlu Ditingkatkan":s.kinerja?.kekurangan||"",Catatan:s.catatan||""}));
+  const rinci=[];rows.forEach(({s,c})=>c.mods.forEach(x=>{if(!x.a)return;const ev=x.a.events||[];const foto=ev.filter(e=>e.type==="foto").map(e=>String(e.d).split("|")[1]);
+    rinci.push({Nama:s.nama,NIK:s.nik||"","Grade Dituju":s.grade_target||"",Soal:x.m.title,Mulai:fdt(x.a.started_at),Selesai:x.a.submitted_at?fdt(x.a.submitted_at):"","Benar":x.a.submitted_at?x.a.correct+"/"+x.a.total:"",Nilai:x.a.submitted_at?+(+x.a.score).toFixed(1):"",
+      "Nilai per Topik":Object.entries(x.a.by_topic||{}).map(([t,v])=>`${t} ${v.total?Math.round(100*v.benar/v.total):0}%`).join("; "),
+      Pelanggaran:x.a.violations||0,"Rincian Pelanggaran":ev.filter(e=>["tab","fullscreen","kamera","auto-kirim"].includes(e.type)).map(e=>new Date(e.t).toLocaleTimeString("id-ID")+" "+e.type).join("; "),
+      "Jumlah Foto":foto.length,"Foto Terakhir":foto[foto.length-1]||""})}));
+  return {hasil,rinci}}
+function exportXlsx(){if(!window.XLSX)return toast("Pustaka Excel belum termuat");const {hasil,rinci}=exportRows();const wb=XLSX.utils.book_new();
+  const ws1=XLSX.utils.json_to_sheet(hasil.length?hasil:[{Info:"Belum ada data"}]);ws1["!cols"]=Object.keys(hasil[0]||{a:1}).map(k=>({wch:Math.max(8,Math.min(36,k.length+6))}));
+  XLSX.utils.book_append_sheet(wb,ws1,"Hasil Tes");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rinci.length?rinci:[{Info:"Belum ada data"}]),"Rincian");
+  XLSX.writeFile(wb,"Hasil_Psikotest_Mekanik_"+new Date().toISOString().slice(0,10)+".xlsx")}
 
 /* ====================== RESUME PESERTA ====================== */
 function showResume(id){
@@ -439,9 +411,9 @@ function showResume(id){
   openModal(`<div class="head"><h2>Resume Hasil Psikotest</h2><span class="noprint row"><button class="btn sm" id="rPrint">Cetak / PDF</button>${can("kinerja")?`<button class="btn sm" id="rKin">Penilaian Kinerja</button>`:""}<button class="btn sm" onclick="closeModal()">Tutup</button></span></div>
   <div class="small muted" style="margin:-6px 0 12px">PT Karunia Mandiri Berkarya · Uji Kompetensi Mekanik Plant Tambang</div>
   <div class="grid g2">
-   <div class="kv"><b>Nama</b><span>${esc(s.nama)}</span><b>NIK / NIP</b><span>${showNik()?esc(s.nik||"–"):"•••"}</span><b>Posisi</b><span>${esc(s.posisi||"–")}</span><b>Level target</b><span>${esc(s.level||"–")}${s.grade_saat_ini?" · grade saat ini "+esc(s.grade_saat_ini):""}</span><b>Jenis penilaian</b><span>${esc(s.jenis)}</span><b>Jobsite</b><span>${esc(s.jobsite||"–")}</span><b>Status</b><span>${c.status}${c.late?" · ada sheet yang waktunya habis":""}</span></div>
+   <div class="kv"><b>Nama</b><span>${esc(s.nama)}</span><b>NIK / NIP</b><span>${showNik()?esc(s.nik||"–"):"•••"}</span><b>Grade yang dituju</b><span>${esc(s.grade_target||s.level||"–")}${s.grade_saat_ini?" · grade saat ini "+esc(s.grade_saat_ini):""}</span><b>Jenis penilaian</b><span>${esc(s.jenis)}</span><b>Jobsite</b><span>${esc(s.jobsite||"–")}</span><b>Status</b><span>${c.status}${c.late?" · ada sheet yang waktunya habis":""}</span></div>
    <div style="display:flex;gap:16px;align-items:center;justify-content:flex-end;flex-wrap:wrap"><div class="right"><div class="small muted">Nilai akhir</div><div class="score-big">${fmt(c.akhir)}</div></div>
-    <div>${c.cat?catChip(c.cat,true)+`<div class="small muted" style="margin-top:4px">Nilai huruf <b>${esc(c.cat.h)}</b> · bobot <b>${(+c.cat.b).toFixed(2).replace(".",",")}</b></div>`:'<span class="chip">Belum ada nilai</span>'}<div style="margin-top:8px"><b>Rekomendasi grade:</b> ${esc(c.grade.grade)}<br><span class="small muted">${esc(c.grade.note)}</span></div></div></div>
+    <div>${c.cat?catChip(c.cat,true)+`<div class="small muted" style="margin-top:4px">Nilai huruf <b>${esc(c.cat.h)}</b> · bobot <b>${(+c.cat.b).toFixed(2).replace(".",",")}</b></div>`:'<span class="chip">Belum ada nilai</span>'}<div style="margin-top:8px">${c.teknis==null?"":`<span class="chip ${c.grade.ok?"st-Selesai":"st-Kedaluwarsa"}" style="font-size:14px">${esc(c.grade.grade)}</span>`}<br><span class="small muted">${esc(c.grade.note)}</span></div></div></div>
   </div>
   <div class="card" style="margin-top:14px"><h3>Rekomendasi</h3><div style="font-size:15px;font-weight:700;color:var(--p2)">${esc(c.rek||"–")}</div>${s.keputusan?`<div class="small muted">Keputusan diisi manual oleh Editor (otomatis: ${esc(c.rekAuto||"–")})</div>`:""}
    ${can("kinerja")?`<div class="row noprint" style="margin-top:8px"><input id="rKep" placeholder="Ubah keputusan akhir (opsional)" value="${esc(s.keputusan||"")}" style="flex:1"><button class="btn sm pri" id="rKepS">Simpan</button></div>`:""}</div>
@@ -520,15 +492,13 @@ function editKinerja(id){
 async function loadQuestions(mid,force){if(!S.questions[mid]||force)S.questions[mid]=await q(SB.from("pk_questions").select("*").eq("module_id",mid).order("no"));return S.questions[mid]}
 async function vBank(m){
   if(!BANKSEL||!S.modules.find(x=>x.id===BANKSEL))BANKSEL=S.modules[0]?.id||null;
-  m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><div><h2>Bank Soal</h2><p class="sub">Setiap sheet adalah satu tes dengan batas waktu sendiri. Peserta bisa diberi lebih dari satu sheet.</p></div>
-   <div class="row"><button class="btn" id="bNew">+ Sheet baru</button><button class="btn" id="bTpl">Template Excel</button><label class="btn pri">⬆ Unggah file soal<input type="file" id="bImp" accept=".xlsx,.xls,.csv" hidden></label>${S.modules.some(x=>x.code==="G1A2B_L-UP-09-06")?"":`<button class="btn pri" id="bSeed">Impor soal G1 Trailer (100 soal)</button>`}</div></div>
-   <div class="sheettabs" id="bTabs">${S.modules.map(x=>`<button data-id="${x.id}" class="${x.id===BANKSEL?"on":""}">${esc(x.title)} <span class="chip" style="margin-left:4px">${S.qcount?.[x.id]||0}</span></button>`).join("")}</div>
-   <div id="bBody">${S.modules.length?'<div class="empty">Memuat…</div>':'<div class="empty">Belum ada sheet tes. Klik <b>Impor soal G1 Trailer</b> atau <b>+ Sheet baru</b>.</div>'}</div></div>`;
+  m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><div><h2>Bank Soal</h2><p class="sub">Satu file soal untuk satu grade (mis. Soal G2). Unggah file Excel apa adanya — soal, pilihan, kunci, dan gambar terbaca otomatis.</p></div>
+   <div class="row"><label class="btn pri">⬆ Unggah file soal<input type="file" id="bImp" accept=".xlsx,.xls,.csv" hidden></label><button class="btn sm" id="bTpl" title="Opsional, bila soal belum punya file">Template kosong</button></div></div>
+   <div class="sheettabs" id="bTabs">${S.modules.map(x=>`<button data-id="${x.id}" class="${x.id===BANKSEL?"on":""}">${x.grade?`<b>${esc(x.grade)}</b> · `:""}${esc(x.title)} <span class="chip" style="margin-left:4px">${S.qcount?.[x.id]||0}</span></button>`).join("")}</div>
+   <div id="bBody">${S.modules.length?'<div class="empty">Memuat…</div>':'<div class="empty">Belum ada soal. Klik <b>⬆ Unggah file soal</b>.</div>'}</div></div>`;
   $("bTabs").onclick=e=>{const b=e.target.closest("button");if(b){BANKSEL=b.dataset.id;vBank(m)}};
-  $("bNew").onclick=()=>editModule(null);
   $("bTpl").onclick=()=>{const ws=XLSX.utils.aoa_to_sheet([["No","Soal","A","B","C","D","Kunci","Topik"],[1,"Alat untuk mengukur diameter luar shaft secara akurat adalah…","Ruler","Micrometer","Depth Gauge","Feeler Gauge","B","Alat Ukur & Tools"]]);ws["!cols"]=[{wch:5},{wch:60},{wch:25},{wch:25},{wch:25},{wch:25},{wch:7},{wch:24}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Soal");XLSX.writeFile(wb,"Template_Bank_Soal.xlsx")};
   $("bImp").onchange=e=>importExcel(e.target.files[0]);
-  const sd=$("bSeed");if(sd)sd.onclick=seedTrailer;
   if(!BANKSEL)return;
   const mod=S.modules.find(x=>x.id===BANKSEL);let qs=[];try{qs=await loadQuestions(BANKSEL)}catch(e){$("bBody").innerHTML='<div class="notice warn">Gagal memuat soal: '+esc(e.message)+'</div>';return}
   $("bBody").innerHTML=`<div class="notice" style="margin-bottom:12px"><div class="row" style="justify-content:space-between"><div><b>${esc(mod.title)}</b> ${mod.active?'<span class="chip st-Selesai">Aktif</span>':'<span class="chip st-Kedaluwarsa">Nonaktif</span>'}<br><span class="small">${mod.grade?"Grade "+esc(mod.grade)+" · ":""}Level ${esc(mod.level)} · ${mod.duration_min} menit · ${qs.length} soal · nilai lulus ${mod.pass_score}${mod.shuffle?" · urutan diacak":""}${mod.code?" · kode "+esc(mod.code):""}</span>${mod.description?`<br><span class="small muted">${esc(mod.description)}</span>`:""}</div>
@@ -583,13 +553,6 @@ function editQuestion(mod,qq){
 }
 function shrinkImage(file,max=900){return new Promise((res,rej)=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const sc=Math.min(1,max/Math.max(im.width,im.height));const c=document.createElement("canvas");c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);res(c.toDataURL("image/jpeg",.8))};im.onerror=rej;im.src=fr.result};fr.onerror=rej;fr.readAsDataURL(file)})}
 async function insertQuestions(mid,list,onp){for(let i=0;i<list.length;i+=15){await q(SB.from("pk_questions").insert(list.slice(i,i+15).map(x=>({...x,module_id:mid}))));onp&&onp(Math.min(list.length,i+15))}}
-async function seedTrailer(){
-  const b=$("bSeed");b.disabled=true;b.textContent="Mengimpor…";
-  try{const j=await (await fetch("bank-soal-trailer.json",{cache:"no-store"})).json();
-    const mod=await q(SB.from("pk_modules").insert({...j.module,sort:S.modules.length+1}).select().single());
-    await insertQuestions(mod.id,j.questions,n=>b.textContent=`Mengimpor ${n}/${j.questions.length}…`);
-    BANKSEL=mod.id;await loadAll();renderTab();toast("100 soal G1 Trailer berhasil diimpor")}catch(e){toast("Gagal impor: "+e.message,5000);b.disabled=false;b.textContent="Impor soal G1 Trailer (100 soal)"}
-}
 /* ---------- Upload file soal (format template ATAU format lembar soal KMB) ---------- */
 const GRADES=["G1","G2","G3","G4","G5","G6","G7","G8","G9","G10"];
 const levelOfGrade=g=>{const n=+String(g||"").replace(/\D/g,"");return !n?"":n<=3?"Junior":n<=6?"Middle":n<=9?"Senior":"Supervisor"};
@@ -689,51 +652,35 @@ async function importExcel(file){
 
 /* ====================== PENGATURAN ====================== */
 async function vPengaturan(m){
-  const g=setg(),own=ROLE==="owner",ed=own||can("pengaturan");
+  const g=setg();
   m.innerHTML=`<div class="grid g2">
-   ${own?`<div class="card"><h2>Google Drive (salinan otomatis)</h2><p class="sub">Hasil tes otomatis disalin ke Google Sheet di Drive Anda, dan foto kamera peserta disimpan di folder Drive. Penyimpanan utama tetap aman di database web.</p>
-    <ol class="small" style="padding-left:18px;margin:0 0 10px"><li>Unduh <b>Code.gs</b>, buka <a href="https://script.google.com" target="_blank" rel="noopener">script.google.com</a> → Proyek baru → tempel.</li><li>Project Settings → Script Properties → tambah <b>SYNC_SECRET</b> = kunci di bawah.</li><li>Jalankan fungsi <b>setup</b> sekali dan izinkan akses.</li><li>Deploy → Web app → Execute as: <b>Me</b>, Who has access: <b>Anyone</b>. Salin URL /exec ke kolom di bawah.</li></ol>
-    <div class="row" style="margin-bottom:8px"><button class="btn sm" id="dCode">Unduh Code.gs</button><button class="btn sm" id="dSec">Tampilkan kunci SYNC_SECRET</button></div><div id="dSecBox"></div>
+   <div><div class="card"><h2>Akun Editor & Viewer</h2><p class="sub"><b>Editor</b>: kirim tes, atur waktu, lihat hasil, isi penilaian kinerja. <b>Viewer</b>: hanya melihat hasil. Peserta tes tidak perlu akun.</p><div id="acc">Memuat…</div></div>
+   <div class="card"><h2>Google Drive</h2><p class="sub">Hasil otomatis tersalin ke Google Sheet (2 sheet: <b>Hasil Tes</b> & <b>Rincian</b>), foto kamera ke folder Drive.</p>
+    <details><summary class="small" style="cursor:pointer;font-weight:600;color:var(--p)">Cara memasang (sekali saja)</summary>
+    <ol class="small" style="padding-left:18px;margin:8px 0"><li>Tekan <b>Unduh Code.gs</b>. Buka <a href="https://script.google.com" target="_blank" rel="noopener">script.google.com</a> → Proyek baru → tempel isinya → Simpan.</li><li>⚙️ Project Settings → Script Properties → tambah <b>SYNC_SECRET</b> = kunci dari tombol <b>Tampilkan kunci</b>.</li><li>Pilih fungsi <b>setup</b> → Run → izinkan.</li><li>Deploy → New deployment → Web app → Execute as <b>Me</b>, akses <b>Anyone</b> → salin URL /exec ke kolom di bawah.</li></ol></details>
+    <div class="row" style="margin:8px 0"><button class="btn sm" id="dCode">Unduh Code.gs</button><button class="btn sm" id="dSec">Tampilkan kunci</button></div><div id="dSecBox"></div>
     <label class="f">URL Apps Script (/exec)<input id="dUrl" value="${esc(g.gasUrl||"")}" placeholder="https://script.google.com/macros/s/…/exec"></label>
-    <div class="row" style="margin-top:8px"><button class="btn pri sm" id="dSave">Simpan URL</button><button class="btn sm" id="dTest">Tes koneksi</button><button class="btn sm" id="dSync">Sinkron sekarang</button></div><div id="dInfo" class="small" style="margin-top:8px"></div></div>`:""}
-   ${ed?`<div class="card"><h2>Bobot & ambang nilai</h2><p class="sub">Dipakai untuk nilai akhir, kategori, dan rekomendasi grade.</p>
+    <div class="row" style="margin-top:8px"><button class="btn pri sm" id="dSave">Simpan</button><button class="btn sm" id="dTest">Tes koneksi</button><button class="btn sm" id="dSync">Sinkron sekarang</button></div><div id="dInfo" class="small" style="margin-top:8px"></div></div></div>
+   <div class="card"><h2>Penilaian</h2>
    <form id="sF" class="grid">
-    <div class="grid g4"><label class="f">Bobot tes teknis (%)<input type="number" name="wTeknis" value="${g.wTeknis}"></label><label class="f">Bobot kinerja (%)<input type="number" name="wKinerja" value="${g.wKinerja}"></label><label class="f">Masa berlaku link (hari)<input type="number" name="linkDays" value="${g.linkDays}"></label></div>
-    <div><b>Rekomendasi grade dalam level</b><p class="small muted" style="margin:2px 0 6px">Contoh Junior: ≥ batas atas (Sangat Baik) → G3 · ≥ batas tengah (Baik) → G2 · ≥ batas lulus (Cukup) → G1 · di bawahnya (Kurang/Sangat Kurang) → level sebelumnya.</p>
-    <div class="grid g4"><label class="f">Batas atas<input type="number" name="gTop" value="${g.gTop}"></label><label class="f">Batas tengah<input type="number" name="gMid" value="${g.gMid}"></label><label class="f">Batas lulus<input type="number" name="gPass" value="${g.gPass}"></label></div></div>
-    <div><b>Skala nilai (huruf, bobot, kategori)</b><p class="small muted" style="margin:2px 0 6px">Isi skor minimal tiap huruf; batas atas otomatis dari baris di atasnya.</p>
-     <div class="sheet-wrap" style="max-height:none"><table class="sheet"><thead><tr><th>Skor min</th><th>Huruf</th><th>Bobot</th><th>Kategori</th></tr></thead><tbody>
-     ${scaleRows().map((r,i)=>`<tr><td><input type="number" name="sm${i}" value="${r.min}" min="0" max="100" style="width:80px"></td><td><input name="sh${i}" value="${esc(r.h)}" style="width:70px"></td><td><input type="number" step="0.01" name="sb${i}" value="${r.b}" style="width:80px"></td><td><select name="sk${i}">${g.cat.map(c=>`<option value="${c.k}" ${c.k===r.k?"selected":""}>${esc(c.label)}</option>`).join("")}</select></td></tr>`).join("")}</tbody></table></div>
-     <div class="grid g4" style="margin-top:8px">${g.cat.map((c,i)=>`<label class="f">Nama kategori ${i+1}<input name="cl${i}" value="${esc(c.label)}"></label>`).join("")}</div></div>
-    <div><b>Rekomendasi otomatis</b><div class="sheet-wrap" style="max-height:none"><table class="sheet"><thead><tr><th>Kat.</th><th>Akhir Kontrak</th><th>New Hire</th></tr></thead><tbody>${g.cat.map(c=>`<tr><td>${esc(c.label)}</td><td><input name="rk${c.k}" value="${esc(g.rekKontrak[c.k]||"")}" style="width:100%"></td><td><input name="rn${c.k}" value="${esc(g.rekNew[c.k]||"")}" style="width:100%"></td></tr>`).join("")}</tbody></table></div></div>
-    <div><b>Bawaan saat membuat link tes</b><div class="grid g4" style="margin-top:6px">
-     <label class="f">Mode waktu<select name="tmode">${Object.entries(TIMER_LABEL).map(([k,l])=>`<option value="${k}" ${g.timerDef.mode===k?"selected":""}>${l}</option>`).join("")}</select></label>
-     <label class="f">Detik per soal<input type="number" name="perQ" value="${g.timerDef.perQ}"></label>
-     <label class="f">Foto tiap (detik)<input type="number" name="photoSec" value="${g.proctorDef.photoSec}"></label>
-     <label class="f">Batas pelanggaran<input type="number" name="tabLimit" value="${g.proctorDef.tabLimit}"></label></div>
-     <div class="row" style="margin-top:6px;gap:14px">${[["camera","Kamera wajib"],["fullscreen","Layar penuh"],["copyBlock","Blok salin"],["shuffle","Acak soal"],["shuffleOpt","Acak pilihan"]].map(([k,l])=>`<label class="row"><input type="checkbox" name="p_${k}" ${g.proctorDef[k]?"checked":""}> ${l}</label>`).join("")}</div></div>
-    <div><button class="btn pri">Simpan pengaturan</button> <button type="button" class="btn" id="sReset">Kembalikan default</button></div></form></div>`:""}
-   <div>${own?`<div class="card"><h2>Hak akses Editor & Viewer</h2><p class="sub">Pemilik selalu punya akses penuh. Centang apa saja yang boleh dilakukan Editor dan Viewer.</p>
-     ${["editor","viewer"].map(r=>`<b>${r==="editor"?"Editor":"Viewer"}</b>${Object.entries(PERM_LABEL[r]).map(([k,l])=>`<label class="row" style="padding:3px 0"><input type="checkbox" data-perm="${r}.${k}" ${g.perms[r][k]?"checked":""}> ${l}</label>`).join("")}`).join('<div style="height:8px"></div>')}
-     <p class="small muted">Viewer selalu bisa melihat Ringkasan dan Sheet Hasil, tanpa bisa mengubah apa pun.</p><button class="btn pri sm" id="pSave">Simpan hak akses</button></div>`:""}
-   <div class="card"><h2>Akun Editor & Viewer</h2><p class="sub">Peserta tes tidak perlu didaftarkan.</p><div id="acc">${own?"Memuat…":'<div class="notice">Hanya Pemilik yang dapat menambah atau menghapus akun.</div>'}</div></div>
-   <div class="card"><h2>Pembagian grade</h2><div class="kv">${LEVELS.map(l=>`<b>${l}</b><span>${g.bands[l].join(", ")}</span>`).join("")}</div><p class="small muted" style="margin-top:8px">Pengawas / Foreman mengikuti level Middle.</p></div></div></div>`;
-  const save=async(n,msg)=>{await q(SB.from("pk_settings").update({data:n,updated_at:new Date().toISOString()}).eq("id",1));S.settings=n;toast(msg||"Pengaturan disimpan")};
-  if($("sF"))$("sF").onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target);const n=JSON.parse(JSON.stringify(g));["wTeknis","wKinerja","linkDays","gTop","gMid","gPass"].forEach(k=>n[k]=+fd.get(k));
-    n.cat=g.cat.map((c,i)=>({k:c.k,label:fd.get("cl"+i)||c.label,min:c.min}));n.scale=scaleRows().map((r,i)=>({min:Math.max(0,Math.min(100,+fd.get("sm"+i))),h:(fd.get("sh"+i)||r.h).trim(),b:+fd.get("sb"+i)||0,k:fd.get("sk"+i)}));n.cat.forEach(c=>{const m=n.scale.filter(x=>x.k===c.k);c.min=m.length?Math.min(...m.map(x=>x.min)):0});n.rekKontrak={};n.rekNew={};g.cat.forEach(c=>{n.rekKontrak[c.k]=fd.get("rk"+c.k);n.rekNew[c.k]=fd.get("rn"+c.k)});
-    n.timerDef={mode:fd.get("tmode"),perQ:Math.max(5,+fd.get("perQ")||60)};
-    n.proctorDef={photoSec:Math.max(10,+fd.get("photoSec")||30),tabLimit:Math.max(0,+fd.get("tabLimit")||0)};["camera","fullscreen","copyBlock","shuffle","shuffleOpt"].forEach(k=>n.proctorDef[k]=!!fd.get("p_"+k));
+    <div class="grid g4"><label class="f">Batas lulus (nilai teknis)<input type="number" name="gPass" value="${g.gPass}"></label><label class="f">Bobot tes teknis %<input type="number" name="wTeknis" value="${g.wTeknis}"></label><label class="f">Bobot kinerja %<input type="number" name="wKinerja" value="${g.wKinerja}"></label></div>
+    <p class="small muted" style="margin:-4px 0 0">Lulus grade = nilai tes teknis ≥ batas lulus. Nilai akhir = gabungan tes teknis & penilaian kinerja (bila diisi).</p>
+    <div><b>Skala nilai</b><div class="sheet-wrap" style="max-height:none;margin-top:6px"><table class="sheet"><thead><tr><th>Skor min</th><th>Huruf</th><th>Bobot</th><th>Kategori</th></tr></thead><tbody>
+     ${scaleRows().map((r,i)=>`<tr><td><input type="number" name="sm${i}" value="${r.min}" min="0" max="100" style="width:72px"></td><td><input name="sh${i}" value="${esc(r.h)}" style="width:60px"></td><td><input type="number" step="0.01" name="sb${i}" value="${r.b}" style="width:72px"></td><td><select name="sk${i}">${g.cat.map(c=>`<option value="${c.k}" ${c.k===r.k?"selected":""}>${esc(c.label)}</option>`).join("")}</select></td></tr>`).join("")}</tbody></table></div></div>
+    <div><b>Rekomendasi otomatis per kategori</b><div class="sheet-wrap" style="max-height:none;margin-top:6px"><table class="sheet"><thead><tr><th>Kategori</th><th>Akhir Kontrak</th><th>New Hire</th></tr></thead><tbody>${g.cat.map(c=>`<tr><td>${esc(c.label)}</td><td><input name="rk${c.k}" value="${esc(g.rekKontrak[c.k]||"")}" style="width:100%"></td><td><input name="rn${c.k}" value="${esc(g.rekNew[c.k]||"")}" style="width:100%"></td></tr>`).join("")}</tbody></table></div></div>
+    <div class="row"><button class="btn pri">Simpan</button><button type="button" class="btn" id="sReset">Kembalikan bawaan</button></div></form></div></div>`;
+  const save=async(n,msg)=>{await q(SB.from("pk_settings").update({data:n,updated_at:new Date().toISOString()}).eq("id",1));S.settings=n;toast(msg||"Tersimpan")};
+  $("sF").onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target);const n=JSON.parse(JSON.stringify(g));["wTeknis","wKinerja","gPass"].forEach(k=>n[k]=+fd.get(k));
+    n.scale=scaleRows().map((r,i)=>({min:Math.max(0,Math.min(100,+fd.get("sm"+i))),h:(fd.get("sh"+i)||r.h).trim(),b:+fd.get("sb"+i)||0,k:fd.get("sk"+i)}));
+    n.rekKontrak={};n.rekNew={};g.cat.forEach(c=>{n.rekKontrak[c.k]=fd.get("rk"+c.k);n.rekNew[c.k]=fd.get("rn"+c.k);const mm=n.scale.filter(x=>x.k===c.k);c.min=mm.length?Math.min(...mm.map(x=>x.min)):0});n.cat=g.cat;
     try{await save(n);syncDrive()}catch(err){toast("Gagal: "+err.message)}};
-  if($("sReset"))$("sReset").onclick=async()=>{if(!confirm("Kembalikan pengaturan nilai ke default? (URL Google Drive & hak akses tetap)"))return;try{await save({...DEF,gasUrl:g.gasUrl,perms:g.perms});vPengaturan(m)}catch(err){toast("Gagal: "+err.message)}};
-  if(own){
-    $("pSave").onclick=async()=>{const n=JSON.parse(JSON.stringify(g));m.querySelectorAll("[data-perm]").forEach(c=>{const [r,k]=c.dataset.perm.split(".");n.perms[r][k]=c.checked});try{await save(n,"Hak akses disimpan")}catch(err){toast("Gagal: "+err.message)}};
-    $("dCode").onclick=async()=>{try{const t=await (await fetch("apps-script/Code.gs",{cache:"no-store"})).text();const u=URL.createObjectURL(new Blob([t],{type:"text/plain"}));const a=document.createElement("a");a.href=u;a.download="Code.gs";document.body.appendChild(a);a.click();a.remove()}catch(e){toast("Gagal mengunduh: "+e.message)}};
-    $("dSec").onclick=async()=>{try{const r=await SB.rpc("pk_get_secret");if(r.error)throw r.error;$("dSecBox").innerHTML=`<div class="linkbox" style="margin-bottom:8px"><input readonly value="${esc(r.data)}"><button class="btn sm pri" id="dSecC">Salin</button></div><p class="small muted" style="margin:-4px 0 8px">Jangan dibagikan. Kunci ini hanya untuk Apps Script Anda.</p>`;$("dSecC").onclick=()=>copyText(r.data)}catch(e){toast("Gagal: "+e.message)}};
-    $("dSave").onclick=async()=>{const u=$("dUrl").value.trim();if(u&&!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(u))return toast("URL harus berbentuk https://script.google.com/macros/s/…/exec",4000);try{await save({...S.settings,gasUrl:u},"URL disimpan")}catch(err){toast("Gagal: "+err.message)}};
-    $("dTest").onclick=async()=>{$("dInfo").textContent="Menghubungi Apps Script…";try{const r=await gasPost("ping",{});$("dInfo").innerHTML=r.ok?`✅ Tersambung${r.secretSet?"":" — tetapi SYNC_SECRET belum diisi"}. <a href="${esc(r.sheetUrl)}" target="_blank" rel="noopener">Buka Google Sheet hasil</a> · <a href="${esc(r.folderUrl)}" target="_blank" rel="noopener">Buka folder Drive</a>`:"❌ "+esc(r.error)}catch(e){$("dInfo").textContent="❌ Tidak tersambung: "+e.message+". Pastikan URL benar dan akses Web app = Anyone."}};
-    $("dSync").onclick=async()=>{$("dInfo").textContent="Menyinkronkan…";try{const r=await gasPost("sync",{});$("dInfo").textContent=r.ok?"✅ Google Sheet diperbarui.":"❌ "+r.error}catch(e){$("dInfo").textContent="❌ "+e.message}};
-    drawAccess();
-  }
+  $("sReset").onclick=async()=>{if(!confirm("Kembalikan penilaian ke bawaan?"))return;try{await save({...DEF,gasUrl:g.gasUrl});vPengaturan(m)}catch(err){toast("Gagal: "+err.message)}};
+  $("dCode").onclick=async()=>{try{const t=await (await fetch("apps-script/Code.gs",{cache:"no-store"})).text();const u=URL.createObjectURL(new Blob([t],{type:"text/plain"}));const a=document.createElement("a");a.href=u;a.download="Code.gs";document.body.appendChild(a);a.click();a.remove()}catch(e){toast("Gagal mengunduh: "+e.message)}};
+  $("dSec").onclick=async()=>{try{const r=await SB.rpc("pk_get_secret");if(r.error)throw r.error;$("dSecBox").innerHTML=`<div class="linkbox" style="margin-bottom:8px"><input readonly value="${esc(r.data)}"><button class="btn sm pri" id="dSecC">Salin</button></div>`;$("dSecC").onclick=()=>copyText(r.data)}catch(e){toast("Gagal: "+e.message)}};
+  $("dSave").onclick=async()=>{const u=$("dUrl").value.trim();if(u&&!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(u))return toast("URL harus berbentuk https://script.google.com/macros/s/…/exec",4000);try{await save({...S.settings,gasUrl:u},"URL disimpan")}catch(err){toast("Gagal: "+err.message)}};
+  $("dTest").onclick=async()=>{$("dInfo").textContent="Menghubungi…";try{const r=await gasPost("ping",{});$("dInfo").innerHTML=r.ok?`✅ Tersambung${r.secretSet?"":" — SYNC_SECRET belum diisi"}. <a href="${esc(r.sheetUrl)}" target="_blank" rel="noopener">Buka Google Sheet</a> · <a href="${esc(r.folderUrl)}" target="_blank" rel="noopener">Buka folder Drive</a>`:"❌ "+esc(r.error)}catch(e){$("dInfo").textContent="❌ Tidak tersambung: "+e.message}};
+  $("dSync").onclick=async()=>{$("dInfo").textContent="Menyinkronkan…";try{const r=await gasPost("sync",{});$("dInfo").textContent=r.ok?"✅ Google Sheet diperbarui.":"❌ "+r.error}catch(e){$("dInfo").textContent="❌ "+e.message}};
+  drawAccess();
 }
 async function drawAccess(){
   const el=$("acc");try{const rows=await q(SB.from("app_access_roles").select("email,role").eq("app_id","psikotest").order("role"));
