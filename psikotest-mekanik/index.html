@@ -110,7 +110,7 @@ const OWNER="matthewyoga2014@gmail.com";
 const TOKEN=new URLSearchParams(location.search).get("t");
 const LEVELS=["Helper","Junior","Middle","Senior","Supervisor"];
 const POSISI=[["Helper Mekanik","Helper"],["Junior Mekanik","Junior"],["Middle Mekanik","Middle"],["Pengawas / Foreman","Middle"],["Senior Mekanik","Senior"],["Supervisor Plant","Supervisor"]];
-const DEF={wTeknis:60,wKinerja:40,gTop:85,gMid:75,gPass:60,showScore:false,linkDays:7,
+const DEF={wTeknis:60,wKinerja:40,gTop:81,gMid:66,gPass:56,showScore:false,linkDays:7,
   cat:[{k:"A",min:81,label:"Sangat Baik"},{k:"B",min:66,label:"Baik"},{k:"C",min:56,label:"Cukup"},{k:"D",min:41,label:"Kurang"},{k:"E",min:0,label:"Sangat Kurang"}],
   scale:[{min:86,h:"A",b:4,k:"A"},{min:81,h:"A-",b:3.67,k:"A"},{min:76,h:"B+",b:3.33,k:"B"},{min:71,h:"B",b:3,k:"B"},{min:66,h:"B-",b:2.67,k:"B"},{min:61,h:"C+",b:2.33,k:"C"},{min:56,h:"C",b:2,k:"C"},{min:41,h:"D",b:1,k:"D"},{min:0,h:"E",b:0,k:"E"}],
   bands:{Helper:["Helper"],Junior:["G1","G2","G3"],Middle:["G4","G5","G6"],Senior:["G7","G8","G9"],Supervisor:["G10"]},
@@ -611,7 +611,7 @@ async function vPengaturan(m){
    ${ed?`<div class="card"><h2>Bobot & ambang nilai</h2><p class="sub">Dipakai untuk nilai akhir, kategori, dan rekomendasi grade.</p>
    <form id="sF" class="grid">
     <div class="grid g4"><label class="f">Bobot tes teknis (%)<input type="number" name="wTeknis" value="${g.wTeknis}"></label><label class="f">Bobot kinerja (%)<input type="number" name="wKinerja" value="${g.wKinerja}"></label><label class="f">Masa berlaku link (hari)<input type="number" name="linkDays" value="${g.linkDays}"></label></div>
-    <div><b>Rekomendasi grade dalam level</b><p class="small muted" style="margin:2px 0 6px">Contoh Junior: ≥ batas atas → G3 · ≥ batas tengah → G2 · ≥ batas lulus → G1 · di bawahnya → level sebelumnya.</p>
+    <div><b>Rekomendasi grade dalam level</b><p class="small muted" style="margin:2px 0 6px">Contoh Junior: ≥ batas atas (Sangat Baik) → G3 · ≥ batas tengah (Baik) → G2 · ≥ batas lulus (Cukup) → G1 · di bawahnya (Kurang/Sangat Kurang) → level sebelumnya.</p>
     <div class="grid g4"><label class="f">Batas atas<input type="number" name="gTop" value="${g.gTop}"></label><label class="f">Batas tengah<input type="number" name="gMid" value="${g.gMid}"></label><label class="f">Batas lulus<input type="number" name="gPass" value="${g.gPass}"></label></div></div>
     <div><b>Skala nilai (huruf, bobot, kategori)</b><p class="small muted" style="margin:2px 0 6px">Isi skor minimal tiap huruf; batas atas otomatis dari baris di atasnya.</p>
      <div class="sheet-wrap" style="max-height:none"><table class="sheet"><thead><tr><th>Skor min</th><th>Huruf</th><th>Bobot</th><th>Kategori</th></tr></thead><tbody>

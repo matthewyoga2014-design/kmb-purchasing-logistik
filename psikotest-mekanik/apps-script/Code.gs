@@ -79,7 +79,7 @@ function savePhoto_(b) {
 
 /* ---------- perhitungan (sama dengan web) ---------- */
 const LEVELS = ['Helper', 'Junior', 'Middle', 'Senior', 'Supervisor'];
-const DEF = { wTeknis: 60, wKinerja: 40, gTop: 85, gMid: 75, gPass: 60,
+const DEF = { wTeknis: 60, wKinerja: 40, gTop: 81, gMid: 66, gPass: 56,
   cat: [{ k: 'A', min: 81, label: 'Sangat Baik' }, { k: 'B', min: 66, label: 'Baik' }, { k: 'C', min: 56, label: 'Cukup' }, { k: 'D', min: 41, label: 'Kurang' }, { k: 'E', min: 0, label: 'Sangat Kurang' }],
   scale: [{ min: 86, h: 'A', b: 4, k: 'A' }, { min: 81, h: 'A-', b: 3.67, k: 'A' }, { min: 76, h: 'B+', b: 3.33, k: 'B' }, { min: 71, h: 'B', b: 3, k: 'B' }, { min: 66, h: 'B-', b: 2.67, k: 'B' }, { min: 61, h: 'C+', b: 2.33, k: 'C' }, { min: 56, h: 'C', b: 2, k: 'C' }, { min: 41, h: 'D', b: 1, k: 'D' }, { min: 0, h: 'E', b: 0, k: 'E' }],
   bands: { Helper: ['Helper'], Junior: ['G1', 'G2', 'G3'], Middle: ['G4', 'G5', 'G6'], Senior: ['G7', 'G8', 'G9'], Supervisor: ['G10'] },
