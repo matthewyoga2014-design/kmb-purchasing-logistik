@@ -99,6 +99,8 @@ table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 .gal{display:flex;flex-wrap:wrap;gap:8px}.ph{margin:0;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}.ph img{width:100%;display:block;cursor:zoom-in}.ph figcaption{font-size:11px;padding:3px 6px;color:var(--mut)}.ph.bad{border-color:var(--bad)}.ph.bad figcaption{color:var(--bad);font-weight:700}
 .kitem{border-bottom:1px solid var(--line);padding:8px 0}.kdesc{margin-top:3px}.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}.seg button{border:0;background:#fff;padding:7px 14px;font-weight:700;cursor:pointer;border-left:1px solid var(--line)}.seg button:first-child{border-left:0}.seg button.on{background:var(--p);color:#fff}
 .kprint td,.kprint th{white-space:normal}
+.agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:4px}.ag{border:0;border-radius:6px;padding:6px 0;font-weight:700;font-size:12px;cursor:pointer}.ag-b{background:#DCFCE7;color:#166534}.ag-s{background:#FEE2E2;color:#991B1B}.ag-k{background:#EEE;color:#666}
+@media print{.ag{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 .sign{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px;text-align:center;font-size:12px}.sign div{border-top:1px solid #999;padding-top:6px;margin-top:56px}
 </style>
 </head>
@@ -338,7 +340,7 @@ function vHasil(m){
    <div class="kpi"><span>Peserta</span><b>${all.length}</b></div><div class="kpi"><span>Selesai tes</span><b>${done.length}</b></div>
    <div class="kpi"><span>Lulus</span><b>${lulus.length}<small style="font-size:14px;color:var(--mut)"> / ${done.length}</small></b></div><div class="kpi"><span>Rata-rata nilai</span><b>${fmt(avg(done.map(r=>r.c.akhir)))}</b></div></div>
   <div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2>Hasil tes</h2><p class="sub">Jawaban peserta masuk otomatis. Klik baris untuk resume lengkap & penilaian kinerja.</p></div>
-   <div class="row"><button class="btn" id="hRef">Muat ulang</button>${S.settings.gasUrl&&canEdit()?'<button class="btn" id="hSync">Sinkron Google Sheet</button>':""}<button class="btn pri" id="hXls">Unduh Excel</button></div></div>
+   <div class="row"><button class="btn" id="hRef">Muat ulang</button>${ROLE==="owner"&&S.settings.sheetUrl?`<a class="btn" target="_blank" rel="noopener" href="${esc(S.settings.sheetUrl)}">Buka Google Sheet</a>`:""}<button class="btn pri" id="hXls">Unduh Excel</button></div></div>
    <div class="row" style="gap:6px;margin-bottom:10px">${scaleRows().map(r=>`<span class="chip cat-${r.k}" title="Skor ${r.min} ke atas">${esc(r.h)}: ${byH[r.h]||0}</span>`).join("")}</div>
    <div class="row" style="margin-bottom:10px"><input id="hQ" placeholder="Cari nama / NIK" style="flex:1;min-width:160px">
     <select id="hG"><option value="">Semua grade</option>${grades.map(g=>`<option>${g}</option>`).join("")}</select>
@@ -381,7 +383,14 @@ function exportXlsx(){if(!window.XLSX)return toast("Pustaka Excel belum termuat"
 async function delSession(id){const s=S.sessions.find(x=>x.id===id);if(!s)return;
   if(!confirm("Hapus hasil tes "+s.nama+"? Jawaban, nilai, foto, dan baris di Google Sheet ikut terhapus. Foto di Google Drive dipindah ke Sampah."))return;
   try{await q(SB.from("pk_sessions").delete().eq("id",id));S.sessions=S.sessions.filter(x=>x.id!==id);S.attempts=S.attempts.filter(a=>a.session_id!==id);closeModal();renderTab();syncDrive();toast("Hasil tes dihapus")}catch(e){toast("Gagal: "+e.message)}}
-async function showAnswers(attId,sid){
+async function drawSummary(c,sid){const el=$("sumGrid");let html="",nb=0,ns=0,nk=0;
+  try{for(const x of c.done){const [r]=await q(SB.from("pk_attempts").select("answers").eq("id",x.a.id));const ans=(r&&r.answers)||{};const qs=await loadQuestions(x.m.id);
+    const wrong={};const cells=qs.map(qq=>{const a=String(ans[qq.id]||"").toLowerCase();const st=!a?"k":a===qq.answer?"b":"s";if(st==="b")nb++;else{if(st==="s")ns++;else nk++;(wrong[qq.topic||"Umum"]=wrong[qq.topic||"Umum"]||[]).push(qq.no)}
+      return `<button class="ag ag-${st}" data-q="${qq.no}" data-att="${x.a.id}" title="Soal ${qq.no}: ${st==="b"?"benar":st==="s"?"salah – dijawab "+a.toUpperCase()+", kunci "+qq.answer.toUpperCase():"tidak dijawab"}">${qq.no}</button>`}).join("");
+    html+=`${c.done.length>1?`<b class="small">${esc(x.m.title)}</b>`:""}<div class="agrid">${cells}</div>${Object.keys(wrong).length?`<div class="small" style="margin-top:8px"><b>Soal salah / kosong per topik:</b><ul style="margin:4px 0 0;padding-left:18px">${Object.entries(wrong).map(([t,l])=>`<li>${esc(t)}: no. ${l.join(", ")}</li>`).join("")}</ul></div>`:""}`}
+    el.className="";el.innerHTML=html;$("sumCnt").innerHTML=`<span class="chip st-Selesai">Benar ${nb}</span><span class="chip st-Kedaluwarsa">Salah ${ns}</span>${nk?`<span class="chip">Kosong ${nk}</span>`:""}`;
+    el.querySelectorAll(".ag").forEach(b=>b.onclick=()=>showAnswers(b.dataset.att,sid,+b.dataset.q))}catch(e){el.textContent="Gagal memuat: "+e.message}}
+async function showAnswers(attId,sid,focusNo){
   const att=S.attempts.find(a=>a.id===attId);const s=S.sessions.find(x=>x.id===sid);if(!att)return;
   openModal('<div class="empty">Memuat jawaban…</div>');
   try{const [r]=await q(SB.from("pk_attempts").select("answers").eq("id",attId));const qs=await loadQuestions(att.module_id,true);const ans=(r&&r.answers)||{};
@@ -391,7 +400,9 @@ async function showAnswers(attId,sid){
     $("mbox").innerHTML=`<div class="head"><h2>Jawaban ${esc(s?.nama||"")}</h2><span class="row noprint"><button class="btn sm" id="ansBack">‹ Kembali ke resume</button><button class="btn sm" onclick="closeModal()">Tutup</button></span></div>
       <div class="row" style="gap:8px;margin-bottom:10px"><span class="chip st-Selesai">Benar ${rows.length-salah.length}</span><span class="chip st-Kedaluwarsa">Salah/kosong ${salah.length}</span><label class="row small" style="margin-left:auto"><input type="checkbox" id="ansOnly" checked> Tampilkan yang salah saja</label></div>
       <div id="ansL"></div>`;
+    if(focusNo){only=false;$("ansOnly").checked=false}
     $("ansOnly").onchange=e=>{only=e.target.checked;draw()};$("ansBack").onclick=()=>showResume(sid);draw();
+    if(focusNo){const t=[...$("ansL").querySelectorAll(".qitem")].find(d=>d.querySelector(".n").textContent==String(focusNo));if(t){t.scrollIntoView({block:"center"});t.style.outline="3px solid var(--p)"}}
   }catch(e){$("mbox").innerHTML='<div class="notice warn">Gagal memuat: '+esc(e.message)+'</div>'}}
 /* ====================== RESUME PESERTA ====================== */
 async function loadPhotos(sid){try{return await q(SB.from("pk_photos").select("id,kind,taken_at,thumb,url").eq("session_id",sid).order("taken_at"))}catch(e){return []}}
@@ -414,6 +425,7 @@ function showResume(id){
     <div class="row" style="justify-content:space-between;margin-top:8px"><b>Nilai teknis (rata-rata)</b><b>${fmt(c.teknis)}</b></div>${canEdit()&&c.done.length?`<div class="noprint" style="margin-top:10px">${c.done.map(x=>`<button class="btn sm" data-ans="${x.a.id}">Lihat jawaban benar/salah${c.done.length>1?" – "+esc(x.m.title):""}</button>`).join(" ")}</div>`:""}</div>
    <div class="card"><h3>Penguasaan per topik</h3>${tops.map(([t,v,o])=>`<div class="hbar"><span>${esc(t)}</span><div class="bar ${cls(v)}"><i style="width:${v}%"></i></div><b class="right">${fmt(v,0)}%</b></div>`).join("")||'<div class="muted">Belum ada data.</div>'}</div>
   </div>
+  ${canEdit()&&c.done.length?`<div class="card"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Rangkuman jawaban per soal</h3><span class="row small" id="sumCnt"></span></div><p class="small muted" style="margin:4px 0 8px">Hijau = benar · merah = salah · abu-abu = tidak dijawab. Klik nomor untuk melihat soalnya.</p><div id="sumGrid" class="small muted">Memuat…</div></div>`:""}
   <div class="grid g2">
    <div class="card"><h3>Kekuatan</h3>${kuat.length?`<ul style="margin:0;padding-left:18px">${kuat.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>`:'<span class="muted">Belum ada topik ≥ 80%.</span>'}${""?`<p style="margin:8px 0 0"><b>Catatan atasan:</b> ${esc(k.kelebihan)}</p>`:""}</div>
    <div class="card"><h3>Perlu ditingkatkan</h3>${lemah.length?`<ul style="margin:0;padding-left:18px">${lemah.map(t=>`<li>${esc(t)}</li>`).join("")}</ul>`:'<span class="muted">Tidak ada topik di bawah 60%.</span>'}${""?`<p style="margin:8px 0 0"><b>Catatan atasan:</b> ${esc(k.kekurangan)}</p>`:""}</div>
@@ -423,6 +435,7 @@ function showResume(id){
   <div class="sign"><div>Dibuat oleh<br>Atasan Langsung</div><div>Diketahui oleh<br>HR Site</div><div>Disetujui oleh<br>PJO / Manager</div></div>`);
   {const links=c.mods.filter(x=>x.a).flatMap(x=>(x.a.events||[]).filter(e=>e.type==="foto").map(e=>{const [k,u]=String(e.d).split("|");return {k,u,t:e.t}}));loadPhotos(id).then(l=>drawGallery(l,links))}
   if($("rDel"))$("rDel").onclick=()=>delSession(id);
+  if($("sumGrid"))drawSummary(c,id);
   $("mbox").querySelectorAll("[data-ans]").forEach(b=>b.onclick=()=>showAnswers(b.dataset.ans,id));
   $("rPrint").onclick=()=>{document.body.classList.add("printing");setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove("printing"),500)},50)};
   const rk=$("rKinNew");if(rk)rk.onclick=()=>formKinerja(null,id);$("mbox").querySelectorAll("[data-kv]").forEach(b=>b.onclick=()=>viewKinerja(b.dataset.kv));
