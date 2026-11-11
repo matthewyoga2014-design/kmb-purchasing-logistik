@@ -208,9 +208,9 @@ function gate(msg,showForm=true){
     let r;
     if(otpSent){r=await SB.auth.verifyOtp({email:em,token:$("gC").value.trim(),type:"email"});if(r.error){m.textContent="Kode salah atau kedaluwarsa.";return}location.reload();return}
     if(pw){r=await SB.auth.signInWithPassword({email:em,password:pw});if(r.error){m.textContent=/invalid/i.test(r.error.message)?"Email atau password salah.":"Gagal masuk: "+r.error.message;return}location.reload();return}
-    r=await SB.auth.signInWithOtp({email:em,options:{shouldCreateUser:false,emailRedirectTo:location.origin+location.pathname}});
+    r=await SB.auth.signInWithOtp({email:em,options:{shouldCreateUser:true,emailRedirectTo:location.origin+location.pathname}});
     if(r.error){m.textContent="Gagal mengirim kode: "+r.error.message;return}
-    otpSent=true;$("gOtp").hidden=false;$("gB").textContent="Verifikasi kode";m.textContent="Kode masuk dikirim ke "+em+". Masukkan kodenya, atau klik link di email.";};
+    otpSent=true;$("gOtp").hidden=false;$("gB").textContent="Verifikasi kode";m.textContent="Kode masuk dikirim ke "+em+". Buka email (cek juga folder Spam), lalu masukkan kode 6 angka di atas atau klik link di email.";};
   const o=$("gOut");if(o)o.onclick=async()=>{await SB.auth.signOut();location.reload()};
 }
 async function boot(){
