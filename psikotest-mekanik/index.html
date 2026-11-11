@@ -256,7 +256,10 @@ async function loadAll(){
     perms:{editor:{...DEF.perms.editor,...(sd.perms?.editor||{})},viewer:{...DEF.perms.viewer,...(sd.perms?.viewer||{})}}};
   if(canEdit()){const qc=await q(SB.from("pk_questions").select("module_id"));S.qcount={};qc.forEach(x=>S.qcount[x.module_id]=(S.qcount[x.module_id]||0)+1)}
 }
-async function refresh(){try{await loadAll();renderTab()}catch(e){console.error(e)}}
+let PDRAW=null,HDRAW=null;
+async function refresh(){try{await loadAll();
+  // Hanya perbarui daftar/tabel; jangan gambar ulang form agar isian tidak hilang
+  if(TAB==="ringkasan")renderTab();else if(TAB==="peserta"&&PDRAW)PDRAW();else if(TAB==="hasil"&&HDRAW)HDRAW()}catch(e){console.error(e)}}
 
 /* ====================== SHELL ====================== */
 function renderShell(){
@@ -363,7 +366,7 @@ function vPeserta(m){
       if(b.dataset.a==="kin")editKinerja(id);
       if(b.dataset.a==="del"){if(!confirm("Hapus peserta "+s.nama+" beserta seluruh jawabannya?"))return;try{await q(SB.from("pk_sessions").delete().eq("id",id));S.sessions=S.sessions.filter(x=>x.id!==id);S.attempts=S.attempts.filter(a=>a.session_id!==id);drawList();toast("Peserta dihapus")}catch(err){toast("Gagal: "+err.message)}}});
     $("pBody").querySelectorAll("tr[data-id]").forEach(tr=>tr.onclick=()=>showResume(tr.dataset.id))};
-  $("pSearch").oninput=drawList;drawList();
+  $("pSearch").oninput=drawList;drawList();PDRAW=()=>{if($("pBody"))drawList()};
 }
 function shareBox(s){const url=linkFor(s);const msg=`Halo ${s.nama}, silakan kerjakan Uji Kompetensi ${s.posisi||"Mekanik"} PT Karunia Mandiri Berkarya melalui link berikut:\n${url}\n\nPastikan sinyal stabil. Waktu berjalan otomatis setelah Anda menekan Mulai.`;
   return `<div class="notice" style="margin-top:12px"><b>Link tes ${esc(s.nama)}</b><div class="linkbox" style="margin:8px 0"><input readonly value="${esc(url)}"><button class="btn sm pri" data-copy>Salin</button></div>
@@ -396,7 +399,7 @@ function vHasil(m){
       <td>${c.cat?`<span class="chip cat-${c.cat.k}">${c.cat.k} · ${esc(c.cat.label)}</span>`:"–"}</td><td>${esc(c.grade.grade)}</td><td>${esc(c.rek||"–")}</td><td class="num">${c.viol||""}</td><td><span class="chip st-${c.status.split(" ")[0]}">${c.status}</span></td></tr>`).join("")||`<tr><td colspan="${18+mods.length}" class="empty">Belum ada data.</td></tr>`}</tbody>`;
     $("hInfo").textContent=rows.length+" baris · ⏱ = waktu habis, jawaban yang tersimpan dinilai otomatis";
     if(canEdit()||can("resume"))$("hT").querySelectorAll("tr[data-id]").forEach(tr=>tr.onclick=()=>showResume(tr.dataset.id));};
-  ["hQ","hJ","hL","hK","hS"].forEach(id=>$(id).oninput=draw);draw();
+  ["hQ","hJ","hL","hK","hS"].forEach(id=>$(id).oninput=draw);draw();HDRAW=()=>{if($("hT"))draw()};
   $("hRef").onclick=async()=>{await refresh();toast("Data diperbarui")};if($("hSync"))$("hSync").onclick=async()=>{toast("Menyinkronkan ke Google Sheet…");try{const r=await gasPost("sync",{});toast(r.ok?"Google Sheet diperbarui":"Gagal: "+r.error,4000)}catch(e){toast("Gagal: "+e.message,4000)}};
   $("hXls").onclick=exportXlsx;if(!can("excel"))$("hXls").hidden=true;
 }
