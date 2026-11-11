@@ -120,7 +120,7 @@ const DEF={wTeknis:60,wKinerja:40,gTop:81,gMid:66,gPass:56,showScore:false,linkD
   rekKontrak:{A:"Angkat karyawan tetap / layak naik grade",B:"Perpanjang kontrak",C:"Perpanjang kontrak dengan pembinaan",D:"Perpanjang singkat dengan evaluasi ketat",E:"Tidak diperpanjang"},
   rekNew:{A:"Diterima",B:"Diterima",C:"Dipertimbangkan (perlu pembinaan)",D:"Tidak direkomendasikan",E:"Tidak direkomendasikan"},
   gasUrl:"",
-  proctorDef:{camera:true,photoSec:30,tabLimit:3,fullscreen:true,copyBlock:true,shuffle:false,shuffleOpt:true},
+  proctorDef:{camera:true,photoSec:30,tabLimit:3,fullscreen:true,copyBlock:true,shuffle:false,shuffleOpt:false},
   timerDef:{mode:"total",perQ:60},
   perms:{editor:{link:true,bank:true,kinerja:true,hapus:true,pengaturan:true},viewer:{resume:true,excel:true,nik:true}}};
 const TIMER_LABEL={total:"Total per sheet",per_soal:"Sama rata per soal",custom:"Berbeda tiap soal"};
@@ -281,7 +281,6 @@ function vKirim(m){
       <label class="row"><input type="checkbox" name="camera" ${pd.camera?"checked":""}> Kamera wajib + foto berkala</label>
       <label class="row"><input type="checkbox" name="fullscreen" ${pd.fullscreen?"checked":""}> Wajib layar penuh</label>
       <label class="row"><input type="checkbox" name="copyBlock" ${pd.copyBlock?"checked":""}> Blok salin + watermark nama</label>
-      <label class="row"><input type="checkbox" name="shuffleOpt" ${pd.shuffleOpt?"checked":""}> Acak urutan pilihan jawaban</label>
       <label class="row"><input type="checkbox" name="shuffle" ${pd.shuffle?"checked":""}> Acak urutan soal</label>
       <label class="f">Batas pelanggaran (0 = hanya dicatat)<input type="number" name="tabLimit" min="0" max="50" value="${pd.tabLimit}"></label>
      </div></details>
@@ -298,7 +297,7 @@ function vKirim(m){
   f.onsubmit=async e=>{e.preventDefault();const fd=new FormData(f);const mods=fd.getAll("mod");
     if(!mods.length)return toast("Pilih minimal satu soal");
     const g=fd.get("grade")||null;let mode=fd.get("timer_mode");if(mode==="per_soal"&&fd.get("custom"))mode="custom";
-    const proctor={camera:!!fd.get("camera"),photoSec:pd.photoSec||30,fullscreen:!!fd.get("fullscreen"),tabLimit:Math.max(0,+fd.get("tabLimit")||0),copyBlock:!!fd.get("copyBlock"),shuffle:!!fd.get("shuffle"),shuffleOpt:!!fd.get("shuffleOpt")};
+    const proctor={camera:!!fd.get("camera"),photoSec:pd.photoSec||30,fullscreen:!!fd.get("fullscreen"),tabLimit:Math.max(0,+fd.get("tabLimit")||0),copyBlock:!!fd.get("copyBlock"),shuffle:!!fd.get("shuffle"),shuffleOpt:false};
     const nm=mods.length;const tot=+fd.get("total_min")||null;
     const row={nama:fd.get("nama").trim(),nik:fd.get("nik").trim()||null,grade_target:g,posisi:g?"Mekanik "+g:"Mekanik",level:levelOfGrade(g)||null,jenis:fd.get("jenis"),
       grade_saat_ini:fd.get("grade_saat_ini").trim()||null,jobsite:fd.get("jobsite").trim()||null,module_ids:mods,
@@ -391,7 +390,7 @@ async function showAnswers(attId,sid){
       <ol>${Object.entries(x.options).map(([l,t])=>`<li style="${l===x.answer?"color:var(--ok);font-weight:700":l===a?"color:var(--bad);font-weight:700;text-decoration:line-through":""}">${l.toUpperCase()}. ${esc(t)}${l===x.answer?" ✓ kunci":""}${l===a&&!ok?" ✗ jawaban peserta":""}</li>`).join("")}</ol>${!a?'<span class="chip st-Kedaluwarsa">Tidak dijawab</span>':""}<span class="chip" style="margin-left:4px">${esc(x.topic||"Umum")}</span></div><div>${ok?'<span class="chip st-Selesai">Benar</span>':'<span class="chip st-Kedaluwarsa">Salah</span>'}</div></div>`).join("")||'<div class="empty">Tidak ada.</div>'};
     $("mbox").innerHTML=`<div class="head"><h2>Jawaban ${esc(s?.nama||"")}</h2><span class="row noprint"><button class="btn sm" id="ansBack">‹ Kembali ke resume</button><button class="btn sm" onclick="closeModal()">Tutup</button></span></div>
       <div class="row" style="gap:8px;margin-bottom:10px"><span class="chip st-Selesai">Benar ${rows.length-salah.length}</span><span class="chip st-Kedaluwarsa">Salah/kosong ${salah.length}</span><label class="row small" style="margin-left:auto"><input type="checkbox" id="ansOnly" checked> Tampilkan yang salah saja</label></div>
-      <p class="small muted" style="margin:0 0 10px">Huruf A–D di sini mengikuti urutan asli bank soal. Bila "acak pilihan jawaban" aktif, urutan yang dilihat peserta bisa berbeda, tetapi penilaian tetap berdasarkan isi jawaban.</p><div id="ansL"></div>`;
+      <div id="ansL"></div>`;
     $("ansOnly").onchange=e=>{only=e.target.checked;draw()};$("ansBack").onclick=()=>showResume(sid);draw();
   }catch(e){$("mbox").innerHTML='<div class="notice warn">Gagal memuat: '+esc(e.message)+'</div>'}}
 /* ====================== RESUME PESERTA ====================== */
@@ -437,7 +436,7 @@ function proctorCard(s,c){
   const pel=evs.filter(e=>["tab","fullscreen","kamera","auto-kirim"].includes(e.type));
   const foto=evs.filter(e=>e.type==="foto").map(e=>{const [k,u]=String(e.d).split("|");return {k,u,t:e.t}});
   const LBL={tab:"Keluar dari halaman tes",fullscreen:"Keluar layar penuh",kamera:"Kamera mati / ditolak","auto-kirim":"Tes dikirim otomatis (melebihi batas)"};
-  const on=[pr.camera&&"kamera",pr.fullscreen&&"layar penuh",pr.tabLimit?"batas "+pr.tabLimit+" pelanggaran":"pelanggaran dicatat",pr.copyBlock&&"blok salin",pr.shuffle&&"soal diacak",pr.shuffleOpt&&"pilihan diacak"].filter(Boolean).join(" · ");
+  const on=[pr.camera&&"kamera",pr.fullscreen&&"layar penuh",pr.tabLimit?"batas "+pr.tabLimit+" pelanggaran":"pelanggaran dicatat",pr.copyBlock&&"blok salin",pr.shuffle&&"soal diacak"].filter(Boolean).join(" · ");
   return `<div class="card"><h3>Pengawasan tes</h3><p class="small muted" style="margin:0 0 8px">Waktu: ${TIMER_LABEL[s.timer_mode||"total"]}${s.timer_mode&&s.timer_mode!=="total"?" ("+s.per_q_sec+" dtk/soal)":""} · ${esc(on||"tanpa pengawasan khusus")}</p>
    <div class="row" style="gap:16px;margin-bottom:8px"><span><b style="font-size:20px;color:${pel.length?"var(--bad)":"var(--ok)"}">${c.viol||0}</b> pelanggaran</span><span><b style="font-size:20px">${foto.length}</b> foto tersimpan di Drive</span></div>
    ${pel.length?`<ul class="small" style="margin:0 0 8px;padding-left:18px">${pel.map(e=>`<li>${new Date(e.t).toLocaleTimeString("id-ID")} – ${esc(LBL[e.type]||e.type)}${e.d?" ("+esc(e.d)+")":""} · <span class="muted">${esc(e.sheet)}</span></li>`).join("")}</ul>`:'<p class="small muted" style="margin:0 0 8px">Tidak ada pelanggaran tercatat.</p>'}
@@ -758,7 +757,7 @@ function hashStr(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math
 const FS_OK=!!(document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen);
 const Exam={info:null,cur:null,stream:null,idDone:false,lastV:0,
   pr(){return (this.info&&this.info.proctor)||{}},
-  optOrder(qq){const ks=Object.keys(qq.options);return this.pr().shuffleOpt?ks.slice().sort((a,b)=>hashStr(qq.id+a+TOKEN)-hashStr(qq.id+b+TOKEN)):ks},
+  optOrder(qq){return Object.keys(qq.options).sort()},
   async start(){$("app").innerHTML='<div class="gate"><div class="box">Memuat tes…</div></div>';
     const r=await SB.rpc("pk_get_session",{p_token:TOKEN});
     if(r.error)return $("app").innerHTML=`<div class="gate"><div class="box"><h1>Link tidak dapat dibuka</h1><p>${esc(r.error.message)}</p><p class="small muted">Hubungi HR untuk link yang baru.</p></div></div>`;
