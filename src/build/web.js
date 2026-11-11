@@ -488,6 +488,47 @@ const _soFormMut = soForm;
 soForm = function (idx) { _soFormMut(idx); mutasiBar(idx); };
 document.addEventListener('click', (e) => { const b = e.target.closest('[data-mutasi]'); if (b && CAN_EDIT) { e.stopPropagation(); openMutasi(+b.dataset.mutasi); } }, true);
 
+// ---------- MP Out langsung dari form MPP (posisi terisi) ----------
+(function () { const st = document.createElement('style'); st.textContent = '.mutbar.outbar{background:#FFF1F3;border:1px solid #FBD0D8}.mutbar.outbar b{color:#BE123C}.mutbar.outbar .btn{color:#BE123C;border-color:#F7B3C0}.mutbar.outbar .btn:hover{background:#BE123C;color:#fff;border-color:#BE123C}'; document.head.appendChild(st); })();
+const MPOUT_ALASAN = ['Resign', 'Habis Kontrak', 'PHK', 'Mangkir / Kabur', 'Meninggal Dunia', 'Pensiun', 'Lainnya'];
+function mpOutBar(idx) {
+  if (!CAN_EDIT || idx == null) return;
+  const p = DATA.positions[idx]; if (!p || isVacant(p)) return;
+  const d = document.getElementById('dialog'); if (!d || d.querySelector('.outbar')) return;
+  d.insertAdjacentHTML('beforeend', `<div class="mutbar outbar"><div><b>MP Out</b><span>${esc(p.nama)} keluar (resign, habis kontrak, PHK, dll). Data pindah ke MP Out dan posisi ini otomatis menjadi Vacant.</span></div><button type="button" class="btn btn-g" data-mppout="${idx}">⇥ MP Out</button></div>`);
+}
+const _mppFormOut = mppForm;
+mppForm = function (idx) { _mppFormOut(idx); mpOutBar(idx); };
+const _soFormOut = soForm;
+soForm = function (idx) { _soFormOut(idx); mpOutBar(idx); };
+document.addEventListener('click', (e) => { const b = e.target.closest('[data-mppout]'); if (b && CAN_EDIT) { e.stopPropagation(); mppOutForm(+b.dataset.mppout); } }, true);
+function mpOutMatch(S, nama) {
+  let best = -1, sc = 0;
+  (S.aktif || []).forEach((a, j) => { const s = mpScore(mpNorm(nama), mpNorm(a.nama)); if (s > sc) { sc = s; best = j; } });
+  return sc >= 60 ? best : -1;
+}
+function mppOutForm(idx) {
+  const p = DATA.positions[idx]; if (!p || isVacant(p)) return;
+  const ai = mpOutMatch(DATA, p.nama), a = ai >= 0 ? DATA.aktif[ai] : null;
+  openForm({
+    eyebrow: `MPP → MP Out · No. ${p.no}`, title: `${p.nama} keluar`, submit: 'Pindahkan ke MP Out',
+    intro: `Data ${esc(p.nama)} (${esc(p.jabatan || '-')}) dipindah ke MP Out${a && a.masuk ? ', tanggal masuk ' + fmt(a.masuk) : ''}. Posisi No. ${p.no} di MPP menjadi <b>Vacant</b> dan siap diisi pelamar baru.`,
+    values: { keluar: TODAY, alasan: '' },
+    fields: [
+      { k: 'keluar', label: 'Tanggal Keluar', type: 'date', req: true },
+      { k: 'alasan', label: 'Alasan Keluar', list: MPOUT_ALASAN, ph: 'Resign, Habis Kontrak, PHK…' },
+    ],
+    onSave: (v) => commit((S) => {
+      const pos = S.positions[idx]; if (!pos || isVacant(pos)) return;
+      const j = mpOutMatch(S, pos.nama);
+      const rec = j >= 0 ? S.aktif.splice(j, 1)[0] : { nama: pos.nama, jabatan: pos.jabatan, dept: pos.section || null };
+      rec.keluar = v.keluar; rec.alasan = v.alasan || null;
+      (S.keluar = S.keluar || []).push(rec);
+      Object.assign(pos, { nama: 'Vacant', ket: null, pic: null, ptk: null, aju: null, stages: [null, null, null, null, null, null, null], due: null, status: null, close: null, hist: [] });
+    }, `${p.nama} dipindahkan ke MP Out. Posisi No. ${p.no} sekarang Vacant.`),
+  });
+}
+
 async function openMutasi(idx) {
   const p = DATA.positions[idx]; if (!p) return;
   const others = PROJ.sites.filter((s) => s.id !== WEB_ID);
