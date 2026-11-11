@@ -512,7 +512,7 @@ async function loadQuestions(mid,force){if(!S.questions[mid]||force)S.questions[
 async function vBank(m){
   if(!BANKSEL||!S.modules.find(x=>x.id===BANKSEL))BANKSEL=S.modules[0]?.id||null;
   m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><div><h2>Bank Soal</h2><p class="sub">Setiap sheet adalah satu tes dengan batas waktu sendiri. Peserta bisa diberi lebih dari satu sheet.</p></div>
-   <div class="row"><button class="btn" id="bNew">+ Sheet baru</button><button class="btn" id="bTpl">Template Excel</button><label class="btn">Impor Excel<input type="file" id="bImp" accept=".xlsx,.xls,.csv" hidden></label>${S.modules.some(x=>x.code==="G1A2B_L-UP-09-06")?"":`<button class="btn pri" id="bSeed">Impor soal G1 Trailer (97 soal)</button>`}</div></div>
+   <div class="row"><button class="btn" id="bNew">+ Sheet baru</button><button class="btn" id="bTpl">Template Excel</button><label class="btn">Impor Excel<input type="file" id="bImp" accept=".xlsx,.xls,.csv" hidden></label>${S.modules.some(x=>x.code==="G1A2B_L-UP-09-06")?"":`<button class="btn pri" id="bSeed">Impor soal G1 Trailer (100 soal)</button>`}</div></div>
    <div class="sheettabs" id="bTabs">${S.modules.map(x=>`<button data-id="${x.id}" class="${x.id===BANKSEL?"on":""}">${esc(x.title)} <span class="chip" style="margin-left:4px">${S.qcount?.[x.id]||0}</span></button>`).join("")}</div>
    <div id="bBody">${S.modules.length?'<div class="empty">Memuat…</div>':'<div class="empty">Belum ada sheet tes. Klik <b>Impor soal G1 Trailer</b> atau <b>+ Sheet baru</b>.</div>'}</div></div>`;
   $("bTabs").onclick=e=>{const b=e.target.closest("button");if(b){BANKSEL=b.dataset.id;vBank(m)}};
@@ -578,7 +578,7 @@ async function seedTrailer(){
   try{const j=await (await fetch("bank-soal-trailer.json",{cache:"no-store"})).json();
     const mod=await q(SB.from("pk_modules").insert({...j.module,sort:S.modules.length+1}).select().single());
     await insertQuestions(mod.id,j.questions,n=>b.textContent=`Mengimpor ${n}/${j.questions.length}…`);
-    BANKSEL=mod.id;await loadAll();renderTab();toast("97 soal G1 Trailer berhasil diimpor")}catch(e){toast("Gagal impor: "+e.message,5000);b.disabled=false;b.textContent="Impor soal G1 Trailer (97 soal)"}
+    BANKSEL=mod.id;await loadAll();renderTab();toast("100 soal G1 Trailer berhasil diimpor")}catch(e){toast("Gagal impor: "+e.message,5000);b.disabled=false;b.textContent="Impor soal G1 Trailer (100 soal)"}
 }
 async function importExcel(file){
   if(!file)return;try{const wb=XLSX.read(await file.arrayBuffer());const ws=wb.Sheets[wb.SheetNames[0]];const rows=XLSX.utils.sheet_to_json(ws,{defval:""});
