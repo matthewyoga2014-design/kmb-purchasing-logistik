@@ -754,12 +754,22 @@ async function vPengaturan(m){
   $("sReset").onclick=async()=>{if(!confirm("Kembalikan penilaian ke bawaan?"))return;try{await save({...DEF,gasUrl:g.gasUrl});vPengaturan(m)}catch(err){toast("Gagal: "+err.message)}};
   drawAccess();
 }
+function inviteText(email,role){const url=location.origin+location.pathname;
+  return `Halo, Anda didaftarkan sebagai ${role==="editor"?"EDITOR":"VIEWER"} di web Psikotest & Uji Kompetensi Mekanik PT Karunia Mandiri Berkarya.\n\nLink: ${url}\n\nCara masuk:\n1. Buka link di atas\n2. Isi email: ${email}\n3. Kolom password dikosongkan, klik Masuk\n4. Buka email Anda (cek juga folder Spam), ketik kode 6 angka di web\n\n${role==="editor"?"Sebagai Editor, Anda bisa mengirim link tes ke peserta, mengatur waktu tes, melihat hasil, dan mengisi penilaian kinerja.":"Sebagai Viewer, Anda bisa melihat hasil tes dan penilaian kinerja."}`}
+function inviteBox(email,role){const t=inviteText(email,role);
+  openModal(`<div class="head"><h2>Kirim undangan ke ${esc(email)}</h2><button class="btn sm" onclick="closeModal()">Tutup</button></div>
+   <textarea id="invT" rows="12" style="width:100%">${esc(t)}</textarea>
+   <div class="row" style="margin-top:10px"><a class="btn pri" target="_blank" rel="noopener" href="https://wa.me/?text=${encodeURIComponent(t)}">Kirim via WhatsApp</a>
+    <a class="btn" target="_blank" rel="noopener" href="https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(email)}&su=${encodeURIComponent("Akses web Psikotest Mekanik KMB")}&body=${encodeURIComponent(t)}">Kirim via Gmail</a>
+    <button class="btn" id="invC">Salin pesan</button></div>`);
+  $("invC").onclick=()=>copyText($("invT").value)}
 async function drawAccess(){
   const el=$("acc");try{const rows=await q(SB.from("app_access_roles").select("email,role").eq("app_id","psikotest").order("role"));
-    el.innerHTML=`${rows.map(r=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 0"><span>${esc(r.email)} <span class="chip">${r.role}</span></span>${r.role!=="owner"?`<button class="btn sm dan" data-del="${esc(r.email)}">Hapus</button>`:""}</div>`).join("")}
+    el.innerHTML=`${rows.map(r=>`<div class="row" style="justify-content:space-between;border-bottom:1px solid var(--line);padding:6px 0"><span>${esc(r.email)} <span class="chip">${r.role==="owner"?"pemilik":r.role}</span></span>${r.role!=="owner"?`<span class="row"><button class="btn sm pri" data-inv="${esc(r.email)}" data-role="${r.role}">Kirim undangan</button><button class="btn sm dan" data-del="${esc(r.email)}">Hapus</button></span>`:""}</div>`).join("")}
     <form id="aF" class="row" style="margin-top:10px"><input type="email" id="aE" placeholder="email@contoh.com" required style="flex:1"><select id="aR"><option value="editor">Editor</option><option value="viewer">Viewer</option></select><button class="btn pri">Tambah</button></form>
-    <p class="small muted">Email baru harus sudah punya akun login KMB (password atau kode email).</p>`;
-    $("aF").onsubmit=async e=>{e.preventDefault();try{await q(SB.from("app_access_roles").upsert({app_id:"psikotest",email:$("aE").value.trim().toLowerCase(),role:$("aR").value}));drawAccess();toast("Akses ditambahkan")}catch(err){toast("Gagal: "+err.message)}};
+    <p class="small muted">Setelah menambah email, klik <b>Kirim undangan</b> untuk mengirim link & cara masuk lewat WhatsApp atau Gmail.</p>`;
+    $("aF").onsubmit=async e=>{e.preventDefault();const em=$("aE").value.trim().toLowerCase(),ro=$("aR").value;try{await q(SB.from("app_access_roles").upsert({app_id:"psikotest",email:em,role:ro}));await drawAccess();toast("Akses ditambahkan");inviteBox(em,ro)}catch(err){toast("Gagal: "+err.message)}};
+    el.querySelectorAll("[data-inv]").forEach(b=>b.onclick=()=>inviteBox(b.dataset.inv,b.dataset.role));
     el.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(!confirm("Hapus akses "+b.dataset.del+"?"))return;try{await q(SB.from("app_access_roles").delete().eq("app_id","psikotest").eq("email",b.dataset.del));drawAccess()}catch(err){toast("Gagal: "+err.message)}});
   }catch(e){el.innerHTML='<div class="notice warn">Gagal memuat akses: '+esc(e.message)+'</div>'}
 }
