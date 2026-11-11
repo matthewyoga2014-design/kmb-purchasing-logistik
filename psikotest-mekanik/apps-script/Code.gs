@@ -117,7 +117,7 @@ function syncAll() {
       let status = done.length && done.length === ids.length ? 'Selesai' : a.length ? 'Sedang' : 'Belum mulai';
       if (status !== 'Selesai' && s.expires_at && new Date(s.expires_at) < new Date()) status = 'Kedaluwarsa';
       hasil.push([i + 1, new Date(s.created_at), s.nama, s.nik || '', s.grade_target || s.level || '', s.jenis, s.jobsite || '', s.grade_saat_ini || '',
-        r1(teknis), r1(kin), r1(akhir), c ? c.h : '', c ? c.b : '', c ? c.label : '', lulus, rek,
+        r1(teknis), r1(kin), r1(akhir), c ? c.h : '', c ? c.label : '', lulus, rek,
         a.reduce((x, y) => x + (+y.violations || 0), 0), status, (s.kinerja && s.kinerja.kelebihan) || '', (s.kinerja && s.kinerja.kekurangan) || '', s.catatan || '']);
       a.forEach(x => { const m = mods.find(y => y.id === x.module_id) || {}, ev = x.events || [];
         const foto = ev.filter(e => e.type === 'foto').map(e => String(e.d).split('|')[1]).filter(String);
@@ -127,7 +127,7 @@ function syncAll() {
           x.submitted_at ? x.correct + '/' + x.total : '', x.submitted_at ? r1(+x.score) : '', topik, +x.violations || 0, pel, foto.length, foto[foto.length - 1] || '']); });
     });
     const ss = ss_();
-    write_(ss, 'Hasil Tes', ['No', 'Tanggal', 'Nama', 'NIK', 'Grade Dituju', 'Jenis', 'Jobsite', 'Grade Saat Ini', 'Nilai Teknis', 'Nilai Kinerja', 'Nilai Akhir', 'Huruf', 'Bobot', 'Kategori', 'Hasil', 'Rekomendasi', 'Pelanggaran', 'Status', 'Kelebihan', 'Perlu Ditingkatkan', 'Catatan'], hasil);
+    write_(ss, 'Hasil Tes', ['No', 'Tanggal', 'Nama', 'NIK', 'Grade Dituju', 'Jenis', 'Jobsite', 'Grade Saat Ini', 'Nilai Teknis', 'Nilai Kinerja', 'Nilai Akhir', 'Huruf', 'Kategori', 'Hasil', 'Rekomendasi', 'Pelanggaran', 'Status', 'Kelebihan', 'Perlu Ditingkatkan', 'Catatan'], hasil);
     write_(ss, 'Rincian', ['Nama', 'NIK', 'Grade Dituju', 'Soal', 'Mulai', 'Selesai', 'Benar', 'Nilai', 'Nilai per Topik', 'Pelanggaran', 'Rincian Pelanggaran', 'Jumlah Foto', 'Foto Terakhir'], rinci);
     ss.getSheets().forEach(sh => { if (['Hasil Tes', 'Rincian'].indexOf(sh.getName()) < 0 && ss.getSheets().length > 2) ss.deleteSheet(sh); });
   } finally { lock.releaseLock(); }
