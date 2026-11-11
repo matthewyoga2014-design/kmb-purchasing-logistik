@@ -712,12 +712,7 @@ async function vPengaturan(m){
   const g=setg();
   m.innerHTML=`<div class="grid g2">
    <div><div class="card"><h2>Akun Editor & Viewer</h2><p class="sub"><b>Editor</b>: kirim tes, atur waktu, lihat hasil, isi penilaian kinerja. <b>Viewer</b>: hanya melihat hasil. Peserta tes tidak perlu akun.</p><div id="acc">Memuat…</div></div>
-   <div class="card"><h2>Google Drive</h2><p class="sub">Hasil otomatis tersalin ke Google Sheet (3 sheet: <b>Hasil Tes</b>, <b>Rincian</b>, <b>Penilaian Kinerja</b>), foto kamera ke folder Drive.</p>
-    <details><summary class="small" style="cursor:pointer;font-weight:600;color:var(--p)">Cara memasang (sekali saja)</summary>
-    <ol class="small" style="padding-left:18px;margin:8px 0"><li>Tekan <b>Unduh Code.gs</b>. Buka <a href="https://script.google.com" target="_blank" rel="noopener">script.google.com</a> → Proyek baru → tempel isinya → Simpan.</li><li>⚙️ Project Settings → Script Properties → tambah <b>SYNC_SECRET</b> = kunci dari tombol <b>Tampilkan kunci</b>.</li><li>Pilih fungsi <b>setup</b> → Run → izinkan.</li><li>Deploy → New deployment → Web app → Execute as <b>Me</b>, akses <b>Anyone</b> → salin URL /exec ke kolom di bawah.</li></ol></details>
-    <div class="row" style="margin:8px 0"><button class="btn sm" id="dCode">Unduh Code.gs</button><button class="btn sm" id="dSec">Tampilkan kunci</button></div><div id="dSecBox"></div>
-    <label class="f">URL Apps Script (/exec)<input id="dUrl" value="${esc(g.gasUrl||"")}" placeholder="https://script.google.com/macros/s/…/exec"></label>
-    <div class="row" style="margin-top:8px"><button class="btn pri sm" id="dSave">Simpan</button><button class="btn sm" id="dTest">Tes koneksi</button><button class="btn sm" id="dSync">Sinkron sekarang</button></div><div id="dInfo" class="small" style="margin-top:8px"></div></div></div>
+</div></div>
    <div class="card"><h2>Penilaian</h2>
    <form id="sF" class="grid">
     <div class="grid g4"><label class="f">Batas lulus (nilai teknis)<input type="number" name="gPass" value="${g.gPass}"></label></div>
@@ -732,11 +727,6 @@ async function vPengaturan(m){
     n.rekKontrak={};n.rekNew={};g.cat.forEach(c=>{n.rekKontrak[c.k]=fd.get("rk"+c.k);n.rekNew[c.k]=fd.get("rn"+c.k);const mm=n.scale.filter(x=>x.k===c.k);c.min=mm.length?Math.min(...mm.map(x=>x.min)):0});n.cat=g.cat;
     try{await save(n);syncDrive()}catch(err){toast("Gagal: "+err.message)}};
   $("sReset").onclick=async()=>{if(!confirm("Kembalikan penilaian ke bawaan?"))return;try{await save({...DEF,gasUrl:g.gasUrl});vPengaturan(m)}catch(err){toast("Gagal: "+err.message)}};
-  $("dCode").onclick=async()=>{try{const t=await (await fetch("apps-script/Code.gs",{cache:"no-store"})).text();const u=URL.createObjectURL(new Blob([t],{type:"text/plain"}));const a=document.createElement("a");a.href=u;a.download="Code.gs";document.body.appendChild(a);a.click();a.remove()}catch(e){toast("Gagal mengunduh: "+e.message)}};
-  $("dSec").onclick=async()=>{try{const r=await SB.rpc("pk_get_secret");if(r.error)throw r.error;$("dSecBox").innerHTML=`<div class="linkbox" style="margin-bottom:8px"><input readonly value="${esc(r.data)}"><button class="btn sm pri" id="dSecC">Salin</button></div>`;$("dSecC").onclick=()=>copyText(r.data)}catch(e){toast("Gagal: "+e.message)}};
-  $("dSave").onclick=async()=>{const u=$("dUrl").value.trim();if(u&&!/^https:\/\/script\.google\.com\/macros\/s\/.+\/exec$/.test(u))return toast("URL harus berbentuk https://script.google.com/macros/s/…/exec",4000);try{await save({...S.settings,gasUrl:u},"URL disimpan")}catch(err){toast("Gagal: "+err.message)}};
-  $("dTest").onclick=async()=>{$("dInfo").textContent="Menghubungi…";try{const r=await gasPost("ping",{});$("dInfo").innerHTML=r.ok?`✅ Tersambung${r.secretSet?"":" — SYNC_SECRET belum diisi"}. <a href="${esc(r.sheetUrl)}" target="_blank" rel="noopener">Buka Google Sheet</a> · <a href="${esc(r.folderUrl)}" target="_blank" rel="noopener">Buka folder Drive</a>`:"❌ "+esc(r.error)}catch(e){$("dInfo").textContent="❌ Tidak tersambung: "+e.message}};
-  $("dSync").onclick=async()=>{$("dInfo").textContent="Menyinkronkan…";try{const r=await gasPost("sync",{});$("dInfo").textContent=r.ok?"✅ Google Sheet diperbarui.":"❌ "+r.error}catch(e){$("dInfo").textContent="❌ "+e.message}};
   drawAccess();
 }
 async function drawAccess(){
