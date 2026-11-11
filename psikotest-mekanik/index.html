@@ -380,7 +380,7 @@ function exportXlsx(){if(!window.XLSX)return toast("Pustaka Excel belum termuat"
   XLSX.writeFile(wb,"Hasil_Psikotest_Mekanik_"+new Date().toISOString().slice(0,10)+".xlsx")}
 
 async function delSession(id){const s=S.sessions.find(x=>x.id===id);if(!s)return;
-  if(!confirm("Hapus hasil tes "+s.nama+"? Jawaban, nilai, dan foto di web ikut terhapus (foto di Google Drive tetap ada)."))return;
+  if(!confirm("Hapus hasil tes "+s.nama+"? Jawaban, nilai, foto, dan baris di Google Sheet ikut terhapus. Foto di Google Drive dipindah ke Sampah."))return;
   try{await q(SB.from("pk_sessions").delete().eq("id",id));S.sessions=S.sessions.filter(x=>x.id!==id);S.attempts=S.attempts.filter(a=>a.session_id!==id);closeModal();renderTab();syncDrive();toast("Hasil tes dihapus")}catch(e){toast("Gagal: "+e.message)}}
 /* ====================== RESUME PESERTA ====================== */
 async function loadPhotos(sid){try{return await q(SB.from("pk_photos").select("id,kind,taken_at,thumb,url").eq("session_id",sid).order("taken_at"))}catch(e){return []}}

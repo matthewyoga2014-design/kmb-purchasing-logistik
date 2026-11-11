@@ -146,6 +146,10 @@ function syncAll() {
         .concat([r1(r.pA), r1(r.pB), r1(r.pC), r.cut, r1(r.skor), c ? c.h : '', c ? c.label : '', kepLabel(k), dd.kelebihan || '', dd.kekurangan || '', dd.catatan || '']); });
     write_(ss, 'Penilaian Kinerja', ['No', 'Tanggal', 'Nama', 'NIK', 'Jabatan', 'Grade', 'Jobsite', 'Status', 'Periode', 'Penilai'].concat(KF_A.map((t, j) => 'A' + (j + 1) + ' ' + t)).concat(KF_B.map((t, j) => 'B' + (j + 1) + ' ' + t))
       .concat(['Nilai A (50%)', 'Nilai B (30%)', 'Nilai Kehadiran (20%)', 'Pengurang SP', 'Skor Kinerja', 'Huruf', 'Kategori', 'Keputusan', 'Kelebihan', 'Perlu Ditingkatkan', 'Catatan']), kin);
+    // Foto peserta yang hasil tesnya sudah dihapus di web -> dipindah ke Sampah Drive (bisa dipulihkan 30 hari)
+    const sids = (d.sessions || []).map(s => String(s.id).slice(0, 8));
+    const fit = sub_(root_(), 'Foto Peserta').getFolders();
+    while (fit.hasNext()) { const f = fit.next(), m = f.getName().match(/ - ([0-9a-f]{8})$/); if (m && sids.indexOf(m[1]) < 0) f.setTrashed(true); }
     const keep = ['Hasil Tes', 'Rincian', 'Penilaian Kinerja'];
     ss.getSheets().forEach(sh => { if (keep.indexOf(sh.getName()) < 0 && ss.getSheets().length > 1) ss.deleteSheet(sh); });
   } finally { lock.releaseLock(); }
