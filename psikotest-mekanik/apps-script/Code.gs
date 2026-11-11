@@ -80,7 +80,8 @@ function savePhoto_(b) {
 /* ---------- perhitungan (sama dengan web) ---------- */
 const LEVELS = ['Helper', 'Junior', 'Middle', 'Senior', 'Supervisor'];
 const DEF = { wTeknis: 60, wKinerja: 40, gTop: 85, gMid: 75, gPass: 60,
-  cat: [{ k: 'A', min: 90, label: 'Sangat Baik' }, { k: 'B', min: 75, label: 'Baik' }, { k: 'C', min: 60, label: 'Cukup' }, { k: 'D', min: 50, label: 'Kurang' }, { k: 'E', min: 0, label: 'Sangat Kurang' }],
+  cat: [{ k: 'A', min: 81, label: 'Sangat Baik' }, { k: 'B', min: 66, label: 'Baik' }, { k: 'C', min: 56, label: 'Cukup' }, { k: 'D', min: 41, label: 'Kurang' }, { k: 'E', min: 0, label: 'Sangat Kurang' }],
+  scale: [{ min: 86, h: 'A', b: 4, k: 'A' }, { min: 81, h: 'A-', b: 3.67, k: 'A' }, { min: 76, h: 'B+', b: 3.33, k: 'B' }, { min: 71, h: 'B', b: 3, k: 'B' }, { min: 66, h: 'B-', b: 2.67, k: 'B' }, { min: 61, h: 'C+', b: 2.33, k: 'C' }, { min: 56, h: 'C', b: 2, k: 'C' }, { min: 41, h: 'D', b: 1, k: 'D' }, { min: 0, h: 'E', b: 0, k: 'E' }],
   bands: { Helper: ['Helper'], Junior: ['G1', 'G2', 'G3'], Middle: ['G4', 'G5', 'G6'], Senior: ['G7', 'G8', 'G9'], Supervisor: ['G10'] },
   rekKontrak: { A: 'Angkat karyawan tetap / layak naik grade', B: 'Perpanjang kontrak', C: 'Perpanjang kontrak dengan pembinaan', D: 'Perpanjang singkat dengan evaluasi ketat', E: 'Tidak diperpanjang' },
   rekNew: { A: 'Diterima', B: 'Diterima', C: 'Dipertimbangkan (perlu pembinaan)', D: 'Tidak direkomendasikan', E: 'Tidak direkomendasikan' } };
@@ -92,7 +93,8 @@ function fpkTotal(f) { if (!f) return null; const A = (f.A || []).filter(String)
   const E = (f.E || []).filter(x => x && x.v).map(x => FPK_VAL[x.v]), F = (f.F || []).filter(x => x && x.v).map(x => FPK_VAL[x.v]), base = (nA + nB) / 2;
   return nA * .3 + nB * .3 + nC * .15 + nD * .15 + (E.length ? avg(E) : base) * .05 + (F.length ? avg(F) : base) * .05; }
 function kinerja(k) { if (!k) return null; const p = []; if (k.tpl !== 'FPK') { const s = kmbScore(k.kmb); if (s != null) p.push(s); } if (k.tpl !== 'KMB') { const t = fpkTotal(k.fpk); if (t != null) p.push(t); } return p.length ? avg(p) : null; }
-function category(g, sc) { if (sc == null) return null; const c = g.cat.slice().sort((a, b) => b.min - a.min); return c.find(x => sc >= x.min) || c[c.length - 1]; }
+function scaleRows(g) { return (g.scale || DEF.scale).slice().sort((a, b) => b.min - a.min); }
+function category(g, sc) { if (sc == null) return null; const r = scaleRows(g), L = r.find(x => sc >= x.min) || r[r.length - 1]; const c = g.cat.find(x => x.k === L.k) || g.cat[g.cat.length - 1]; return { k: c.k, label: c.label, h: L.h, b: L.b }; }
 function grade(g, level, sc) { if (sc == null || !level) return '–'; const list = g.bands[level] || []; if (!list.length) return '–';
   if (sc >= g.gPass) { let i = 0; if (list.length > 1) { if (sc >= g.gTop) i = list.length - 1; else if (sc >= g.gMid) i = 1; } return list[i]; }
   const li = LEVELS.indexOf(level); if (li > 0) { const pv = g.bands[LEVELS[li - 1]] || []; return (pv[pv.length - 1] || '–') + ' (turun level)'; } return 'Belum memenuhi'; }
@@ -104,7 +106,7 @@ function syncAll() {
     const g = Object.assign({}, DEF, d.settings || {});
     const mods = d.modules || [], att = d.attempts || [];
     const head = ['No', 'Tanggal', 'Nama', 'NIK', 'Jenis', 'Posisi', 'Level', 'Grade Saat Ini', 'Jobsite'].concat(mods.map(m => m.title))
-      .concat(['Nilai Teknis', 'Nilai Kinerja', 'Nilai Akhir', 'Kategori', 'Rekomendasi Grade', 'Rekomendasi', 'Status', 'Pelanggaran', 'Kelebihan', 'Perlu Ditingkatkan', 'Catatan', 'Diperbarui']);
+      .concat(['Nilai Teknis', 'Nilai Kinerja', 'Nilai Akhir', 'Huruf', 'Bobot', 'Kategori', 'Rekomendasi Grade', 'Rekomendasi', 'Status', 'Pelanggaran', 'Kelebihan', 'Perlu Ditingkatkan', 'Catatan', 'Diperbarui']);
     const rows = [], topRows = [], prRows = [], topics = {};
     (d.sessions || []).forEach((s, i) => {
       const a = att.filter(x => x.session_id === s.id), ids = s.module_ids || [];
@@ -117,7 +119,7 @@ function syncAll() {
       const viol = a.reduce((x, y) => x + (+y.violations || 0), 0), r1 = v => v == null ? '' : Math.round(v * 10) / 10;
       rows.push([i + 1, new Date(s.created_at), s.nama, s.nik || '', s.jenis, s.posisi || '', s.level || '', s.grade_saat_ini || '', s.jobsite || '']
         .concat(mods.map(m => { const x = a.find(y => y.module_id === m.id); return x && x.submitted_at ? r1(+x.score) : ''; }))
-        .concat([r1(teknis), r1(kin), r1(akhir), c ? c.k + ' - ' + c.label : '', grade(g, s.level, teknis), rek, status, viol,
+        .concat([r1(teknis), r1(kin), r1(akhir), c ? c.h : '', c ? c.b : '', c ? c.label : '', grade(g, s.level, teknis), rek, status, viol,
           (s.kinerja && s.kinerja.kelebihan) || '', (s.kinerja && s.kinerja.kekurangan) || '', s.catatan || '', new Date()]));
       const tp = {}; done.forEach(x => Object.keys(x.by_topic || {}).forEach(t => { tp[t] = tp[t] || { b: 0, n: 0 }; tp[t].b += +x.by_topic[t].benar; tp[t].n += +x.by_topic[t].total; topics[t] = 1; }));
       if (done.length) topRows.push({ nama: s.nama, posisi: s.posisi || '', tp: tp });
@@ -131,7 +133,8 @@ function syncAll() {
     const tl = Object.keys(topics);
     write_(ss, 'Nilai per Topik (%)', ['Nama', 'Posisi'].concat(tl), topRows.map(r => [r.nama, r.posisi].concat(tl.map(t => r.tp[t] && r.tp[t].n ? Math.round(100 * r.tp[t].b / r.tp[t].n) : ''))));
     write_(ss, 'Pengawasan', ['Nama', 'Sheet', 'Mulai', 'Selesai', 'Jumlah Pelanggaran', 'Rincian Pelanggaran', 'Jumlah Foto', 'Foto Pertama', 'Foto Terakhir'], prRows);
-    write_(ss, 'Kategori', ['Kategori', 'Keterangan', 'Nilai Minimal', 'Rekomendasi Akhir Kontrak', 'Rekomendasi New Hire'], g.cat.map(c => [c.k, c.label, c.min, g.rekKontrak[c.k], g.rekNew[c.k]]));
+    const sr = scaleRows(g);
+    write_(ss, 'Skala Nilai', ['Skor', 'Huruf', 'Bobot', 'Kategori', 'Rekomendasi Akhir Kontrak', 'Rekomendasi New Hire'], sr.map((r, i) => { const c = g.cat.find(x => x.k === r.k) || {}; return [r.min + ' - ' + (i ? sr[i - 1].min - 1 : 100), r.h, r.b, c.label, g.rekKontrak[r.k], g.rekNew[r.k]]; }));
     const def = ss.getSheetByName('Sheet1'); if (def && ss.getSheets().length > 1) ss.deleteSheet(def);
   } finally { lock.releaseLock(); }
 }

@@ -44,7 +44,7 @@ textarea{resize:vertical}
 table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 .sheet th{position:sticky;top:0;background:#EDE7FB;color:#3B1B7A;text-align:left;font-weight:700;padding:8px 10px;border-bottom:1px solid #D9CFF5;white-space:nowrap;z-index:1}
 .sheet td{padding:7px 10px;border-bottom:1px solid var(--line);white-space:nowrap;vertical-align:top}
-.sheet tr:nth-child(even) td{background:#FBFAFE}.sheet tbody tr:hover td{background:#F3EEFF;cursor:pointer}
+.sheet tr:nth-child(even) td{background:#FBFAFE}.sheet.scale td{background:#fff!important}.sheet tbody tr:hover td{background:#F3EEFF;cursor:pointer}
 .sheet td.num,.sheet th.num{text-align:right;font-variant-numeric:tabular-nums}
 .sheet td.wrap{white-space:normal;min-width:260px}
 .bar{height:10px;background:#EEE9F8;border-radius:99px;overflow:hidden}.bar i{display:block;height:100%;background:var(--p);border-radius:99px}
@@ -111,7 +111,8 @@ const TOKEN=new URLSearchParams(location.search).get("t");
 const LEVELS=["Helper","Junior","Middle","Senior","Supervisor"];
 const POSISI=[["Helper Mekanik","Helper"],["Junior Mekanik","Junior"],["Middle Mekanik","Middle"],["Pengawas / Foreman","Middle"],["Senior Mekanik","Senior"],["Supervisor Plant","Supervisor"]];
 const DEF={wTeknis:60,wKinerja:40,gTop:85,gMid:75,gPass:60,showScore:false,linkDays:7,
-  cat:[{k:"A",min:90,label:"Sangat Baik"},{k:"B",min:75,label:"Baik"},{k:"C",min:60,label:"Cukup"},{k:"D",min:50,label:"Kurang"},{k:"E",min:0,label:"Sangat Kurang"}],
+  cat:[{k:"A",min:81,label:"Sangat Baik"},{k:"B",min:66,label:"Baik"},{k:"C",min:56,label:"Cukup"},{k:"D",min:41,label:"Kurang"},{k:"E",min:0,label:"Sangat Kurang"}],
+  scale:[{min:86,h:"A",b:4,k:"A"},{min:81,h:"A-",b:3.67,k:"A"},{min:76,h:"B+",b:3.33,k:"B"},{min:71,h:"B",b:3,k:"B"},{min:66,h:"B-",b:2.67,k:"B"},{min:61,h:"C+",b:2.33,k:"C"},{min:56,h:"C",b:2,k:"C"},{min:41,h:"D",b:1,k:"D"},{min:0,h:"E",b:0,k:"E"}],
   bands:{Helper:["Helper"],Junior:["G1","G2","G3"],Middle:["G4","G5","G6"],Senior:["G7","G8","G9"],Supervisor:["G10"]},
   rekKontrak:{A:"Angkat karyawan tetap / layak naik grade",B:"Perpanjang kontrak",C:"Perpanjang kontrak dengan pembinaan",D:"Perpanjang singkat dengan evaluasi ketat",E:"Tidak diperpanjang"},
   rekNew:{A:"Diterima",B:"Diterima",C:"Dipertimbangkan (perlu pembinaan)",D:"Tidak direkomendasikan",E:"Tidak direkomendasikan"},
@@ -162,7 +163,12 @@ function linkFor(s){return location.origin+location.pathname+"?t="+s.token}
 
 /* ====================== KALKULASI ====================== */
 function setg(){return S.settings}
-function category(score){if(score==null)return null;const c=[...setg().cat].sort((a,b)=>b.min-a.min);return c.find(x=>score>=x.min)||c[c.length-1]}
+function scaleRows(){return [...(setg().scale||DEF.scale)].sort((a,b)=>b.min-a.min)}
+function letterOf(score){if(score==null)return null;const r=scaleRows();return r.find(x=>score>=x.min)||r[r.length-1]}
+function scaleMax(i){const r=scaleRows();return i===0?100:r[i-1].min-1}
+function catMin(k){const r=scaleRows().filter(x=>x.k===k);return r.length?Math.min(...r.map(x=>x.min)):0}
+function category(score){const L=letterOf(score);if(!L)return null;const c=setg().cat.find(x=>x.k===L.k)||setg().cat[setg().cat.length-1];return {...c,min:catMin(c.k),h:L.h,b:L.b}}
+const catChip=(c,big)=>c?`<span class="chip cat-${c.k}"${big?' style="font-size:15px;padding:6px 12px"':""}>${esc(c.h)} · ${esc(c.label)}</span>`:"–";
 function gradeRec(level,score){
   if(score==null||!level)return {grade:"–",note:""};
   const g=setg(),bands=g.bands,list=bands[level]||[];
@@ -279,12 +285,12 @@ function vRingkasan(m){
   const rows=S.sessions.map(s=>({s,c:calc(s)}));
   const done=rows.filter(r=>r.c.akhir!=null);
   const lulus=done.filter(r=>r.c.cat&&["A","B","C"].includes(r.c.cat.k));
-  const byCat={};setg().cat.forEach(c=>byCat[c.k]=0);done.forEach(r=>byCat[r.c.cat.k]++);
+  const byCat={};setg().cat.forEach(c=>byCat[c.k]=0);done.forEach(r=>byCat[r.c.cat.k]++);const byH={};done.forEach(r=>byH[r.c.cat.h]=(byH[r.c.cat.h]||0)+1);
   const byLvl={};LEVELS.forEach(l=>byLvl[l]={n:0,sum:0});done.forEach(r=>{if(byLvl[r.s.level]){byLvl[r.s.level].n++;byLvl[r.s.level].sum+=r.c.akhir}});
   const top={};done.forEach(r=>Object.entries(r.c.topics).forEach(([t,v])=>{top[t]=top[t]||{b:0,n:0};top[t].b+=v.benar;top[t].n+=v.total}));
   const topArr=Object.entries(top).map(([t,v])=>[t,v.n?100*v.b/v.n:0]).sort((a,b)=>a[1]-b[1]);
   const byJenis={"New Hire":0,"Akhir Kontrak":0};done.forEach(r=>byJenis[r.s.jenis]=(byJenis[r.s.jenis]||0)+1);
-  const mx=Math.max(1,...Object.values(byCat));
+  
   const recent=done.sort((a,b)=>new Date(b.s.updated_at||b.s.created_at)-new Date(a.s.updated_at||a.s.created_at)).slice(0,8);
   const barCls=v=>v>=75?"g":v>=60?"y":"r";
   m.innerHTML=`
@@ -292,18 +298,21 @@ function vRingkasan(m){
    <div class="kpi"><span>Total peserta</span><b>${S.sessions.length}</b></div>
    <div class="kpi"><span>Sudah selesai</span><b>${done.length}</b></div>
    <div class="kpi"><span>Rata-rata nilai akhir</span><b>${fmt(avg(done.map(r=>r.c.akhir)))}</b></div>
-   <div class="kpi"><span>Layak (kategori A–C)</span><b>${done.length?Math.round(100*lulus.length/done.length):0}%</b></div>
+   <div class="kpi"><span>Layak (Sangat Baik–Cukup)</span><b>${done.length?Math.round(100*lulus.length/done.length):0}%</b></div>
   </div>
   <div class="grid g2">
    <div class="card"><h2>Kategori hasil</h2><p class="sub">Berdasarkan nilai akhir (tes teknis${setg().wKinerja?" + penilaian kinerja bila diisi":""}).</p>
-    ${setg().cat.map(c=>`<div class="hbar"><span><span class="chip cat-${c.k}">${c.k}</span> ${esc(c.label)} <span class="muted small">(≥${c.min})</span></span><div class="bar"><i style="width:${100*byCat[c.k]/mx}%"></i></div><b class="right">${byCat[c.k]}</b></div>`).join("")}
+    <table class="sheet scale"><thead><tr><th class="num">Skor</th><th>Huruf</th><th class="num">Bobot</th><th>Kategori</th><th class="num">Peserta</th></tr></thead><tbody>
+    ${scaleRows().map((r,i,arr)=>{const first=i===0||arr[i-1].k!==r.k;const span=arr.filter(x=>x.k===r.k).length;const c=setg().cat.find(x=>x.k===r.k)||{};
+      return `<tr><td class="num">${r.min} – ${scaleMax(i)}</td><td><b>${esc(r.h)}</b></td><td class="num">${(+r.b).toFixed(2).replace(".",",")}</td>${first?`<td rowspan="${span}" style="vertical-align:middle"><span class="chip cat-${r.k}">${esc(c.label||"")}</span></td>`:""}<td class="num">${byH[r.h]||0}</td></tr>`}).join("")}
+    </tbody></table>
     <p class="small muted" style="margin:10px 0 0">New Hire: ${byJenis["New Hire"]||0} · Akhir Kontrak: ${byJenis["Akhir Kontrak"]||0}</p></div>
    <div class="card"><h2>Rata-rata per level jabatan</h2><p class="sub">Grade: Helper · Junior G1–G3 · Middle G4–G6 (termasuk Pengawas) · Senior G7–G9 · Supervisor G10</p>
     ${LEVELS.map(l=>{const v=byLvl[l].n?byLvl[l].sum/byLvl[l].n:0;return `<div class="hbar"><span>${l} <span class="muted small">(${byLvl[l].n} org)</span></span><div class="bar ${barCls(v)}"><i style="width:${v}%"></i></div><b class="right">${byLvl[l].n?fmt(v):"–"}</b></div>`}).join("")}</div>
    <div class="card"><h2>Penguasaan materi (semua peserta)</h2><p class="sub">Persentase jawaban benar per topik, dari yang terlemah.</p>
     ${topArr.length?topArr.map(([t,v])=>`<div class="hbar"><span>${esc(t)}</span><div class="bar ${barCls(v)}"><i style="width:${v}%"></i></div><b class="right">${fmt(v,0)}%</b></div>`).join(""):'<div class="empty">Belum ada hasil tes.</div>'}</div>
    <div class="card"><h2>Hasil terbaru</h2><p class="sub">Klik nama untuk melihat resume hasil.</p>
-    ${recent.length?`<table class="sheet"><tbody>${recent.map(r=>`<tr data-id="${r.s.id}"><td><b>${esc(r.s.nama)}</b><br><span class="small muted">${esc(r.s.posisi||"")} · ${esc(r.s.jenis)}</span></td><td class="num"><b>${fmt(r.c.akhir)}</b></td><td><span class="chip cat-${r.c.cat.k}">${r.c.cat.k} · ${esc(r.c.cat.label)}</span><br><span class="small">${esc(r.c.grade.grade)}</span></td></tr>`).join("")}</tbody></table>`:'<div class="empty">Belum ada hasil tes.</div>'}</div>
+    ${recent.length?`<table class="sheet"><tbody>${recent.map(r=>`<tr data-id="${r.s.id}"><td><b>${esc(r.s.nama)}</b><br><span class="small muted">${esc(r.s.posisi||"")} · ${esc(r.s.jenis)}</span></td><td class="num"><b>${fmt(r.c.akhir)}</b></td><td>${catChip(r.c.cat)}<br><span class="small">${esc(r.c.grade.grade)}</span></td></tr>`).join("")}</tbody></table>`:'<div class="empty">Belum ada hasil tes.</div>'}</div>
   </div>`;
   if(canEdit()||can("resume"))m.querySelectorAll("tr[data-id]").forEach(tr=>tr.onclick=()=>showResume(tr.dataset.id));
 }
@@ -386,17 +395,17 @@ function vHasil(m){
    <div class="row" style="margin-bottom:10px"><input id="hQ" placeholder="Cari nama / NIK / posisi" style="flex:1;min-width:180px">
     <select id="hJ"><option value="">Semua jenis</option><option>New Hire</option><option>Akhir Kontrak</option></select>
     <select id="hL"><option value="">Semua level</option>${LEVELS.map(l=>`<option>${l}</option>`).join("")}</select>
-    <select id="hK"><option value="">Semua kategori</option>${setg().cat.map(c=>`<option value="${c.k}">${c.k} – ${esc(c.label)}</option>`).join("")}</select>
+    <select id="hK"><option value="">Semua kategori</option>${setg().cat.map(c=>`<option value="${c.k}">${esc(c.label)}</option>`).join("")}</select>
     <select id="hS"><option value="">Semua status</option><option>Selesai</option><option>Sedang</option><option>Belum mulai</option><option>Kedaluwarsa</option></select></div>
    <div class="sheet-wrap"><table class="sheet" id="hT"></table></div><p class="small muted" id="hInfo"></p></div>`;
   const draw=()=>{const k=$("hQ").value.toLowerCase(),j=$("hJ").value,l=$("hL").value,ka=$("hK").value,st=$("hS").value;
     const rows=resultRows().filter(({s,c})=>(s.nama+" "+(s.nik||"")+" "+(s.posisi||"")).toLowerCase().includes(k)&&(!j||s.jenis===j)&&(!l||s.level===l)&&(!ka||c.cat?.k===ka)&&(!st||c.status===st));
     const mods=S.modules;
-    $("hT").innerHTML=`<thead><tr><th>No</th><th>Tanggal</th><th>Nama</th><th>NIK</th><th>Jenis</th><th>Posisi</th><th>Level</th><th>Jobsite</th>${mods.map(x=>`<th class="num" title="${esc(x.title)}">${esc(x.title.length>22?x.title.slice(0,22)+"…":x.title)}</th>`).join("")}<th class="num">Nilai Teknis</th><th class="num">Nilai Kinerja</th><th class="num">Nilai Akhir</th><th>Kategori</th><th>Rekomendasi Grade</th><th>Rekomendasi</th><th class="num">Pelanggaran</th><th>Status</th></tr></thead>
+    $("hT").innerHTML=`<thead><tr><th>No</th><th>Tanggal</th><th>Nama</th><th>NIK</th><th>Jenis</th><th>Posisi</th><th>Level</th><th>Jobsite</th>${mods.map(x=>`<th class="num" title="${esc(x.title)}">${esc(x.title.length>22?x.title.slice(0,22)+"…":x.title)}</th>`).join("")}<th class="num">Nilai Teknis</th><th class="num">Nilai Kinerja</th><th class="num">Nilai Akhir</th><th>Huruf · Kategori</th><th class="num">Bobot</th><th>Rekomendasi Grade</th><th>Rekomendasi</th><th class="num">Pelanggaran</th><th>Status</th></tr></thead>
      <tbody>${rows.map(({s,c},i)=>`<tr data-id="${s.id}"><td class="num">${i+1}</td><td>${fdate(s.created_at)}</td><td><b>${esc(s.nama)}</b></td><td>${showNik()?esc(s.nik||""):"•••"}</td><td>${esc(s.jenis)}</td><td>${esc(s.posisi||"")}</td><td>${esc(s.level||"")}</td><td>${esc(s.jobsite||"")}</td>
       ${mods.map(x=>{const a=c.mods.find(y=>y.m.id===x.id);return `<td class="num">${a?(a.a?.submitted_at?fmt(a.a.score)+(a.a.late?" ⏱":""):a.a?"…":"–"):""}</td>`}).join("")}
       <td class="num">${fmt(c.teknis)}</td><td class="num">${fmt(c.kin)}</td><td class="num"><b>${fmt(c.akhir)}</b></td>
-      <td>${c.cat?`<span class="chip cat-${c.cat.k}">${c.cat.k} · ${esc(c.cat.label)}</span>`:"–"}</td><td>${esc(c.grade.grade)}</td><td>${esc(c.rek||"–")}</td><td class="num">${c.viol||""}</td><td><span class="chip st-${c.status.split(" ")[0]}">${c.status}</span></td></tr>`).join("")||`<tr><td colspan="${18+mods.length}" class="empty">Belum ada data.</td></tr>`}</tbody>`;
+      <td>${catChip(c.cat)}</td><td class="num">${c.cat?(+c.cat.b).toFixed(2).replace(".",","):"–"}</td><td>${esc(c.grade.grade)}</td><td>${esc(c.rek||"–")}</td><td class="num">${c.viol||""}</td><td><span class="chip st-${c.status.split(" ")[0]}">${c.status}</span></td></tr>`).join("")||`<tr><td colspan="${19+mods.length}" class="empty">Belum ada data.</td></tr>`}</tbody>`;
     $("hInfo").textContent=rows.length+" baris · ⏱ = waktu habis, jawaban yang tersimpan dinilai otomatis";
     if(canEdit()||can("resume"))$("hT").querySelectorAll("tr[data-id]").forEach(tr=>tr.onclick=()=>showResume(tr.dataset.id));};
   ["hQ","hJ","hL","hK","hS"].forEach(id=>$(id).oninput=draw);draw();HDRAW=()=>{if($("hT"))draw()};
@@ -408,14 +417,14 @@ function exportXlsx(){
   const rows=resultRows();const mods=S.modules;
   const main=rows.map(({s,c},i)=>{const o={No:i+1,Tanggal:fdate(s.created_at),Nama:s.nama,NIK:showNik()?(s.nik||""):"",Jenis:s.jenis,Posisi:s.posisi||"",Level:s.level||"","Grade Saat Ini":s.grade_saat_ini||"",Jobsite:s.jobsite||""};
     mods.forEach(x=>{const a=c.mods.find(y=>y.m.id===x.id);o[x.title]=a&&a.a?.submitted_at?+(+a.a.score).toFixed(1):""});
-    Object.assign(o,{"Nilai Teknis":c.teknis!=null?+c.teknis.toFixed(1):"","Nilai Kinerja":c.kin!=null?+c.kin.toFixed(1):"","Nilai Akhir":c.akhir!=null?+c.akhir.toFixed(1):"",Kategori:c.cat?c.cat.k+" - "+c.cat.label:"","Rekomendasi Grade":c.grade.grade,"Keterangan Grade":c.grade.note,Rekomendasi:c.rek||"",Pelanggaran:c.viol,Status:c.status,"Kelebihan":s.kinerja?.kelebihan||"","Perlu Ditingkatkan":s.kinerja?.kekurangan||"",Catatan:s.catatan||""});return o});
+    Object.assign(o,{"Nilai Teknis":c.teknis!=null?+c.teknis.toFixed(1):"","Nilai Kinerja":c.kin!=null?+c.kin.toFixed(1):"","Nilai Akhir":c.akhir!=null?+c.akhir.toFixed(1):"",Huruf:c.cat?c.cat.h:"",Bobot:c.cat?+(+c.cat.b).toFixed(2):"",Kategori:c.cat?c.cat.label:"","Rekomendasi Grade":c.grade.grade,"Keterangan Grade":c.grade.note,Rekomendasi:c.rek||"",Pelanggaran:c.viol,Status:c.status,"Kelebihan":s.kinerja?.kelebihan||"","Perlu Ditingkatkan":s.kinerja?.kekurangan||"",Catatan:s.catatan||""});return o});
   const topics=[...new Set(rows.flatMap(r=>Object.keys(r.c.topics)))];
   const tp=rows.filter(r=>r.c.done.length).map(({s,c})=>{const o={Nama:s.nama,Posisi:s.posisi||""};topics.forEach(t=>{const v=c.topics[t];o[t]=v&&v.total?+(100*v.benar/v.total).toFixed(0):""});return o});
   const wb=XLSX.utils.book_new();
   const ws1=XLSX.utils.json_to_sheet(main);ws1["!cols"]=Object.keys(main[0]||{No:1}).map(k=>({wch:Math.max(8,Math.min(40,k.length+4))}));
   XLSX.utils.book_append_sheet(wb,ws1,"Hasil Psikotest");
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(tp.length?tp:[{Info:"Belum ada data"}]),"Nilai per Topik (%)");
-  const ref=setg().cat.map(c=>({Kategori:c.k,Keterangan:c.label,"Nilai minimal":c.min,"Rekomendasi Akhir Kontrak":setg().rekKontrak[c.k],"Rekomendasi New Hire":setg().rekNew[c.k]}));
+  const ref=scaleRows().map((r,i)=>{const c=setg().cat.find(x=>x.k===r.k)||{};return {Skor:r.min+" - "+scaleMax(i),Huruf:r.h,Bobot:r.b,Kategori:c.label,"Rekomendasi Akhir Kontrak":setg().rekKontrak[r.k],"Rekomendasi New Hire":setg().rekNew[r.k]}});
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(ref),"Kategori");
   XLSX.writeFile(wb,"Hasil_Psikotest_Mekanik_"+new Date().toISOString().slice(0,10)+".xlsx");
 }
@@ -432,7 +441,7 @@ function showResume(id){
   <div class="grid g2">
    <div class="kv"><b>Nama</b><span>${esc(s.nama)}</span><b>NIK / NIP</b><span>${showNik()?esc(s.nik||"–"):"•••"}</span><b>Posisi</b><span>${esc(s.posisi||"–")}</span><b>Level target</b><span>${esc(s.level||"–")}${s.grade_saat_ini?" · grade saat ini "+esc(s.grade_saat_ini):""}</span><b>Jenis penilaian</b><span>${esc(s.jenis)}</span><b>Jobsite</b><span>${esc(s.jobsite||"–")}</span><b>Status</b><span>${c.status}${c.late?" · ada sheet yang waktunya habis":""}</span></div>
    <div style="display:flex;gap:16px;align-items:center;justify-content:flex-end;flex-wrap:wrap"><div class="right"><div class="small muted">Nilai akhir</div><div class="score-big">${fmt(c.akhir)}</div></div>
-    <div>${c.cat?`<span class="chip cat-${c.cat.k}" style="font-size:15px;padding:6px 12px">Kategori ${c.cat.k} · ${esc(c.cat.label)}</span>`:'<span class="chip">Belum ada nilai</span>'}<div style="margin-top:8px"><b>Rekomendasi grade:</b> ${esc(c.grade.grade)}<br><span class="small muted">${esc(c.grade.note)}</span></div></div></div>
+    <div>${c.cat?catChip(c.cat,true)+`<div class="small muted" style="margin-top:4px">Nilai huruf <b>${esc(c.cat.h)}</b> · bobot <b>${(+c.cat.b).toFixed(2).replace(".",",")}</b></div>`:'<span class="chip">Belum ada nilai</span>'}<div style="margin-top:8px"><b>Rekomendasi grade:</b> ${esc(c.grade.grade)}<br><span class="small muted">${esc(c.grade.note)}</span></div></div></div>
   </div>
   <div class="card" style="margin-top:14px"><h3>Rekomendasi</h3><div style="font-size:15px;font-weight:700;color:var(--p2)">${esc(c.rek||"–")}</div>${s.keputusan?`<div class="small muted">Keputusan diisi manual oleh Editor (otomatis: ${esc(c.rekAuto||"–")})</div>`:""}
    ${can("kinerja")?`<div class="row noprint" style="margin-top:8px"><input id="rKep" placeholder="Ubah keputusan akhir (opsional)" value="${esc(s.keputusan||"")}" style="flex:1"><button class="btn sm pri" id="rKepS">Simpan</button></div>`:""}</div>
@@ -604,8 +613,11 @@ async function vPengaturan(m){
     <div class="grid g4"><label class="f">Bobot tes teknis (%)<input type="number" name="wTeknis" value="${g.wTeknis}"></label><label class="f">Bobot kinerja (%)<input type="number" name="wKinerja" value="${g.wKinerja}"></label><label class="f">Masa berlaku link (hari)<input type="number" name="linkDays" value="${g.linkDays}"></label></div>
     <div><b>Rekomendasi grade dalam level</b><p class="small muted" style="margin:2px 0 6px">Contoh Junior: ≥ batas atas → G3 · ≥ batas tengah → G2 · ≥ batas lulus → G1 · di bawahnya → level sebelumnya.</p>
     <div class="grid g4"><label class="f">Batas atas<input type="number" name="gTop" value="${g.gTop}"></label><label class="f">Batas tengah<input type="number" name="gMid" value="${g.gMid}"></label><label class="f">Batas lulus<input type="number" name="gPass" value="${g.gPass}"></label></div></div>
-    <div><b>Kategori nilai akhir</b><div class="grid g4" style="margin-top:6px">${g.cat.map((c,i)=>`<label class="f">${c.k} – <input name="cl${i}" value="${esc(c.label)}" style="padding:4px 6px"> min<input type="number" name="cm${i}" value="${c.min}"></label>`).join("")}</div></div>
-    <div><b>Rekomendasi otomatis</b><div class="sheet-wrap" style="max-height:none"><table class="sheet"><thead><tr><th>Kat.</th><th>Akhir Kontrak</th><th>New Hire</th></tr></thead><tbody>${g.cat.map(c=>`<tr><td>${c.k}</td><td><input name="rk${c.k}" value="${esc(g.rekKontrak[c.k]||"")}" style="width:100%"></td><td><input name="rn${c.k}" value="${esc(g.rekNew[c.k]||"")}" style="width:100%"></td></tr>`).join("")}</tbody></table></div></div>
+    <div><b>Skala nilai (huruf, bobot, kategori)</b><p class="small muted" style="margin:2px 0 6px">Isi skor minimal tiap huruf; batas atas otomatis dari baris di atasnya.</p>
+     <div class="sheet-wrap" style="max-height:none"><table class="sheet"><thead><tr><th>Skor min</th><th>Huruf</th><th>Bobot</th><th>Kategori</th></tr></thead><tbody>
+     ${scaleRows().map((r,i)=>`<tr><td><input type="number" name="sm${i}" value="${r.min}" min="0" max="100" style="width:80px"></td><td><input name="sh${i}" value="${esc(r.h)}" style="width:70px"></td><td><input type="number" step="0.01" name="sb${i}" value="${r.b}" style="width:80px"></td><td><select name="sk${i}">${g.cat.map(c=>`<option value="${c.k}" ${c.k===r.k?"selected":""}>${esc(c.label)}</option>`).join("")}</select></td></tr>`).join("")}</tbody></table></div>
+     <div class="grid g4" style="margin-top:8px">${g.cat.map((c,i)=>`<label class="f">Nama kategori ${i+1}<input name="cl${i}" value="${esc(c.label)}"></label>`).join("")}</div></div>
+    <div><b>Rekomendasi otomatis</b><div class="sheet-wrap" style="max-height:none"><table class="sheet"><thead><tr><th>Kat.</th><th>Akhir Kontrak</th><th>New Hire</th></tr></thead><tbody>${g.cat.map(c=>`<tr><td>${esc(c.label)}</td><td><input name="rk${c.k}" value="${esc(g.rekKontrak[c.k]||"")}" style="width:100%"></td><td><input name="rn${c.k}" value="${esc(g.rekNew[c.k]||"")}" style="width:100%"></td></tr>`).join("")}</tbody></table></div></div>
     <div><b>Bawaan saat membuat link tes</b><div class="grid g4" style="margin-top:6px">
      <label class="f">Mode waktu<select name="tmode">${Object.entries(TIMER_LABEL).map(([k,l])=>`<option value="${k}" ${g.timerDef.mode===k?"selected":""}>${l}</option>`).join("")}</select></label>
      <label class="f">Detik per soal<input type="number" name="perQ" value="${g.timerDef.perQ}"></label>
@@ -620,7 +632,7 @@ async function vPengaturan(m){
    <div class="card"><h2>Pembagian grade</h2><div class="kv">${LEVELS.map(l=>`<b>${l}</b><span>${g.bands[l].join(", ")}</span>`).join("")}</div><p class="small muted" style="margin-top:8px">Pengawas / Foreman mengikuti level Middle.</p></div></div></div>`;
   const save=async(n,msg)=>{await q(SB.from("pk_settings").update({data:n,updated_at:new Date().toISOString()}).eq("id",1));S.settings=n;toast(msg||"Pengaturan disimpan")};
   if($("sF"))$("sF").onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target);const n=JSON.parse(JSON.stringify(g));["wTeknis","wKinerja","linkDays","gTop","gMid","gPass"].forEach(k=>n[k]=+fd.get(k));
-    n.cat=g.cat.map((c,i)=>({k:c.k,label:fd.get("cl"+i),min:+fd.get("cm"+i)}));n.rekKontrak={};n.rekNew={};g.cat.forEach(c=>{n.rekKontrak[c.k]=fd.get("rk"+c.k);n.rekNew[c.k]=fd.get("rn"+c.k)});
+    n.cat=g.cat.map((c,i)=>({k:c.k,label:fd.get("cl"+i)||c.label,min:c.min}));n.scale=scaleRows().map((r,i)=>({min:Math.max(0,Math.min(100,+fd.get("sm"+i))),h:(fd.get("sh"+i)||r.h).trim(),b:+fd.get("sb"+i)||0,k:fd.get("sk"+i)}));n.cat.forEach(c=>{const m=n.scale.filter(x=>x.k===c.k);c.min=m.length?Math.min(...m.map(x=>x.min)):0});n.rekKontrak={};n.rekNew={};g.cat.forEach(c=>{n.rekKontrak[c.k]=fd.get("rk"+c.k);n.rekNew[c.k]=fd.get("rn"+c.k)});
     n.timerDef={mode:fd.get("tmode"),perQ:Math.max(5,+fd.get("perQ")||60)};
     n.proctorDef={photoSec:Math.max(10,+fd.get("photoSec")||30),tabLimit:Math.max(0,+fd.get("tabLimit")||0)};["camera","fullscreen","copyBlock","shuffle","shuffleOpt"].forEach(k=>n.proctorDef[k]=!!fd.get("p_"+k));
     try{await save(n);syncDrive()}catch(err){toast("Gagal: "+err.message)}};
