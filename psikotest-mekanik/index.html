@@ -542,9 +542,9 @@ function formKinerja(id,fromSession){
   <form id="kF" class="grid">
    ${!old&&!ses&&S.sessions.length?`<label class="f">Ambil data dari peserta tes (opsional)<select id="kFrom"><option value="">–</option>${S.sessions.map(s=>`<option value="${s.id}">${esc(s.nama)}${s.nik?" · "+esc(s.nik):""}</option>`).join("")}</select></label>`:""}
    <div class="grid g4"><label class="f">Nama<input name="nama" required value="${esc(k.nama)}"></label><label class="f">NIK / NIP<input name="nik" value="${esc(k.nik||"")}"></label>
-    <label class="f">Jabatan<input name="jabatan" value="${esc(k.jabatan||"")}"></label><label class="f">Grade saat ini<select name="grade"><option value="">–</option>${["Helper",...GRADES].map(g=>`<option ${k.grade===g?"selected":""}>${g}</option>`).join("")}</select></label>
+    <label class="f">Jabatan${combo("jabatan","kJ",k.jabatan,["Helper Mekanik","Mekanik","Junior Mekanik","Middle Mekanik","Senior Mekanik","Foreman / Pengawas","Supervisor Plant","Welder","Electrician","Tyreman"])}</label><label class="f">Grade saat ini${combo("grade","kG",k.grade,["Helper",...GRADES])}</label>
     <label class="f">Jobsite<input name="jobsite" value="${esc(k.jobsite||"")}"></label><label class="f">Tanggal masuk<input type="date" name="tgl_masuk" value="${esc(k.tgl_masuk||"")}"></label>
-    <label class="f">Status karyawan<select name="status_karyawan">${["PKWT","Probation","PKWTT"].map(x=>`<option ${k.status_karyawan===x?"selected":""}>${x}</option>`).join("")}</select></label><label class="f">Periode penilaian<input name="periode" value="${esc(k.periode||"")}" placeholder="mis. Agu – Okt 2026"></label>
+    <label class="f">Status karyawan${combo("status_karyawan","kS",k.status_karyawan,["PKWT","Probation","PKWTT","Harian","Magang"])}</label><label class="f">Periode penilaian<input name="periode" value="${esc(k.periode||"")}" placeholder="mis. Agu – Okt 2026"></label>
     <label class="f">Penilai (atasan langsung)<input name="penilai" value="${esc(k.penilai||"")}"></label></div>
    <div class="card" style="margin:0">${head("K")}${KB.K.items.map((it,i)=>scoreRow("K",i,it)).join("")}</div>
    <div class="card" style="margin:0">${head("T")}${KB.T.items.map((it,i)=>scoreRow("T",i,it)).join("")}</div>
@@ -579,7 +579,7 @@ function formKinerja(id,fromSession){
   f.onsubmit=async e=>{e.preventDefault();const fd=new FormData(f);upd();const r=kinCalc(d);
     if(!r.full)return toast("Lengkapi semua nilai Kepribadian dan Target Kinerja",3500);if(!fd.get("rekomendasi"))return toast("Pilih keputusan akhir",3000);
     d.X=d.X.filter(x=>x&&x.t);Object.assign(d,{kelebihan:fd.get("kelebihan").trim(),kekurangan:fd.get("kekurangan").trim(),catatan:fd.get("catatan").trim(),alasan:fd.get("rekomendasi")==="tidak"?fd.get("alasan"):null});
-    const row={nama:fd.get("nama").trim(),nik:fd.get("nik").trim()||null,jabatan:fd.get("jabatan").trim()||null,grade:fd.get("grade")||null,jobsite:fd.get("jobsite").trim()||null,tgl_masuk:fd.get("tgl_masuk")||null,
+    const row={nama:fd.get("nama").trim(),nik:fd.get("nik").trim()||null,jabatan:fd.get("jabatan").trim()||null,grade:(fd.get("grade")||"").trim()||null,jobsite:fd.get("jobsite").trim()||null,tgl_masuk:fd.get("tgl_masuk")||null,
       status_karyawan:fd.get("status_karyawan"),periode:fd.get("periode").trim()||null,penilai:fd.get("penilai").trim()||null,data:d,skor:+r.skor.toFixed(1),rekomendasi:fd.get("rekomendasi"),
       kontrak_bulan:fd.get("rekomendasi")==="perpanjang"?(+fd.get("kontrak_bulan")||null):null,session_id:k.session_id||null,updated_at:new Date().toISOString()};
     try{let saved;if(old)saved=await q(SB.from("pk_kinerja").update(row).eq("id",old.id).select().single());else saved=await q(SB.from("pk_kinerja").insert(row).select().single());
@@ -638,7 +638,7 @@ function editModule(mod){
   const x=mod||{title:"",level:"Junior",duration_min:60,pass_score:60,shuffle:false,active:true,description:"",code:""};
   openModal(`<div class="head"><h2>${mod?"Pengaturan sheet":"Sheet tes baru"}</h2><button class="btn sm" onclick="closeModal()">Tutup</button></div>
   <form id="mF" class="grid g2"><label class="f" style="grid-column:1/-1">Judul sheet<input name="title" required value="${esc(x.title)}"></label>
-   <label class="f">Untuk grade<select name="grade" id="mG"><option value="">– (semua grade di level)</option>${GRADES.map(g=>`<option ${x.grade===g?"selected":""}>${g}</option>`).join("")}</select></label><label class="f">Level<select name="level" id="mL">${LEVELS.map(l=>`<option ${x.level===l?"selected":""}>${l}</option>`).join("")}</select></label>
+   <label class="f">Untuk grade <span class="small" style="font-weight:400">(pilih atau ketik sendiri)</span>${combo("grade","mG",x.grade,GRADES,"mis. G2 — kosongkan bila semua grade")}</label><label class="f">Level <span class="small" style="font-weight:400">(pilih atau ketik sendiri)</span>${combo("level","mL",x.level,LEVELS)}</label>
    <label class="f">Kode dokumen<input name="code" value="${esc(x.code||"")}"></label>
    <label class="f">Durasi (menit)<input type="number" name="duration_min" min="1" max="600" required value="${x.duration_min}"></label>
    <label class="f">Nilai lulus sheet<input type="number" name="pass_score" min="0" max="100" value="${x.pass_score}"></label>
@@ -648,7 +648,7 @@ function editModule(mod){
    <div style="grid-column:1/-1"><button class="btn pri">Simpan</button></div></form>`);
   $("mG").onchange=()=>{const l=levelOfGrade($("mG").value);if(l)$("mL").value=l};
   $("mF").onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target);
-    const row={title:fd.get("title").trim(),grade:fd.get("grade")||null,level:fd.get("level"),code:fd.get("code").trim()||null,duration_min:+fd.get("duration_min"),pass_score:+fd.get("pass_score"),description:fd.get("description").trim()||null,shuffle:!!fd.get("shuffle"),active:!!fd.get("active"),updated_at:new Date().toISOString()};
+    const row={title:fd.get("title").trim(),grade:(fd.get("grade")||"").trim().toUpperCase()||null,level:(fd.get("level")||"").trim()||"Junior",code:fd.get("code").trim()||null,duration_min:+fd.get("duration_min"),pass_score:+fd.get("pass_score"),description:fd.get("description").trim()||null,shuffle:!!fd.get("shuffle"),active:!!fd.get("active"),updated_at:new Date().toISOString()};
     try{if(mod)await q(SB.from("pk_modules").update(row).eq("id",mod.id));else{row.sort=S.modules.length+1;const r=await q(SB.from("pk_modules").insert(row).select().single());BANKSEL=r.id}
       closeModal();await loadAll();renderTab();toast("Sheet disimpan")}catch(err){toast("Gagal: "+err.message)}};
 }
@@ -675,6 +675,7 @@ function shrinkImage(file,max=900){return new Promise((res,rej)=>{const fr=new F
 async function insertQuestions(mid,list,onp){for(let i=0;i<list.length;i+=15){await q(SB.from("pk_questions").insert(list.slice(i,i+15).map(x=>({...x,module_id:mid}))));onp&&onp(Math.min(list.length,i+15))}}
 /* ---------- Upload file soal (format template ATAU format lembar soal KMB) ---------- */
 const GRADES=["G1","G2","G3","G4","G5","G6","G7","G8","G9","G10"];
+function combo(name,id,val,opts,ph){const lid="dl_"+(id||name);return `<input name="${name}"${id?` id="${id}"`:""} list="${lid}" value="${esc(val||"")}" placeholder="${esc(ph||"ketik atau pilih")}" autocomplete="off"><datalist id="${lid}">${opts.map(o=>`<option value="${esc(o)}">`).join("")}</datalist>`}
 const levelOfGrade=g=>{const n=+String(g||"").replace(/\D/g,"");return !n?"":n<=3?"Junior":n<=6?"Middle":n<=9?"Senior":"Supervisor"};
 const TOPIC_KW=[["Alat Ukur & Tools",/caliper|micrometer|gauge|tester|alat (yang dipakai )?untuk mengukur|tachometer|speedometer|smoke checker|flowmeter|tool yang/i],
  ["Rem & Sistem Udara",/brake|rem\b|air tank|quick release|drain valve|slack adjuster|pengereman/i],
@@ -754,8 +755,8 @@ async function importExcel(file){
      ${needImg.length?`<div class="notice warn" style="margin-top:8px"><b>${needImg.length} soal menyebut gambar tapi belum ada gambarnya</b>: no. ${needImg.map(q=>q.no).join(", ")}.</div>`:""}
      ${dups.length?`<div class="notice warn" style="margin-top:8px"><b>Soal kembar</b>: no. ${esc(dups.join("; "))}. <label class="row" style="margin-top:4px"><input type="checkbox" id="iDup"> Buang soal kembar</label></div>`:""}
      <form id="iF" class="grid g2" style="margin-top:12px"><label class="f" style="grid-column:1/-1">Judul sheet<input name="title" required value="${esc(title)}"></label>
-      <label class="f">Untuk grade<select name="grade" id="iG"><option value="">– (semua grade di level)</option>${GRADES.map(g=>`<option ${g===grade?"selected":""}>${g}</option>`).join("")}</select></label>
-      <label class="f">Level<select name="level" id="iL">${LEVELS.map(l=>`<option ${l===(levelOfGrade(grade)||"Junior")?"selected":""}>${l}</option>`).join("")}</select></label>
+      <label class="f">Untuk grade <span class="small" style="font-weight:400">(pilih atau ketik sendiri)</span>${combo("grade","iG",grade,GRADES,"mis. G2")}</label>
+      <label class="f">Level <span class="small" style="font-weight:400">(pilih atau ketik sendiri)</span>${combo("level","iL",levelOfGrade(grade)||"Junior",LEVELS)}</label>
       <label class="f">Durasi total (menit)<input type="number" name="dur" min="1" max="600" value="${Math.max(10,Math.round(list.length*0.9))}"></label>
       <label class="f">Nilai lulus sheet<input type="number" name="pass" value="56"></label>
       <div style="grid-column:1/-1"><details><summary class="small">Lihat 5 soal pertama</summary>${list.slice(0,5).map(q=>`<div class="qitem"><div class="n">${q.no}</div><div>${esc(q.text)}${q.image?`<img src="${q.image}">`:""}<ol>${Object.entries(q.options).map(([l,t])=>`<li class="${l===q.answer?"key":""}">${l.toUpperCase()}. ${esc(t)}</li>`).join("")}</ol><span class="chip">${esc(q.topic)}</span></div><div></div></div>`).join("")}</details></div>
@@ -764,7 +765,7 @@ async function importExcel(file){
     $("iF").onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target);let L=list;
       if($("iDup")&&$("iDup").checked){const s2={};L=list.filter(q=>{const k=q.text.toLowerCase()+"|"+Object.values(q.options).join("|").toLowerCase();if(s2[k])return false;s2[k]=1;return true})}
       const b=$("iGo");b.disabled=true;
-      try{const mod=await q(SB.from("pk_modules").insert({title:fd.get("title").trim(),grade:fd.get("grade")||null,level:fd.get("level"),duration_min:+fd.get("dur")||60,pass_score:+fd.get("pass")||56,sort:S.modules.length+1}).select().single());
+      try{const mod=await q(SB.from("pk_modules").insert({title:fd.get("title").trim(),grade:(fd.get("grade")||"").trim().toUpperCase()||null,level:(fd.get("level")||"").trim()||"Junior",duration_min:+fd.get("dur")||60,pass_score:+fd.get("pass")||56,sort:S.modules.length+1}).select().single());
         await insertQuestions(mod.id,L.map(q=>({no:q.no,text:q.text,options:q.options,answer:q.options[q.answer]?q.answer:Object.keys(q.options)[0],topic:q.topic,image:q.image||null,time_sec:q.time_sec||null})),n=>b.textContent=`Mengimpor ${n}/${L.length}…`);
         closeModal();BANKSEL=mod.id;await loadAll();renderTab();toast(L.length+" soal diimpor ke sheet baru",4000)}catch(err){b.disabled=false;b.textContent="Coba lagi";toast("Gagal impor: "+err.message,5000)}};
   }catch(e){toast("Gagal membaca file: "+e.message,5000)}
