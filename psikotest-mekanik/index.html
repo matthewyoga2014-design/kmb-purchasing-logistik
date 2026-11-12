@@ -53,6 +53,13 @@ table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 .notice{background:var(--ps);border:1px solid #DDD0FB;color:#3B1B7A;border-radius:12px;padding:10px 12px;font-size:13px}
 .notice.warn{background:var(--warns);border-color:#FCD34D;color:#78350F}
 .muted{color:var(--mut)}.small{font-size:12px}.right{text-align:right}
+.shelf{border:1px solid var(--line);border-radius:12px;padding:6px 10px;margin-bottom:12px;background:#FBFAFE}
+.shelf-row{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line)}.shelf-row:last-child{border-bottom:0}
+.shelf-lv{font-size:13px;font-weight:700;color:var(--mut)}.shelf-items{display:flex;flex-wrap:wrap;gap:6px}
+.pill{display:inline-flex;gap:6px;align-items:center;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;cursor:pointer;font:inherit;font-size:13px;max-width:100%}
+.pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px}.pill small{color:var(--mut)}.pill:hover{border-color:var(--p)}
+.pill.on{background:var(--p);border-color:var(--p);color:#fff}.pill.on small{color:#E9DDFF}.pill.off{opacity:.55}
+@media(max-width:640px){.shelf-row{grid-template-columns:1fr}}
 .dd{position:relative}.dd-btn{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px 14px;cursor:pointer;font:inherit;text-align:left}
 .dd-btn:hover,.dd.open .dd-btn{border-color:var(--p)}.dd-cur{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dd-car{color:var(--mut);transition:transform .15s}.dd.open .dd-car{transform:rotate(180deg)}
 .dd-menu{display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(40,20,90,.15);z-index:30;max-height:60vh;overflow:auto;padding:6px}
@@ -626,6 +633,8 @@ const FOLD={};
 function bankGroups(){const groups={};S.modules.forEach(x=>{const k=x.level||"Lainnya";(groups[k]=groups[k]||[]).push(x)});
   const order=Object.keys(groups).sort((a,b)=>{const ia=LEVELS.findIndex(l=>a.startsWith(l)),ib=LEVELS.findIndex(l=>b.startsWith(l));return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b)});
   return order.map(k=>[k,groups[k].sort((a,b)=>(a.sort||0)-(b.sort||0))])}
+function bankShelf(){if(!S.modules.length)return "";
+  return bankGroups().map(([k,list])=>`<div class="shelf-row"><div class="shelf-lv">📁 ${esc(k)}</div><div class="shelf-items">${list.map(x=>`<button class="pill ${x.id===BANKSEL?"on":""}${x.active?"":" off"}" data-id="${x.id}" title="${esc(x.title)}"><b>${esc(x.grade||"–")}</b><span>${esc(x.title)}</span><small>${S.qcount?.[x.id]||0} soal</small></button>`).join("")}</div></div>`).join("")}
 function bankDD(){if(!S.modules.length)return '<div class="small muted">Belum ada sheet soal.</div>';const cur=S.modules.find(x=>x.id===BANKSEL);
   return `<button class="dd-btn" type="button"><span class="dd-cur">${cur?`<span class="muted small">📁 ${esc(cur.level||"Lainnya")} ›</span> 📄 ${cur.grade?`<b>${esc(cur.grade)}</b> · `:""}${esc(cur.title)} <span class="chip">${S.qcount?.[cur.id]||0} soal</span>`:"Pilih sheet soal"}</span><span class="dd-car">▾</span></button>
    <div class="dd-menu">${bankGroups().map(([k,list])=>{const open=!FOLD[k];return `<div class="dd-fold" data-fold="${esc(k)}"><span class="caret">${open?"▾":"▸"}</span> 📁 <b>${esc(k)}</b> <span class="muted small">${list.length} sheet</span></div>
@@ -645,13 +654,10 @@ async function vBank(m){
   if(!BANKSEL||!S.modules.find(x=>x.id===BANKSEL))BANKSEL=S.modules[0]?.id||null;
   m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><div><h2>Bank Soal</h2><p class="sub">Satu file soal untuk satu grade (mis. Soal G2). Unggah file Excel apa adanya — soal, pilihan, kunci, dan gambar terbaca otomatis.</p></div>
    <div class="row"><label class="btn pri">⬆ Unggah file soal<input type="file" id="bImp" accept=".xlsx,.xls,.csv" hidden></label><button class="btn sm" id="bTpl" title="Opsional, bila soal belum punya file">Template kosong</button></div></div>
-   <div class="row" style="gap:8px;margin-bottom:12px;flex-wrap:nowrap"><div class="dd" id="bDD" style="flex:1;min-width:0">${bankDD()}</div>${BANKSEL?'<button class="btn" id="bRn" title="Ganti nama sheet">✏️ Ganti nama</button>':""}</div>
+   <div class="shelf" id="bDD">${bankShelf()}</div>
    <div>
    <div id="bBody" style="min-width:0">${S.modules.length?'<div class="empty">Memuat…</div>':'<div class="empty">Belum ada soal. Klik <b>⬆ Unggah file soal</b>.</div>'}</div></div></div>`;
-  $("bDD").onclick=e=>{const dd=$("bDD");
-    if(e.target.closest(".dd-btn")){dd.classList.toggle("open");return}
-    const fold=e.target.closest("[data-fold]");if(fold){const k=fold.dataset.fold;FOLD[k]=!FOLD[k];dd.innerHTML=bankDD();dd.classList.add("open");return}
-    const it=e.target.closest("[data-id]");if(it){BANKSEL=it.dataset.id;vBank(m)}};
+  $("bDD").onclick=e=>{const it=e.target.closest("[data-id]");if(it&&it.dataset.id!==BANKSEL){BANKSEL=it.dataset.id;vBank(m)}};
   if(!window.__ddL){window.__ddL=1;document.addEventListener("click",e=>{const dd=$("bDD");if(dd&&!dd.contains(e.target))dd.classList.remove("open")})}
   if($("bRn"))$("bRn").onclick=async()=>{const x=S.modules.find(y=>y.id===BANKSEL);const v=prompt("Nama sheet baru:",x.title);if(v&&v.trim()&&v.trim()!==x.title){try{await q(SB.from("pk_modules").update({title:v.trim(),updated_at:new Date().toISOString()}).eq("id",x.id));x.title=v.trim();toast("Nama sheet diubah");vBank(m)}catch(e){toast("Gagal: "+e.message)}}};
   $("bTpl").onclick=()=>{const ws=XLSX.utils.aoa_to_sheet([["No","Soal","A","B","C","D","Kunci","Topik"],[1,"Alat untuk mengukur diameter luar shaft secara akurat adalah…","Ruler","Micrometer","Depth Gauge","Feeler Gauge","B","Alat Ukur & Tools"]]);ws["!cols"]=[{wch:5},{wch:60},{wch:25},{wch:25},{wch:25},{wch:25},{wch:7},{wch:24}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Soal");XLSX.writeFile(wb,"Template_Bank_Soal.xlsx")};
@@ -659,7 +665,7 @@ async function vBank(m){
   if(!BANKSEL)return;
   const mod=S.modules.find(x=>x.id===BANKSEL);let qs=[];try{qs=await loadQuestions(BANKSEL)}catch(e){$("bBody").innerHTML='<div class="notice warn">Gagal memuat soal: '+esc(e.message)+'</div>';return}
   $("bBody").innerHTML=`<div class="notice" style="margin-bottom:12px"><div class="row" style="justify-content:space-between"><div><b>${esc(mod.title)}</b> ${mod.active?'<span class="chip st-Selesai">Aktif</span>':'<span class="chip st-Kedaluwarsa">Nonaktif</span>'}<br><span class="small">${mod.grade?"Grade "+esc(mod.grade)+" · ":""}Level ${esc(mod.level)} · ${mod.duration_min} menit · ${qs.length} soal · nilai lulus ${mod.pass_score}${mod.shuffle?" · urutan diacak":""}${mod.code?" · kode "+esc(mod.code):""}</span>${mod.description?`<br><span class="small muted">${esc(mod.description)}</span>`:""}</div>
-   <div class="row"><button class="btn sm" id="mEdit">Pengaturan sheet</button><button class="btn sm" id="qAdd">+ Soal</button><button class="btn sm" id="qTime">Atur waktu semua soal</button><button class="btn sm" id="mXls">Unduh soal + kunci</button><button class="btn sm dan" id="mDel">Hapus sheet</button></div></div></div>
+   <div class="row"><button class="btn sm" id="bRn">✏️ Ganti nama</button><button class="btn sm" id="mEdit">Pengaturan sheet</button><button class="btn sm" id="qAdd">+ Soal</button><button class="btn sm" id="qTime">Atur waktu semua soal</button><button class="btn sm" id="mXls">Unduh soal + kunci</button><button class="btn sm dan" id="mDel">Hapus sheet</button></div></div></div>
    <input id="qS" placeholder="Cari soal / topik…" style="width:100%;margin-bottom:6px"><p class="small muted" id="qInfo" style="margin:0 0 10px"></p><div id="qList"></div>`;
   const stat={};
   const draw=()=>{const k=$("qS").value.toLowerCase();$("qList").innerHTML=qs.filter(x=>(x.text+" "+(x.topic||"")).toLowerCase().includes(k)).map(x=>`<div class="qitem"><div class="n">${x.no}</div><div><div>${esc(x.text)}</div>${x.image?`<img src="${x.image}" alt="">`:""}<ol>${Object.entries(x.options).map(([l,t])=>`<li class="${l===x.answer?"key":""}">${l.toUpperCase()}. ${esc(t)}${l===x.answer?" ✓":""}</li>`).join("")}</ol><span class="row" style="margin-top:6px;gap:6px"><span class="chip">${esc(x.topic||"Umum")}</span>${x.time_sec?`<span class="chip">⏱ ${x.time_sec} dtk</span>`:""}${stat[x.id]?`<span class="chip ${stat[x.id].p>=80?"cat-B":stat[x.id].p>=40?"cat-C":"cat-E"}" title="Dari ${stat[x.id].n} peserta">${Math.round(stat[x.id].p)}% benar${stat[x.id].p>=90?" · terlalu mudah":stat[x.id].p<30?" · sulit / cek kunci":""}</span>`:""}</span></div><div><button class="btn sm" data-e="${x.id}">Ubah</button></div></div>`).join("")||'<div class="empty">Belum ada soal.</div>';
