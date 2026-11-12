@@ -53,6 +53,12 @@ table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 .notice{background:var(--ps);border:1px solid #DDD0FB;color:#3B1B7A;border-radius:12px;padding:10px 12px;font-size:13px}
 .notice.warn{background:var(--warns);border-color:#FCD34D;color:#78350F}
 .muted{color:var(--mut)}.small{font-size:12px}.right{text-align:right}
+.bank-wrap{display:grid;grid-template-columns:280px 1fr;gap:14px;align-items:start}@media(max-width:820px){.bank-wrap{grid-template-columns:1fr}}
+.tree{border:1px solid var(--line);border-radius:12px;padding:6px;background:#FBFAFE;position:sticky;top:120px;max-height:75vh;overflow:auto}
+.tf-head{display:flex;gap:6px;align-items:center;width:100%;border:0;background:none;padding:8px 6px;cursor:pointer;text-align:left;border-radius:8px;font-size:13px}.tf-head:hover{background:#F1ECFC}
+.caret{width:12px;color:var(--mut)}.tf-items{margin-left:14px;border-left:1px dashed #D9CFF5;padding-left:6px}
+.tf-item{display:flex;gap:6px;align-items:flex-start;padding:7px 6px;border-radius:8px;cursor:pointer;font-size:13px}.tf-item:hover{background:#F1ECFC}.tf-item.on{background:#EDE7FB;box-shadow:inset 3px 0 0 var(--p)}
+.tf-t{flex:1;min-width:0}.tf-rn{border:0;background:none;cursor:pointer;opacity:.5;padding:2px}.tf-item:hover .tf-rn{opacity:1}
 .sheettabs{display:flex;gap:2px;overflow-x:auto;border-bottom:1px solid var(--line);margin:-4px 0 12px}
 .sheettabs button{border:1px solid var(--line);border-bottom:0;background:#F4F2F9;border-radius:10px 10px 0 0;padding:8px 12px;font-weight:600;color:var(--mut);cursor:pointer;white-space:nowrap}
 .sheettabs button.on{background:#fff;color:var(--p);box-shadow:inset 0 3px 0 var(--p)}
@@ -611,13 +617,28 @@ function viewKinerja(id){const k=S.kinerja.find(x=>x.id===id);if(!k)return;const
 
 /* ====================== BANK SOAL ====================== */
 async function loadQuestions(mid,force){if(!S.questions[mid]||force)S.questions[mid]=await q(SB.from("pk_questions").select("*").eq("module_id",mid).order("no"));return S.questions[mid]}
+const FOLD={};
+function bankTree(){if(!S.modules.length)return '<div class="small muted">Belum ada sheet.</div>';
+  const groups={};S.modules.forEach(x=>{const k=x.level||"Lainnya";(groups[k]=groups[k]||[]).push(x)});
+  const order=Object.keys(groups).sort((a,b)=>{const ia=LEVELS.findIndex(l=>a.startsWith(l)),ib=LEVELS.findIndex(l=>b.startsWith(l));return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b)});
+  return order.map(k=>{const open=!FOLD[k];const list=groups[k].sort((a,b)=>(a.sort||0)-(b.sort||0));
+    return `<div class="tfold"><button class="tf-head" data-fold="${esc(k)}"><span class="caret">${open?"▾":"▸"}</span> 📁 <b>${esc(k)}</b> <span class="muted small">(${list.length})</span></button>
+     ${open?`<div class="tf-items">${list.map(x=>`<div class="tf-item ${x.id===BANKSEL?"on":""}" data-id="${x.id}"><span class="tf-ic">📄</span><span class="tf-t">${x.grade?`<b>${esc(x.grade)}</b> · `:""}${esc(x.title)}<br><span class="small muted">${S.qcount?.[x.id]||0} soal · ${x.duration_min} mnt${x.active?"":" · nonaktif"}</span></span><button class="tf-rn" data-rn="${x.id}" title="Ganti nama">✏️</button></div>`).join("")}</div>`:""}</div>`}).join("")}
+async function renameSheet(id,m){const x=S.modules.find(y=>y.id===id);const el=document.querySelector(`.tf-item[data-id="${id}"] .tf-t`);if(!el)return;
+  el.innerHTML=`<input id="rnI" value="${esc(x.title)}" style="width:100%"><span class="small muted">Enter = simpan · Esc = batal</span>`;const inp=$("rnI");inp.focus();inp.select();
+  inp.onclick=e=>e.stopPropagation();
+  const done=async ok=>{inp.onblur=null;const v=inp.value.trim();if(ok&&v&&v!==x.title){try{await q(SB.from("pk_modules").update({title:v,updated_at:new Date().toISOString()}).eq("id",id));x.title=v;toast("Nama sheet diubah")}catch(e){toast("Gagal: "+e.message)}}vBank(m)};
+  inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();done(true)}if(e.key==="Escape")done(false)};inp.onblur=()=>done(true)}
 async function vBank(m){
   if(!BANKSEL||!S.modules.find(x=>x.id===BANKSEL))BANKSEL=S.modules[0]?.id||null;
   m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><div><h2>Bank Soal</h2><p class="sub">Satu file soal untuk satu grade (mis. Soal G2). Unggah file Excel apa adanya — soal, pilihan, kunci, dan gambar terbaca otomatis.</p></div>
    <div class="row"><label class="btn pri">⬆ Unggah file soal<input type="file" id="bImp" accept=".xlsx,.xls,.csv" hidden></label><button class="btn sm" id="bTpl" title="Opsional, bila soal belum punya file">Template kosong</button></div></div>
-   <div class="sheettabs" id="bTabs">${S.modules.map(x=>`<button data-id="${x.id}" class="${x.id===BANKSEL?"on":""}">${x.grade?`<b>${esc(x.grade)}</b> · `:""}${esc(x.title)} <span class="chip" style="margin-left:4px">${S.qcount?.[x.id]||0}</span></button>`).join("")}</div>
-   <div id="bBody">${S.modules.length?'<div class="empty">Memuat…</div>':'<div class="empty">Belum ada soal. Klik <b>⬆ Unggah file soal</b>.</div>'}</div></div>`;
-  $("bTabs").onclick=e=>{const b=e.target.closest("button");if(b){BANKSEL=b.dataset.id;vBank(m)}};
+   <div class="bank-wrap"><aside class="tree" id="bTree">${bankTree()}</aside>
+   <div id="bBody" style="min-width:0">${S.modules.length?'<div class="empty">Memuat…</div>':'<div class="empty">Belum ada soal. Klik <b>⬆ Unggah file soal</b>.</div>'}</div></div></div>`;
+  $("bTree").onclick=async e=>{
+    const fold=e.target.closest("[data-fold]");if(fold){const k=fold.dataset.fold;FOLD[k]=!FOLD[k];$("bTree").innerHTML=bankTree();return}
+    const rn=e.target.closest("[data-rn]");if(rn){e.stopPropagation();renameSheet(rn.dataset.rn,m);return}
+    const it=e.target.closest("[data-id]");if(it){BANKSEL=it.dataset.id;vBank(m)}};
   $("bTpl").onclick=()=>{const ws=XLSX.utils.aoa_to_sheet([["No","Soal","A","B","C","D","Kunci","Topik"],[1,"Alat untuk mengukur diameter luar shaft secara akurat adalah…","Ruler","Micrometer","Depth Gauge","Feeler Gauge","B","Alat Ukur & Tools"]]);ws["!cols"]=[{wch:5},{wch:60},{wch:25},{wch:25},{wch:25},{wch:25},{wch:7},{wch:24}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Soal");XLSX.writeFile(wb,"Template_Bank_Soal.xlsx")};
   $("bImp").onchange=e=>importExcel(e.target.files[0]);
   if(!BANKSEL)return;
