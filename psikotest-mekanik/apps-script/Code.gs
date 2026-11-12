@@ -99,15 +99,19 @@ function grade(g, level, sc) { if (sc == null || !level) return '–'; const lis
   if (sc >= g.gPass) { let i = 0; if (list.length > 1) { if (sc >= g.gTop) i = list.length - 1; else if (sc >= g.gMid) i = 1; } return list[i]; }
   const li = LEVELS.indexOf(level); if (li > 0) { const pv = g.bands[LEVELS[li - 1]] || []; return (pv[pv.length - 1] || '–') + ' (turun level)'; } return 'Belum memenuhi'; }
 
-const KF_A = ['Skill / Keahlian Teknis', 'Pengetahuan Pekerjaan', 'Kualitas Kerja (ATR)', 'Ketepatan Waktu & Target', 'Problem Solving / Troubleshooting', 'Perawatan Unit, Tools & Laporan'];
-const KF_B = ['Disiplin', 'Tanggung Jawab', 'Kerjasama Tim', 'Komunikasi', 'Integritas', 'K3 & 5R'];
-const KF_C = [['terlambat', [0, 3, 5]], ['absen', [0, 3, 5]], ['ijin', [0, 5, 8]], ['alpa', [0, 1, 1]]];
-function kinCalc(d) { const A = (d.A || []).map(Number).filter(x => x > 0), B = (d.B || []).map(Number).filter(x => x > 0);
-  const C = KF_C.map(([k, th]) => { const v = +(d.C || {})[k] || 0; return v <= th[0] ? 4 : v <= th[1] ? 3 : v <= th[2] ? 2 : 1; });
-  const pA = A.length ? avg(A) / 4 * 100 : null, pB = B.length ? avg(B) / 4 * 100 : null, pC = avg(C) / 4 * 100, cut = [0, 7.5, 12.5, 17.5][+d.sp || 0] || 0;
-  const full = A.length === 6 && B.length === 6;
-  return { pA, pB, pC, cut, skor: full ? Math.max(0, Math.min(100, pA * .5 + pB * .3 + pC * .2 - cut)) : null }; }
-function kepLabel(k) { const m = { tetap: 'Pengangkatan karyawan tetap', perpanjang: 'Perpanjang kontrak', promosi: 'Promosi / kenaikan grade', tidak: 'Tidak diperpanjang' };
+const KB_K = ['Inisiatif & Kreativitas', 'Disiplin & Kerajinan', 'Komunikasi & Etika Kerja', 'Tanggung Jawab & Motivasi', 'Kerjasama Tim', 'Integritas & Kejujuran'];
+const KB_T = ['Skill / Keahlian Teknis', 'Pengetahuan Pekerjaan', 'Kualitas Kerja (ATR)', 'Ketepatan Waktu & Pencapaian Target', 'Problem Solving / Troubleshooting', 'Perawatan Unit & Tools', 'Laporan Kerja', 'K3 & 5R'];
+const KB_I = [['teguran', 'Teguran', 10], ['sp1', 'SP 1', 20], ['sp2', 'SP 2', 30], ['sp3', 'SP 3', 40]];
+const KB_H = [['terlambat', 'Terlambat / pulang awal', [0, 3, 5]], ['absen', 'Tidak absen', [0, 3, 5]], ['ijin', 'Sakit / izin / cuti', [0, 5, 8]], ['alpa', 'Alpa', [0, 1, 1]]];
+function kinCalc(d) { const K = (d.K || []).map(Number).filter(x => x > 0), T = (d.T || []).map(Number).filter(x => x > 0);
+  const pK = K.length ? avg(K) / 4 * 100 : null, pT = T.length ? avg(T) / 4 * 100 : null;
+  const pI = Math.max(0, 100 - KB_I.reduce((a, x) => a + (+(d.I || {})[x[0]] || 0) * x[2], 0));
+  const pH = avg(KB_H.map(x => { const v = +(d.H || {})[x[0]] || 0, th = x[2]; return v <= th[0] ? 4 : v <= th[1] ? 3 : v <= th[2] ? 2 : 1; })) / 4 * 100;
+  const X = (d.X || []).filter(x => x && x.t && +x.v > 0).map(x => +x.v), pX = X.length ? avg(X) / 4 * 100 : null;
+  let skor = null; if (K.length === KB_K.length && T.length === KB_T.length) { const p = [[pK, 30], [pT, 35], [pI, 15], [pH, 15]]; if (pX != null) p.push([pX, 5]);
+    skor = Math.max(0, Math.min(100, p.reduce((a, x) => a + x[0] * x[1], 0) / p.reduce((a, x) => a + x[1], 0))); }
+  return { pK, pT, pI, pH, pX, skor }; }
+function kepLabel(k) { const m = { tetap: 'Pengangkatan karyawan tetap', perpanjang: 'Perpanjang kontrak', promosi: 'Promosi / kenaikan grade', gaji: 'Penyesuaian gaji', tidak: 'Tidak diperpanjang' };
   return (m[k.rekomendasi] || k.rekomendasi || '') + (k.rekomendasi === 'perpanjang' && k.kontrak_bulan ? ' ' + k.kontrak_bulan + ' bulan' : '') + (k.rekomendasi === 'tidak' && k.data && k.data.alasan ? ' (' + k.data.alasan + ')' : ''); }
 
 function syncAll() {
@@ -140,16 +144,13 @@ function syncAll() {
     const ss = ss_();
     write_(ss, 'Hasil Tes', ['No', 'Tanggal', 'Nama', 'NIK', 'Grade Dituju', 'Jenis', 'Jobsite', 'Grade Saat Ini', 'Nilai', 'Huruf', 'Kategori', 'Hasil', 'Rekomendasi', 'Pelanggaran', 'Status', 'Catatan'], hasil);
     write_(ss, 'Rincian', ['Nama', 'NIK', 'Grade Dituju', 'Soal', 'Mulai', 'Selesai', 'Benar', 'Nilai', 'Nilai per Topik', 'Pelanggaran', 'Rincian Pelanggaran', 'Jumlah Foto', 'Foto Terakhir'], rinci);
-    const kin = (d.kinerja || []).map((k, i) => { const r = kinCalc(k.data || {}), c = category(g, r.skor), dd = k.data || {};
+    const kin = (d.kinerja || []).map((k, i) => { const dd = k.data || {}, r = kinCalc(dd), c = category(g, r.skor);
       return [i + 1, new Date(k.created_at), k.nama, k.nik || '', k.jabatan || '', k.grade || '', k.jobsite || '', k.status_karyawan || '', k.periode || '', k.penilai || '']
-        .concat(KF_A.map((_, j) => +(dd.A || [])[j] || '')).concat(KF_B.map((_, j) => +(dd.B || [])[j] || ''))
-        .concat([r1(r.pA), r1(r.pB), r1(r.pC), r.cut, r1(r.skor), c ? c.h : '', c ? c.label : '', kepLabel(k), dd.kelebihan || '', dd.kekurangan || '', dd.catatan || '']); });
-    write_(ss, 'Penilaian Kinerja', ['No', 'Tanggal', 'Nama', 'NIK', 'Jabatan', 'Grade', 'Jobsite', 'Status', 'Periode', 'Penilai'].concat(KF_A.map((t, j) => 'A' + (j + 1) + ' ' + t)).concat(KF_B.map((t, j) => 'B' + (j + 1) + ' ' + t))
-      .concat(['Nilai A (50%)', 'Nilai B (30%)', 'Nilai Kehadiran (20%)', 'Pengurang SP', 'Skor Kinerja', 'Huruf', 'Kategori', 'Keputusan', 'Kelebihan', 'Perlu Ditingkatkan', 'Catatan']), kin);
-    // Foto peserta yang hasil tesnya sudah dihapus di web -> dipindah ke Sampah Drive (bisa dipulihkan 30 hari)
-    const sids = (d.sessions || []).map(s => String(s.id).slice(0, 8));
-    const fit = sub_(root_(), 'Foto Peserta').getFolders();
-    while (fit.hasNext()) { const f = fit.next(), m = f.getName().match(/ - ([0-9a-f]{8})$/); if (m && sids.indexOf(m[1]) < 0) f.setTrashed(true); }
+        .concat(KB_K.map((_, j) => +(dd.K || [])[j] || '')).concat(KB_T.map((_, j) => +(dd.T || [])[j] || ''))
+        .concat(KB_I.map(x => +(dd.I || {})[x[0]] || 0)).concat(KB_H.map(x => +(dd.H || {})[x[0]] || 0))
+        .concat([(dd.X || []).filter(x => x && x.t).map(x => x.t + ' (' + (x.v || '-') + ')').join('; '), r1(r.pK), r1(r.pT), r1(r.pI), r1(r.pH), r1(r.pX), r1(r.skor), c ? c.h : '', c ? c.label : '', kepLabel(k), dd.kelebihan || '', dd.kekurangan || '', dd.catatan || '']); });
+    write_(ss, 'Penilaian Kinerja', ['No', 'Tanggal', 'Nama', 'NIK', 'Jabatan', 'Grade', 'Jobsite', 'Status', 'Periode', 'Penilai'].concat(KB_K.map((t, j) => 'K' + (j + 1) + ' ' + t)).concat(KB_T.map((t, j) => 'T' + (j + 1) + ' ' + t))
+      .concat(KB_I.map(x => x[1])).concat(KB_H.map(x => x[1])).concat(['Tugas Tambahan', 'Kepribadian (30%)', 'Target Kinerja (35%)', 'Indisipliner (15%)', 'Kehadiran (15%)', 'Tugas Tambahan (5%)', 'Skor Kinerja', 'Huruf', 'Kategori', 'Keputusan', 'Kelebihan', 'Perlu Ditingkatkan', 'Catatan']), kin);
     const keep = ['Hasil Tes', 'Rincian', 'Penilaian Kinerja'];
     ss.getSheets().forEach(sh => { if (keep.indexOf(sh.getName()) < 0 && ss.getSheets().length > 1) ss.deleteSheet(sh); });
   } finally { lock.releaseLock(); }

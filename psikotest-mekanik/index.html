@@ -395,9 +395,10 @@ function exportRows(){const rows=resultRows();
 function exportXlsx(){if(!window.XLSX)return toast("Pustaka Excel belum termuat");const {hasil,rinci}=exportRows();const wb=XLSX.utils.book_new();
   const ws1=XLSX.utils.json_to_sheet(hasil.length?hasil:[{Info:"Belum ada data"}]);ws1["!cols"]=Object.keys(hasil[0]||{a:1}).map(k=>({wch:Math.max(8,Math.min(36,k.length+6))}));
   XLSX.utils.book_append_sheet(wb,ws1,"Hasil Tes");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rinci.length?rinci:[{Info:"Belum ada data"}]),"Rincian");
-  const kin=S.kinerja.map((k,i)=>{const r=kinCalc(k.data);const o={No:i+1,Tanggal:fdate(k.created_at),Nama:k.nama,NIK:k.nik||"",Jabatan:k.jabatan||"",Grade:k.grade||"",Jobsite:k.jobsite||"",Status:k.status_karyawan||"",Periode:k.periode||"",Penilai:k.penilai||""};
-    KF.A.items.forEach((it,j)=>o["A"+(j+1)+" "+it[0]]=+(k.data.A||[])[j]||"");KF.B.items.forEach((it,j)=>o["B"+(j+1)+" "+it[0]]=+(k.data.B||[])[j]||"");
-    Object.assign(o,{"Nilai A (50%)":r.pA!=null?+r.pA.toFixed(1):"","Nilai B (30%)":r.pB!=null?+r.pB.toFixed(1):"","Nilai Kehadiran (20%)":+r.pC.toFixed(1),"Pengurang SP":r.cut,"Skor Kinerja":r.skor!=null?+r.skor.toFixed(1):"",Huruf:r.cat?r.cat.h:"",Kategori:r.cat?r.cat.label:"",Keputusan:kepLabel(k),Kelebihan:k.data.kelebihan||"","Perlu Ditingkatkan":k.data.kekurangan||"",Catatan:k.data.catatan||""});return o});
+  const kin=S.kinerja.map((k,i)=>{const r=kinCalc(k.data);const d=k.data||{};const o={No:i+1,Tanggal:fdate(k.created_at),Nama:k.nama,NIK:showNik()?(k.nik||""):"",Jabatan:k.jabatan||"",Grade:k.grade||"",Jobsite:k.jobsite||"",Status:k.status_karyawan||"",Periode:k.periode||"",Penilai:k.penilai||""};
+    KB.K.items.forEach((it,j)=>o["K"+(j+1)+" "+it[0]]=+(d.K||[])[j]||"");KB.T.items.forEach((it,j)=>o["T"+(j+1)+" "+it[0]]=+(d.T||[])[j]||"");
+    KB.I.items.forEach(([key,l])=>o[l]=+(d.I||{})[key]||0);KB.H.items.forEach(([key,l])=>o[l]=+(d.H||{})[key]||0);o["Tugas Tambahan"]=(d.X||[]).filter(x=>x&&x.t).map(x=>x.t+" ("+(x.v||"-")+")").join("; ");
+    const f1=v=>v!=null?+v.toFixed(1):"";Object.assign(o,{"Kepribadian (30%)":f1(r.pK),"Target Kinerja (35%)":f1(r.pT),"Indisipliner (15%)":f1(r.pI),"Kehadiran (15%)":f1(r.pH),"Tugas Tambahan (5%)":f1(r.pX),"Skor Kinerja":f1(r.skor),Huruf:r.cat?r.cat.h:"",Kategori:r.cat?r.cat.label:"",Keputusan:kepLabel(k),Kelebihan:d.kelebihan||"","Perlu Ditingkatkan":d.kekurangan||"",Catatan:d.catatan||""});return o});
   XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(kin.length?kin:[{Info:"Belum ada data"}]),"Penilaian Kinerja");
   XLSX.writeFile(wb,"Hasil_Psikotest_Mekanik_"+new Date().toISOString().slice(0,10)+".xlsx")}
 
@@ -485,68 +486,75 @@ function drawGallery(list,links){const el=$("pGal");if(!el)return;if(ROLE==="vie
    ${rest.length?`<div class="gal">${rest.map(p=>fig(p,120)).join("")}</div>`:""}<p class="small muted" style="margin:8px 0 0">${list.length} foto · klik foto untuk membuka ukuran penuh di Google Drive.</p>`;
   el.querySelectorAll("img").forEach(i=>i.onclick=()=>{if(i.dataset.u)window.open(i.dataset.u,"_blank","noopener");else openModal(`<div class="head"><h2>Foto</h2><button class="btn sm" onclick="closeModal()">Tutup</button></div><img src="${i.src}" style="width:100%">`)})}
 /* ====================== PENILAIAN KINERJA (form final tim Plant) ====================== */
-const KF={
- A:{t:"A. Kompetensi Teknis & Hasil Kerja",w:50,items:[
-  ["Skill / Keahlian Teknis","Menguasai teknik perbaikan & perawatan unit, mengerjakan mandiri tanpa diarahkan atasan.","Mengerti teknik pekerjaan, namun sesekali masih diarahkan atasan.","Beberapa kali salah dalam pekerjaan teknis dan harus dipantau atasan.","Tidak menguasai teknik pekerjaan sehingga menghambat pekerjaan."],
-  ["Pengetahuan Pekerjaan","Sangat memahami tugas, cepat tanggap, dan menerapkannya dengan sangat baik.","Memahami tugas dengan baik dan menerapkannya dalam pekerjaan sehari-hari.","Kurang memahami tugas, perlu dibimbing atasan terlebih dahulu.","Tidak memahami tugas dan sulit menerima arahan."],
-  ["Kualitas Kerja (ATR)","ATR 97% – 100%.","ATR 91% – 96%.","ATR 86% – 90%.","ATR di bawah 85%."],
-  ["Ketepatan Waktu & Target","Selalu menyelesaikan pekerjaan tepat waktu atau lebih cepat dari target.","Umumnya menyelesaikan pekerjaan sesuai batas waktu.","Beberapa kali terlambat menyelesaikan pekerjaan.","Sering terlambat sehingga mengganggu operasional unit."],
-  ["Problem Solving / Troubleshooting","Cepat & tepat menemukan akar masalah unit dan memberi solusi benar.","Mampu menemukan masalah dan menyelesaikannya dengan benar.","Hanya mengikuti arahan orang lain dalam menyelesaikan masalah.","Tidak mampu menyelesaikan masalah unit."],
-  ["Perawatan Unit, Tools & Laporan","Tools & area kerja terawat, service report/backlog selalu lengkap dan rapi.","Tools & laporan baik, sesekali perlu diingatkan.","Tools/laporan sering tidak lengkap atau tidak rapi.","Tidak merawat tools dan tidak membuat laporan."]]},
- B:{t:"B. Sikap & Perilaku Kerja",w:30,items:[
-  ["Disiplin","Selalu menaati tata tertib & peraturan perusahaan, tidak pernah ditegur.","Menaati peraturan, berusaha tidak mendapat teguran.","Beberapa kali melanggar peraturan dan pernah ditegur.","Sering melanggar peraturan dan mendapat peringatan."],
-  ["Tanggung Jawab","Menyelesaikan tugas sesuai SOP sampai tuntas, bisa dipercaya penuh.","Menyelesaikan tugas sesuai SOP, baik sendiri maupun tim.","Menyelesaikan tugas namun tidak mengikuti SOP.","Tidak menyelesaikan tugas dan tidak mengikuti SOP."],
+// Bab: 1 Kepribadian · 2 Target Kinerja · 3 Indisipliner · 4 Kehadiran · 5 Tugas Tambahan
+const KB={
+ K:{t:"1. Kepribadian",w:30,items:[
+  ["Inisiatif & Kreativitas","Selalu berinisiatif mencari pekerjaan & memberi ide perbaikan tanpa disuruh.","Berinisiatif bila ada kesempatan, sesekali memberi ide.","Menunggu perintah, jarang berinisiatif.","Tidak berinisiatif walau sudah diarahkan."],
+  ["Disiplin & Kerajinan","Selalu menaati tata tertib dan rajin, tidak pernah ditegur.","Menaati peraturan, berusaha tidak mendapat teguran.","Beberapa kali melanggar peraturan dan pernah ditegur.","Sering melanggar peraturan."],
+  ["Komunikasi & Etika Kerja","Sopan, mendengar dengan empati, menyampaikan informasi dengan jelas.","Cukup sopan dan mampu menyampaikan informasi dengan jelas.","Kurang mau mendengar / kurang jelas menyampaikan informasi.","Tidak sopan dan tidak mampu berkomunikasi."],
+  ["Tanggung Jawab & Motivasi","Menyelesaikan tugas sesuai SOP sampai tuntas, bersemangat tinggi.","Menyelesaikan tugas sesuai SOP.","Menyelesaikan tugas tetapi tidak sesuai SOP / perlu didorong.","Tidak menyelesaikan tugas."],
   ["Kerjasama Tim","Aktif bekerja sama dan membantu rekan menyelesaikan masalah.","Bersedia bekerja sama dengan tim.","Mau bekerja sama tetapi tidak menunjukkan sikap membantu.","Sulit diajak bekerja sama."],
-  ["Komunikasi","Mendengar dengan empati, menyampaikan informasi lisan/tulisan dengan jelas.","Mau mendengar dan mampu menyampaikan informasi dengan cukup jelas.","Kurang mau mendengar dan kurang jelas menyampaikan informasi.","Tidak mau mendengar dan tidak mampu menyampaikan informasi."],
-  ["Integritas","Selalu jujur, dapat dipercaya, dan diandalkan rekan & atasan.","Berusaha jujur dan dapat dipercaya.","Harus diawasi atasan agar bekerja dengan jujur.","Tidak dapat dipercaya dan diandalkan."],
-  ["K3 & 5R","Selalu memakai APD lengkap, area kerja rapi, tidak pernah ada insiden.","Patuh K3, sesekali perlu diingatkan.","Beberapa kali tidak memakai APD / area kerja kotor.","Sering melanggar K3 atau menyebabkan insiden."]]},
- C:{t:"C. Kehadiran (diisi HR)",w:20,items:[
-  ["terlambat","Terlambat / pulang awal","kali",[0,3,5]],
-  ["absen","Tidak absen masuk / pulang","kali",[0,3,5]],
-  ["ijin","Sakit / izin / cuti","hari",[0,5,8]],
-  ["alpa","Alpa (tanpa keterangan)","hari",[0,1,1]]]}};
-const SP_CUT=[0,7.5,12.5,17.5];
-const KEP=[["tetap","Pengangkatan karyawan tetap"],["perpanjang","Perpanjang kontrak"],["promosi","Promosi / kenaikan grade"],["tidak","Tidak diperpanjang"]];
+  ["Integritas & Kejujuran","Selalu jujur, dapat dipercaya, dan diandalkan.","Berusaha jujur dan dapat dipercaya.","Harus diawasi agar bekerja dengan jujur.","Tidak dapat dipercaya."]]},
+ T:{t:"2. Target Kinerja",w:35,items:[
+  ["Skill / Keahlian Teknis","Menguasai teknik perbaikan & perawatan unit, mengerjakan mandiri.","Mengerti teknik pekerjaan, sesekali masih diarahkan atasan.","Beberapa kali salah dalam pekerjaan teknis, harus dipantau.","Tidak menguasai teknik pekerjaan."],
+  ["Pengetahuan Pekerjaan","Sangat memahami tugas dan cepat tanggap.","Memahami tugas dan menerapkannya dengan baik.","Kurang memahami tugas, perlu dibimbing.","Tidak memahami tugas."],
+  ["Kualitas Kerja (ATR)","ATR 97% – 100%.","ATR 91% – 96%.","ATR 86% – 90%.","ATR di bawah 85%."],
+  ["Ketepatan Waktu & Pencapaian Target","Selalu selesai tepat waktu / lebih cepat dari target.","Umumnya selesai sesuai target waktu.","Beberapa kali terlambat dari target.","Sering terlambat, mengganggu operasional unit."],
+  ["Problem Solving / Troubleshooting","Cepat & tepat menemukan akar masalah unit dan solusinya.","Mampu menemukan dan menyelesaikan masalah dengan benar.","Hanya mengikuti arahan orang lain.","Tidak mampu menyelesaikan masalah unit."],
+  ["Perawatan Unit & Tools","Unit & tools selalu terawat, bersih, dan lengkap.","Unit & tools terawat, sesekali perlu diingatkan.","Unit/tools sering kurang terawat.","Tidak merawat unit & tools."],
+  ["Laporan Kerja (Service Report / Backlog)","Laporan selalu lengkap, rapi, dan tepat waktu.","Laporan baik, sesekali perlu diingatkan.","Laporan sering tidak lengkap / terlambat.","Tidak membuat laporan."],
+  ["K3 & 5R","Selalu memakai APD lengkap, area kerja rapi, tanpa insiden.","Patuh K3, sesekali perlu diingatkan.","Beberapa kali tidak memakai APD / area kerja kotor.","Sering melanggar K3 atau menyebabkan insiden."]]},
+ I:{t:"3. Indisipliner",w:15,items:[["teguran","Teguran lisan / tertulis",10],["sp1","SP 1",20],["sp2","SP 2",30],["sp3","SP 3",40]]},
+ H:{t:"4. Kehadiran",w:15,items:[["terlambat","Terlambat / pulang awal","kali",[0,3,5]],["absen","Tidak absen masuk / pulang","kali",[0,3,5]],["ijin","Sakit / izin / cuti","hari",[0,5,8]],["alpa","Alpa (tanpa keterangan)","hari",[0,1,1]]]},
+ X:{t:"5. Tugas Tambahan",w:5}};
+const KEP=[["tetap","Pengangkatan karyawan tetap"],["perpanjang","Perpanjang kontrak"],["promosi","Promosi / kenaikan grade"],["gaji","Penyesuaian gaji"],["tidak","Tidak diperpanjang"]];
 function cScore(v,th){v=+v||0;return v<=th[0]?4:v<=th[1]?3:v<=th[2]?2:1}
-function kinCalc(d){d=d||{};const A=(d.A||[]).map(Number).filter(x=>x>0),B=(d.B||[]).map(Number).filter(x=>x>0);
-  const C=KF.C.items.map(([k,,,th])=>cScore((d.C||{})[k],th));
-  const full=A.length===KF.A.items.length&&B.length===KF.B.items.length;
-  const pA=A.length?avg(A)/4*100:null,pB=B.length?avg(B)/4*100:null,pC=avg(C)/4*100,cut=SP_CUT[+d.sp||0]||0;
-  const skor=full?Math.max(0,Math.min(100,pA*KF.A.w/100+pB*KF.B.w/100+pC*KF.C.w/100-cut)):null;
-  return {pA,pB,pC,C,cut,skor,full,cat:category(skor)}}
+function kinCalc(d){d=d||{};const K=(d.K||[]).map(Number).filter(x=>x>0),T=(d.T||[]).map(Number).filter(x=>x>0);
+  const pK=K.length?avg(K)/4*100:null,pT=T.length?avg(T)/4*100:null;
+  const pI=Math.max(0,100-KB.I.items.reduce((a,[k,,p])=>a+(+(d.I||{})[k]||0)*p,0));
+  const H=KB.H.items.map(([k,,,th])=>cScore((d.H||{})[k],th)),pH=avg(H)/4*100;
+  const X=(d.X||[]).filter(x=>x&&x.t&&+x.v>0).map(x=>+x.v),pX=X.length?avg(X)/4*100:null;
+  const full=K.length===KB.K.items.length&&T.length===KB.T.items.length;
+  let skor=null;if(full){const parts=[[pK,KB.K.w],[pT,KB.T.w],[pI,KB.I.w],[pH,KB.H.w]];if(pX!=null)parts.push([pX,KB.X.w]);
+    const tw=parts.reduce((a,p)=>a+p[1],0);skor=Math.max(0,Math.min(100,parts.reduce((a,p)=>a+p[0]*p[1],0)/tw))}
+  return {pK,pT,pI,pH,pX,H,skor,full,cat:category(skor)}}
 function kepLabel(k){const x=KEP.find(e=>e[0]===k.rekomendasi);if(!x)return k.rekomendasi||"–";return x[1]+(k.rekomendasi==="perpanjang"&&k.kontrak_bulan?" "+k.kontrak_bulan+" bulan":"")+(k.rekomendasi==="tidak"&&k.data?.alasan?" ("+k.data.alasan+")":"")}
 function autoKep(cat){return !cat?"":cat.k==="A"?"tetap":cat.k==="E"?"tidak":"perpanjang"}
 function vKinerja(m){
-  m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2>Penilaian Kinerja – Tim Plant</h2><p class="sub">Form final penilaian kinerja karyawan untuk evaluasi akhir kontrak / pengangkatan. Diisi atasan langsung, bagian kehadiran oleh HR.</p></div>
+  m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2>Penilaian Kinerja – Tim Plant</h2><p class="sub">Bab: Kepribadian · Target Kinerja · Indisipliner · Kehadiran · Tugas Tambahan. Diisi atasan langsung, bab Indisipliner & Kehadiran oleh HR.</p></div>
    <div class="row">${canEdit()?'<button class="btn pri" id="kNew">+ Penilaian baru</button>':""}</div></div>
    <div class="row" style="margin-bottom:10px"><input id="kQ" placeholder="Cari nama / NIK" style="flex:1;min-width:160px"></div>
    <div class="sheet-wrap"><table class="sheet" id="kT"></table></div></div>`;
   const draw=()=>{const k=$("kQ").value.toLowerCase();const rows=S.kinerja.filter(x=>(x.nama+" "+(x.nik||"")).toLowerCase().includes(k));
     $("kT").innerHTML=`<thead><tr><th>Tanggal</th><th>Nama</th><th>NIK</th><th>Jabatan</th><th>Periode</th><th class="num">Skor</th><th>Huruf · Kategori</th><th>Keputusan</th><th>Penilai</th></tr></thead><tbody>${rows.map(x=>{const r=kinCalc(x.data);
-      return `<tr data-id="${x.id}"><td>${fdate(x.created_at)}</td><td><b>${esc(x.nama)}</b></td><td>${esc(x.nik||"")}</td><td>${esc(x.jabatan||"")}${x.grade?" · "+esc(x.grade):""}</td><td>${esc(x.periode||"")}</td><td class="num"><b>${fmt(r.skor)}</b></td><td>${catChip(r.cat)}</td><td class="wrap" style="min-width:160px">${esc(kepLabel(x))}</td><td class="small">${esc(x.penilai||"")}</td></tr>`}).join("")||`<tr><td colspan="9" class="empty">Belum ada penilaian kinerja.</td></tr>`}</tbody>`;
+      return `<tr data-id="${x.id}"><td>${fdate(x.created_at)}</td><td><b>${esc(x.nama)}</b></td><td>${showNik()?esc(x.nik||""):"•••"}</td><td>${esc(x.jabatan||"")}${x.grade?" · "+esc(x.grade):""}</td><td>${esc(x.periode||"")}</td><td class="num"><b>${fmt(r.skor)}</b></td><td>${catChip(r.cat)}</td><td class="wrap" style="min-width:160px">${esc(kepLabel(x))}</td><td class="small">${esc(x.penilai||"")}</td></tr>`}).join("")||`<tr><td colspan="9" class="empty">Belum ada penilaian kinerja.</td></tr>`}</tbody>`;
     $("kT").querySelectorAll("tr[data-id]").forEach(tr=>tr.onclick=()=>viewKinerja(tr.dataset.id))};
   $("kQ").oninput=draw;draw();HDRAW=()=>{if($("kT"))draw()};
   if($("kNew"))$("kNew").onclick=()=>formKinerja(null);
 }
 function formKinerja(id,fromSession){
   const old=id?S.kinerja.find(x=>x.id===id):null;const ses=fromSession?S.sessions.find(x=>x.id===fromSession):null;
-  const k=old?JSON.parse(JSON.stringify(old)):{nama:ses?.nama||"",nik:ses?.nik||"",jabatan:ses?"Mekanik":"Mekanik",grade:ses?.grade_saat_ini||ses?.grade_target||"",jobsite:ses?.jobsite||"",status_karyawan:"PKWT",periode:"",penilai:"",session_id:ses?.id||null,data:{A:[],B:[],C:{},sp:0},rekomendasi:"",kontrak_bulan:null};
-  const d=k.data;d.A=d.A||[];d.B=d.B||[];d.C=d.C||{};
+  const k=old?JSON.parse(JSON.stringify(old)):{nama:ses?.nama||"",nik:ses?.nik||"",jabatan:"Mekanik",grade:ses?.grade_saat_ini||ses?.grade_target||"",jobsite:ses?.jobsite||"",status_karyawan:"PKWT",periode:"",penilai:"",session_id:ses?.id||null,data:{},rekomendasi:"",kontrak_bulan:null};
+  const d=k.data;d.K=d.K||[];d.T=d.T||[];d.I=d.I||{};d.H=d.H||{};d.X=d.X||[];
   const scoreRow=(sec,i,it)=>{const v=+d[sec][i]||0;return `<div class="kitem"><div class="row" style="justify-content:space-between;gap:8px"><b style="flex:1;min-width:150px">${i+1}. ${esc(it[0])}</b><span class="seg">${[4,3,2,1].map(n=>`<button type="button" data-s="${sec}" data-i="${i}" data-v="${n}" class="${v===n?"on":""}">${n}</button>`).join("")}</span></div><div class="small muted kdesc" id="kd${sec}${i}">${v?esc(it[5-v]):"4 = Sangat Baik · 3 = Baik · 2 = Kurang · 1 = Buruk"}</div></div>`};
+  const head=(sec,note)=>`<h3>${KB[sec].t} <span class="chip">${KB[sec].w}%</span>${note?` <span class="small muted" style="font-weight:400">${note}</span>`:""}</h3>`;
   openModal(`<div class="head"><h2>${old?"Ubah":"Form"} Penilaian Kinerja Karyawan – Plant</h2><button class="btn sm" onclick="closeModal()">Tutup</button></div>
   <form id="kF" class="grid">
    ${!old&&!ses&&S.sessions.length?`<label class="f">Ambil data dari peserta tes (opsional)<select id="kFrom"><option value="">–</option>${S.sessions.map(s=>`<option value="${s.id}">${esc(s.nama)}${s.nik?" · "+esc(s.nik):""}</option>`).join("")}</select></label>`:""}
    <div class="grid g4"><label class="f">Nama<input name="nama" required value="${esc(k.nama)}"></label><label class="f">NIK / NIP<input name="nik" value="${esc(k.nik||"")}"></label>
-    <label class="f">Jabatan<input name="jabatan" value="${esc(k.jabatan||"")}" placeholder="mis. Mekanik"></label><label class="f">Grade saat ini<select name="grade"><option value="">–</option>${["Helper",...GRADES].map(g=>`<option ${k.grade===g?"selected":""}>${g}</option>`).join("")}</select></label>
+    <label class="f">Jabatan<input name="jabatan" value="${esc(k.jabatan||"")}"></label><label class="f">Grade saat ini<select name="grade"><option value="">–</option>${["Helper",...GRADES].map(g=>`<option ${k.grade===g?"selected":""}>${g}</option>`).join("")}</select></label>
     <label class="f">Jobsite<input name="jobsite" value="${esc(k.jobsite||"")}"></label><label class="f">Tanggal masuk<input type="date" name="tgl_masuk" value="${esc(k.tgl_masuk||"")}"></label>
     <label class="f">Status karyawan<select name="status_karyawan">${["PKWT","Probation","PKWTT"].map(x=>`<option ${k.status_karyawan===x?"selected":""}>${x}</option>`).join("")}</select></label><label class="f">Periode penilaian<input name="periode" value="${esc(k.periode||"")}" placeholder="mis. Agu – Okt 2026"></label>
     <label class="f">Penilai (atasan langsung)<input name="penilai" value="${esc(k.penilai||"")}"></label></div>
-   ${["A","B"].map(sec=>`<div class="card" style="margin:0"><h3>${KF[sec].t} <span class="chip">${KF[sec].w}%</span></h3>${KF[sec].items.map((it,i)=>scoreRow(sec,i,it)).join("")}</div>`).join("")}
-   <div class="card" style="margin:0"><h3>${KF.C.t} <span class="chip">${KF.C.w}%</span></h3><div class="grid g4">${KF.C.items.map(([key,l,u])=>`<label class="f">${l} (${u})<input type="number" min="0" data-c="${key}" value="${+d.C[key]||0}"></label>`).join("")}
-    <label class="f">Surat Peringatan aktif<select id="kSP">${["Tidak ada","SP 1 (−7,5)","SP 2 (−12,5)","SP 3 (−17,5)"].map((l,i)=>`<option value="${i}" ${(+d.sp||0)===i?"selected":""}>${l}</option>`).join("")}</select></label></div>
-    <p class="small muted" style="margin:6px 0 0">Skor kehadiran: terlambat & tidak absen 0 = 4 · 1–3 = 3 · 4–5 = 2 · &gt;5 = 1 | sakit/izin/cuti 0 = 4 · 1–5 hari = 3 · 6–8 = 2 · &gt;8 = 1 | alpa 0 = 4 · 1 hari = 2 · &gt;1 = 1</p></div>
+   <div class="card" style="margin:0">${head("K")}${KB.K.items.map((it,i)=>scoreRow("K",i,it)).join("")}</div>
+   <div class="card" style="margin:0">${head("T")}${KB.T.items.map((it,i)=>scoreRow("T",i,it)).join("")}</div>
+   <div class="card" style="margin:0">${head("I","diisi HR")}<div class="grid g4">${KB.I.items.map(([key,l,p])=>`<label class="f">${l} (jumlah) <span class="small muted" style="font-weight:400">−${p}%/kali</span><input type="number" min="0" data-i2="${key}" value="${+d.I[key]||0}"></label>`).join("")}</div>
+    <p class="small muted" style="margin:6px 0 0">Nilai = 100 − teguran×10 − SP1×20 − SP2×30 − SP3×40 (minimal 0).</p></div>
+   <div class="card" style="margin:0">${head("H","diisi HR")}<div class="grid g4">${KB.H.items.map(([key,l,u])=>`<label class="f">${l} (${u})<input type="number" min="0" data-h="${key}" value="${+d.H[key]||0}"></label>`).join("")}</div>
+    <p class="small muted" style="margin:6px 0 0">Skor: terlambat & tidak absen 0 = 4 · 1–3 = 3 · 4–5 = 2 · &gt;5 = 1 | sakit/izin/cuti 0 = 4 · 1–5 hari = 3 · 6–8 = 2 · &gt;8 = 1 | alpa 0 = 4 · 1 hari = 2 · &gt;1 = 1</p></div>
+   <div class="card" style="margin:0">${head("X","opsional — bila kosong, bobotnya dibagi ke bab lain")}${[0,1,2].map(i=>`<div class="row" style="padding:4px 0"><input data-xt="${i}" placeholder="Tugas tambahan ${i+1} (mis. PIC tools room)" value="${esc(d.X[i]?.t||"")}" style="flex:1;min-width:160px"><span class="seg">${[4,3,2,1].map(n=>`<button type="button" data-x="${i}" data-v="${n}" class="${+d.X[i]?.v===n?"on":""}">${n}</button>`).join("")}</span></div>`).join("")}</div>
    <div class="grid g2"><label class="f">Kelebihan / keunggulan<textarea name="kelebihan" rows="3">${esc(d.kelebihan||"")}</textarea></label><label class="f">Hal yang perlu ditingkatkan<textarea name="kekurangan" rows="3">${esc(d.kekurangan||"")}</textarea></label></div>
-   <div class="card" style="margin:0;background:var(--ps)"><div class="row" style="justify-content:space-between"><div><div class="small muted">Skor kinerja</div><div class="score-big" id="kSk">–</div></div><div id="kCat"></div></div>
+   <div class="card" style="margin:0;background:var(--ps)"><div class="row" style="justify-content:space-between"><div><div class="small muted">Skor kinerja</div><div class="score-big" id="kSk">–</div><div class="small muted" id="kPart"></div></div><div id="kCat"></div></div>
     <div class="grid g2" style="margin-top:10px"><label class="f">Keputusan akhir<select name="rekomendasi" id="kRek"><option value="">– pilih –</option>${KEP.map(([v,l])=>`<option value="${v}" ${k.rekomendasi===v?"selected":""}>${l}</option>`).join("")}</select></label>
      <label class="f" id="kBlnW">Lama perpanjangan (bulan)<input type="number" name="kontrak_bulan" min="1" max="24" value="${k.kontrak_bulan||""}"></label>
      <label class="f" id="kAlsW">Alasan tidak diperpanjang<select name="alasan"><option ${d.alasan==="Dari perusahaan"?"selected":""}>Dari perusahaan</option><option ${d.alasan==="Permintaan karyawan"?"selected":""}>Permintaan karyawan</option></select></label></div>
@@ -554,17 +562,21 @@ function formKinerja(id,fromSession){
    <label class="f">Catatan penilai<textarea name="catatan" rows="2">${esc(d.catatan||"")}</textarea></label>
    <div class="row" style="justify-content:space-between">${old&&can("hapus")?'<button type="button" class="btn dan" id="kDel">Hapus</button>':"<span></span>"}<button class="btn pri">Simpan penilaian</button></div></form>`);
   const f=$("kF");
-  const upd=()=>{d.C={};f.querySelectorAll("[data-c]").forEach(x=>d.C[x.dataset.c]=+x.value||0);d.sp=+$("kSP").value;const r=kinCalc(d);
-    $("kSk").textContent=r.full?fmt(r.skor):"–";$("kCat").innerHTML=r.full?catChip(r.cat,true):'<span class="small muted">Lengkapi semua nilai A & B</span>';
-    const sug=autoKep(r.cat);$("kSug").textContent=r.full?"Saran sistem: "+(setg().rekKontrak[r.cat.k]||""):"";
-    if(r.full&&!$("kRek").value&&!old)$("kRek").value=sug;const v=$("kRek").value;$("kBlnW").hidden=v!=="perpanjang";$("kAlsW").hidden=v!=="tidak"};
-  f.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{const sec=b.dataset.s,i=+b.dataset.i,v=+b.dataset.v;d[sec][i]=v;
-    b.parentElement.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));$("kd"+sec+i).textContent=KF[sec].items[i][5-v];upd()});
+  const upd=()=>{f.querySelectorAll("[data-i2]").forEach(x=>d.I[x.dataset.i2]=+x.value||0);f.querySelectorAll("[data-h]").forEach(x=>d.H[x.dataset.h]=+x.value||0);
+    f.querySelectorAll("[data-xt]").forEach(x=>{const i=+x.dataset.xt;d.X[i]=d.X[i]||{};d.X[i].t=x.value.trim()});
+    const r=kinCalc(d);$("kSk").textContent=r.full?fmt(r.skor):"–";
+    $("kPart").textContent=`Kepribadian ${fmt(r.pK)} · Target ${fmt(r.pT)} · Indisipliner ${fmt(r.pI)} · Kehadiran ${fmt(r.pH)}${r.pX!=null?" · Tugas tambahan "+fmt(r.pX):""}`;
+    $("kCat").innerHTML=r.full?catChip(r.cat,true):'<span class="small muted">Lengkapi semua nilai Kepribadian & Target Kinerja</span>';
+    $("kSug").textContent=r.full?"Saran sistem: "+(setg().rekKontrak[r.cat.k]||""):"";
+    if(r.full&&!$("kRek").value&&!old)$("kRek").value=autoKep(r.cat);const v=$("kRek").value;$("kBlnW").hidden=v!=="perpanjang";$("kAlsW").hidden=v!=="tidak"};
+  f.querySelectorAll(".seg button[data-s]").forEach(b=>b.onclick=()=>{const sec=b.dataset.s,i=+b.dataset.i,v=+b.dataset.v;d[sec][i]=v;
+    b.parentElement.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));$("kd"+sec+i).textContent=KB[sec].items[i][5-v];upd()});
+  f.querySelectorAll(".seg button[data-x]").forEach(b=>b.onclick=()=>{const i=+b.dataset.x;d.X[i]=d.X[i]||{};d.X[i].v=+b.dataset.v;b.parentElement.querySelectorAll("button").forEach(x=>x.classList.toggle("on",x===b));upd()});
   f.addEventListener("input",upd);f.addEventListener("change",upd);upd();
   if($("kFrom"))$("kFrom").onchange=e=>{if(e.target.value){closeModal();formKinerja(null,e.target.value)}};
   f.onsubmit=async e=>{e.preventDefault();const fd=new FormData(f);upd();const r=kinCalc(d);
-    if(!r.full)return toast("Lengkapi semua nilai bagian A dan B",3500);if(!fd.get("rekomendasi"))return toast("Pilih keputusan akhir",3000);
-    Object.assign(d,{kelebihan:fd.get("kelebihan").trim(),kekurangan:fd.get("kekurangan").trim(),catatan:fd.get("catatan").trim(),alasan:fd.get("rekomendasi")==="tidak"?fd.get("alasan"):null});
+    if(!r.full)return toast("Lengkapi semua nilai Kepribadian dan Target Kinerja",3500);if(!fd.get("rekomendasi"))return toast("Pilih keputusan akhir",3000);
+    d.X=d.X.filter(x=>x&&x.t);Object.assign(d,{kelebihan:fd.get("kelebihan").trim(),kekurangan:fd.get("kekurangan").trim(),catatan:fd.get("catatan").trim(),alasan:fd.get("rekomendasi")==="tidak"?fd.get("alasan"):null});
     const row={nama:fd.get("nama").trim(),nik:fd.get("nik").trim()||null,jabatan:fd.get("jabatan").trim()||null,grade:fd.get("grade")||null,jobsite:fd.get("jobsite").trim()||null,tgl_masuk:fd.get("tgl_masuk")||null,
       status_karyawan:fd.get("status_karyawan"),periode:fd.get("periode").trim()||null,penilai:fd.get("penilai").trim()||null,data:d,skor:+r.skor.toFixed(1),rekomendasi:fd.get("rekomendasi"),
       kontrak_bulan:fd.get("rekomendasi")==="perpanjang"?(+fd.get("kontrak_bulan")||null):null,session_id:k.session_id||null,updated_at:new Date().toISOString()};
@@ -573,16 +585,19 @@ function formKinerja(id,fromSession){
   const del=$("kDel");if(del)del.onclick=async()=>{if(!confirm("Hapus penilaian kinerja "+k.nama+"?"))return;try{await q(SB.from("pk_kinerja").delete().eq("id",old.id));S.kinerja=S.kinerja.filter(x=>x.id!==old.id);closeModal();renderTab();syncDrive();toast("Dihapus")}catch(err){toast("Gagal: "+err.message)}};
 }
 function viewKinerja(id){const k=S.kinerja.find(x=>x.id===id);if(!k)return;const d=k.data||{};const r=kinCalc(d);
-  const sec=s=>`<table class="sheet kprint"><thead><tr><th style="width:28px">No</th><th>${KF[s].t} (${KF[s].w}%)</th><th class="num" style="width:60px">Nilai</th><th>Keterangan</th></tr></thead><tbody>${KF[s].items.map((it,i)=>{const v=+(d[s]||[])[i]||0;return `<tr><td>${i+1}</td><td><b>${esc(it[0])}</b></td><td class="num"><b>${v||"–"}</b></td><td class="wrap">${v?esc(it[5-v]):""}</td></tr>`}).join("")}
-    <tr><td></td><td class="right" colspan="2"><b>Rata-rata ${fmt(avg((d[s]||[]).map(Number).filter(x=>x>0)),2)} → ${fmt(s==="A"?r.pA:r.pB)}</b></td><td></td></tr></tbody></table>`;
+  const sec=s=>`<table class="sheet kprint"><thead><tr><th style="width:28px">No</th><th>${KB[s].t} (${KB[s].w}%)</th><th class="num" style="width:60px">Nilai</th><th>Keterangan</th></tr></thead><tbody>${KB[s].items.map((it,i)=>{const v=+(d[s]||[])[i]||0;return `<tr><td>${i+1}</td><td><b>${esc(it[0])}</b></td><td class="num"><b>${v||"–"}</b></td><td class="wrap">${v?esc(it[5-v]):""}</td></tr>`}).join("")}
+    <tr><td></td><td class="right" colspan="2"><b>Nilai bab: ${fmt(s==="K"?r.pK:r.pT)}</b></td><td></td></tr></tbody></table>`;
+  const X=(d.X||[]).filter(x=>x&&x.t);
   openModal(`<div class="head"><h2>Penilaian Kinerja Karyawan – Plant</h2><span class="noprint row"><button class="btn sm" id="kvP">Cetak / PDF</button>${canEdit()?'<button class="btn sm" id="kvE">Ubah</button>':""}<button class="btn sm" onclick="closeModal()">Tutup</button></span></div>
    <div class="small muted" style="margin:-6px 0 12px">PT Karunia Mandiri Berkarya · Formulir Penilaian Kinerja Karyawan Plant</div>
-   <div class="grid g2"><div class="kv"><b>Nama</b><span>${esc(k.nama)}</span><b>NIK / NIP</b><span>${esc(k.nik||"–")}</span><b>Jabatan</b><span>${esc(k.jabatan||"–")}${k.grade?" · "+esc(k.grade):""}</span><b>Jobsite</b><span>${esc(k.jobsite||"–")}</span></div>
+   <div class="grid g2"><div class="kv"><b>Nama</b><span>${esc(k.nama)}</span><b>NIK / NIP</b><span>${showNik()?esc(k.nik||"–"):"•••"}</span><b>Jabatan</b><span>${esc(k.jabatan||"–")}${k.grade?" · "+esc(k.grade):""}</span><b>Jobsite</b><span>${esc(k.jobsite||"–")}</span></div>
     <div class="kv"><b>Tanggal masuk</b><span>${k.tgl_masuk?fdate(k.tgl_masuk):"–"}</span><b>Status</b><span>${esc(k.status_karyawan||"–")}</span><b>Periode</b><span>${esc(k.periode||"–")}</span><b>Penilai</b><span>${esc(k.penilai||"–")}</span></div></div>
-   <div style="margin-top:12px">${sec("A")}</div><div style="margin-top:10px">${sec("B")}</div>
-   <table class="sheet kprint" style="margin-top:10px"><thead><tr><th>${KF.C.t} (${KF.C.w}%)</th><th class="num">Jumlah</th><th class="num">Nilai</th></tr></thead><tbody>${KF.C.items.map(([key,l,u],i)=>`<tr><td>${l}</td><td class="num">${+(d.C||{})[key]||0} ${u}</td><td class="num"><b>${r.C[i]}</b></td></tr>`).join("")}
-    <tr><td>Surat Peringatan</td><td class="num">${d.sp?"SP "+d.sp:"Tidak ada"}</td><td class="num">${r.cut?"−"+fmt(r.cut):"0"}</td></tr><tr><td class="right" colspan="2"><b>Nilai kehadiran</b></td><td class="num"><b>${fmt(r.pC)}</b></td></tr></tbody></table>
-   <div class="card" style="margin-top:12px;background:var(--ps)"><div class="row" style="justify-content:space-between;align-items:center"><div><div class="small muted">Skor kinerja = A×50% + B×30% + C×20% − SP</div><div class="score-big">${fmt(r.skor)}</div></div><div>${catChip(r.cat,true)}</div></div>
+   <div style="margin-top:12px">${sec("K")}</div><div style="margin-top:10px">${sec("T")}</div>
+   <div class="grid g2" style="margin-top:10px">
+    <table class="sheet kprint"><thead><tr><th>${KB.I.t} (${KB.I.w}%)</th><th class="num">Jumlah</th></tr></thead><tbody>${KB.I.items.map(([key,l])=>`<tr><td>${l}</td><td class="num">${+(d.I||{})[key]||0}</td></tr>`).join("")}<tr><td class="right"><b>Nilai bab</b></td><td class="num"><b>${fmt(r.pI)}</b></td></tr></tbody></table>
+    <table class="sheet kprint"><thead><tr><th>${KB.H.t} (${KB.H.w}%)</th><th class="num">Jumlah</th><th class="num">Skor</th></tr></thead><tbody>${KB.H.items.map(([key,l,u],i)=>`<tr><td>${l}</td><td class="num">${+(d.H||{})[key]||0} ${u}</td><td class="num">${r.H[i]}</td></tr>`).join("")}<tr><td class="right" colspan="2"><b>Nilai bab</b></td><td class="num"><b>${fmt(r.pH)}</b></td></tr></tbody></table></div>
+   <table class="sheet kprint" style="margin-top:10px"><thead><tr><th>${KB.X.t} (${KB.X.w}%)</th><th class="num">Nilai</th></tr></thead><tbody>${X.length?X.map(x=>`<tr><td>${esc(x.t)}</td><td class="num">${+x.v||"–"}</td></tr>`).join("")+`<tr><td class="right"><b>Nilai bab</b></td><td class="num"><b>${fmt(r.pX)}</b></td></tr>`:'<tr><td colspan="2" class="muted">Tidak ada tugas tambahan (bobot dibagi ke bab lain).</td></tr>'}</tbody></table>
+   <div class="card" style="margin-top:12px;background:var(--ps)"><div class="row" style="justify-content:space-between;align-items:center"><div><div class="small muted">Skor = Kepribadian 30% + Target Kinerja 35% + Indisipliner 15% + Kehadiran 15% + Tugas Tambahan 5%</div><div class="score-big">${fmt(r.skor)}</div></div><div>${catChip(r.cat,true)}</div></div>
     <div style="margin-top:8px;font-size:15px"><b>Keputusan:</b> <span style="color:var(--p2);font-weight:700">${esc(kepLabel(k))}</span></div></div>
    <div class="grid g2"><div class="card"><h3>Kelebihan</h3>${esc(d.kelebihan||"–")}</div><div class="card"><h3>Perlu ditingkatkan</h3>${esc(d.kekurangan||"–")}</div></div>
    ${d.catatan?`<div class="card"><h3>Catatan penilai</h3>${esc(d.catatan)}</div>`:""}
