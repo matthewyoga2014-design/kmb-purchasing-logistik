@@ -53,6 +53,11 @@ table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 .notice{background:var(--ps);border:1px solid #DDD0FB;color:#3B1B7A;border-radius:12px;padding:10px 12px;font-size:13px}
 .notice.warn{background:var(--warns);border-color:#FCD34D;color:#78350F}
 .muted{color:var(--mut)}.small{font-size:12px}.right{text-align:right}
+.dd{position:relative}.dd-btn{width:100%;display:flex;justify-content:space-between;align-items:center;gap:8px;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px 14px;cursor:pointer;font:inherit;text-align:left}
+.dd-btn:hover,.dd.open .dd-btn{border-color:var(--p)}.dd-cur{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dd-car{color:var(--mut);transition:transform .15s}.dd.open .dd-car{transform:rotate(180deg)}
+.dd-menu{display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px rgba(40,20,90,.15);z-index:30;max-height:60vh;overflow:auto;padding:6px}
+.dd.open .dd-menu{display:block}.dd-fold{display:flex;gap:6px;align-items:center;padding:8px 8px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--ink)}.dd-fold:hover{background:#F6F3FD}
+.dd-item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 10px 9px 34px;border-radius:8px;cursor:pointer;font-size:13px}.dd-item:hover{background:#F1ECFC}.dd-item.on{background:#EDE7FB;box-shadow:inset 3px 0 0 var(--p)}
 .bank-wrap{display:grid;grid-template-columns:280px 1fr;gap:14px;align-items:start}@media(max-width:820px){.bank-wrap{grid-template-columns:1fr}}
 .tree{border:1px solid var(--line);border-radius:12px;padding:6px;background:#FBFAFE;position:sticky;top:120px;max-height:75vh;overflow:auto}
 .tf-head{display:flex;gap:6px;align-items:center;width:100%;border:0;background:none;padding:8px 6px;cursor:pointer;text-align:left;border-radius:8px;font-size:13px}.tf-head:hover{background:#F1ECFC}
@@ -618,6 +623,13 @@ function viewKinerja(id){const k=S.kinerja.find(x=>x.id===id);if(!k)return;const
 /* ====================== BANK SOAL ====================== */
 async function loadQuestions(mid,force){if(!S.questions[mid]||force)S.questions[mid]=await q(SB.from("pk_questions").select("*").eq("module_id",mid).order("no"));return S.questions[mid]}
 const FOLD={};
+function bankGroups(){const groups={};S.modules.forEach(x=>{const k=x.level||"Lainnya";(groups[k]=groups[k]||[]).push(x)});
+  const order=Object.keys(groups).sort((a,b)=>{const ia=LEVELS.findIndex(l=>a.startsWith(l)),ib=LEVELS.findIndex(l=>b.startsWith(l));return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b)});
+  return order.map(k=>[k,groups[k].sort((a,b)=>(a.sort||0)-(b.sort||0))])}
+function bankDD(){if(!S.modules.length)return '<div class="small muted">Belum ada sheet soal.</div>';const cur=S.modules.find(x=>x.id===BANKSEL);
+  return `<button class="dd-btn" type="button"><span class="dd-cur">${cur?`<span class="muted small">📁 ${esc(cur.level||"Lainnya")} ›</span> 📄 ${cur.grade?`<b>${esc(cur.grade)}</b> · `:""}${esc(cur.title)} <span class="chip">${S.qcount?.[cur.id]||0} soal</span>`:"Pilih sheet soal"}</span><span class="dd-car">▾</span></button>
+   <div class="dd-menu">${bankGroups().map(([k,list])=>{const open=!FOLD[k];return `<div class="dd-fold" data-fold="${esc(k)}"><span class="caret">${open?"▾":"▸"}</span> 📁 <b>${esc(k)}</b> <span class="muted small">${list.length} sheet</span></div>
+     ${open?list.map(x=>`<div class="dd-item ${x.id===BANKSEL?"on":""}" data-id="${x.id}"><span>📄 ${x.grade?`<b>${esc(x.grade)}</b> · `:""}${esc(x.title)}</span><span class="small muted" style="white-space:nowrap">${S.qcount?.[x.id]||0} soal · ${x.duration_min} mnt${x.active?"":" · nonaktif"}</span></div>`).join(""):""}`}).join("")}</div>`}
 function bankTree(){if(!S.modules.length)return '<div class="small muted">Belum ada sheet.</div>';
   const groups={};S.modules.forEach(x=>{const k=x.level||"Lainnya";(groups[k]=groups[k]||[]).push(x)});
   const order=Object.keys(groups).sort((a,b)=>{const ia=LEVELS.findIndex(l=>a.startsWith(l)),ib=LEVELS.findIndex(l=>b.startsWith(l));return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b)});
@@ -633,12 +645,15 @@ async function vBank(m){
   if(!BANKSEL||!S.modules.find(x=>x.id===BANKSEL))BANKSEL=S.modules[0]?.id||null;
   m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><div><h2>Bank Soal</h2><p class="sub">Satu file soal untuk satu grade (mis. Soal G2). Unggah file Excel apa adanya — soal, pilihan, kunci, dan gambar terbaca otomatis.</p></div>
    <div class="row"><label class="btn pri">⬆ Unggah file soal<input type="file" id="bImp" accept=".xlsx,.xls,.csv" hidden></label><button class="btn sm" id="bTpl" title="Opsional, bila soal belum punya file">Template kosong</button></div></div>
-   <div class="bank-wrap"><aside class="tree" id="bTree">${bankTree()}</aside>
+   <div class="row" style="gap:8px;margin-bottom:12px;flex-wrap:nowrap"><div class="dd" id="bDD" style="flex:1;min-width:0">${bankDD()}</div>${BANKSEL?'<button class="btn" id="bRn" title="Ganti nama sheet">✏️ Ganti nama</button>':""}</div>
+   <div>
    <div id="bBody" style="min-width:0">${S.modules.length?'<div class="empty">Memuat…</div>':'<div class="empty">Belum ada soal. Klik <b>⬆ Unggah file soal</b>.</div>'}</div></div></div>`;
-  $("bTree").onclick=async e=>{
-    const fold=e.target.closest("[data-fold]");if(fold){const k=fold.dataset.fold;FOLD[k]=!FOLD[k];$("bTree").innerHTML=bankTree();return}
-    const rn=e.target.closest("[data-rn]");if(rn){e.stopPropagation();renameSheet(rn.dataset.rn,m);return}
+  $("bDD").onclick=e=>{const dd=$("bDD");
+    if(e.target.closest(".dd-btn")){dd.classList.toggle("open");return}
+    const fold=e.target.closest("[data-fold]");if(fold){const k=fold.dataset.fold;FOLD[k]=!FOLD[k];dd.innerHTML=bankDD();dd.classList.add("open");return}
     const it=e.target.closest("[data-id]");if(it){BANKSEL=it.dataset.id;vBank(m)}};
+  if(!window.__ddL){window.__ddL=1;document.addEventListener("click",e=>{const dd=$("bDD");if(dd&&!dd.contains(e.target))dd.classList.remove("open")})}
+  if($("bRn"))$("bRn").onclick=async()=>{const x=S.modules.find(y=>y.id===BANKSEL);const v=prompt("Nama sheet baru:",x.title);if(v&&v.trim()&&v.trim()!==x.title){try{await q(SB.from("pk_modules").update({title:v.trim(),updated_at:new Date().toISOString()}).eq("id",x.id));x.title=v.trim();toast("Nama sheet diubah");vBank(m)}catch(e){toast("Gagal: "+e.message)}}};
   $("bTpl").onclick=()=>{const ws=XLSX.utils.aoa_to_sheet([["No","Soal","A","B","C","D","Kunci","Topik"],[1,"Alat untuk mengukur diameter luar shaft secara akurat adalah…","Ruler","Micrometer","Depth Gauge","Feeler Gauge","B","Alat Ukur & Tools"]]);ws["!cols"]=[{wch:5},{wch:60},{wch:25},{wch:25},{wch:25},{wch:25},{wch:7},{wch:24}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Soal");XLSX.writeFile(wb,"Template_Bank_Soal.xlsx")};
   $("bImp").onchange=e=>importExcel(e.target.files[0]);
   if(!BANKSEL)return;
