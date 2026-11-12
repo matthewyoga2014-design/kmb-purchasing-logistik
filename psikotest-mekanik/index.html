@@ -101,6 +101,7 @@ table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 .kprint td,.kprint th{white-space:normal}
 .agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:4px}.ag{border:0;border-radius:6px;padding:6px 0;font-weight:700;font-size:12px;cursor:pointer}.ag-b{background:#DCFCE7;color:#166534}.ag-s{background:#FEE2E2;color:#991B1B}.ag-k{background:#EEE;color:#666}
 @media print{.ag{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+.cmb{display:flex;flex-direction:column;gap:6px}
 .sign{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px;text-align:center;font-size:12px}.sign div{border-top:1px solid #999;padding-top:6px;margin-top:56px}
 </style>
 </head>
@@ -646,7 +647,7 @@ function editModule(mod){
    <label class="row"><input type="checkbox" name="shuffle" ${x.shuffle?"checked":""}> Acak urutan soal per peserta</label>
    <label class="row"><input type="checkbox" name="active" ${x.active?"checked":""}> Aktif (bisa dipilih saat membuat link)</label>
    <div style="grid-column:1/-1"><button class="btn pri">Simpan</button></div></form>`);
-  $("mG").onchange=()=>{const l=levelOfGrade($("mG").value);if(l)$("mL").value=l};
+  $("mG").onchange=()=>{const l=levelOfGrade($("mG").value);if(l)setCombo("mL",l)};
   $("mF").onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target);
     const row={title:fd.get("title").trim(),grade:(fd.get("grade")||"").trim().toUpperCase()||null,level:(fd.get("level")||"").trim()||"Junior",code:fd.get("code").trim()||null,duration_min:+fd.get("duration_min"),pass_score:+fd.get("pass_score"),description:fd.get("description").trim()||null,shuffle:!!fd.get("shuffle"),active:!!fd.get("active"),updated_at:new Date().toISOString()};
     try{if(mod)await q(SB.from("pk_modules").update(row).eq("id",mod.id));else{row.sort=S.modules.length+1;const r=await q(SB.from("pk_modules").insert(row).select().single());BANKSEL=r.id}
@@ -675,7 +676,11 @@ function shrinkImage(file,max=900){return new Promise((res,rej)=>{const fr=new F
 async function insertQuestions(mid,list,onp){for(let i=0;i<list.length;i+=15){await q(SB.from("pk_questions").insert(list.slice(i,i+15).map(x=>({...x,module_id:mid}))));onp&&onp(Math.min(list.length,i+15))}}
 /* ---------- Upload file soal (format template ATAU format lembar soal KMB) ---------- */
 const GRADES=["G1","G2","G3","G4","G5","G6","G7","G8","G9","G10"];
-function combo(name,id,val,opts,ph){const lid="dl_"+(id||name);return `<input name="${name}"${id?` id="${id}"`:""} list="${lid}" value="${esc(val||"")}" placeholder="${esc(ph||"ketik atau pilih")}" autocomplete="off"><datalist id="${lid}">${opts.map(o=>`<option value="${esc(o)}">`).join("")}</datalist>`}
+function combo(name,id,val,opts,ph){val=val||"";const known=!val||opts.includes(val);
+  return `<span class="cmb"><select data-cmb="${id}">${ph&&ph.startsWith("mis.")?`<option value="" ${!val?"selected":""}>– kosong –</option>`:""}${opts.map(o=>`<option value="${esc(o)}" ${o===val?"selected":""}>${esc(o)}</option>`).join("")}<option value="__x" ${!known?"selected":""}>✏️ Ketik manual…</option></select><input name="${name}" id="${id}" value="${esc(val||(ph&&ph.startsWith("mis.")?"":opts[0]||""))}" placeholder="Ketik di sini" ${known?"hidden":""} autocomplete="off"></span>`}
+function setCombo(id,v){const inp=$(id),sel=document.querySelector(`select[data-cmb="${id}"]`);if(!inp)return;if(sel&&sel.value==="__x")return;inp.value=v;if(sel){const has=[...sel.options].some(o=>o.value===v);sel.value=has?v:"__x";inp.hidden=has}}
+document.addEventListener("change",e=>{const sel=e.target.closest&&e.target.closest("select[data-cmb]");if(!sel)return;const inp=document.getElementById(sel.dataset.cmb);if(!inp)return;
+  if(sel.value==="__x"){inp.hidden=false;inp.value="";inp.focus()}else{inp.hidden=true;inp.value=sel.value;inp.dispatchEvent(new Event("change",{bubbles:true}));inp.dispatchEvent(new Event("input",{bubbles:true}))}});
 const levelOfGrade=g=>{const n=+String(g||"").replace(/\D/g,"");return !n?"":n<=3?"Junior":n<=6?"Middle":n<=9?"Senior":"Supervisor"};
 const TOPIC_KW=[["Alat Ukur & Tools",/caliper|micrometer|gauge|tester|alat (yang dipakai )?untuk mengukur|tachometer|speedometer|smoke checker|flowmeter|tool yang/i],
  ["Rem & Sistem Udara",/brake|rem\b|air tank|quick release|drain valve|slack adjuster|pengereman/i],
@@ -761,7 +766,7 @@ async function importExcel(file){
       <label class="f">Nilai lulus sheet<input type="number" name="pass" value="56"></label>
       <div style="grid-column:1/-1"><details><summary class="small">Lihat 5 soal pertama</summary>${list.slice(0,5).map(q=>`<div class="qitem"><div class="n">${q.no}</div><div>${esc(q.text)}${q.image?`<img src="${q.image}">`:""}<ol>${Object.entries(q.options).map(([l,t])=>`<li class="${l===q.answer?"key":""}">${l.toUpperCase()}. ${esc(t)}</li>`).join("")}</ol><span class="chip">${esc(q.topic)}</span></div><div></div></div>`).join("")}</details></div>
       <div style="grid-column:1/-1"><button class="btn pri" id="iGo">Impor ${list.length} soal</button></div></form>`);
-    $("iG").onchange=()=>{const l=levelOfGrade($("iG").value);if(l)$("iL").value=l};
+    $("iG").onchange=()=>{const l=levelOfGrade($("iG").value);if(l)setCombo("iL",l)};
     $("iF").onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target);let L=list;
       if($("iDup")&&$("iDup").checked){const s2={};L=list.filter(q=>{const k=q.text.toLowerCase()+"|"+Object.values(q.options).join("|").toLowerCase();if(s2[k])return false;s2[k]=1;return true})}
       const b=$("iGo");b.disabled=true;
