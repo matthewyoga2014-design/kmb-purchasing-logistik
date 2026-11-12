@@ -102,11 +102,12 @@ function grade(g, level, sc) { if (sc == null || !level) return '–'; const lis
 const KB_K = ['Inisiatif & Kreativitas', 'Disiplin & Kerajinan', 'Komunikasi & Etika Kerja', 'Tanggung Jawab & Motivasi', 'Kerjasama Tim', 'Integritas & Kejujuran'];
 const KB_T = ['Skill / Keahlian Teknis', 'Pengetahuan Pekerjaan', 'Kualitas Kerja (ATR)', 'Ketepatan Waktu & Pencapaian Target', 'Problem Solving / Troubleshooting', 'Perawatan Unit & Tools', 'Laporan Kerja', 'K3 & 5R'];
 const KB_I = [['teguran', 'Teguran', 10], ['sp1', 'SP 1', 20], ['sp2', 'SP 2', 30], ['sp3', 'SP 3', 40]];
-const KB_H = [['terlambat', 'Terlambat / pulang awal', [0, 3, 5]], ['absen', 'Tidak absen', [0, 3, 5]], ['ijin', 'Sakit / izin / cuti', [0, 5, 8]], ['alpa', 'Alpa', [0, 1, 1]]];
+const KB_H = [['terlambat', 'Terlambat / pulang awal', [0, 1, 2], 1], ['absen', 'Tidak absen', [0, 1, 2], 1], ['ijin', 'Sakit / izin', [0, 1, 2], 1], ['alpa', 'Alpa', [0, 1, 1], 0]];
 function kinCalc(d) { const K = (d.K || []).map(Number).filter(x => x > 0), T = (d.T || []).map(Number).filter(x => x > 0);
   const pK = K.length ? avg(K) / 4 * 100 : null, pT = T.length ? avg(T) / 4 * 100 : null;
   const pI = Math.max(0, 100 - KB_I.reduce((a, x) => a + (+(d.I || {})[x[0]] || 0) * x[2], 0));
-  const pH = avg(KB_H.map(x => { const v = +(d.H || {})[x[0]] || 0, th = x[2]; return v <= th[0] ? 4 : v <= th[1] ? 3 : v <= th[2] ? 2 : 1; })) / 4 * 100;
+  const bln = Math.max(1, +(d.H || {}).bulan || 3);
+  const pH = avg(KB_H.map(x => { const v = (+(d.H || {})[x[0]] || 0) / (x[3] ? bln : 1), th = x[2]; return v <= th[0] ? 4 : v <= th[1] ? 3 : v <= th[2] ? 2 : 1; })) / 4 * 100;
   const X = (d.X || []).filter(x => x && x.t && +x.v > 0).map(x => +x.v), pX = X.length ? avg(X) / 4 * 100 : null;
   let skor = null; if (K.length === KB_K.length && T.length === KB_T.length) { const p = [[pK, 30], [pT, 35], [pI, 15], [pH, 15]]; if (pX != null) p.push([pX, 5]);
     skor = Math.max(0, Math.min(100, p.reduce((a, x) => a + x[0] * x[1], 0) / p.reduce((a, x) => a + x[1], 0))); }
