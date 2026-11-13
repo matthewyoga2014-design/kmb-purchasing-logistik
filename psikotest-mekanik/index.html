@@ -542,7 +542,7 @@ function kepLabel(k){const x=KEP.find(e=>e[0]===k.rekomendasi);if(!x)return k.re
 function autoKep(cat){return !cat?"":cat.k==="A"?"tetap":cat.k==="E"?"tidak":"perpanjang"}
 function vKinerja(m){
   m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2>Penilaian Kinerja – Tim Plant</h2><p class="sub">Bab: Kepribadian · Target Kinerja · Indisipliner · Kehadiran · Tugas Tambahan. Diisi atasan langsung, bab Indisipliner & Kehadiran oleh HR.</p></div>
-   <div class="row">${canEdit()?'<button class="btn pri" id="kNew">+ Penilaian baru</button>':""}</div></div>
+   <div class="row"><button class="btn" id="kBlank">⬇ Form kosong (Excel)</button>${canEdit()?'<button class="btn pri" id="kNew">+ Penilaian baru</button>':""}</div></div>
    <div class="row" style="margin-bottom:10px"><input id="kQ" placeholder="Cari nama / NIK" style="flex:1;min-width:160px"></div>
    <div class="sheet-wrap"><table class="sheet" id="kT"></table></div></div>`;
   const draw=()=>{const k=$("kQ").value.toLowerCase();const rows=S.kinerja.filter(x=>(x.nama+" "+(x.nik||"")).toLowerCase().includes(k));
@@ -550,7 +550,7 @@ function vKinerja(m){
       return `<tr data-id="${x.id}"><td>${fdate(x.created_at)}</td><td><b>${esc(x.nama)}</b></td><td>${showNik()?esc(x.nik||""):"•••"}</td><td>${esc(x.jabatan||"")}${x.grade?" · "+esc(x.grade):""}</td><td>${esc(x.periode||"")}</td><td class="num"><b>${fmt(r.skor)}</b></td><td>${catChip(r.cat)}</td><td class="wrap" style="min-width:160px">${esc(kepLabel(x))}</td><td class="small">${esc(x.penilai||"")}</td></tr>`}).join("")||`<tr><td colspan="9" class="empty">Belum ada penilaian kinerja.</td></tr>`}</tbody>`;
     $("kT").querySelectorAll("tr[data-id]").forEach(tr=>tr.onclick=()=>viewKinerja(tr.dataset.id))};
   $("kQ").oninput=draw;draw();HDRAW=()=>{if($("kT"))draw()};
-  if($("kNew"))$("kNew").onclick=()=>formKinerja(null);
+  if($("kNew"))$("kNew").onclick=()=>formKinerja(null);$("kBlank").onclick=kinBlank;
 }
 function formKinerja(id,fromSession){
   const old=id?S.kinerja.find(x=>x.id===id):null;const ses=fromSession?S.sessions.find(x=>x.id===fromSession):null;
@@ -606,11 +606,38 @@ function formKinerja(id,fromSession){
       S.kinerja=[saved,...S.kinerja.filter(x=>x.id!==saved.id)];toast("Penilaian disimpan");syncDrive();viewKinerja(saved.id);if(TAB==="kinerja")renderTab()}catch(err){toast("Gagal: "+err.message)}};
   const del=$("kDel");if(del)del.onclick=async()=>{if(!confirm("Hapus penilaian kinerja "+k.nama+"?"))return;try{await q(SB.from("pk_kinerja").delete().eq("id",old.id));S.kinerja=S.kinerja.filter(x=>x.id!==old.id);closeModal();renderTab();syncDrive();toast("Dihapus")}catch(err){toast("Gagal: "+err.message)}};
 }
+const KPOS={"ident0": "C5", "ident1": "C6", "ident2": "C7", "ident3": "C8", "ident4": "C9", "ident5": "C10", "ident6": "C11", "ident7": "C12", "ident8": "C13", "K0": "C16", "K1": "C17", "K2": "C18", "K3": "C19", "K4": "C20", "K5": "C21", "T0": "C25", "T1": "C26", "T2": "C27", "T3": "C28", "T4": "C29", "T5": "C30", "T6": "C31", "T7": "C32", "I0": "C36", "I1": "C37", "I2": "C38", "I3": "C39", "bulan": "C42", "H0": "C44", "H1": "C45", "H2": "C46", "H3": "C47", "Xv0": "C51", "Xt0": "D51", "Xv1": "C52", "Xt1": "D52", "Xv2": "C53", "Xt2": "D53", "kep": "C65", "bln": "C66", "lebih": "A69", "kurang": "A71", "cat": "A73"};
+function xmlEsc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+function kinFillXml(xml,k,kepLabelTxt){
+  const set=(ref,val)=>{if(val==null||val==="")return;const re=new RegExp('<c r="'+ref+'"([^>]*?)(?:/>|>[\\s\\S]*?</c>)');const m=xml.match(re);if(!m)return;
+    const attrs=m[1].replace(/\s*t="[^"]*"/,"");
+    const nc=typeof val==="number"?`<c r="${ref}"${attrs}><v>${val}</v></c>`:`<c r="${ref}"${attrs} t="inlineStr"><is><t xml:space="preserve">${xmlEsc(val)}</t></is></c>`;
+    xml=xml.replace(m[0],nc)};
+  const d=k.data||{};const fd=v=>v?v.split("-").reverse().join("/"):"";
+  [k.nama,k.nik,k.jabatan,k.grade,k.jobsite,fd(k.tgl_masuk),k.status_karyawan,k.periode,k.penilai].forEach((v,i)=>set(KPOS["ident"+i],v||""));
+  (d.K||[]).forEach((v,i)=>{if(+v)set(KPOS["K"+i],+v)});(d.T||[]).forEach((v,i)=>{if(+v)set(KPOS["T"+i],+v)});
+  ["teguran","sp1","sp2","sp3"].forEach((key,i)=>set(KPOS["I"+i],+(d.I||{})[key]||0));
+  set(KPOS.bulan,+(d.H||{}).bulan||3);["terlambat","absen","ijin","alpa"].forEach((key,i)=>set(KPOS["H"+i],+(d.H||{})[key]||0));
+  (d.X||[]).filter(x=>x&&x.t).slice(0,3).forEach((x,i)=>{set(KPOS["Xt"+i],x.t);if(+x.v)set(KPOS["Xv"+i],+x.v)});
+  set(KPOS.kep,kepLabelTxt);set(KPOS.bln,k.rekomendasi==="perpanjang"&&k.kontrak_bulan?k.kontrak_bulan+" bulan":k.rekomendasi==="tidak"?(d.alasan||""):"");
+  set(KPOS.lebih,d.kelebihan||"");set(KPOS.kurang,d.kekurangan||"");set(KPOS.cat,d.catatan||"");
+  xml=xml.replace(/(<f>[^<]*<\/f>)<v>[^<]*<\/v>/g,"$1");
+  return xml}
+
+function dlBlob(blob,name){const u=URL.createObjectURL(blob);const a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),3000)}
+async function kinExcel(id){const k=S.kinerja.find(x=>x.id===id);if(!k)return;toast("Menyiapkan Excel…");
+  try{await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
+    const zip=await JSZip.loadAsync(await (await fetch("template-penilaian-kinerja.xlsx",{cache:"no-store"})).arrayBuffer());
+    const kk=showNik()?k:{...k,nik:""};const path="xl/worksheets/sheet1.xml";
+    zip.file(path,kinFillXml(await zip.file(path).async("string"),kk,(KEP.find(e=>e[0]===k.rekomendasi)||[,""])[1]));
+    dlBlob(await zip.generateAsync({type:"blob",mimeType:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",compression:"DEFLATE"}),"Penilaian_Kinerja_"+k.nama.replace(/[^\w]+/g,"_")+".xlsx")}
+  catch(e){toast("Gagal membuat Excel: "+e.message,5000)}}
+async function kinBlank(){try{dlBlob(await (await fetch("template-penilaian-kinerja.xlsx",{cache:"no-store"})).blob(),"Form_Penilaian_Kinerja_Plant_KMB.xlsx")}catch(e){toast("Gagal: "+e.message)}}
 function viewKinerja(id){const k=S.kinerja.find(x=>x.id===id);if(!k)return;const d=k.data||{};const r=kinCalc(d);
   const sec=s=>`<table class="sheet kprint"><thead><tr><th style="width:28px">No</th><th>${KB[s].t} (${KB[s].w}%)</th><th class="num" style="width:60px">Nilai</th><th>Keterangan</th></tr></thead><tbody>${KB[s].items.map((it,i)=>{const v=+(d[s]||[])[i]||0;return `<tr><td>${i+1}</td><td><b>${esc(it[0])}</b></td><td class="num"><b>${v||"–"}</b></td><td class="wrap">${v?esc(it[5-v]):""}</td></tr>`}).join("")}
     <tr><td></td><td class="right" colspan="2"><b>Nilai bab: ${fmt(s==="K"?r.pK:r.pT)}</b></td><td></td></tr></tbody></table>`;
   const X=(d.X||[]).filter(x=>x&&x.t);
-  openModal(`<div class="head"><h2>Penilaian Kinerja Karyawan – Plant</h2><span class="noprint row"><button class="btn sm" id="kvP">Cetak / PDF</button>${canEdit()?'<button class="btn sm" id="kvE">Ubah</button>':""}<button class="btn sm" onclick="closeModal()">Tutup</button></span></div>
+  openModal(`<div class="head"><h2>Penilaian Kinerja Karyawan – Plant</h2><span class="noprint row"><button class="btn sm" id="kvX">⬇ Unduh Excel</button><button class="btn sm" id="kvP">Cetak / PDF</button>${canEdit()?'<button class="btn sm" id="kvE">Ubah</button>':""}<button class="btn sm" onclick="closeModal()">Tutup</button></span></div>
    <div class="small muted" style="margin:-6px 0 12px">PT Karunia Mandiri Berkarya · Formulir Penilaian Kinerja Karyawan Plant</div>
    <div class="grid g2"><div class="kv"><b>Nama</b><span>${esc(k.nama)}</span><b>NIK / NIP</b><span>${showNik()?esc(k.nik||"–"):"•••"}</span><b>Jabatan</b><span>${esc(k.jabatan||"–")}${k.grade?" · "+esc(k.grade):""}</span><b>Jobsite</b><span>${esc(k.jobsite||"–")}</span></div>
     <div class="kv"><b>Tanggal masuk</b><span>${k.tgl_masuk?fdate(k.tgl_masuk):"–"}</span><b>Status</b><span>${esc(k.status_karyawan||"–")}</span><b>Periode</b><span>${esc(k.periode||"–")}</span><b>Penilai</b><span>${esc(k.penilai||"–")}</span></div></div>
@@ -625,7 +652,7 @@ function viewKinerja(id){const k=S.kinerja.find(x=>x.id===id);if(!k)return;const
    ${d.catatan?`<div class="card"><h3>Catatan penilai</h3>${esc(d.catatan)}</div>`:""}
    <div class="sign" style="grid-template-columns:repeat(4,1fr)"><div>Karyawan<br>${esc(k.nama)}</div><div>Dibuat oleh<br>Atasan Langsung</div><div>Diketahui oleh<br>HR Site</div><div>Disetujui oleh<br>PJO / Manager</div></div>`);
   $("kvP").onclick=()=>{document.body.classList.add("printing");setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove("printing"),500)},50)};
-  if($("kvE"))$("kvE").onclick=()=>formKinerja(id);
+  if($("kvE"))$("kvE").onclick=()=>formKinerja(id);$("kvX").onclick=()=>kinExcel(id);
 }
 
 /* ====================== BANK SOAL ====================== */
