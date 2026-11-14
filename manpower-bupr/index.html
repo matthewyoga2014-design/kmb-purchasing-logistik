@@ -837,8 +837,8 @@ const STAGE_SHORT = ['Sourcing', 'Psikotes', 'Interview User', 'Offering', 'MCU'
 const STAGE_TIP = ['Sourcing Pelamar', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU', 'FU MCU', 'On Site', 'Induksi', 'Hired (PTK close bulan ini)'];
 const STAGE_PCT = [0, 25, 40, 55, 70, 80, 95, 100];
 // Screening CV = tahap setelah lamaran/CV, sebelum Psikologi Test (tanggal di c.scr, berkas files.scr)
-function cLbl(c) { return (Number(c.stage) || 0) === 0 && c.scr ? 'SCREENING CV' : cLbl(c); }
-function cPct(c) { return (Number(c.stage) || 0) === 0 && c.scr ? 12 : cPct(c); }
+function cLbl(c) { return (Number(c.stage) || 0) === 0 && c.scr ? 'SCREENING CV' : STAGE_UP[c.stage]; }
+function cPct(c) { return (Number(c.stage) || 0) === 0 && c.scr ? 12 : STAGE_PCT[c.stage]; }
 const MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 const MONTHS_L = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const DAYS_L = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
@@ -1896,7 +1896,7 @@ function pageMPP(D) {
         <td>${p.no}</td>
         <td class="${isVacant(p) ? 'vacn' : 'b'}">${esc(p.nama)}</td>
         <td>${esc(p.jabatan)}<div class="small">${esc(p.group || p.section || '')}</div></td>
-        <td>${cs.length ? `<button type="button" class="pcount" data-cands="${i}">${cs.length} Pelamar</button>${cs.length ? `<div class="plist">${pstList(cs).map((x) => `<div class="${x.st === 'no' ? 'off' : 'on'}"><b>${esc(x.name)}</b><span>${x.st === 'no' ? esc(String(x.status || 'Tidak Lolos').toUpperCase()) : x.st === 'ok' ? 'DITERIMA' : x.status === 'Hold' ? 'HOLD · ' + STAGE_UP[x.stage] : STAGE_UP[x.stage] + ' ' + STAGE_PCT[x.stage] + '%'}</span></div>`).join('')}</div>` : ''}` : '<span class="dash">-</span>'}</td>
+        <td>${cs.length ? `<button type="button" class="pcount" data-cands="${i}">${cs.length} Pelamar</button>${cs.length ? `<div class="plist">${pstList(cs).map((x) => `<div class="${x.st === 'no' ? 'off' : 'on'}"><b>${esc(x.name)}</b><span>${x.st === 'no' ? esc(String(x.status || 'Tidak Lolos').toUpperCase()) : x.st === 'ok' ? 'DITERIMA' : x.status === 'Hold' ? 'HOLD · ' + cLbl(x) : cLbl(x) + ' ' + cPct(x) + '%'}</span></div>`).join('')}</div>` : ''}` : '<span class="dash">-</span>'}</td>
         <td class="ket">${esc(p.ket || '-')}</td>
         <td class="ptkc">${esc(p.ptk || '-')}</td>
         <td>${hasPTK(p) ? `<span class="stt ${/close/i.test(p.status) ? 'close' : /continue/i.test(p.status) ? 'cont' : 'open'}">${esc(p.status)}</span>` : '<span class="dash">-</span>'}</td>
