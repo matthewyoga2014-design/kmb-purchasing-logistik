@@ -836,6 +836,9 @@ const STAGE_UP = ['SOURCING PELAMAR', 'PSIKOLOGI TEST', 'INTERVIEW USER', 'OFFER
 const STAGE_SHORT = ['Sourcing', 'Psikotes', 'Interview User', 'Offering', 'MCU', 'FU MCU', 'On Site', 'Induksi', 'Hired'];
 const STAGE_TIP = ['Sourcing Pelamar', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU', 'FU MCU', 'On Site', 'Induksi', 'Hired (PTK close bulan ini)'];
 const STAGE_PCT = [0, 25, 40, 55, 70, 80, 95, 100];
+// Screening CV = tahap setelah lamaran/CV, sebelum Psikologi Test (tanggal di c.scr, berkas files.scr)
+function cLbl(c) { return (Number(c.stage) || 0) === 0 && c.scr ? 'SCREENING CV' : cLbl(c); }
+function cPct(c) { return (Number(c.stage) || 0) === 0 && c.scr ? 12 : cPct(c); }
 const MONTHS = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
 const MONTHS_L = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const DAYS_L = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
@@ -1777,7 +1780,8 @@ function candStatusText(c, p) {
   const s = c.stage ?? stageIdx(p);
   if (c.st === 'ok') return 'Diterima';
   if (c.st === 'no') return `${c.status || 'Tidak Lolos'} • Tidak Aktif`;
-  return `${c.st === 'hd' ? 'Hold' : 'Aktif'} • ${STAGE_UP[s]} ${STAGE_PCT[s]}%`;
+  const scr = s === 0 && c.scr;
+  return `${c.st === 'hd' ? 'Hold' : 'Aktif'} • ${scr ? 'SCREENING CV' : STAGE_UP[s]} ${scr ? 12 : STAGE_PCT[s]}%`;
 }
 const inFlight = (c) => c.st === 'pr' || c.st === 'hd' || c.status === 'No Response';
 // Progress posisi = tahap terakhir yang sudah diisi, baik di data posisi maupun di pelamar yang masih aktif / diterima (walau berkas belum diupload)
@@ -1811,7 +1815,7 @@ function resumeVacant(D) {
   return `<div class="rgrid">${entries.map(([j, ps]) => {
     const cs = ps.flatMap((p) => candidates(p)); const act = cs.filter((c) => c.st === 'pr' || c.st === 'hd');
     const hi = Math.max(0, ...ps.map(topStage));
-    const byStage = {}; act.forEach((c) => { const k = STAGE_UP[c.stage]; byStage[k] = (byStage[k] || 0) + 1; });
+    const byStage = {}; act.forEach((c) => { const k = cLbl(c); byStage[k] = (byStage[k] || 0) + 1; });
     ps.forEach((p) => { if (!candidates(p).some((c) => c.st === 'pr' || c.st === 'hd')) { const k = STAGE_UP[stageIdx(p)]; byStage[k] = (byStage[k] || 0) + 1; } });
     return `<div class="rcard"><div class="hd"><span class="nb">${ps.length}</span>${esc(j)}</div>
       <div class="l1">${act.length} pelamar untuk ${ps.length} vacant</div>
@@ -1823,8 +1827,8 @@ function resumeVacant(D) {
 
 // ---------- filter tahap pelamar (kolom Pelamar di MPP & halaman Data Pelamar) ----------
 // patokan = tanggal terakhir yang diisi di form Edit Pelamar; MCU & FU MCU dihitung satu tahap
-const PST_NAMES = ['Sourcing', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU / FU MCU', 'On Site', 'Induksi'];
-function pstStage(c) { let k = 0; (Array.isArray(c.dates) ? c.dates : []).forEach((d, i) => { if (d) k = i + 1; }); return k >= 5 ? k - 1 : k; }
+const PST_NAMES = ['Sourcing', 'Screening CV', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU / FU MCU', 'On Site', 'Induksi'];
+function pstStage(c) { let k = 0; (Array.isArray(c.dates) ? c.dates : []).forEach((d, i) => { if (d) k = i + 1; }); return k === 0 ? (c.scr ? 1 : 0) : k <= 4 ? k + 1 : k === 5 ? 5 : k; }
 ui.pst = ui.pst || '';
 function pstOk(c) {
   const f = ui.pst; if (!f) return true;
@@ -1924,7 +1928,7 @@ function openCands(idx) {
     <div class="cm-sum"><div><b>${cs.length} pelamar</b><span>Progress tertinggi ${STAGE_UP[hi]} (${STAGE_PCT[hi]}%)</span></div>${CAN_EDIT ? '<button type="button" class="btn btn-y" id="addCand">+ Tambah Pelamar</button>' : ''}</div>
     <div class="cm-list">${cs.map((c, ci) => `<div class="cc"><div class="cc-h"><div><b>${esc(c.name)}</b> <button type="button" class="rs-btn" data-resume="${idx}:${c.fromHist || c.ci == null ? '' : c.ci}:${encodeURIComponent(c.name || '')}">Resume</button><div class="cc-meta"><span class="hs ${C_BADGE[c.status] || 'no'}">${esc(c.status)}</span><span>${esc(c.sumber || 'Sumber belum diisi')}</span>${c.fromHist ? '<span class="hs hist">riwayat</span>' : ''}</div></div>
       ${CAN_EDIT && !c.fromHist ? `<div class="acts"><button type="button" class="btn btn-g btn-sm" data-ecand="${ci}">Edit</button><button type="button" class="btn btn-g btn-sm red" data-dcand="${ci}">Hapus</button></div>` : ''}</div>
-      <div class="cc-pg"><span class="tr"><i style="width:${STAGE_PCT[c.stage]}%"></i></span><b>${STAGE_PCT[c.stage]}%</b><span>${STAGE_UP[c.stage]}</span></div>
+      <div class="cc-pg"><span class="tr"><i style="width:${cPct(c)}%"></i></span><b>${cPct(c)}%</b><span>${cLbl(c)}</span></div>
       ${c.note ? `<div class="cc-note">${esc(c.note)}</div>` : ''}</div>`).join('') || '<div class="empty">Belum ada pelamar untuk posisi ini.</div>'}</div>
     <div class="factions"><span style="flex:1"></span><button type="button" class="btn btn-g" id="fCancel">Batal</button></div>`;
   document.getElementById('modal').hidden = false; document.getElementById('mClose').focus();
@@ -2101,7 +2105,7 @@ function vacStats(D) {
 // ================= v9: per-candidate stage dates + document uploads =================
 let ASSETS = null;
 const C_STAGE_KEYS = ['Psikologi Test', 'Interview User', 'Offering Latter', 'MCU', 'FU MCU', 'On Site', 'Induksi'];
-const C_UPLOADS = { sumber: 'Berkas Lamaran / CV', st0: 'Hasil Psikologi Test', st1: 'Hasil Interview User', st2: 'Offering Letter', st3: 'Hasil MCU', st6: 'Bukti Induksi' };
+const C_UPLOADS = { sumber: 'Berkas Lamaran / CV', scr: 'Hasil Screening CV', st0: 'Hasil Psikologi Test', st1: 'Hasil Interview User', st2: 'Offering Letter', st3: 'Hasil MCU', st6: 'Bukti Induksi' };
 function candStage(c, p) {
   const ds = Array.isArray(c.dates) ? c.dates : [];
   let k = -1; ds.forEach((d, i) => { if (d) k = i; });
@@ -2112,7 +2116,7 @@ function candidates(p) {
   materialize(p);
   const out = p.cands.map((c, ci) => {
     const st = ST_OF(c.status);
-    return { ci, name: c.name, note: c.note || '', st, status: c.status, sumber: c.sumber, stage: candStage(c, p), dates: c.dates || [], apply: c.apply || null, files: c.files || {},
+    return { ci, name: c.name, note: c.note || '', st, status: c.status, sumber: c.sumber, stage: candStage(c, p), dates: c.dates || [], apply: c.apply || null, scr: c.scr || null, files: c.files || {},
       reason: st === 'no' ? (c.status === 'Tidak Lolos' ? (c.note ? reasonOf(c.note) : 'Tidak lolos') : c.status === 'No Response' ? 'Tidak ada respon' : c.status === 'Menolak OL' ? 'Menolak offering' : c.status === 'Mundur' ? 'Mundur / kabur' : 'Tidak lolos') : '' };
   });
   (p.hist || []).forEach((h) => { if (!out.some((c) => normName(c.name) === normName(h.name))) out.push({ ...h, status: h.status || 'Tidak Lolos', stage: h.stage ?? stageIdx(p), files: {}, fromHist: true }); });
@@ -2217,6 +2221,7 @@ function candForm(idx, ci) {
       { k: 'apply', label: 'Tanggal Lamaran', type: 'date' },
       { k: 'sumber', label: 'Sumber', list: C_SUMBER, ph: 'Online, Referral, Walk-in…' },
       { k: 'u_sumber', label: 'Berkas Lamaran / CV', type: 'upload' },
+      { k: 'scr', label: 'Screening CV', type: 'date' }, { k: 'u_scr', label: 'Hasil Screening CV', type: 'upload' },
       { k: 'd0', label: 'Psikologi Test', type: 'date' }, { k: 'u_st0', label: 'Hasil Psikologi Test', type: 'upload' },
       { k: 'd1', label: 'Interview User', type: 'date' }, { k: 'u_st1', label: 'Hasil Interview User', type: 'upload' },
       { k: 'd2', label: 'Offering Letter', type: 'date' }, { k: 'u_st2', label: 'Offering Letter (dokumen)', type: 'upload' },
@@ -2231,7 +2236,7 @@ function candForm(idx, ci) {
       return commit((S) => {
         const pos = S.positions[idx]; materialize(pos);
         const dates = C_STAGE_KEYS.map((_, i) => v['d' + i] || null);
-        const rec = { name: v.name, status: v.status || 'Aktif', sumber: v.sumber, apply: v.apply, dates, files, note: v.note };
+        const rec = { name: v.name, status: v.status || 'Aktif', sumber: v.sumber, apply: v.apply, scr: v.scr || null, dates, files, note: v.note };
         rec.stage = dates.some(Boolean) ? candStage(rec) : (c ? (c.stage ?? stageIdx(pos)) : 0);
         if (c) pos.cands[ci] = rec; else pos.cands.push(rec);
         if (rec.status === 'Diterima' && isVacant(pos)) pos.nama = rec.name;
@@ -2256,7 +2261,7 @@ function openCands(idx) {
     <div class="cm-sum"><div><b>${cs.length} pelamar</b><span>Progress tertinggi ${STAGE_UP[hi]} (${STAGE_PCT[hi]}%)</span></div>${CAN_EDIT ? '<button type="button" class="btn btn-y" id="addCand">+ Tambah Pelamar</button>' : ''}</div>
     <div class="cm-list">${cs.map((c) => `<div class="cc"><div class="cc-h"><div><b>${esc(c.name)}</b> <button type="button" class="rs-btn" data-resume="${idx}:${c.fromHist || c.ci == null ? '' : c.ci}:${encodeURIComponent(c.name || '')}">Resume</button><div class="cc-meta"><span class="hs ${C_BADGE[c.status] || 'no'}">${esc(c.status)}</span><span>${esc(c.sumber || 'Sumber belum diisi')}</span>${c.fromHist ? '<span class="hs hist">riwayat</span>' : ''}</div></div>
       ${CAN_EDIT && !c.fromHist ? `<div class="acts"><button type="button" class="btn btn-g btn-sm" data-ecand="${c.ci}">Edit</button><button type="button" class="btn btn-g btn-sm red" data-dcand="${c.ci}">Hapus</button></div>` : ''}</div>
-      <div class="cc-pg"><span class="tr"><i style="width:${STAGE_PCT[c.stage]}%"></i></span><b>${STAGE_PCT[c.stage]}%</b><span>${STAGE_UP[c.stage]}</span></div>
+      <div class="cc-pg"><span class="tr"><i style="width:${cPct(c)}%"></i></span><b>${cPct(c)}%</b><span>${cLbl(c)}</span></div>
       ${dl(c)}${c.note ? `<div class="cc-note">${esc(c.note)}</div>` : ''}
       ${Object.keys(c.files || {}).length ? `<div class="cc-files">${fileChips(c.files)}</div>` : ''}</div>`).join('') || '<div class="empty">Belum ada pelamar untuk posisi ini.</div>'}</div>
     <div class="factions"><span style="flex:1"></span><button type="button" class="btn btn-g" id="fCancel">Batal</button></div>`;
@@ -2286,7 +2291,7 @@ function pagePelamar(D) {
     ${rows.map((c, i) => `<tr><td>${i + 1}</td><td class="b"><button type="button" class="rs-name" data-resume="${c.idx}:${c.fromHist || c.ci == null ? '' : c.ci}:${encodeURIComponent(c.name || '')}" title="Lihat resume pelamar">${esc(c.name)}</button></td><td>${esc(c.p.jabatan)}<div class="small">${isVacant(c.p) ? 'Vacant' : esc(c.p.nama)} #${c.p.no}</div></td><td class="ptkc small">${esc(c.p.ptk || '-')}</td>
       <td>${hasPTK(c.p) ? `<span class="stt ${isOpen(c.p) ? 'open' : 'close'}">${esc(c.p.status)}</span>` : '-'}</td>
       <td><span class="hs ${C_BADGE[c.status] || 'no'}">${esc(c.status)}</span>${c.fromHist ? ' <span class="hs hist">riwayat</span>' : ''}</td>
-      <td><div class="pg"><span class="tr"><i style="width:${STAGE_PCT[c.stage]}%"></i></span><b>${STAGE_PCT[c.stage]}%</b></div><div class="pgl">${STAGE_UP[c.stage]}</div></td>
+      <td><div class="pg"><span class="tr"><i style="width:${cPct(c)}%"></i></span><b>${cPct(c)}%</b></div><div class="pgl">${cLbl(c)}</div></td>
       <td class="nw">${c.apply ? fmt(c.apply) : '-'}</td><td>${esc(c.sumber || '-')}</td>
       <td><div class="cc-files">${fileChips(c.files) || '<span class="small">-</span>'}</div></td><td class="ket">${esc(c.note || '-')}</td>
       ${CAN_EDIT ? `<td>${c.fromHist ? '' : `<button type="button" class="btn btn-g btn-sm" data-epc="${c.idx}:${c.ci}">Edit</button>`}</td>` : ''}</tr>`).join('') || `<tr><td colspan="12" class="empty">Belum ada pelamar di kategori ini.</td></tr>`}
@@ -2313,8 +2318,8 @@ document.addEventListener('click', (e) => {
   const pt = t.closest('[data-pt]'); if (pt) { ui.pt = pt.dataset.pt; render(); return; }
   const ep = t.closest('[data-epc]'); if (ep && CAN_EDIT) { const [i, ci] = ep.dataset.epc.split(':').map(Number); candForm(i, ci); return; }
   if (t.closest('#csvPel')) {
-    const head = ['No', 'Nama Kandidat', 'Kategori', 'Status Kandidat', 'Jabatan', 'No Posisi', 'PTK', 'Status PTK', 'Tahap Terakhir', 'Tanggal Lamaran', 'Sumber', ...C_STAGE_KEYS, 'Keterangan'];
-    const rows = []; DATA.positions.forEach((p) => candidates(p).forEach((c) => rows.push([0, c.name, { aktif: 'Aktif', tidak: 'Tidak Aktif', diterima: 'Diterima' }[PT_OF(c)], c.status, p.jabatan, p.no, p.ptk, p.status, STAGE_UP[c.stage], c.apply, c.sumber, ...C_STAGE_KEYS.map((_, i) => (c.dates || [])[i] || ''), c.note])));
+    const head = ['No', 'Nama Kandidat', 'Kategori', 'Status Kandidat', 'Jabatan', 'No Posisi', 'PTK', 'Status PTK', 'Tahap Terakhir', 'Tanggal Lamaran', 'Sumber', 'Screening CV', ...C_STAGE_KEYS, 'Keterangan'];
+    const rows = []; DATA.positions.forEach((p) => candidates(p).forEach((c) => rows.push([0, c.name, { aktif: 'Aktif', tidak: 'Tidak Aktif', diterima: 'Diterima' }[PT_OF(c)], c.status, p.jabatan, p.no, p.ptk, p.status, cLbl(c), c.apply, c.sumber, c.scr || '', ...C_STAGE_KEYS.map((_, i) => (c.dates || [])[i] || ''), c.note])));
     rows.forEach((r, i) => { r[0] = i + 1; });
     save('Data_Pelamar_KTA-TRA.csv', csvOf(head, rows));
   }
@@ -4658,7 +4663,7 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
   }, true);
   try { after(); } catch (e) {}
 })();
-</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script><script src="../unit-population-detail.js?v=20261023-explorer-v2"></script><script src="../mp-private.js?v=20261108c"></script><script src="../activity-log.js?v=20261024" data-kind="manpower"></script><script src="../otp-login.js?v=20261025"></script><script src="../form-data-karyawan.js?v=20261108"></script><script src="../candidate-resume.js?v=20261103b"></script><script id="portal-name-sync">
+</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script><script src="../unit-population-detail.js?v=20261023-explorer-v2"></script><script src="../mp-private.js?v=20261108c"></script><script src="../activity-log.js?v=20261024" data-kind="manpower"></script><script src="../otp-login.js?v=20261025"></script><script src="../form-data-karyawan.js?v=20261108"></script><script src="../candidate-resume.js?v=20261114"></script><script id="portal-name-sync">
 // Nama portal mengikuti "Edit nama portal" di Monitoring MPP Achievement (tabel portal_display_settings).
 (function () {
   var KEY = 'portal-name:' + 'kta';

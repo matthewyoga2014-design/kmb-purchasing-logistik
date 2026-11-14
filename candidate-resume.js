@@ -21,10 +21,10 @@
 
   // tahap 0 = lamaran/sourcing, 1..7 = tanggal di form (Psikologi Test … Induksi)
   // MCU & FU MCU satu tahap: FU MCU hanya bila diperlukan
-  const STAGES = ['Lamaran / Sourcing', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU / FU MCU', 'On Site', 'Induksi'];
+  const STAGES = ['Lamaran / Sourcing', 'Screening CV', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU / FU MCU', 'On Site', 'Induksi'];
   const LAST = STAGES.length - 1;
-  const UP_OF_STAGE = { 0: ['sumber'], 1: ['st0'], 2: ['st1'], 3: ['st2'], 4: ['st3'], 6: ['st6'] };
-  const UP_LABEL = { sumber: 'Berkas Lamaran / CV', st0: 'Hasil Psikologi Test', st1: 'Hasil Interview User', st2: 'Offering Letter (dokumen)', st3: 'Hasil MCU', st6: 'Bukti Induksi' };
+  const UP_OF_STAGE = { 0: ['sumber'], 1: ['scr'], 2: ['st0'], 3: ['st1'], 4: ['st2'], 5: ['st3'], 7: ['st6'] };
+  const UP_LABEL = { sumber: 'Berkas Lamaran / CV', scr: 'Hasil Screening CV', st0: 'Hasil Psikologi Test', st1: 'Hasil Interview User', st2: 'Offering Letter (dokumen)', st3: 'Hasil MCU', st6: 'Bukti Induksi' };
   const STOP_LABEL = { 'Tidak Lolos': 'Tidak lolos', 'No Response': 'Tidak ada respon', 'Menolak OL': 'Menolak offering', 'Mundur': 'Mundur / kabur' };
 
   const css = document.createElement('style');
@@ -106,15 +106,15 @@
     const dates = Array.isArray(c.dates) ? c.dates : [];
     const files = c.files || {};
     // tanggal form: dates[0]=Psikotes,1=Interview,2=Offering,3=MCU,4=FU MCU,5=On Site,6=Induksi
-    const stDate = (i) => i === 0 ? c.apply : i <= 3 ? dates[i - 1] : i === 4 ? (dates[3] || dates[4]) : dates[i];
-    const stLabel = (i) => i === 4 && dates[3] && dates[4] ? `MCU ${fmtD(dates[3])} · FU MCU ${fmtD(dates[4])}` : (i === 4 && !dates[3] && dates[4] ? 'FU MCU ' + fmtD(dates[4]) : fmtD(stDate(i)));
+    const stDate = (i) => i === 0 ? c.apply : i === 1 ? c.scr : i <= 4 ? dates[i - 2] : i === 5 ? (dates[3] || dates[4]) : dates[i - 1];
+    const stLabel = (i) => i === 5 && dates[3] && dates[4] ? `MCU ${fmtD(dates[3])} · FU MCU ${fmtD(dates[4])}` : (i === 5 && !dates[3] && dates[4] ? 'FU MCU ' + fmtD(dates[4]) : fmtD(stDate(i)));
     let raw = 0; dates.forEach((d, i) => { if (d) raw = i + 1; });          // patokan: tanggal terakhir yang diisi di form
-    const stage = raw >= 5 ? raw - 1 : raw;
+    const stage = raw === 0 ? (c.scr ? 1 : 0) : raw <= 4 ? raw + 1 : raw === 5 ? 5 : raw;   // Screening CV disisipkan setelah lamaran
     const pctArr = G('STAGE_PCT', [0, 25, 40, 55, 70, 80, 95, 100]);
-    const pct = (c.status === 'Diterima') ? 100 : (pctArr[raw] ?? 0);
+    const pct = (c.status === 'Diterima') ? 100 : (raw === 0 && c.scr ? 12 : (pctArr[raw] ?? 0));
     const status = c.status || 'Aktif';
     const kind = status === 'Diterima' ? 'ok' : status === 'Hold' ? 'hd' : (c.st === 'no' || STOP_LABEL[status]) ? 'no' : 'pr';
-    const lastDate = [c.apply, ...dates].filter(isD).sort().pop();
+    const lastDate = [c.apply, c.scr, ...dates].filter(isD).sort().pop();
     const ago = daysAgo(lastDate);
     const fu = G('fileUrl', (f) => '/_blob/' + f.id);
     const chip = (k) => files[k] ? `<a class="fchip2" href="${escH(fu(files[k]))}" title="${escH(files[k].name || UP_LABEL[k])}">${escH(UP_LABEL[k])}</a>` : '';
@@ -144,16 +144,16 @@
       `Status: ${status} · Progres ${pct}%`, `Posisi proses: ${head.replace(/<[^>]+>/g, '')}${sub ? ' (' + sub.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&') + ')' : ''}`,
       `Sumber: ${c.sumber || '-'} · Tgl lamaran: ${c.apply ? fmtD(c.apply) : '-'}`, '', 'Tahapan:',
       ...STAGES.map((nm, i) => `${i <= stage ? '✓' : '·'} ${nm}: ${stDate(i) ? stLabel(i) : (i <= stage ? 'tanggal belum diisi' : 'belum')}`),
-      '', `Berkas (${nDocs}/6): ` + Object.keys(UP_LABEL).map((k) => `${files[k] ? '✓' : '✗'} ${UP_LABEL[k]}`).join(', '),
+      '', `Berkas (${nDocs}/${Object.keys(UP_LABEL).length}): ` + Object.keys(UP_LABEL).map((k) => `${files[k] ? '✓' : '✗'} ${UP_LABEL[k]}`).join(', '),
       c.note ? `\nKeterangan: ${c.note}` : '',
     ].join('\n').trim();
     const html = `<div class="rs" role="dialog" aria-modal="true" aria-labelledby="rsT">
       <div class="rs-h"><div style="min-width:0"><div class="rs-eb">Resume pelamar</div><h2 id="rsT">${escH(c.name)}</h2><div class="rs-sub">${posName}${p.ptk ? ' · ' + escH(p.ptk) : ''}</div></div><button type="button" class="rs-x" data-rsclose aria-label="Tutup">×</button></div>
       <div class="rs-b">
         <div class="rs-now ${kind}"><small>Sampai mana prosesnya</small><span class="pct">${pct}%</span><div class="big">${head}</div><div>${sub}${ago != null ? ` · update terakhir ${fmtD(lastDate)}${ago > 0 ? ` (${ago} hari lalu)` : ' (hari ini)'}` : ''}</div><div class="rs-bar"><i style="width:${pct}%"></i></div></div>
-        <div class="rs-facts"><div><span>Status kandidat</span><b>${escH(status)}</b></div><div><span>Tanggal lamaran</span><b>${c.apply ? fmtD(c.apply) : '-'}</b></div><div><span>Sumber</span><b>${escH(c.sumber || '-')}</b></div><div><span>Berkas</span><b>${nDocs} dari 6</b></div>${c.fromHist ? '<div><span>Catatan</span><b>Dari riwayat</b></div>' : ''}</div>
+        <div class="rs-facts"><div><span>Status kandidat</span><b>${escH(status)}</b></div><div><span>Tanggal lamaran</span><b>${c.apply ? fmtD(c.apply) : '-'}</b></div><div><span>Sumber</span><b>${escH(c.sumber || '-')}</b></div><div><span>Berkas</span><b>${nDocs} dari ${Object.keys(UP_LABEL).length}</b></div>${c.fromHist ? '<div><span>Catatan</span><b>Dari riwayat</b></div>' : ''}</div>
         <div><p class="rs-sec">Tahapan rekrutmen</p><div class="rs-tl">${tl}</div></div>
-        <div><p class="rs-sec">Kelengkapan berkas (${nDocs}/6)</p><div class="rs-docs">${docs}</div></div>
+        <div><p class="rs-sec">Kelengkapan berkas (${nDocs}/${Object.keys(UP_LABEL).length})</p><div class="rs-docs">${docs}</div></div>
         ${c.note ? `<div><p class="rs-sec">Keterangan</p><div class="rs-note">${escH(c.note)}</div></div>` : ''}
       </div>
       <div class="rs-ft"><button type="button" data-rscopy>Salin ringkasan (WhatsApp)</button><button type="button" data-rsprint>Print / PDF</button>${G('CAN_EDIT', false) && !c.fromHist ? '<button type="button" class="p" data-rsedit>Edit pelamar</button>' : ''}</div></div>`;

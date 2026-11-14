@@ -80,8 +80,8 @@ function resumeVacant(D) {
 
 // ---------- filter tahap pelamar (kolom Pelamar di MPP & halaman Data Pelamar) ----------
 // patokan = tanggal terakhir yang diisi di form Edit Pelamar; MCU & FU MCU dihitung satu tahap
-const PST_NAMES = ['Sourcing', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU / FU MCU', 'On Site', 'Induksi'];
-function pstStage(c) { let k = 0; (Array.isArray(c.dates) ? c.dates : []).forEach((d, i) => { if (d) k = i + 1; }); return k >= 5 ? k - 1 : k; }
+const PST_NAMES = ['Sourcing', 'Screening CV', 'Psikologi Test', 'Interview User', 'Offering Letter', 'MCU / FU MCU', 'On Site', 'Induksi'];
+function pstStage(c) { let k = 0; (Array.isArray(c.dates) ? c.dates : []).forEach((d, i) => { if (d) k = i + 1; }); return k === 0 ? (c.scr ? 1 : 0) : k <= 4 ? k + 1 : k === 5 ? 5 : k; }
 ui.pst = ui.pst || '';
 function pstOk(c) {
   const f = ui.pst; if (!f) return true;
