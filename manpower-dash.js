@@ -81,6 +81,7 @@
 .ucfg{position:relative}.ucfg summary{list-style:none;cursor:pointer}.ucfg summary::-webkit-details-marker{display:none}
 .ucfg .ucfg-p{position:absolute;right:0;top:calc(100% + 6px);z-index:20;background:#fff;border:1px solid var(--line,#E8E6F3);border-radius:12px;box-shadow:0 12px 32px rgba(30,27,58,.14);padding:12px 14px;min-width:230px;display:grid;gap:8px}
 .ucfg label{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}.ucfg .ucfg-p p{margin:0;font-size:11.5px;color:var(--muted,#8A87A6)}
+.rkm{position:relative;display:inline-block}.rkm summary{list-style:none;cursor:pointer}.rkm summary::-webkit-details-marker{display:none}.rkm-p{position:absolute;right:0;top:calc(100% + 6px);z-index:30;background:#fff;border:1px solid var(--line,#E8E6F3);border-radius:12px;box-shadow:0 12px 32px rgba(30,27,58,.14);padding:6px;min-width:200px;display:grid;gap:2px}.rkm-p button{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--ink,#1E1B3A)}.rkm-p button:hover,.rkm-p button:focus-visible{background:var(--primary-soft,#EFE9FE);color:var(--primary-ink,#5B21B6)}
 @media print{#rkBtn,.dsub-bar,.ucfg,.up-card [data-go]{display:none!important}.up-tw{overflow:visible}}`;
   document.head.appendChild(css);
 
@@ -226,20 +227,22 @@
     return k >= 0 ? RK_STEP[k] : c.scr ? 'Screening CV' : 'Berkas Lamaran / CV';
   }
   // format: Nama - Tahap terakhir - Keterangan (keterangan kosong → cukup sampai tahap)
+  // format: Nama - Tahap terakhir - Keterangan (keterangan kosong → cukup sampai tahap)
   function rkLine(c) {
     const st = String(c.status || '').trim();
     let note = String(c.note || '').trim();
     if (note && note.toLowerCase() === st.toLowerCase()) note = '';
     if (!note && st && st !== 'Aktif' && st !== 'Diterima') note = RK_ST[st] || st;
     if (!note && st === 'Diterima') note = 'Diterima';
-    const txt = [c.name, rkStep(c), note].filter(Boolean).join(' - ');
-    return rkActive(c) ? `<div class="ca">${E(txt)}</div>` : `<div class="cx">${E(txt)}</div>`;
+    return { k: rkActive(c) ? 'act' : 'cx', t: [c.name, rkStep(c), note].filter(Boolean).join(' - ') };
   }
   function rkKet(p) {
     const cs = (Array.isArray(p.cands) ? p.cands : []).filter((c) => c && c.name);
-    if (!cs.length) { const k = String(p.ket || '').trim(); return `<div>${E(k || 'Sourcing kandidat')}</div>`; }
-    return [...cs.filter(rkActive), ...cs.filter((c) => !rkActive(c))].map(rkLine).join('');
+    if (!cs.length) return [{ k: 'plain', t: String(p.ket || '').trim() || 'Sourcing kandidat' }];
+    return [...cs.filter(rkActive), ...cs.filter((c) => !rkActive(c))].map(rkLine);
   }
+  // model satu baris per jabatan; dipakai untuk Print dan Excel
+  //   names: [{t, red}]   ket: blok-blok [{k:'ok'|'terisi'|'lbl'|'act'|'cx'|'plain', t, ptk}]
   function rkRows(d) {
     const P = (d && Array.isArray(d.positions)) ? d.positions : [], m = new Map();
     P.forEach((p) => {
@@ -250,23 +253,35 @@
       const open = vac || (!!p.ptk && /open|continue/i.test(String(p.status || '')));   // vacant, atau masih terisi tapi PTK open (mau diganti)
       if (!vac) r.act++;
       if (!vac) (open ? r.repl : r.filled).push(nm);
-      if (open) { r.nOpen++; r.ket.push({ lbl: vac ? 'Vacant' : nm + ' (diganti)', ptk: p.ptk || '', html: rkKet(p) }); }
+      if (open) { r.nOpen++; r.ket.push({ lbl: vac ? 'Vacant' : nm + ' (diganti)', ptk: p.ptk ? (/^ptk/i.test(p.ptk) ? '' : 'PTK ') + p.ptk : '', lines: rkKet(p) }); }
     });
     return [...m.values()].map((r) => {
       const vac = r.plan - r.act;
       // Nama: kalau ada vacant cukup "N Vacant" (+ nama yang akan diganti); yang sudah terisi pindah ke Keterangan
-      const names = vac
-        ? [`<span class="op">${vac} Vacant</span>`].concat(r.repl.map((n) => `<span class="op">${E(n)}</span>`)).join(', ')
-        : r.filled.map((n) => `<span>${E(n)}</span>`).concat(r.repl.map((n) => `<span class="op">${E(n)}</span>`)).join(', ');
-      const terisi = vac && r.filled.length ? `<div class="kp"><span class="ok">Terisi:</span> ${E(r.filled.join(', '))}</div>` : '';
-      const blocks = r.ket.map((k) => `<div class="kp">${r.nOpen > 1 || !/^Vacant$/.test(k.lbl) || terisi ? `<div class="kl"><span class="op">${E(k.lbl)}</span>${k.ptk ? ' · ' + (/^ptk/i.test(k.ptk) ? '' : 'PTK ') + E(k.ptk) : ''}</div>` : ''}${k.html}</div>`).join('');
-      return { j: r.j, plan: r.plan, act: r.act, vac, names, ket: r.ket.length ? terisi + blocks : '<span class="ok">Terpenuhi</span>' };
+      const names = vac ? [{ t: vac + ' Vacant', red: true }].concat(r.repl.map((n) => ({ t: n, red: true })))
+        : r.filled.map((n) => ({ t: n })).concat(r.repl.map((n) => ({ t: n, red: true })));
+      const blocks = [];
+      if (vac && r.filled.length) blocks.push([{ k: 'terisi', t: r.filled.join(', ') }]);
+      const showLbl = r.nOpen > 1 || blocks.length;
+      r.ket.forEach((k) => blocks.push((showLbl || k.lbl !== 'Vacant' ? [{ k: 'lbl', t: k.lbl, ptk: k.ptk }] : []).concat(k.lines)));
+      return { j: r.j, plan: r.plan, act: r.act, vac, names, ket: blocks.length ? blocks : [[{ k: 'ok', t: 'Terpenuhi' }]] };
     });
+  }
+  function rkHtmlLine(x) {
+    if (x.k === 'ok') return `<span class="ok">${E(x.t)}</span>`;
+    if (x.k === 'terisi') return `<div><span class="ok">Terisi:</span> ${E(x.t)}</div>`;
+    if (x.k === 'lbl') return `<div class="kl"><span class="op">${E(x.t)}</span>${x.ptk ? ' · ' + E(x.ptk) : ''}</div>`;
+    return `<div class="${x.k === 'act' ? 'ca' : x.k === 'cx' ? 'cx' : ''}">${E(x.t)}</div>`;
   }
   function rkTable(name, d) {
     const R = rkRows(d), n = Math.max(7, R.length), sum = (k) => R.reduce((a, r) => a + r[k], 0);
     let body = '';
-    for (let i = 0; i < n; i++) { const r = R[i]; body += `<tr><td class="c">${i + 1}</td><td>${r ? E(r.j) : ''}</td><td class="nm">${r ? r.names : ''}</td><td class="c">${r ? r.plan : ''}</td><td class="c">${r ? r.act : ''}</td><td class="c">${r ? r.vac : 0}</td><td class="kt">${r ? r.ket : ''}</td></tr>`; }
+    for (let i = 0; i < n; i++) {
+      const r = R[i];
+      const nm = r ? r.names.map((x) => x.red ? `<span class="op">${E(x.t)}</span>` : `<span>${E(x.t)}</span>`).join(', ') : '';
+      const kt = r ? r.ket.map((b) => `<div class="kp">${b.map(rkHtmlLine).join('')}</div>`).join('') : '';
+      body += `<tr><td class="c">${i + 1}</td><td>${r ? E(r.j) : ''}</td><td class="nm">${nm}</td><td class="c">${r ? r.plan : ''}</td><td class="c">${r ? r.act : ''}</td><td class="c">${r ? r.vac : 0}</td><td class="kt">${kt}</td></tr>`;
+    }
     return `<table><colgroup><col style="width:5%"><col style="width:16%"><col style="width:24%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:32.5%"></colgroup>
       <thead><tr><th colspan="7" class="ttl">Jobsite ${E(name)}</th></tr><tr><th>No</th><th>Jabatan</th><th>Nama</th><th>Plan</th><th>Actual</th><th>Vacant</th><th>Keterangan</th></tr></thead>
       <tbody>${body}</tbody><tfoot><tr><td colspan="3">Total</td><td class="r">${sum('plan')}</td><td class="r">${sum('act')}</td><td class="r">${sum('vac')}</td><td></td></tr></tfoot></table>`;
@@ -275,9 +290,14 @@
     try { if (typeof PROJ !== 'undefined' && PROJ && PROJ.sites) return (typeof PROJ_CFG !== 'undefined' && PROJ_CFG.short) || 'KMB'; } catch (e) {}
     return title().replace(/^Dashboard Manpower\s*/i, '');
   }
-  async function rekapPrint() {
+  const RK_M = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+  const rkDate = () => { const d = new Date(); return `${d.getDate()} ${RK_M[d.getMonth()]} ${d.getFullYear()}`; };
+  function rkAllowed() {
     let free = true; try { free = guardFree(); } catch (e) {}
-    if (!free) { try { (typeof PRINT_ASK === 'function' ? PRINT_ASK : askPrint)(); } catch (e) {} return; }
+    if (!free) { try { (typeof PRINT_ASK === 'function' ? PRINT_ASK : askPrint)(); } catch (e) {} }
+    return free;
+  }
+  async function rkSites() {
     const sites = [];
     try {
       if (typeof PROJ !== 'undefined' && PROJ && PROJ.sites) {
@@ -287,7 +307,12 @@
       }
     } catch (e) {}
     if (!sites.length) sites.push([rkName() || 'Jobsite', DATA]);
-    const dt = new Date(), M = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    return sites;
+  }
+  const RK_NOTE = 'Merah = posisi open · Terisi = karyawan yang sudah ada · Terpenuhi = tidak ada posisi open · Pelamar: Nama - Tahap - Keterangan (aktif tebal, tidak aktif dicoret).';
+  async function rekapPrint() {
+    if (!rkAllowed()) return;
+    const sites = await rkSites();
     const html = `<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Rekap MPP ${E(rkName())}</title><style>
       @page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{margin:0;font-family:Calibri,"Segoe UI",Arial,sans-serif;font-size:11pt;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
       h1{font-size:13pt;margin:0 0 2px}p.s{margin:0 0 10px;font-size:9.5pt;color:#444}
@@ -296,7 +321,7 @@
       th{font-weight:400;text-align:center;white-space:nowrap}th.ttl{background:#D9D9D9;border:1px solid #555}
       td.c{text-align:center}td.nm{font-size:10pt;line-height:1.35;padding-top:3px;padding-bottom:3px}.op{color:#C00000;font-weight:700}.ok{color:#15803D;font-weight:700}.ca{font-weight:700;color:#000}.cx{text-decoration:line-through;color:#555}.kp+.kp{margin-top:4px;padding-top:4px;border-top:1px dotted #999}.kl{font-size:9pt}td.kt{font-size:9.5pt;line-height:1.35;padding-top:3px;padding-bottom:3px}td.r{text-align:right;padding-right:8px}
       tfoot td{background:#D9D9D9;border-left:0;border-right:0}tfoot td:first-child{border-left:1px dotted #555}tfoot td:last-child{border-right:1px dotted #555}
-    </style></head><body><h1>Rekap Manpower Planning ${E(rkName())}</h1><p class="s">Per ${dt.getDate()} ${M[dt.getMonth()]} ${dt.getFullYear()} · <span class="op">Merah</span> = posisi open · <span class="ok">Terisi</span> = karyawan yang sudah ada · <span class="ok">Terpenuhi</span> = tidak ada posisi open · Pelamar: Nama - Tahap - Keterangan (aktif <b>tebal</b>, tidak aktif <span class="cx">dicoret</span>).</p>
+    </style></head><body><h1>Rekap Manpower Planning ${E(rkName())}</h1><p class="s">Per ${rkDate()} · <span class="op">Merah</span> = posisi open · <span class="ok">Terisi</span> = karyawan yang sudah ada · <span class="ok">Terpenuhi</span> = tidak ada posisi open · Pelamar: Nama - Tahap - Keterangan (aktif <b>tebal</b>, tidak aktif <span class="cx">dicoret</span>).</p>
       ${sites.map(([n, d]) => rkTable(n, d)).join('')}</body></html>`;
     let fr = document.getElementById('rkFrame'); if (fr) fr.remove();
     fr = document.createElement('iframe'); fr.id = 'rkFrame'; fr.setAttribute('aria-hidden', 'true');
@@ -305,17 +330,123 @@
     const w = fr.contentWindow; w.document.open(); w.document.write(html); w.document.close();
     setTimeout(() => { try { w.focus(); w.print(); } catch (e) { const x = window.open('', '_blank'); if (x) { x.document.write(html); x.document.close(); x.print(); } } }, 300);
   }
+
+  // ---------- Excel Rekap MPP (format sama dengan cetakan: warna merah/hijau, tebal, coret) ----------
+  // .xlsx ditulis langsung (XML + JSZip, pustaka yang sama dengan Form Data Karyawan) — tanpa pustaka tambahan
+  let _zipP = null;
+  function loadZip() {
+    if (window.JSZip) return Promise.resolve(window.JSZip);
+    if (_zipP) return _zipP;
+    _zipP = new Promise((ok, no) => { const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js'; s.onload = () => ok(window.JSZip); s.onerror = () => { _zipP = null; no(new Error('JSZip gagal dimuat')); }; document.head.appendChild(s); });
+    return _zipP;
+  }
+  const X = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+  const colL = (c) => String.fromCharCode(64 + c);
+  // satu run teks kaya (rich text)
+  function run(text, o = {}) {
+    return `<r><rPr><rFont val="Calibri"/>${o.b ? '<b/>' : ''}${o.s ? '<strike/>' : ''}${o.c ? `<color rgb="FF${o.c}"/>` : ''}<sz val="${o.sz || 10}"/></rPr><t xml:space="preserve">${X(text)}</t></r>`;
+  }
+  function richKet(blocks) {
+    const out = [];
+    blocks.forEach((b, bi) => {
+      if (bi) out.push(run('\n\n', { sz: 6 }));
+      b.forEach((x, li) => {
+        if (li) out.push(run('\n'));
+        if (x.k === 'ok') out.push(run(x.t, { b: 1, c: '15803D' }));
+        else if (x.k === 'terisi') { out.push(run('Terisi: ', { b: 1, c: '15803D' })); out.push(run(x.t)); }
+        else if (x.k === 'lbl') { out.push(run(x.t, { b: 1, c: 'C00000', sz: 9 })); if (x.ptk) out.push(run(' · ' + x.ptk, { sz: 9 })); }
+        else if (x.k === 'act') out.push(run(x.t, { b: 1 }));
+        else if (x.k === 'cx') out.push(run(x.t, { s: 1, c: '595959' }));
+        else out.push(run(x.t));
+      });
+    });
+    return out.join('');
+  }
+  async function rekapExcel() {
+    if (!rkAllowed()) return;
+    let Z; try { Z = await loadZip(); } catch (e) { try { toast('Pembuat Excel belum termuat. Periksa koneksi lalu coba lagi.', true); } catch (er) {} return; }
+    const sites = await rkSites();
+    // style index: 0 biasa · 1 judul · 2 catatan · 3 bar jobsite · 4 header · 5 sel tengah · 6 sel kiri · 7 total kiri · 8 total angka · 9 total kosong
+    const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<fonts count="3"><font><sz val="11"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="14"/><name val="Calibri"/><family val="2"/></font><font><sz val="9"/><color rgb="FF444444"/><name val="Calibri"/><family val="2"/></font></fonts>
+<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/><bgColor indexed="64"/></patternFill></fill></fills>
+<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="dotted"><color rgb="FF555555"/></left><right style="dotted"><color rgb="FF555555"/></right><top style="dotted"><color rgb="FF555555"/></top><bottom style="dotted"><color rgb="FF555555"/></bottom><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="10"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="2" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="2" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="2" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="2" borderId="1" xfId="0" applyFill="1" applyBorder="1"/></cellXfs>
+<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+    const rows = [], merges = [];
+    let r = 1;
+    const str = (c, rr, s, text) => `<c r="${colL(c)}${rr}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${X(text)}</t></is></c>`;
+    const rich = (c, rr, s, runs) => `<c r="${colL(c)}${rr}" s="${s}" t="inlineStr"><is>${runs || '<t></t>'}</is></c>`;
+    const num = (c, rr, s, v) => v === '' || v == null ? `<c r="${colL(c)}${rr}" s="${s}"/>` : `<c r="${colL(c)}${rr}" s="${s}"><v>${v}</v></c>`;
+    const row = (rr, cells, ht) => rows.push(`<row r="${rr}"${ht ? ` ht="${ht}" customHeight="1"` : ''}>${cells.join('')}</row>`);
+    row(r, [str(1, r, 1, 'Rekap Manpower Planning ' + rkName())], 20); r++;
+    merges.push(`A${r}:G${r}`); row(r, [str(1, r, 2, 'Per ' + rkDate() + ' · ' + RK_NOTE)], 26); r += 2;
+    sites.forEach(([name, d]) => {
+      const R = rkRows(d), n = Math.max(7, R.length);
+      merges.push(`A${r}:G${r}`); row(r, [str(1, r, 3, 'Jobsite ' + name)].concat([2, 3, 4, 5, 6, 7].map((c) => `<c r="${colL(c)}${r}" s="3"/>`)), 18); r++;
+      row(r, ['No', 'Jabatan', 'Nama', 'Plan', 'Actual', 'Vacant', 'Keterangan'].map((h, i) => str(i + 1, r, 4, h)), 18); r++;
+      const first = r;
+      for (let i = 0; i < n; i++, r++) {
+        const x = R[i];
+        if (!x) { row(r, [num(1, r, 5, i + 1), str(2, r, 6, ''), str(3, r, 6, ''), num(4, r, 5, ''), num(5, r, 5, ''), num(6, r, 5, 0), str(7, r, 6, '')], 18); continue; }
+        const nm = x.names.map((n, k) => (k ? run(', ') : '') + run(n.t, n.red ? { b: 1, c: 'C00000' } : {})).join('');
+        const lines = x.ket.reduce((a, b) => a + b.reduce((s, y) => s + Math.max(1, Math.ceil(String(y.t + (y.ptk ? ' · ' + y.ptk : '')).length / 80)), 0), 0) + (x.ket.length - 1) * 0.6;
+        const nmL = Math.ceil(x.names.map((n) => n.t).join(', ').length / 30) || 1;
+        row(r, [num(1, r, 5, i + 1), str(2, r, 6, x.j), rich(3, r, 6, nm), num(4, r, 5, x.plan), num(5, r, 5, x.act), num(6, r, 5, x.vac), rich(7, r, 6, richKet(x.ket))], Math.round(Math.max(18, Math.max(lines, nmL) * 13.2 + 5)));
+      }
+      const S = (k) => R.reduce((a, y) => a + y[k], 0);
+      row(r, [str(1, r, 7, 'Total'), `<c r="B${r}" s="9"/>`, `<c r="C${r}" s="9"/>`,
+        `<c r="D${r}" s="8"><f>SUM(D${first}:D${r - 1})</f><v>${S('plan')}</v></c>`, `<c r="E${r}" s="8"><f>SUM(E${first}:E${r - 1})</f><v>${S('act')}</v></c>`, `<c r="F${r}" s="8"><f>SUM(F${first}:F${r - 1})</f><v>${S('vac')}</v></c>`, `<c r="G${r}" s="9"/>`], 18);
+      r += 2;
+    });
+    const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>
+<cols><col min="1" max="1" width="5" customWidth="1"/><col min="2" max="2" width="22" customWidth="1"/><col min="3" max="3" width="30" customWidth="1"/><col min="4" max="4" width="7" customWidth="1"/><col min="5" max="6" width="8" customWidth="1"/><col min="7" max="7" width="70" customWidth="1"/></cols>
+<sheetData>${rows.join('')}</sheetData>${merges.length ? `<mergeCells count="${merges.length}">${merges.map((m) => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>` : ''}
+<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/></worksheet>`;
+    const zip = new Z();
+    zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>');
+    zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
+    zip.file('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Rekap MPP" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm.Print_Titles" localSheetId="0">\'Rekap MPP\'!$1:$2</definedName></definedNames></workbook>');
+    zip.file('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
+    zip.file('xl/styles.xml', styles);
+    zip.file('xl/worksheets/sheet1.xml', sheet);
+    const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', compression: 'DEFLATE' });
+    const fn = `Rekap_MPP_${rkName().replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    if (typeof save === 'function') await save(fn, blob);
+    else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fn; document.body.appendChild(a); a.click(); a.remove(); }
+  }
+  window.rekapExcel = rekapExcel;
   window.rekapPrint = rekapPrint;
   const RK_IC = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16v14H4zM4 9h16M4 13h16M9 9v10" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+  const XL_IC = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const PR_IC = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
   function rkButton() {
     if ((ui.page !== 'dashboard' && ui.page !== 'mpp') || document.getElementById('rkBtn')) return;
-    const html = `<button type="button" class="btn btn-g" id="rkBtn" title="Print tabel rekap Plan / Actual / Vacant / Keterangan per jobsite">${RK_IC}Print Rekap MPP</button>`;
+    const html = `<details class="rkm" id="rkBtn"><summary class="btn btn-g" title="Rekap Plan / Actual / Vacant / Keterangan per jobsite">${RK_IC}Rekap MPP <span aria-hidden="true">▾</span></summary><div class="rkm-p"><button type="button" data-rk="print">${PR_IC}Print / PDF</button><button type="button" data-rk="xlsx">${XL_IC}Download Excel</button></div></details>`;
     const pb = document.querySelector('#view #printBtn');
     if (pb) { pb.insertAdjacentHTML('beforebegin', html); return; }
     const hr = document.querySelector('#view .head .head-r') || document.querySelector('#view .toolbar');
     if (hr) hr.insertAdjacentHTML('beforeend', html);
   }
-  document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('#rkBtn')) { e.preventDefault(); rekapPrint(); } });
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('[data-rk]');
+    const m = document.getElementById('rkBtn');
+    if (m && m.open && !(e.target.closest && e.target.closest('#rkBtn'))) m.open = false;
+    if (!b) return;
+    e.preventDefault(); if (m) m.open = false;
+    if (b.dataset.rk === 'xlsx') rekapExcel(); else rekapPrint();
+  });
 
   // ---------- sub-menu Dashboard di sidebar ----------
   const CHEV = '<svg class="dchev" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
