@@ -127,6 +127,18 @@ section.panel{padding-top:20px;display:flex;flex-direction:column;gap:18px}
 .stat small{display:block;font-size:11px;color:var(--muted);white-space:nowrap}
 .c-purple{color:var(--c-purple)} .c-blue{color:var(--c-blue)} .c-red{color:var(--c-red)} .c-orange{color:var(--c-orange)}
 .pbar{height:8px;background:var(--tile);border-radius:4px;overflow:hidden;margin:14px 16px 0}
+.hk-bar{display:flex;height:6px;border-radius:4px;overflow:hidden;background:#F6D3DB;min-width:60px}
+.hk-bar.big{height:10px;border-radius:6px;flex:1}
+.hk-bar i{display:block;height:100%}.hk-bar i.t{background:#16A34A}.hk-bar i.j{background:#2563EB}
+.hk-main{display:flex;align-items:center;gap:10px;margin:12px 16px 0}
+.hk-lab{font-size:12px;color:var(--muted);white-space:nowrap}
+.hk-j{color:#2563EB}.c-green{color:#15803D}
+.tcard .row.hk-it{display:grid;grid-template-columns:minmax(0,1fr) 90px auto;gap:10px;align-items:center}
+.tcard .row.hk-it .ct{font-size:11.5px;color:var(--muted);white-space:nowrap;text-align:right}
+.tcard .row.hk-it .ct b{color:var(--ink)}.tcard .row.hk-it .ct b.c-green{color:#15803D}.tcard .row.hk-it .ct b.hk-j{color:#2563EB}
+.hk-p{color:var(--muted)}
+.hk-al{display:flex;flex-wrap:wrap;gap:6px;margin:10px 16px 0}
+.hk-al span{font-size:11.5px;font-weight:700;color:#B45309;background:#FFF7E6;border:1px solid #FDE2B3;border-radius:999px;padding:3px 10px}
 .pbar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#6D28D9,#A78BFA)}
 .pbar.over i{background:linear-gradient(90deg,#EA7A0C,#FDBA74)}
 .rows{margin:12px 16px 0;border:1px solid var(--line);border-radius:var(--r-sm);overflow:hidden}
@@ -3134,6 +3146,9 @@ function renderPopDash(){
   el.innerHTML=muDashboardWrap("population","Populasi Unit",populationHtml);
 }
 
+/* bar bertumpuk: hijau = tiba, biru = dalam perjalanan, sisanya = sisa kirim */
+function hkBar(r,t,j,big){ const w=n=>r?Math.max(0,Math.min(100,n/r*100)).toFixed(1)+"%":"0%";
+  return `<span class="hk-bar${big?" big":""}" role="img" title="${t} tiba (${pct(t,r)}%) · ${j} dalam perjalanan (${pct(j,r)}%) · ${Math.max(0,r-t-j)} sisa kirim dari ${r}" aria-label="${t} tiba, ${j} dalam perjalanan dari ${r}"><i class="t" style="width:${w(t)}"></i><i class="j" style="width:${w(j)}"></i></span>`; }
 function renderRingkasan(){
   const L=!S.ready, ps=projects(), P=curProj();
   $("#projDash").hidden=!P; $("#projCards").hidden=!!P; $("#homeTop").hidden=!!P; $("#ovBottom").hidden=!!P;
@@ -3147,19 +3162,23 @@ function renderRingkasan(){
     const cardsHtml=ps.map(p=>{
       const c=projColor(p.id), s=projStats(p.id), q=pct(s.tiba,s.rencana);
       const sub=[p.nama,p.lokasi].filter(Boolean).join(" · ");
-      // Ringkasan project: hanya jenis dan jumlah rencana.
-      const rows=s.items.filter(itemOk).map(k=>`<div class="row mu-plan-summary"><span class="nm"><b title="${esc(k.tipe)}">${esc(k.tipe)}</b></span><span class="ct">${Number(k.rencana)||0} unit</span></div>`).join("");
+      // Ringkasan project: per item unit, bar tiba/jalan + persen yang jelas.
+      const rows=s.items.filter(itemOk).map(k=>{ const r=Number(k.rencana)||0, t=Math.min(tibaItem(k),r), j=jalanItem(k);
+        return `<div class="row mu-plan-summary hk-it"><span class="nm"><b title="${esc(k.tipe)}">${esc(k.tipe)}</b></span>${hkBar(r,t,j)}<span class="ct">${r&&t>=r?`<b class="c-green">Lengkap</b>`:`<b>${t}/${r}</b> tiba <span class="hk-p">(${pct(t,r)}%)</span>${j?` · <b class="hk-j">${j}</b> jalan`:""}`}</span></div>`; }).join("");
+      const pu=S.units.filter(u=>u.projectId===p.id), bd=pu.filter(u=>/breakdown/i.test(u.status||"")).length, tmp=pu.filter(u=>u.kodeSementara||!String(u.kode||"").trim()).length;
+      const alerts=[bd?`${bd} unit Breakdown`:"",tmp?`${tmp} nomor lambung belum diisi`:""].filter(Boolean);
       return `<div class="card tcard ${c}" data-proj="${p.id}" tabindex="0" role="link" aria-label="Buka dashboard ${esc(p.kode)}">
         <div class="tcard-head"><span class="tile-ic">${ic(projIcon(p.id))}</span><div class="tcard-title"><h3>${esc(p.kode)}</h3><span>${esc(sub||"—")}</span></div>${role==="owner"?`<button class="btn small mu-project-rename" data-act="editProj" data-id="${p.id}" type="button">✎ Edit</button>`:""}<button class="btn open small" data-act="openProj" data-id="${p.id}" type="button">Buka →</button></div>
         <div class="stats">
           <div class="stat">${ic("box","c-purple")}<span><b>${s.rencana}</b><small>Rencana</small></span></div>
-          <div class="stat">${ic("pin","c-blue")}<span><b>${s.unitCount}</b><small>Di lokasi</small></span></div>
-          <div class="stat">${ic("hourglass","c-red")}<span><b class="c-red">${s.sisa}</b><small>Sisa kirim</small></span></div>
-          <div class="stat">${ic("ship","c-orange")}<span><b class="c-orange">${s.jalan}</b><small>Perjalanan</small></span></div>
+          <div class="stat">${ic("pin","c-green")}<span><b class="c-green">${s.tiba}</b><small>Tiba</small></span></div>
+          <div class="stat">${ic("ship","c-blue")}<span><b class="c-blue">${s.jalan}</b><small>Dlm perjalanan</small></span></div>
+          <div class="stat">${ic("hourglass","c-red")}<span><b class="${s.sisa?"c-red":""}">${s.sisa}</b><small>Sisa kirim</small></span></div>
         </div>
-        <div class="pbar"><i style="width:${q}%"></i></div>
+        <div class="hk-main">${hkBar(s.rencana,s.tiba,s.jalan,true)}<span class="hk-lab"><b class="c-green">${q}% tiba</b>${s.jalan?` · <b class="hk-j">${pct(s.jalan,s.rencana)}%</b> di jalan`:""}${s.sisa?` · <b class="c-red">${pct(s.sisa,s.rencana)}%</b> sisa`:""}</span></div>
         <div class="mu-brief-label">Rencana Kirim</div>
         ${rows?`<div class="rows mu-summary-rows">${rows}</div>`:`<div class="rows mu-summary-rows"><div class="row"><span class="nm muted">${s.items.length?"Tidak ada item di filter ini":"Belum ada rencana kirim"}</span></div></div>`}
+        ${alerts.length?`<div class="hk-al">${alerts.map(a=>`<span>⚠ ${esc(a)}</span>`).join("")}</div>`:""}
         ${unitLocationMini(p.id,true)}
         <div class="tfoot"><span class="note">${p.catatan?`${ic("alert")}${esc(p.catatan)}`:`${q}% unit tiba`}</span><span>${ic("clock")}${s.last?fmtTime(s.last):"—"}</span></div>
       </div>`;
