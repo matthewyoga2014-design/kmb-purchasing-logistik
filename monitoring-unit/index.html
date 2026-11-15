@@ -3559,6 +3559,7 @@ function muPrintKirim(items,withB,withRev,judul){
   .pk-pj{background:#F4F1FD;border-radius:6px;padding:5px 8px;font-size:10px;margin:0 0 8px}.pk-pj b{font-size:11.5px}
   .pk-grid{margin-bottom:10px}.two .pk-grid{columns:2;column-gap:14px}
   .pk-it{break-inside:avoid;page-break-inside:avoid;border:1px solid #ECE9F6;border-radius:6px;padding:6px;margin:0 0 9px}.two .pk-it{display:inline-block;width:100%}
+  .two td{overflow-wrap:break-word}.two th{white-space:normal}
   .pk-ih{display:flex;flex-direction:column;gap:1px;font-size:9.5px;padding:1px 0 4px 6px;border-left:3px solid #6D28D9;margin-bottom:4px}.pk-ih>b{font-size:11px}.pk-ih span{color:#4B4868}.pk-rd{color:#E11D48}.pk-ok{color:#15803D}
   table{width:100%;border-collapse:collapse;font-size:9px}
   th{background:#F4F1FD;text-align:left;font-size:7.5px;text-transform:uppercase;letter-spacing:.04em;color:#4B4868;padding:3px 4px;border:1px solid #E6E4F2;white-space:nowrap}
@@ -3585,7 +3586,8 @@ function muPrintKirim(items,withB,withRev,judul){
   setTimeout(()=>{
     try{ // 2 item per baris hanya bila semua tabel muat di setengah halaman dan tulisannya tidak dipaksa mengecil
       const half=(doc.body.clientWidth-14)/2-14; let fit=items.length>1;
-      doc.querySelectorAll(".pk-it table").forEach(t=>{ t.style.width="auto"; if(t.offsetWidth>half) fit=false; t.style.width=""; });
+      // ukur lebar minimum (teks boleh turun baris, ukuran huruf tetap)
+      doc.querySelectorAll(".pk-it table").forEach(t=>{ t.style.width="min-content"; if(t.offsetWidth>half) fit=false; t.style.width=""; });
       doc.body.classList.toggle("two",fit);
     }catch(e){}
     muWaitImgs(doc,()=>{ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){ toast("Gagal membuka jendela print."); } }); },400);
