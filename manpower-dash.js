@@ -230,13 +230,14 @@
       const j = String(p.jabatan || '').trim() || '-';
       const r = m.get(j) || { j, plan: 0, act: 0, names: [], ket: [] }; m.set(j, r);
       r.plan++;
-      const nm = String(p.nama || '').trim() || '-';
-      if (!/^vacant$/i.test(nm)) { r.act++; r.names.push(`<span>${E(nm)}</span>`); return; }
-      r.names.push(`<span class="op">${E(nm)}</span>`);
-      r.ket.push(rkKet(p));
+      const nm = String(p.nama || '').trim() || '-', vac = /^vacant$/i.test(nm);
+      const open = vac || (!!p.ptk && /open|continue/i.test(String(p.status || '')));   // vacant, atau masih terisi tapi PTK open (mau diganti)
+      if (!vac) r.act++;
+      r.names.push(open ? `<span class="op">${E(nm)}</span>` : `<span>${E(nm)}</span>`);
+      if (open) r.ket.push(vac ? rkKet(p) : nm + ' (diganti): ' + rkKet(p));
     });
     return [...m.values()].map((r) => ({ j: r.j, plan: r.plan, act: r.act, vac: r.plan - r.act, names: r.names.join(', '),
-      ket: r.plan - r.act > 0 ? r.ket.map((k) => E(k).replace(/\n/g, '<br>')).join('<br>') : '<span class="ok">Terpenuhi</span>' }));
+      ket: r.ket.length ? r.ket.map((k) => E(k).replace(/\n/g, '<br>')).join('<br>') : '<span class="ok">Terpenuhi</span>' }));
   }
   function rkTable(name, d) {
     const R = rkRows(d), n = Math.max(7, R.length), sum = (k) => R.reduce((a, r) => a + r[k], 0);
@@ -271,7 +272,7 @@
       th{font-weight:400;text-align:center;white-space:nowrap}th.ttl{background:#D9D9D9;border:1px solid #555}
       td.c{text-align:center}td.nm{font-size:10pt;line-height:1.35;padding-top:3px;padding-bottom:3px}.op{color:#C00000;font-weight:700}.ok{color:#15803D;font-weight:700}td.kt{font-size:9.5pt;line-height:1.35;padding-top:3px;padding-bottom:3px}td.r{text-align:right;padding-right:8px}
       tfoot td{background:#D9D9D9;border-left:0;border-right:0}tfoot td:first-child{border-left:1px dotted #555}tfoot td:last-child{border-right:1px dotted #555}
-    </style></head><body><h1>Rekap Manpower Planning ${E(rkName())}</h1><p class="s">Per ${dt.getDate()} ${M[dt.getMonth()]} ${dt.getFullYear()} · <span class="op">Vacant</span> = posisi belum terisi, <span class="ok">Terpenuhi</span> = tidak ada vacant. Keterangan mengikuti kolom Keterangan di MPP.</p>
+    </style></head><body><h1>Rekap Manpower Planning ${E(rkName())}</h1><p class="s">Per ${dt.getDate()} ${M[dt.getMonth()]} ${dt.getFullYear()} · Nama <span class="op">merah</span> = posisi masih open (Vacant, atau karyawan yang akan diganti), <span class="ok">Terpenuhi</span> = tidak ada posisi open. Keterangan mengikuti kolom Keterangan di MPP.</p>
       ${sites.map(([n, d]) => rkTable(n, d)).join('')}</body></html>`;
     let fr = document.getElementById('rkFrame'); if (fr) fr.remove();
     fr = document.createElement('iframe'); fr.id = 'rkFrame'; fr.setAttribute('aria-hidden', 'true');
