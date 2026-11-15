@@ -284,9 +284,12 @@
   window.rekapPrint = rekapPrint;
   const RK_IC = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16v14H4zM4 9h16M4 13h16M9 9v10" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
   function rkButton() {
-    if (ui.page !== 'dashboard' || document.getElementById('rkBtn')) return;
-    const pb = document.querySelector('#view .head #printBtn'); if (!pb) return;
-    pb.insertAdjacentHTML('beforebegin', `<button type="button" class="btn btn-g" id="rkBtn" title="Print tabel rekap Plan / Actual / Vacant / Progress per jobsite">${RK_IC}Print Rekap MPP</button>`);
+    if ((ui.page !== 'dashboard' && ui.page !== 'mpp') || document.getElementById('rkBtn')) return;
+    const html = `<button type="button" class="btn btn-g" id="rkBtn" title="Print tabel rekap Plan / Actual / Vacant / Keterangan per jobsite">${RK_IC}Print Rekap MPP</button>`;
+    const pb = document.querySelector('#view #printBtn');
+    if (pb) { pb.insertAdjacentHTML('beforebegin', html); return; }
+    const hr = document.querySelector('#view .head .head-r') || document.querySelector('#view .toolbar');
+    if (hr) hr.insertAdjacentHTML('beforeend', html);
   }
   document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('#rkBtn')) { e.preventDefault(); rekapPrint(); } });
 
