@@ -243,6 +243,22 @@
   }
   // model satu baris per jabatan; dipakai untuk Print dan Excel
   //   names: [{t, red}]   ket: blok-blok [{k:'ok'|'terisi'|'lbl'|'act'|'cx'|'plain', t, ptk}]
+  // urutan jabatan di rekap: Dept Head → Supervisor → Planner → Senior Mekanik → Mid Mekanik → Junior Mekanik → Admin Plant → Welder → Tyreman → (lainnya) → Helper
+  function rkRank(j) {
+    const s = String(j || '').toLowerCase();
+    if (/helper/.test(s)) return 10;
+    if (/dep(ar)?t(e?men)?\.?\s*head|kepala\s*dep/.test(s)) return 1;
+    if (/supervisor|\bspv\b|section\s*head|sect\.?\s*head/.test(s)) return 2;
+    if (/planner/.test(s)) return 3;
+    if (/tyre|tire|ban\b/.test(s)) return 9;
+    if (/weld|las\b/.test(s)) return 8;
+    if (/admin/.test(s)) return 7;
+    if (/senior|\bsr\.?\b/.test(s)) return 4;
+    if (/mid+le|\bmid\b|madya/.test(s)) return 5;
+    if (/junior|\bjr\.?\b/.test(s)) return 6;
+    if (/mek|mech/.test(s)) return 5;
+    return 9.5;
+  }
   function rkRows(d) {
     const P = (d && Array.isArray(d.positions)) ? d.positions : [], m = new Map();
     P.forEach((p) => {
@@ -255,7 +271,7 @@
       if (!vac) (open ? r.repl : r.filled).push(nm);
       if (open) { r.nOpen++; r.ket.push({ lbl: vac ? 'Vacant' : nm + ' (diganti)', ptk: p.ptk ? (/^ptk/i.test(p.ptk) ? '' : 'PTK ') + p.ptk : '', lines: rkKet(p) }); }
     });
-    return [...m.values()].map((r) => {
+    return [...m.values()].map((r, i) => ({ r, i, k: rkRank(r.j) })).sort((a, b) => a.k - b.k || a.i - b.i).map(({ r }) => {
       const vac = r.plan - r.act;
       // Nama: kalau ada vacant cukup "N Vacant" (+ nama yang akan diganti); yang sudah terisi pindah ke Keterangan
       const names = vac ? [{ t: vac + ' Vacant', red: true }].concat(r.repl.map((n) => ({ t: n, red: true })))
