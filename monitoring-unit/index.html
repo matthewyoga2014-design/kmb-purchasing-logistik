@@ -138,6 +138,38 @@ section.panel{padding-top:20px;display:flex;flex-direction:column;gap:18px}
 .tcard .row.hk-it .ct b{color:var(--ink)}.tcard .row.hk-it .ct b.c-green{color:#15803D}.tcard .row.hk-it .ct b.hk-j{color:#2563EB}
 .hk-p{color:var(--muted)}
 .hk-al{display:flex;flex-wrap:wrap;gap:6px;margin:10px 16px 0}
+#hkHome{display:flex;flex-direction:column;gap:16px;margin-bottom:18px}
+#hkHome[hidden]{display:none}
+.hk-top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.hk-eb{font-size:11px;font-weight:800;letter-spacing:.08em;color:#6D28D9}
+.hk-top h2{margin:2px 0 0;font-size:22px;font-weight:800}.hk-top p{margin:4px 0 0;font-size:13px;color:var(--muted)}
+.hk-leg{display:flex;gap:14px;font-size:12px;color:var(--muted)}.hk-leg span{display:inline-flex;align-items:center;gap:6px}.hk-leg i{width:10px;height:10px;border-radius:3px}
+.hk-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.hk-tile{background:#fff;border:1px solid #ECE9F6;border-radius:16px;padding:14px 16px;box-shadow:0 4px 14px rgba(30,27,58,.05)}
+.hk-tl{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--muted)}.hk-tl i{width:9px;height:9px;border-radius:50%}
+.hk-tile b{display:block;font-size:30px;font-weight:800;line-height:1.15;margin-top:4px}.hk-tile small{font-size:12px;color:var(--muted)}
+.hk-strips{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:8px}
+.hk-strip{display:grid;grid-template-columns:minmax(0,1fr) 90px auto;gap:10px;align-items:center;background:#fff;border:1px solid #ECE9F6;border-radius:12px;padding:8px 12px;font:inherit;text-align:left;cursor:pointer}
+.hk-strip:hover{border-color:#C9C2EC}.hk-strip b{font-size:12.5px;overflow-wrap:anywhere}.hk-strip>span:last-child{font-size:12.5px;font-weight:800;white-space:nowrap}
+.hk-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:16px;align-items:start}
+.hk-card{background:#fff;border:1px solid #ECE9F6;border-radius:18px;box-shadow:0 6px 20px rgba(30,27,58,.06);padding:18px 18px 14px;display:flex;flex-direction:column;gap:12px;cursor:pointer}
+.hk-card:hover{border-color:#D9D2F3}
+.hk-h{display:flex;align-items:flex-start;gap:12px}
+.hk-ic{flex:none;width:40px;height:40px;border-radius:12px;background:linear-gradient(120deg,#7C3AED,#A78BFA);display:flex;align-items:center;justify-content:center;color:#fff}.hk-ic .i{width:20px;height:20px}
+.hk-tt{flex:1;min-width:0}.hk-tt h3{margin:0;font-size:17px;font-weight:800}.hk-tt p{margin:2px 0 0;font-size:12.5px;color:var(--muted)}
+.hk-done{font-size:11.5px;font-weight:800;color:#15803D;background:#E9F9EF;border-radius:999px;padding:4px 10px;white-space:nowrap}
+.hk-go{flex:none;font:inherit;font-size:13px;font-weight:800;color:#6D28D9;background:#fff;border:1px solid #DDD3FA;border-radius:10px;padding:7px 12px;cursor:pointer;white-space:nowrap}.hk-go:hover{background:#F5F1FF}
+.hk-sts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.hk-st{background:#FAF9FE;border:1px solid #EFECF8;border-radius:12px;padding:10px 12px}
+.hk-st small{display:block;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}.hk-st b{display:block;font-size:24px;font-weight:800;line-height:1.2}
+.hk-card .hk-main{margin:0}.hk-card .hk-al{margin:0}
+.hk-row{display:grid;grid-template-columns:minmax(0,1fr) 110px auto;gap:12px;align-items:center;padding:8px 0;border-top:1px solid #F1EEF8}
+.hk-row .nm{font-size:13px;font-weight:700;overflow-wrap:anywhere}.hk-row .ct{font-size:12px;color:var(--muted);white-space:nowrap;text-align:right}.hk-row .ct b{color:var(--ink)}.hk-row .ct b.c-green{color:#15803D}.hk-row .ct b.hk-j{color:#2563EB}
+.hk-note{margin:0;font-size:12px;color:#92400E;display:flex;gap:6px;align-items:flex-start}.hk-note .i{width:14px;height:14px;flex:none}
+.hk-f{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:11.5px;color:var(--muted);border-top:1px solid #F1EEF8;padding-top:10px}.hk-f span{display:inline-flex;align-items:center;gap:5px}.hk-f .i{width:13px;height:13px}
+@media (max-width:900px){.hk-tiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:560px){.hk-sts{grid-template-columns:repeat(2,minmax(0,1fr))}.hk-row{grid-template-columns:minmax(0,1fr) auto}.hk-row .hk-bar{grid-column:1/-1;order:3}}
+@media print{.hk-card{break-inside:avoid;box-shadow:none}.hk-go,.hk-card .btn{display:none}}
 .hk-al span{font-size:11.5px;font-weight:700;color:#B45309;background:#FFF7E6;border:1px solid #FDE2B3;border-radius:999px;padding:3px 10px}
 .pbar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#6D28D9,#A78BFA)}
 .pbar.over i{background:linear-gradient(90deg,#EA7A0C,#FDBA74)}
@@ -1688,6 +1720,7 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
   <!-- RINGKASAN -->
   <section class="panel" id="p-ringkasan" role="tabpanel">
     <div id="dashControls" class="mu-dashboard-controls"></div>
+    <div id="hkHome" hidden></div>
     <div id="popDash"></div>
     <div id="projDash" hidden></div>
     <div id="homeTop">
@@ -3146,19 +3179,50 @@ function renderPopDash(){
   el.innerHTML=muDashboardWrap("population","Populasi Unit",populationHtml);
 }
 
+/* Dashboard semua project: ringkas, satu kartu per project (seperti beranda Portal MPP) */
+function renderHkHome(L,ps){
+  const el=$("#hkHome"); if(!el) return;
+  if(!ps.length){ el.innerHTML=`<div class="card">${emptyState(L?"Memuat data…":"Belum ada project",L?"":"Tambahkan project dan item unit yang direncanakan dikirim.",canWrite&&!L?`<button class="btn primary small" data-act="addProj" type="button">+ Project</button>`:"")}</div>`; return; }
+  const SS=ps.map(p=>({p,s:projStats(p.id)})), T=SS.reduce((a,{s})=>({r:a.r+s.rencana,t:a.t+s.tiba,j:a.j+s.jalan,k:a.k+s.sisa}),{r:0,t:0,j:0,k:0});
+  const tile=(l,v,c,sub)=>`<div class="hk-tile"><div class="hk-tl"><i style="background:${c}"></i>${l}</div><b>${v}</b><small>${sub}</small></div>`;
+  const strip=SS.map(({p,s})=>`<button type="button" class="hk-strip" data-act="openProj" data-id="${p.id}" title="Buka ${esc(p.kode)}"><b>${esc(p.kode)}</b>${hkBar(s.rencana,s.tiba,s.jalan)}<span>${pct(s.tiba,s.rencana)}% tiba</span></button>`).join("");
+  const stat=(l,v,c)=>`<div class="hk-st"><small>${l}</small><b style="color:${c}">${v}</b></div>`;
+  const cards=SS.map(({p,s})=>{
+    const sub=[p.nama,p.lokasi].filter(Boolean).join(" · "), done=s.rencana>0&&s.sisa===0&&s.jalan===0;
+    const rows=s.items.map(k=>{ const r=Number(k.rencana)||0, t=Math.min(tibaItem(k),r), j=jalanItem(k);
+      return `<div class="hk-row"><span class="nm">${esc(k.tipe)}</span>${hkBar(r,t,j)}<span class="ct">${r&&t>=r?`<b class="c-green">Lengkap</b>`:`<b>${t}/${r}</b> tiba (${pct(t,r)}%)${j?` · <b class="hk-j">${j}</b> jalan`:""}`}</span></div>`; }).join("");
+    const pu=S.units.filter(u=>u.projectId===p.id), bd=pu.filter(u=>/breakdown/i.test(u.status||"")).length, tmp=pu.filter(u=>u.kodeSementara||!String(u.kode||"").trim()).length;
+    const al=[bd?`${bd} unit Breakdown`:"",tmp?`${tmp} nomor lambung belum diisi`:""].filter(Boolean);
+    return `<article class="hk-card" data-proj="${p.id}">
+      <div class="hk-h"><span class="hk-ic">${ic(projIcon(p.id))}</span><div class="hk-tt"><h3>${esc(p.kode)}</h3><p>${esc(sub||"—")}</p></div>
+        ${done?`<span class="hk-done">Semua tiba</span>`:""}${role==="owner"?`<button class="btn small" data-act="editProj" data-id="${p.id}" type="button">✎ Edit</button>`:""}<button class="hk-go" data-act="openProj" data-id="${p.id}" type="button">Buka →</button></div>
+      <div class="hk-sts">${stat("Rencana",s.rencana,"var(--ink)")}${stat("Tiba",s.tiba,"#16A34A")}${stat("Dlm perjalanan",s.jalan,"#2563EB")}${stat("Sisa kirim",s.sisa,s.sisa?"#E11D48":"var(--ink)")}</div>
+      <div class="hk-main">${hkBar(s.rencana,s.tiba,s.jalan,true)}<span class="hk-lab"><b class="c-green">${pct(s.tiba,s.rencana)}% tiba</b>${s.jalan?` · <b class="hk-j">${pct(s.jalan,s.rencana)}%</b> di jalan`:""}${s.sisa?` · <b class="c-red">${pct(s.sisa,s.rencana)}%</b> sisa`:""}</span></div>
+      <div class="hk-rows">${rows||'<p class="muted small">Belum ada rencana kirim.</p>'}</div>
+      ${al.length?`<div class="hk-al">${al.map(a=>`<span>⚠ ${esc(a)}</span>`).join("")}</div>`:""}
+      ${p.catatan?`<p class="hk-note">${ic("alert")}${esc(p.catatan)}</p>`:""}
+      <div class="hk-f"><span>${s.items.length} item unit · ${s.rencana} unit · ${s.unitCount} di lokasi</span><span>${ic("clock")}Diperbarui ${s.last?fmtTime(s.last):"—"}</span></div>
+    </article>`; }).join("");
+  el.innerHTML=`<div class="hk-top"><div><div class="hk-eb">DASHBOARD UNIT</div><h2>Ringkasan pengiriman unit</h2><p>Satu kartu per project. Klik <b>Buka →</b> untuk tabel detail, filter, Atur kolom, upload bukti, Excel &amp; print.</p></div>
+      <div class="hk-leg"><span><i style="background:#16A34A"></i>Tiba</span><span><i style="background:#2563EB"></i>Dlm perjalanan</span><span><i style="background:#F6D3DB"></i>Sisa kirim</span></div></div>
+    <div class="hk-tiles">${tile("Unit rencana",T.r,"#1C1A33",`${ps.length} project`)}${tile("Sudah tiba",T.t,"#16A34A",`${pct(T.t,T.r)}% dari rencana`)}${tile("Dalam perjalanan",T.j,"#2563EB",`${pct(T.j,T.r)}% dari rencana`)}${tile("Sisa kirim",T.k,"#E11D48",`${pct(T.k,T.r)}% belum dikirim`)}</div>
+    <div class="hk-strips">${strip}</div>
+    <div class="hk-grid">${cards}</div>`;
+}
 /* bar bertumpuk: hijau = tiba, biru = dalam perjalanan, sisanya = sisa kirim */
 function hkBar(r,t,j,big){ const w=n=>r?Math.max(0,Math.min(100,n/r*100)).toFixed(1)+"%":"0%";
   return `<span class="hk-bar${big?" big":""}" role="img" title="${t} tiba (${pct(t,r)}%) · ${j} dalam perjalanan (${pct(j,r)}%) · ${Math.max(0,r-t-j)} sisa kirim dari ${r}" aria-label="${t} tiba, ${j} dalam perjalanan dari ${r}"><i class="t" style="width:${w(t)}"></i><i class="j" style="width:${w(j)}"></i></span>`; }
 function renderRingkasan(){
   const L=!S.ready, ps=projects(), P=curProj();
-  $("#projDash").hidden=!P; $("#projCards").hidden=!!P; $("#homeTop").hidden=!!P; $("#ovBottom").hidden=!!P;
-  if(P) renderProjDash(P);
+  $("#projDash").hidden=!P; $("#projCards").hidden=true; $("#homeTop").hidden=true; $("#ovBottom").hidden=!!P;
+  $("#hkHome").hidden=!!P; $("#kpis").hidden=!P;
+  if(P) renderProjDash(P); else renderHkHome(L,ps);
   if(P){
     // Filter project aktif: kartu lintas project tidak boleh tertinggal di DOM atau ikut tercetak.
     $("#projCards").replaceChildren();
-  } else if(!ps.length){
+  } else if(!ps.length && !$("#projCards").hidden){
     $("#projCards").innerHTML=`<div class="card">${emptyState(L?"Memuat data…":"Belum ada project",L?"":"Tambahkan project dan item unit yang direncanakan dikirim.",canWrite&&!L?`<button class="btn primary small" data-act="addProj" type="button">+ Project</button>`:"")}</div>`;
-  } else {
+  } else if(!$("#projCards").hidden){ // kartu lama (tidak dipakai lagi; diganti #hkHome)
     const cardsHtml=ps.map(p=>{
       const c=projColor(p.id), s=projStats(p.id), q=pct(s.tiba,s.rencana);
       const sub=[p.nama,p.lokasi].filter(Boolean).join(" · ");
