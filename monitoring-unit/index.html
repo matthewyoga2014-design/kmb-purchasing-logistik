@@ -155,7 +155,7 @@ section.panel{padding-top:20px;display:flex;flex-direction:column;gap:18px}
 .mu-pt-table tr.pt-cont td.pt-jn{border-bottom-color:transparent}
 .pt-z{color:#C9C6DA}.pt-m{color:#9A97B0;font-size:12px}
 .pt-kd{white-space:nowrap}.pt-kd i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px}
-.mu-pt-table .mu-pop-plates{min-width:240px}
+.mu-pt-table .mu-pop-plates{min-width:260px;flex-direction:row;flex-wrap:wrap;align-items:center}.mu-pt-table .mu-pop-plates .tmp{white-space:nowrap}
 .pt-w{display:inline-block;min-width:26px;text-align:center;font-weight:800;color:#B45309;background:#FFF4E5;border-radius:6px;padding:2px 6px}
 .mu-pt-table tfoot td{font-weight:800;background:#F5F2FD;border-top:2px solid #E3E0EF;color:var(--ink)}
 @media (max-width:900px){.pt-kpi{grid-template-columns:repeat(3,minmax(0,1fr))}.pt-kpi div:nth-child(3){border-right:0}}
@@ -3221,7 +3221,7 @@ function renderPopDash(){
       <td class="pt-kd"><i style="background:${kTone(kd.label)}"></i>${esc(kd.label)} <span class="pt-m">${kd.n} dari ${it.length}</span></td>
       <td class="n">${tmp?`<span class="pt-w">${tmp}</span>`:dash}</td>
       ${extra(it,"kepemilikan")}${extra(it,"lokasi")}
-      <td><div class="mu-pop-plates">${it.map(x=>isTmp(x)?'<span class="tmp">belum diisi</span>':'<span class="plate">'+esc(x.u.kode)+'</span>').join("")}</div></td>
+      <td><div class="mu-pop-plates">${it.filter(x=>!isTmp(x)).map(x=>'<span class="plate">'+esc(x.u.kode)+'</span>').join("")}${tmp?`<span class="tmp">${tmp} belum diisi</span>`:""}</div></td>
       ${extra(it,"model")}${extra(it,"tahun")}${extra(it,"kategori")}${extra(it,"pic")}</tr>`; }));
   const shown=groups.flatMap(g=>g.rows.flatMap(r=>r.items)), T=[0,1,2,3,4].map(k=>shown.filter(x=>stOf(x)===k).length);
   const foot=`<tr><td>Total · ${groups.length} jenis</td><td></td><td></td><td class="n">${shown.length}</td>${T.map((n,k)=>`<td class="n" style="color:${SC[k]}">${n||"–"}</td>`).join("")}<td></td><td class="n" style="color:#B45309">${shown.filter(isTmp).length||"–"}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
