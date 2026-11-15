@@ -81,7 +81,7 @@
 .ucfg{position:relative}.ucfg summary{list-style:none;cursor:pointer}.ucfg summary::-webkit-details-marker{display:none}
 .ucfg .ucfg-p{position:absolute;right:0;top:calc(100% + 6px);z-index:20;background:#fff;border:1px solid var(--line,#E8E6F3);border-radius:12px;box-shadow:0 12px 32px rgba(30,27,58,.14);padding:12px 14px;min-width:230px;display:grid;gap:8px}
 .ucfg label{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}.ucfg .ucfg-p p{margin:0;font-size:11.5px;color:var(--muted,#8A87A6)}
-@media print{.dsub-bar,.ucfg,.up-card [data-go]{display:none!important}.up-tw{overflow:visible}}`;
+@media print{#rkBtn,.dsub-bar,.ucfg,.up-card [data-go]{display:none!important}.up-tw{overflow:visible}}`;
   document.head.appendChild(css);
 
   function title() {
@@ -216,6 +216,80 @@
     catch (e) { console.error(e); return fullDash(D); }
   };
 
+  // ---------- Print Rekap MPP per jobsite (format tabel: No, Jabatan, Plan, Actual, Vacant, Progress) ----------
+  const RK_STEP = ['Psikotes', 'Interview User', 'Offering Letter', 'MCU', 'FU MCU', 'On Site', 'Induksi'];
+  function rkStage(c) {
+    let k = -1; (Array.isArray(c.dates) ? c.dates : []).forEach((d, i) => { if (d) k = i; });
+    return k >= 0 ? [k + 2, RK_STEP[k]] : c.scr ? [1, 'Screening CV'] : [0, 'Berkas lamaran / CV'];
+  }
+  function rkRows(d) {
+    const P = (d && Array.isArray(d.positions)) ? d.positions : [], m = new Map();
+    P.forEach((p) => {
+      const j = String(p.jabatan || '').trim() || '-';
+      const r = m.get(j) || { j, plan: 0, act: 0, st: new Map(), src: 0 }; m.set(j, r);
+      r.plan++;
+      if (!/^vacant$/i.test(String(p.nama || '').trim())) { r.act++; return; }
+      const cs = (Array.isArray(p.cands) ? p.cands : []).filter((c) => c && (c.status === 'Aktif' || c.status === 'Hold' || !c.status));
+      if (!cs.length) { r.src++; return; }
+      cs.forEach((c) => { const [k, n] = rkStage(c); const x = r.st.get(n) || [k, 0]; x[1]++; r.st.set(n, x); });
+    });
+    return [...m.values()].map((r) => {
+      const parts = [...r.st].sort((a, b) => b[1][0] - a[1][0]).map(([n, [, c]]) => `${n} (${c} kandidat)`);
+      if (r.src) parts.push('Sourcing kandidat' + (parts.length && r.src > 1 ? ` (${r.src} posisi)` : ''));
+      return { j: r.j, plan: r.plan, act: r.act, vac: r.plan - r.act, prog: parts.join('; ') };
+    });
+  }
+  function rkTable(name, d) {
+    const R = rkRows(d), n = Math.max(7, R.length), sum = (k) => R.reduce((a, r) => a + r[k], 0);
+    let body = '';
+    for (let i = 0; i < n; i++) { const r = R[i]; body += `<tr><td class="c">${i + 1}</td><td>${r ? E(r.j) : ''}</td><td class="c">${r ? r.plan : ''}</td><td class="c">${r ? r.act : ''}</td><td class="c">${r ? r.vac : 0}</td><td>${r ? E(r.prog) : ''}</td></tr>`; }
+    return `<table><colgroup><col style="width:6%"><col style="width:26%"><col style="width:9%"><col style="width:9%"><col style="width:9%"><col style="width:41%"></colgroup>
+      <thead><tr><th colspan="6" class="ttl">Jobsite ${E(name)}</th></tr><tr><th>No</th><th>Jabatan</th><th>Plan</th><th>Actual</th><th>Vacant</th><th>Progress</th></tr></thead>
+      <tbody>${body}</tbody><tfoot><tr><td colspan="2">Total</td><td class="r">${sum('plan')}</td><td class="r">${sum('act')}</td><td class="r">${sum('vac')}</td><td></td></tr></tfoot></table>`;
+  }
+  function rkName() {
+    try { if (typeof PROJ !== 'undefined' && PROJ && PROJ.sites) return (typeof PROJ_CFG !== 'undefined' && PROJ_CFG.short) || 'KMB'; } catch (e) {}
+    return title().replace(/^Dashboard Manpower\s*/i, '');
+  }
+  async function rekapPrint() {
+    let free = true; try { free = guardFree(); } catch (e) {}
+    if (!free) { try { (typeof PRINT_ASK === 'function' ? PRINT_ASK : askPrint)(); } catch (e) {} return; }
+    const sites = [];
+    try {
+      if (typeof PROJ !== 'undefined' && PROJ && PROJ.sites) {
+        if (typeof loadAllSites === 'function' && PROJ.sites.some((s) => s.id !== WEB_ID && !SITE_DATA[s.id])) { try { toast('Memuat data semua jobsite…'); } catch (e) {} await loadAllSites(); }
+        const ORD = ['kmb-slr-rekondisi', 'kmb-slr-maintenance', 'kmb-c4', 'kmb-workshop'], oi = (s) => { const i = ORD.indexOf(s.id); return i < 0 ? 99 : i; };
+        [...PROJ.sites].sort((x, y) => oi(x) - oi(y)).forEach((s) => { const d = s.id === WEB_ID ? DATA : (SITE_DATA[s.id] || (window.SITE_SEEDS && SITE_SEEDS[s.id])); if (d) sites.push([s.name, d]); });
+      }
+    } catch (e) {}
+    if (!sites.length) sites.push([rkName() || 'Jobsite', DATA]);
+    const dt = new Date(), M = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+    const html = `<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Rekap MPP ${E(rkName())}</title><style>
+      @page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{margin:0;font-family:Calibri,"Segoe UI",Arial,sans-serif;font-size:11pt;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      h1{font-size:13pt;margin:0 0 2px}p.s{margin:0 0 10px;font-size:9.5pt;color:#444}
+      table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px;break-inside:avoid}
+      th,td{border:1px dotted #555;padding:2px 5px;height:22px;vertical-align:middle;overflow:hidden;word-wrap:break-word}
+      th{font-weight:400;text-align:center}th.ttl{background:#D9D9D9;border:1px solid #555}
+      td.c{text-align:center}td.r{text-align:right;padding-right:8px}
+      tfoot td{background:#D9D9D9;border-left:0;border-right:0}tfoot td:first-child{border-left:1px dotted #555}tfoot td:last-child{border-right:1px dotted #555}
+    </style></head><body><h1>Rekap Manpower Planning ${E(rkName())}</h1><p class="s">Per ${dt.getDate()} ${M[dt.getMonth()]} ${dt.getFullYear()} · Progress otomatis dari tahap pelamar aktif di posisi vacant.</p>
+      ${sites.map(([n, d]) => rkTable(n, d)).join('')}</body></html>`;
+    let fr = document.getElementById('rkFrame'); if (fr) fr.remove();
+    fr = document.createElement('iframe'); fr.id = 'rkFrame'; fr.setAttribute('aria-hidden', 'true');
+    fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    document.body.appendChild(fr);
+    const w = fr.contentWindow; w.document.open(); w.document.write(html); w.document.close();
+    setTimeout(() => { try { w.focus(); w.print(); } catch (e) { const x = window.open('', '_blank'); if (x) { x.document.write(html); x.document.close(); x.print(); } } }, 300);
+  }
+  window.rekapPrint = rekapPrint;
+  const RK_IC = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16v14H4zM4 9h16M4 13h16M9 9v10" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+  function rkButton() {
+    if (ui.page !== 'dashboard' || document.getElementById('rkBtn')) return;
+    const pb = document.querySelector('#view .head #printBtn'); if (!pb) return;
+    pb.insertAdjacentHTML('beforebegin', `<button type="button" class="btn btn-g" id="rkBtn" title="Print tabel rekap Plan / Actual / Vacant / Progress per jobsite">${RK_IC}Print Rekap MPP</button>`);
+  }
+  document.addEventListener('click', (e) => { if (e.target.closest && e.target.closest('#rkBtn')) { e.preventDefault(); rekapPrint(); } });
+
   // ---------- sub-menu Dashboard di sidebar ----------
   const CHEV = '<svg class="dchev" width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function navSubs() {
@@ -232,7 +306,7 @@
     if (open) b.removeAttribute('aria-current');
   }
   const _render = render;
-  render = function () { const r = _render.apply(this, arguments); try { navSubs(); } catch (e) {} return r; };
+  render = function () { const r = _render.apply(this, arguments); try { navSubs(); } catch (e) {} try { rkButton(); } catch (e) {} return r; };
 
   document.addEventListener('click', (e) => {
     const t = e.target.closest && e.target.closest('[data-dsub],[data-go="dashboard"],[data-dmf]');
