@@ -1921,8 +1921,8 @@ function pageMPP(D) {
         <td>${p.no}</td>
         <td class="${isVacant(p) ? 'vacn' : 'b'}">${esc(p.nama)}</td>
         <td>${esc(p.jabatan)}<div class="small">${esc(p.group || p.section || '')}</div></td>
-        <td>${cs.length ? `<button type="button" class="pcount" data-cands="${i}">${cs.length} Pelamar</button><div class="plist">${pstList(cs).map((x) => `<div class="${x.st === 'no' ? 'off' : 'on'}"><b>${esc(x.name)}</b></div>`).join('')}</div>` : '<span class="dash">-</span>'}</td>
-        <td class="ket">${esc((cs.length ? ketFromCands(p.cands || []) : p.ket) || '-')}</td>
+        <td>${cs.length ? `<button type="button" class="pcount" data-cands="${i}">${cs.length} Pelamar</button><div class="plist">${pstList(cs).map((x) => `<div class="${x.st === 'no' ? 'off' : 'on'}"><b>${esc(x.name)}</b>${x.st === 'no' ? '' : `<span>${x.st === 'ok' ? 'DITERIMA' : x.status === 'Hold' ? 'HOLD · ' + cLbl(x) : cLbl(x) + ' ' + cPct(x) + '%'}</span>`}</div>`).join('')}</div>` : '<span class="dash">-</span>'}</td>
+        <td class="ket">${esc((cs.length ? ketFromCands([...(p.cands || []).filter((c) => ST_OF(c.status) !== 'no'), ...(p.cands || []).filter((c) => ST_OF(c.status) === 'no')]) : p.ket) || '-')}</td>
         <td class="ptkc">${esc(p.ptk || '-')}</td>
         <td>${hasPTK(p) ? `<span class="stt ${/close/i.test(p.status) ? 'close' : /continue/i.test(p.status) ? 'cont' : 'open'}">${esc(p.status)}</span>` : '<span class="dash">-</span>'}</td>
         <td>${(() => { const v = progView(p, si); return `<div class="pg ${v.cls}"><span class="tr"><i style="width:${v.pct}%"></i></span><b>${v.pct}%</b></div><div class="pgl ${v.cls}">${v.lbl}</div>`; })()}</td>
