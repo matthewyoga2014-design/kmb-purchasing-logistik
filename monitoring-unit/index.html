@@ -2278,7 +2278,7 @@ function openForm({title,desc="",fields,values={},ok="Simpan",onSubmit,live,dang
     let input;
     if(f.type==="select") input=`<select id="${id}" name="${f.key}">${optionsHtml(f.options,v)}</select>`;
     else if(f.type==="textarea") input=`<textarea id="${id}" name="${f.key}" placeholder="${esc(f.ph||"")}">${esc(v)}</textarea>`;
-    else if(f.type==="file") input=`<input id="${id}" name="${f.key}" type="file" multiple accept="image/*,application/pdf">`;
+    else if(f.type==="file") input=`<input id="${id}" name="${f.key}" type="file" multiple accept="image/*,application/pdf,video/*">`;
     else input=`<input id="${id}" name="${f.key}" type="${f.type||"text"}" value="${esc(v)}" ${f.list?`list="${id}_l"`:""} ${f.min!=null?`min="${f.min}"`:""} ${f.step?`step="${f.step}"`:""} placeholder="${esc(f.ph||"")}">`
       + (f.list?`<datalist id="${id}_l">${f.list.map(o=>`<option value="${esc(o)}"></option>`).join("")}</datalist>`:"");
     w.innerHTML=`<label for="${id}">${esc(f.label)}${f.req?" *":""}</label>${input}${f.hint?`<span class="hint" id="${id}_h">${esc(f.hint)}</span>`:""}`;
@@ -4990,7 +4990,7 @@ function openUpload(pre){
   const kid=pre.kirimId||items[0].id;
   const unitOpts=id=>[{v:"",l:"— Tidak spesifik / semua unit —"},...S.units.filter(u=>u.kirimId===id).map(u=>({v:u.kode,l:u.kode+(u.kodeSementara?" (kode sementara)":"")}))];
   let lastK=kid;
-  openForm({title:"Upload bukti",desc:"Foto otomatis diperkecil sebelum diunggah. PDF maksimal 8 MB per file.",ok:"Upload",
+  openForm({title:"Upload bukti",desc:"Foto otomatis diperkecil sebelum diunggah. PDF maksimal 8 MB, video maksimal 35 MB per file.",ok:"Upload",
     values:{tahap:pre.tahap||tahapDefault(kid),kirimId:kid,unitKode:pre.unitKode||"",tanggal:todayStr(),lokasi:pre.lokasi||""},
     fields:[
       {key:"tahap",label:"Tahap",type:"select",options:TAHAP.map(t=>t.k)},
@@ -4999,13 +4999,13 @@ function openUpload(pre){
       {key:"tanggal",label:"Tanggal kejadian",type:"date",req:true},
       {key:"lokasi",label:"Lokasi",full:true,ph:"Pelabuhan Banjarmasin, KM 14, Pit 1…"},
       {key:"catatan",label:"Keterangan",type:"textarea",full:true,ph:"Contoh: unit dimuat ke tongkang TB Jaya 01, kondisi baik."},
-      {key:"files",label:"Foto / dokumen",type:"file",full:true,req:true,hint:"Bisa pilih beberapa file sekaligus (JPG, PNG, PDF)."}
+      {key:"files",label:"Foto / dokumen / video",type:"file",full:true,req:true,hint:"Bisa pilih beberapa file sekaligus (JPG, PNG, PDF, video MP4/MOV)."}
     ],
     live:(v,target)=>{ if(target&&target.id==="f_kirimId"&&v.kirimId!==lastK){ lastK=v.kirimId; $("#f_unitKode").innerHTML=optionsHtml(unitOpts(v.kirimId),""); } },
     onSubmit:d=>{
       const files=[...($("#f_files").files||[])];
       if(!files.length){ toast("Pilih minimal satu file."); return false; }
-      const big=files.find(f=>!/^image\//.test(f.type)&&f.size>8*1024*1024); if(big){ toast(`${big.name} lebih dari 8 MB.`); return false; }
+      const isV=f=>/^video\//.test(f.type); const big=files.find(f=>!/^image\//.test(f.type)&&f.size>(isV(f)?35:8)*1024*1024); if(big){ toast(`${big.name} lebih dari ${isV(big)?35:8} MB.`); return false; }
       const k=S.kirim.find(x=>x.id===d.kirimId);
       const meta={tahap:d.tahap,kirimId:d.kirimId,projectId:k?k.projectId:(P&&P.id),tipe:k?k.tipe:"",unitKode:d.unitKode,tanggal:d.tanggal,lokasi:d.lokasi,catatan:d.catatan};
       uploadFiles(files,meta); }
@@ -5116,6 +5116,7 @@ window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,la
     const a = (i.accept || '').toLowerCase(); const k = [];
     if (/pdf/.test(a)) k.push('PDF');
     if (/image/.test(a) || /\.(jpe?g|png|webp)/.test(a)) k.push(/webp/.test(a) ? 'JPG, PNG, atau WEBP' : 'JPG atau PNG');
+    if (/video/.test(a)) k.push('video MP4/MOV');
     if (/xls|sheet/.test(a)) k.push('Excel (.xlsx)');
     if (/docx|word/.test(a)) k.push('Word (.docx)');
     if (/json/.test(a)) k.push('file cadangan (.json)');

@@ -2161,21 +2161,22 @@ function upInner(k) {
   if (FORM && FORM.uploading === k) return '<span class="upst"><span class="spin sm"></span>Mengunggah…</span>';
   if (cur) return `<a class="fchip2" href="${fileUrl(cur)}" title="${esc(cur.name || 'Berkas')}">${esc(cur.name || 'Berkas')}</a><button type="button" class="upx" data-uprm="${k}" aria-label="Hapus berkas">×</button>`;
   if (!ASSETS) return '<span class="small">Masuk sebagai Editor untuk upload</span>';
-  return `<button type="button" class="btn btn-g btn-sm upbtn" data-uppick="${k}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Upload</button><input type="file" accept="application/pdf,image/png,image/jpeg,image/webp" data-upfile="${k}" hidden><small>atau seret berkas ke sini · PDF / JPG / PNG, maks 20 MB</small>`;
+  return `<button type="button" class="btn btn-g btn-sm upbtn" data-uppick="${k}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Upload</button><input type="file" accept="application/pdf,image/png,image/jpeg,image/webp,video/*" data-upfile="${k}" hidden><small>atau seret berkas ke sini · PDF / JPG / PNG maks 20 MB · Video maks 50 MB</small>`;
 }
 document.addEventListener('change', async (e) => {
   const inp = e.target.closest && e.target.closest('[data-upfile]'); if (!inp || !FORM) return;
   const k = inp.dataset.upfile, f = inp.files && inp.files[0]; inp.value = ''; if (!f || !ASSETS) return;
-  const ok = /^(application\/pdf|image\/(png|jpeg|webp))$/.test(f.type);
-  if (!ok) { toast('Format belum didukung. Gunakan PDF, JPG, atau PNG (file Word bisa disimpan sebagai PDF dulu).', true); return; }
-  if (f.size > 20 * 1024 * 1024) { toast('Ukuran file lebih dari 20 MB.', true); return; }
+  const vid = /^video\//.test(f.type) || /\.(mp4|mov|m4v|webm|3gp|mkv|avi)$/i.test(f.name);
+  const ok = vid || /^(application\/pdf|image\/(png|jpeg|webp))$/.test(f.type);
+  if (!ok) { toast('Format belum didukung. Gunakan PDF, JPG, PNG, atau video (file Word bisa disimpan sebagai PDF dulu).', true); return; }
+  if (f.size > (vid ? 50 : 20) * 1024 * 1024) { toast(vid ? 'Ukuran video lebih dari 50 MB. Perpendek atau kompres videonya dulu.' : 'Ukuran file lebih dari 20 MB.', true); return; }
   const form = FORM; form.uploading = k; document.getElementById('up_' + k).innerHTML = upInner(k);
   try {
     const r = await ASSETS.upload(f);
     form.files = { ...(form.files || {}), [k]: { id: r.id, name: f.name, type: r.contentType } };
   } catch (er) {
     const c = er && er.code;
-    toast(c === 'too_large' ? 'Ukuran file terlalu besar (maks 20 MB).' : c === 'unsupported_type' ? 'Format file tidak didukung. Gunakan PDF, JPG, atau PNG.' : c === 'quota_or_state' ? 'Penyimpanan berkas sudah penuh.' : c === 'not_granted' ? 'Akun ini tidak bisa mengunggah berkas.' : 'Upload gagal' + (er && er.message ? ': ' + er.message : '.'), true);
+    toast(c === 'too_large' ? 'Ukuran file terlalu besar (maks 20 MB, video 50 MB).' : c === 'unsupported_type' ? 'Format file tidak didukung. Gunakan PDF, JPG, PNG, atau video.' : c === 'quota_or_state' ? 'Penyimpanan berkas sudah penuh.' : c === 'not_granted' ? 'Akun ini tidak bisa mengunggah berkas.' : 'Upload gagal' + (er && er.message ? ': ' + er.message : '.'), true);
   } finally { form.uploading = null; const box = document.getElementById('up_' + k); if (box && FORM === form) box.innerHTML = upInner(k); }
 }, true);
 // seret & lepas berkas ke kotak upload (seperti Google Form), atau klik kotaknya untuk mencari berkas
@@ -2209,7 +2210,7 @@ document.addEventListener('change', async (e) => {
     if (!pk) {
       document.body.insertAdjacentHTML('beforeend', `<div id="upPick" role="dialog" aria-modal="true" aria-labelledby="upPkT" hidden><div class="upk">
         <div class="upk-h"><div><small>Sisipkan file</small><h3 id="upPkT"></h3></div><button type="button" class="upk-x" data-pkclose aria-label="Tutup">×</button></div>
-        <div class="upk-i"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Upload 1 file: PDF, JPG, atau PNG. Maks 20 MB. File Word simpan dulu sebagai PDF.</span></div>
+        <div class="upk-i"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Upload 1 file: PDF, JPG, atau PNG (maks 20 MB) atau video MP4/MOV (maks 50 MB). File Word simpan dulu sebagai PDF.</span></div>
         <div class="upk-z" id="upPkZ"><svg class="cloud" width="150" height="104" viewBox="0 0 150 104" aria-hidden="true"><defs><linearGradient id="upkg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#4ADE80"/><stop offset="1" stop-color="#BAE6FD"/></linearGradient></defs><path d="M38 98h80a28 28 0 0 0 3-56 34 34 0 0 0-66-8 28 28 0 0 0-17 64z" fill="url(#upkg)" stroke="#1E1B3A" stroke-width="1.6"/><path d="M75 82V44M61 57l14-14 14 14" fill="none" stroke="#1E1B3A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <button type="button" class="upk-b" id="upPkB">Jelajah</button><p>atau tarik file ke sini</p></div></div></div>`);
       pk = document.getElementById('upPick');
@@ -2411,6 +2412,7 @@ async function openFile(id, name) {
   if (dl) { dl.disabled = false; dl.onclick = () => save(name || ('berkas_' + id + (blob.type === 'application/pdf' ? '.pdf' : '.png')), blob); }
   const body = document.getElementById('vBody');
   if (/^image\//.test(blob.type)) { const u = URL.createObjectURL(blob); body.innerHTML = `<img src="${u}" alt="${esc(name || 'Berkas')}" class="vimg">`; return; }
+  if (/^video\//.test(blob.type) || /\.(mp4|mov|m4v|webm|3gp|mkv|avi)$/i.test(name || '')) { const u = URL.createObjectURL(/^video\//.test(blob.type) ? blob : new Blob([blob], { type: 'video/mp4' })); body.innerHTML = `<video src="${u}" controls playsinline preload="metadata" class="vimg" style="max-height:72vh;background:#000"></video><div class="small" style="margin-top:6px">Bila video tidak bisa diputar di sini${DL ? ', gunakan tombol Download' : ''}.</div>`; return; }
   if (blob.type === 'application/pdf' || /\.pdf$/i.test(name || '')) {
     try {
       const lib = await ensurePdfJs();
@@ -3804,7 +3806,7 @@ window.fetch = async function (u, o) {
     if (!WEB.sb || !CAN_EDIT) return new Response('', { status: 403 });
     const { data, error } = await WEB.sb.storage.from(WEB_BUCKET).download(id);
     if (error || !data) return new Response('', { status: /not.?found|404/i.test((error && error.message) || '') ? 404 : 403 });
-    const type = data.type || (/\.pdf$/i.test(id) ? 'application/pdf' : /\.png$/i.test(id) ? 'image/png' : /\.webp$/i.test(id) ? 'image/webp' : /\.jpe?g$/i.test(id) ? 'image/jpeg' : '');
+    const type = data.type || (/\.pdf$/i.test(id) ? 'application/pdf' : /\.png$/i.test(id) ? 'image/png' : /\.webp$/i.test(id) ? 'image/webp' : /\.jpe?g$/i.test(id) ? 'image/jpeg' : /\.(mp4|m4v)$/i.test(id) ? 'video/mp4' : /\.mov$/i.test(id) ? 'video/quicktime' : /\.webm$/i.test(id) ? 'video/webm' : '');
     return new Response(data, { status: 200, headers: { 'content-type': type } });
   }
   return _fetch(u, o);
@@ -4691,7 +4693,7 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
   }, true);
   try { after(); } catch (e) {}
 })();
-</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script><script src="../unit-population-detail.js?v=20261023-explorer-v2"></script><script src="../mp-private.js?v=20261108c"></script><script src="../activity-log.js?v=20261024" data-kind="manpower"></script><script src="../otp-login.js?v=20261025"></script><script src="../form-data-karyawan.js?v=20261108"></script><script src="../candidate-resume.js?v=20261114"></script><script src="../manpower-dash.js?v=20261115q"></script><script id="portal-name-sync">
+</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script><script src="../unit-population-detail.js?v=20261023-explorer-v2"></script><script src="../mp-private.js?v=20261115v"></script><script src="../activity-log.js?v=20261024" data-kind="manpower"></script><script src="../otp-login.js?v=20261025"></script><script src="../form-data-karyawan.js?v=20261108"></script><script src="../candidate-resume.js?v=20261114"></script><script src="../manpower-dash.js?v=20261115q"></script><script id="portal-name-sync">
 // Nama portal mengikuti "Edit nama portal" di Monitoring MPP Achievement (tabel portal_display_settings).
 (function () {
   var KEY = 'portal-name:' + 'kta';

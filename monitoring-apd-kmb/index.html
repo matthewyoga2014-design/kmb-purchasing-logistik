@@ -1899,8 +1899,9 @@ async function docUpload(inp) {
   const fs = [...(inp.files || [])]; inp.value = ''; const w = inp._upkW && inp._upkW.querySelector('.upk-wf'); if (w) w.textContent = '';
   if (!fs.length || !RF_DOCS) return; const box = RF_DOCS;
   for (const f of fs) {
-    if (!/^(application\/pdf|image\/(png|jpeg|webp))$/.test(f.type)) { toast(`${f.name}: format belum didukung. Gunakan PDF, JPG, atau PNG.`, true); continue; }
-    if (f.size > 20 * 1024 * 1024) { toast(`${f.name}: ukuran lebih dari 20 MB.`, true); continue; }
+    const vid = /^video\//.test(f.type);
+    if (!vid && !/^(application\/pdf|image\/(png|jpeg|webp))$/.test(f.type)) { toast(`${f.name}: format belum didukung. Gunakan PDF, JPG, PNG, atau video.`, true); continue; }
+    if (f.size > (vid ? 50 : 20) * 1024 * 1024) { toast(`${f.name}: ukuran lebih dari ${vid ? 50 : 20} MB.`, true); continue; }
     box.busy++; docList();
     try {
       const ext = (f.name.match(/\.[A-Za-z0-9]+$/) || [''])[0].toLowerCase();
@@ -1935,7 +1936,7 @@ function receiptForm(pid, type, rid, src, req) {
     <div class="fld"><label for="rf_c">Kondisi saat ini</label><select id="rf_c" name="condition">${['BELUM DIPERIKSA', 'LAYAK', 'TIDAK LAYAK'].map((c) => `<option ${r.condition === c ? 'selected' : ''}>${c}</option>`).join('')}</select></div>
     <div class="fld" id="rf_mw"><label for="rf_m">Jatah ganti (bulan)</label><input id="rf_m" type="number" name="months" min="1" max="120" step="1" value="${r.months || 6}"><small class="small" id="rf_mh">Tanggal diterima + bulan = jadwal ganti.</small></div>
     <div class="fld full"><label for="rf_n">Keterangan</label><input id="rf_n" name="note" value="${esc(r.note || '')}"></div>
-    <div class="fld full"><label for="rf_f">Bukti serah terima / foto (PDF, JPG, PNG · maks 20 MB)</label><div class="docl" id="rf_fl"></div><input id="rf_f" type="file" accept="application/pdf,image/png,image/jpeg,image/webp" multiple data-upk-title="Bukti serah terima APD"></div></div><div class="small" id="rf_h" style="margin-top:8px"></div>${actions(req ? 'Bagikan & Selesaikan Permintaan' : rid ? 'Simpan Perubahan' : 'Simpan')}</form>`);
+    <div class="fld full"><label for="rf_f">Bukti serah terima / foto / video (PDF, JPG, PNG maks 20 MB · video maks 50 MB)</label><div class="docl" id="rf_fl"></div><input id="rf_f" type="file" accept="application/pdf,image/png,image/jpeg,image/webp,video/*" multiple data-upk-title="Bukti serah terima APD"></div></div><div class="small" id="rf_h" style="margin-top:8px"></div>${actions(req ? 'Bagikan & Selesaikan Permintaan' : rid ? 'Simpan Perubahan' : 'Simpan')}</form>`);
   const mode = () => {
     const s = $('rf_s').value, old = s === 'OLD', ext = s === 'EXTERNAL', gd = s === 'NEW' || s === 'REUSE';
     $('rf_gw').hidden = !gd; $('rf_ew').hidden = !ext; $('rf_mh').textContent = old ? 'APD lama: tanggal diterima + bulan = jadwal ganti. Kalau nanti dapat APD baru, jadwal pindah ke APD baru.' : 'Tanggal diterima + bulan = jadwal ganti.';
@@ -2336,6 +2337,7 @@ init();
     const a = (i.accept || '').toLowerCase(); const k = [];
     if (/pdf/.test(a)) k.push('PDF');
     if (/image/.test(a) || /\.(jpe?g|png|webp)/.test(a)) k.push(/webp/.test(a) ? 'JPG, PNG, atau WEBP' : 'JPG atau PNG');
+    if (/video/.test(a)) k.push('video MP4/MOV');
     if (/xls|sheet/.test(a)) k.push('Excel (.xlsx)');
     if (/docx|word/.test(a)) k.push('Word (.docx)');
     if (/json/.test(a)) k.push('file cadangan (.json)');

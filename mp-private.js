@@ -235,7 +235,9 @@
   // Metadata disimpan di data pribadi (files[]); objek di bucket kta-web-docs. Sinkron Drive Pemilik
   // (±10 menit) menyalinnya ke "Monitoring Manpower › <jobsite> › Berkas Karyawan › <Nama>".
   const KINDS = ['KTP', 'Kartu Keluarga', 'NPWP', 'Ijazah', 'Transkrip Nilai', 'Sertifikat / SIO', 'SIM', 'Kartu BPJS', 'Buku Rekening', 'Pas Foto', 'CV', 'Kontrak Kerja', 'Surat Keterangan', 'Lainnya'];
-  const MAXB = 20 * 1024 * 1024;
+  const MAXB = 20 * 1024 * 1024, MAXV = 50 * 1024 * 1024;   // dokumen 20 MB, video 50 MB
+  const isVid = (f) => /^video\//.test(f.type || '') || /\.(mp4|mov|m4v|webm|3gp|mkv|avi)$/i.test(f.name || '');
+  const limOf = (f) => isVid(f) ? MAXV : MAXB;
   const guessKind = (n) => {
     const t = String(n || '').toLowerCase();
     return /ktp|e-?ktp/.test(t) ? 'KTP' : /\bkk\b|kartu.?keluarga/.test(t) ? 'Kartu Keluarga' : /npwp/.test(t) ? 'NPWP' : /ijazah|ijasah/.test(t) ? 'Ijazah'
@@ -249,7 +251,7 @@
     const L = ((rowOf(site, nama) || {}).files || []);
     return `<div class="fsec">Berkas Karyawan <span class="small" style="font-weight:600;text-transform:none;letter-spacing:0;color:var(--muted,#6b6985)">· ${L.length} berkas · tersimpan juga di Google Drive</span></div>
       <div class="kfiles">${L.length ? L.map((f) => `<div class="kfile"><span class="kk">${esc(f.kind || 'Berkas')}</span><a class="fchip2" href="${fileUrl(f)}" title="${esc(f.name)}">${esc(f.name)}</a><span class="small">${fsize(f.size)}</span><button type="button" class="upx" data-kfdel="${esc(f.id)}" aria-label="Hapus ${esc(f.name)}" title="Hapus berkas">×</button></div>`).join('') : '<p class="small" style="margin:0">Belum ada berkas.</p>'}</div>
-      <div class="fgrid"><div class="fld"><label>Upload Berkas Karyawan</label><div class="upw" id="kUpw"><button type="button" class="btn btn-g btn-sm upbtn" id="kPick"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Upload</button><small>atau seret berkas ke sini · bisa beberapa file · maks 20 MB per file</small></div></div>
+      <div class="fgrid"><div class="fld"><label>Upload Berkas Karyawan</label><div class="upw" id="kUpw"><button type="button" class="btn btn-g btn-sm upbtn" id="kPick"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Upload</button><small>atau seret berkas ke sini · bisa beberapa file · maks 20 MB per file, video 50 MB</small></div></div>
         <div class="fld"><label for="kKind">Jenis berkas</label><select id="kKind">${['Otomatis dari nama file'].concat(KINDS).map((k, i) => `<option value="${i ? esc(k) : ''}">${esc(k)}</option>`).join('')}</select></div></div>
       <div id="kProg"></div><input type="file" id="kIn" multiple hidden>`;
   }
@@ -283,7 +285,7 @@
     };
   }
   // panel "Sisipkan file" yang sama dengan upload berkas pelamar (dibuat oleh halaman); versi banyak file
-  const PK_MULTI = 'Upload satu atau beberapa file sekaligus: PDF, JPG, PNG, atau dokumen. Maks 20 MB per file.';
+  const PK_MULTI = 'Upload satu atau beberapa file sekaligus: PDF, JPG, PNG, dokumen, atau video. Maks 20 MB per file (video maks 50 MB).';
   let PK_GO = null;
   function openPicker(inp, go) {
     let pk = document.getElementById('upPick');
@@ -319,8 +321,8 @@
   }
   async function uploadFiles(site, nama, list) {
     if (!ok()) { toast('Masuk dengan akun Pemilik/Editor untuk upload berkas.', true); return; }
-    const big = list.filter((f) => f.size > MAXB); list = list.filter((f) => f.size <= MAXB);
-    if (big.length) toast(`${big.length} file dilewati karena lebih dari 20 MB: ${big.map((f) => f.name).join(', ')}`, true);
+    const big = list.filter((f) => f.size > limOf(f)); list = list.filter((f) => f.size <= limOf(f));
+    if (big.length) toast(`${big.length} file dilewati karena terlalu besar (dokumen maks 20 MB, video 50 MB): ${big.map((f) => f.name).join(', ')}`, true);
     if (!list.length) return;
     const pick = (document.getElementById('kKind') || {}).value || '';
     const prog = () => document.getElementById('kProg');

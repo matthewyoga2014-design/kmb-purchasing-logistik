@@ -36,6 +36,7 @@
     const a = (i.accept || '').toLowerCase(); const k = [];
     if (/pdf/.test(a)) k.push('PDF');
     if (/image/.test(a) || /\.(jpe?g|png|webp)/.test(a)) k.push(/webp/.test(a) ? 'JPG, PNG, atau WEBP' : 'JPG atau PNG');
+    if (/video/.test(a)) k.push('video MP4/MOV');
     if (/xls|sheet/.test(a)) k.push('Excel (.xlsx)');
     if (/docx|word/.test(a)) k.push('Word (.docx)');
     if (/json/.test(a)) k.push('file cadangan (.json)');

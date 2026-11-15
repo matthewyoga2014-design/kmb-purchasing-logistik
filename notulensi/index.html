@@ -1906,7 +1906,7 @@ function renderFiles(){
        <span class="grow"></span>
        ${here||rootN?`<button class="btn sm pri ed-only" type="button" data-act="newMeeting">+ Meeting Baru</button>
        <button class="btn sm ed-only" type="button" data-act="uploadNotu" title="Word / Excel notulensi — dibaca menjadi tabel tindak lanjut">${IC.word.replace('width="24" height="24"','width="18" height="18"')}Upload Notulensi</button>
-       <button class="btn sm ed-only" type="button" data-act="uploadFile" title="Dokumen pendukung: PDF, Excel, gambar, dll — disimpan apa adanya, maks. 20 MB">${IC.dl.replace('d="M12 4v11M7 10l5 5 5-5M5 20h14"','d="M12 16V5M7 10l5-5 5 5M5 20h14"')}Upload Berkas</button>
+       <button class="btn sm ed-only" type="button" data-act="uploadFile" title="Dokumen pendukung: PDF, Excel, gambar, video, dll — disimpan apa adanya, maks. 20 MB">${IC.dl.replace('d="M12 4v11M7 10l5 5 5-5M5 20h14"','d="M12 16V5M7 10l5-5 5 5M5 20h14"')}Upload Berkas</button>
        <button class="btn sm ed-only" type="button" data-act="uploadDir" title="Unggah satu folder dari laptop beserta subfolder dan isinya">${IC.folder.replace('width="24" height="22"','width="18" height="16"')}Upload Folder</button>`:""}${notuBulkBtn()}
      </div>
      <div class="toolbar2" style="margin-top:-4px"><span class="stamp">Urutkan</span>
@@ -2280,7 +2280,7 @@ function loadXlsx(){if(window.XLSX)return Promise.resolve(window.XLSX);return xl
 function loadMammoth(){if(window.mammoth)return Promise.resolve(window.mammoth);return mammothP||(mammothP=loadScript(["https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js","https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"],"mammoth").catch(e=>{mammothP=null;throw e;}));}
 async function fileBytes(f){if(f.storage==="sb"&&!f.assetId)throw new Error("berkas ini tidak tersimpan di Google Drive (upload sebelumnya gagal). Hapus lalu upload ulang");if(f.storage==="sb")return S.assets.bytes(f.assetId);const snap=await S.db.collection("blobs").where("fileId","==",f.id).get();const parts=snap.docs.map(d=>d.data()).sort((a,b)=>a.i-b.i);
   if(parts.length<(f.chunks||1))throw new Error("data file belum lengkap");const bin=atob(parts.map(p=>p.data).join(""));const u=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i);return u;}
-const kindOfName=n=>/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(n)?"img":/\.pdf$/i.test(n)?"pdf":/\.docx$/i.test(n)?"docx":isExcel(n)?"xls":/\.(txt|csv|md|json|log)$/i.test(n)?"txt":"other";
+const kindOfName=n=>/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(n)?"img":/\.pdf$/i.test(n)?"pdf":/\.docx$/i.test(n)?"docx":isExcel(n)?"xls":/\.(txt|csv|md|json|log)$/i.test(n)?"txt":/\.(mp4|mov|m4v|webm|3gp|mkv|avi)$/i.test(n)?"vid":"other";
 const MIME={img:"image/jpeg",pdf:"application/pdf",txt:"text/plain"};
 function openFile(id){
   const f=S.files.find(x=>x.id===id);if(!f)return;
@@ -2299,6 +2299,7 @@ function openFile(id){
         const draw=()=>{const rows=X.utils.sheet_to_json(wb.Sheets[cur],{header:1,raw:false,defval:""});const maxC=Math.min(30,Math.max(0,...rows.slice(0,300).map(r=>r.length)));
           pv.innerHTML=`${wb.SheetNames.length>1?`<div class="chips" style="margin-bottom:10px">${wb.SheetNames.map(n=>`<button type="button" data-sh="${esc(n)}" aria-pressed="${n===cur}">${esc(n)}</button>`).join("")}</div>`:""}<div class="tbl-wrap" style="max-height:65vh;overflow:auto;border:1px solid var(--line)"><table style="font-size:12.5px">${rows.slice(0,300).map((r,i)=>`<tr>${Array.from({length:maxC},(_,c)=>`<${i?"td":"th"} style="white-space:nowrap">${esc(r[c])}</${i?"td":"th"}>`).join("")}</tr>`).join("")}</table></div>`;
           pv.querySelectorAll("[data-sh]").forEach(b=>b.onclick=()=>{cur=b.dataset.sh;draw();});};draw();}
+      else if(k==="vid"){const vt=/^video\//.test(f.type||"")?f.type:(/\.webm$/i.test(f.name)?"video/webm":/\.mov$/i.test(f.name)?"video/quicktime":"video/mp4");url=URL.createObjectURL(new Blob([await get()],{type:vt}));pv.innerHTML=`<video src="${url}" controls playsinline preload="metadata" style="width:100%;max-height:72vh;background:#000;border-radius:10px"></video><div class="stamp" style="margin-top:6px">Bila video tidak bisa diputar di sini, gunakan ${f.drive?"<b>Buka di Google Drive</b> atau ":""}<b>Unduh</b>.</div>`;}
       else if(k==="txt"){pv.innerHTML=`<pre class="docview" style="white-space:pre-wrap">${esc(new TextDecoder().decode(await get()).slice(0,200000))}</pre>`;}
       else{pv.innerHTML=`<div class="empty"><b>Pratinjau belum tersedia untuk file ${esc((f.name.split(".").pop()||"").toUpperCase())}</b>${f.drive?"Klik <b>Buka di Google Drive</b> untuk melihatnya tanpa mengunduh.":"Unduh untuk membukanya."}</div>`;}
       if(url){const nb=box.querySelector("#nwB");nb.hidden=false;nb.onclick=()=>{const a=document.createElement("a");a.href=url;a.target="_blank";a.rel="noopener";document.body.appendChild(a);a.click();a.remove();};}
