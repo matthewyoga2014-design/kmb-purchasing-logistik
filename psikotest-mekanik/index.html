@@ -120,6 +120,9 @@ table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 .agrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:4px}.ag{border:0;border-radius:6px;padding:6px 0;font-weight:700;font-size:12px;cursor:pointer}.ag-b{background:#DCFCE7;color:#166534}.ag-s{background:#FEE2E2;color:#991B1B}.ag-k{background:#EEE;color:#666}
 @media print{.ag{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
 .cmb{display:flex;flex-direction:column;gap:6px}
+.signbox{width:100%;border-collapse:collapse;margin-top:20px;table-layout:fixed;break-inside:avoid}.signbox th,.signbox td{border:1px solid #9CA3AF;padding:6px 8px;text-align:center;font-size:13px}.signbox th{font-weight:700}
+.signbox td{vertical-align:bottom;padding:0}.sb-space{height:70px}.sb-name{font-size:13px;padding:0 6px}.sb-dots{display:inline-block;width:70%;border-bottom:1px dotted #555;height:12px;vertical-align:baseline}
+.sb-role{font-weight:700;padding:4px 6px 8px}.sb-tgl{text-align:left;font-size:12px;padding:2px 6px 4px;border-top:0}
 .sign{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px;text-align:center;font-size:12px}.sign div{border-top:1px solid #999;padding-top:6px;margin-top:56px}
 </style>
 </head>
@@ -446,6 +449,8 @@ async function showAnswers(attId,sid,focusNo){
     $("ansOnly").onchange=e=>{only=e.target.checked;draw()};$("ansBack").onclick=()=>showResume(sid);draw();
     if(focusNo){const t=[...$("ansL").querySelectorAll(".qitem")].find(d=>d.querySelector(".n").textContent==String(focusNo));if(t){t.scrollIntoView({block:"center"});t.style.outline="3px solid var(--p)"}}
   }catch(e){$("mbox").innerHTML='<div class="notice warn">Gagal memuat: '+esc(e.message)+'</div>'}}
+function signBox(){const c=[["Karyawan","Karyawan"],["Dibuat oleh","Atasan Langsung"],["Diketahui oleh","HR Site"],["Disetujui oleh","PJO / Manager"]];
+  return `<table class="signbox"><tr>${c.map(x=>`<th>${x[0]}</th>`).join("")}</tr><tr>${c.map(x=>`<td><div class="sb-space"></div><div class="sb-name">(<span class="sb-dots"></span>)</div><div class="sb-role">${x[1]}</div><div class="sb-tgl">Tgl:</div></td>`).join("")}</tr></table>`}
 /* ====================== RESUME PESERTA ====================== */
 async function loadPhotos(sid){try{return await q(SB.from("pk_photos").select("id,kind,taken_at,thumb,url").eq("session_id",sid).order("taken_at"))}catch(e){return []}}
 function showResume(id){
@@ -474,7 +479,7 @@ function showResume(id){
   </div>
   <div class="card noprint"><h3>Penilaian kinerja</h3>${(()=>{const kk=S.kinerja.find(x=>x.session_id===s.id||(s.nik&&x.nik===s.nik));return kk?`Sudah dinilai: skor <b>${fmt(kinCalc(kk.data).skor)}</b> · ${esc(kepLabel(kk))} <button class="btn sm" data-kv="${kk.id}">Lihat</button>`:`<span class="muted">Belum ada penilaian kinerja untuk peserta ini.</span> ${can("kinerja")?`<button class="btn sm" id="rKinNew">Buat penilaian kinerja</button>`:""}`})()}</div>
   ${proctorCard(s,c)}
-  <div class="sign"><div>Dibuat oleh<br>Atasan Langsung</div><div>Diketahui oleh<br>HR Site</div><div>Disetujui oleh<br>PJO / Manager</div></div>`);
+  ${signBox()}`);
   {const links=c.mods.filter(x=>x.a).flatMap(x=>(x.a.events||[]).filter(e=>e.type==="foto").map(e=>{const [k,u]=String(e.d).split("|");return {k,u,t:e.t}}));loadPhotos(id).then(l=>drawGallery(l,links))}
   if($("rDel"))$("rDel").onclick=()=>delSession(id);
   if($("sumGrid"))drawSummary(c,id);
@@ -650,7 +655,7 @@ function viewKinerja(id){const k=S.kinerja.find(x=>x.id===id);if(!k)return;const
     <div style="margin-top:8px;font-size:15px"><b>Keputusan:</b> <span style="color:var(--p2);font-weight:700">${esc(kepLabel(k))}</span></div></div>
    <div class="grid g2"><div class="card"><h3>Kelebihan</h3>${esc(d.kelebihan||"–")}</div><div class="card"><h3>Perlu ditingkatkan</h3>${esc(d.kekurangan||"–")}</div></div>
    ${d.catatan?`<div class="card"><h3>Catatan penilai</h3>${esc(d.catatan)}</div>`:""}
-   <div class="sign" style="grid-template-columns:repeat(4,1fr)"><div>Karyawan<br>${esc(k.nama)}</div><div>Dibuat oleh<br>Atasan Langsung</div><div>Diketahui oleh<br>HR Site</div><div>Disetujui oleh<br>PJO / Manager</div></div>`);
+   ${signBox()}`);
   $("kvP").onclick=()=>{document.body.classList.add("printing");setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove("printing"),500)},50)};
   if($("kvE"))$("kvE").onclick=()=>formKinerja(id);$("kvX").onclick=()=>kinExcel(id);
 }
