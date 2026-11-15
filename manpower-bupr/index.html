@@ -271,6 +271,7 @@ table.mt tr:hover td { background: var(--card-2); }
 .pcount { border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 7px 12px; font-weight: 800; font-size: 13px; cursor: pointer; box-shadow: 0 1px 2px rgba(30,27,58,.06); }
 .pcount:hover { border-color: var(--primary-2); }
 .plist { display: grid; margin-top: 8px; min-width: 210px; }
+.ket .kl { padding: 1px 0; white-space: normal; display: block; } .ket .kl b { font-weight: 800; color: var(--ink); } .ket .kl.off { color: var(--muted); } .ket .kst { font-size: 10.5px; font-weight: 700; color: var(--primary, #6d28d9); white-space: nowrap; }
 .plist div { display: flex; justify-content: space-between; gap: 10px; font-size: 11px; padding: 3px 0; border-bottom: 1px dashed var(--line); }
 .plist b { font-weight: 700; } .plist span { color: var(--muted); white-space: nowrap; } .plist .off b { font-weight: 400; color: var(--muted); } .plist .on b { font-weight: 800; color: var(--ink); }
 .ptkc { min-width: 140px; }
@@ -1779,6 +1780,18 @@ function autoNote(c) {
   if (s === 'Menolak OL') return 'Menolak Offering Letter';
   return n;
 }
+// Keterangan di tabel MPP: satu baris per pelamar; masih aktif/hold = tebal + tahapnya, diterima = tebal, gagal = biasa
+function ketHtml(cs) {
+  const L = pstList(cs);
+  if (!L.length) return '<span class="small">Tidak ada pelamar di tahap ini</span>';
+  return L.map((c) => {
+    const n = autoNote(c), act = c.st === 'pr' || c.st === 'hd';
+    const stg = (Number(c.stage) || 0) === 0 ? (c.scr ? 'Screening CV' : 'Sourcing') : STAGE_SHORT[c.stage];
+    if (act) return `<div class="kl on"><b>${esc(c.name)}</b>${n ? ' - ' + esc(n) : ''}<span class="kst"> · ${c.status === 'Hold' ? 'Hold · ' : ''}${esc(stg)}</span></div>`;
+    if (c.st === 'ok') return `<div class="kl ok"><b>${esc(c.name)}</b>${n ? ' - ' + esc(n) : ''}</div>`;
+    return `<div class="kl off">${esc(c.name)} - ${esc(n || c.status || 'Tidak Lolos')}</div>`;
+  }).join('');
+}
 function ketFromCands(cs) { return cs.map((c) => { const n = autoNote(c); return n ? `${c.name} - ${n}` : (c.status === 'Aktif' || c.status === 'Diterima') ? c.name : `${c.name} - ${c.status}`; }).join('\n') || null; }
 STATE.positions.forEach(materialize);
 
@@ -1908,8 +1921,8 @@ function pageMPP(D) {
         <td>${p.no}</td>
         <td class="${isVacant(p) ? 'vacn' : 'b'}">${esc(p.nama)}</td>
         <td>${esc(p.jabatan)}<div class="small">${esc(p.group || p.section || '')}</div></td>
-        <td>${cs.length ? `<button type="button" class="pcount" data-cands="${i}">${cs.length} Pelamar</button>${cs.length ? `<div class="plist">${pstList(cs).map((x) => `<div class="${x.st === 'no' ? 'off' : 'on'}"><b>${esc(x.name)}</b><span>${x.st === 'no' ? esc(String(x.status || 'Tidak Lolos').toUpperCase()) : x.st === 'ok' ? 'DITERIMA' : x.status === 'Hold' ? 'HOLD · ' + cLbl(x) : cLbl(x) + ' ' + cPct(x) + '%'}</span></div>`).join('')}</div>` : ''}` : '<span class="dash">-</span>'}</td>
-        <td class="ket">${esc((p.cands && p.cands.length ? ketFromCands(p.cands) : p.ket) || '-')}</td>
+        <td>${cs.length ? `<button type="button" class="pcount" data-cands="${i}">${cs.length} Pelamar</button>` : '<span class="dash">-</span>'}</td>
+        <td class="ket">${cs.length ? ketHtml(cs) : esc(p.ket || '-')}</td>
         <td class="ptkc">${esc(p.ptk || '-')}</td>
         <td>${hasPTK(p) ? `<span class="stt ${/close/i.test(p.status) ? 'close' : /continue/i.test(p.status) ? 'cont' : 'open'}">${esc(p.status)}</span>` : '<span class="dash">-</span>'}</td>
         <td>${(() => { const v = progView(p, si); return `<div class="pg ${v.cls}"><span class="tr"><i style="width:${v.pct}%"></i></span><b>${v.pct}%</b></div><div class="pgl ${v.cls}">${v.lbl}</div>`; })()}</td>
