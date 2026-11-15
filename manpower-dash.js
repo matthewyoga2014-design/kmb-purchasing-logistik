@@ -217,35 +217,33 @@
   };
 
   // ---------- Print Rekap MPP per jobsite (format tabel: No, Jabatan, Plan, Actual, Vacant, Progress) ----------
-  const RK_STEP = ['Psikotes', 'Interview User', 'Offering Letter', 'MCU', 'FU MCU', 'On Site', 'Induksi'];
-  function rkStage(c) {
-    let k = -1; (Array.isArray(c.dates) ? c.dates : []).forEach((d, i) => { if (d) k = i; });
-    return k >= 0 ? [k + 2, RK_STEP[k]] : c.scr ? [1, 'Screening CV'] : [0, 'Berkas lamaran / CV'];
+  function rkKet(p) {
+    const cs = Array.isArray(p.cands) ? p.cands : [];
+    let k = '';
+    if (cs.length) { try { k = ketFromCands(cs) || ''; } catch (e) { k = cs.map((c) => c.name + (c.note ? ' - ' + c.note : '')).join('\n'); } }
+    else k = String(p.ket || '').trim();
+    return k || 'Sourcing kandidat';
   }
   function rkRows(d) {
     const P = (d && Array.isArray(d.positions)) ? d.positions : [], m = new Map();
     P.forEach((p) => {
       const j = String(p.jabatan || '').trim() || '-';
-      const r = m.get(j) || { j, plan: 0, act: 0, st: new Map(), src: 0, names: [] }; m.set(j, r);
+      const r = m.get(j) || { j, plan: 0, act: 0, names: [], ket: [] }; m.set(j, r);
       r.plan++;
-      if (!/^vacant$/i.test(String(p.nama || '').trim())) { r.act++; r.names.push(`<span>${E(String(p.nama).trim())}</span>`); return; }
-      r.names.push(`<span class="op">Open${p.ptk ? ' (PTK ' + E(p.ptk) + ')' : ''}</span>`);
-      const cs = (Array.isArray(p.cands) ? p.cands : []).filter((c) => c && (c.status === 'Aktif' || c.status === 'Hold' || !c.status));
-      if (!cs.length) { r.src++; return; }
-      cs.forEach((c) => { const [k, n] = rkStage(c); const x = r.st.get(n) || [k, 0]; x[1]++; r.st.set(n, x); });
+      const nm = String(p.nama || '').trim() || '-';
+      if (!/^vacant$/i.test(nm)) { r.act++; r.names.push(`<span>${E(nm)}</span>`); return; }
+      r.names.push(`<span class="op">${E(nm)}</span>`);
+      r.ket.push(rkKet(p));
     });
-    return [...m.values()].map((r) => {
-      const parts = [...r.st].sort((a, b) => b[1][0] - a[1][0]).map(([n, [, c]]) => `${n} (${c} kandidat)`);
-      if (r.src) parts.push('Sourcing kandidat' + (parts.length && r.src > 1 ? ` (${r.src} posisi)` : ''));
-      return { j: r.j, plan: r.plan, act: r.act, vac: r.plan - r.act, prog: parts.join('; '), names: r.names.join(', ') };
-    });
+    return [...m.values()].map((r) => ({ j: r.j, plan: r.plan, act: r.act, vac: r.plan - r.act, names: r.names.join(', '),
+      ket: r.plan - r.act > 0 ? r.ket.map((k) => E(k).replace(/\n/g, '<br>')).join('<br>') : '<span class="ok">Terpenuhi</span>' }));
   }
   function rkTable(name, d) {
     const R = rkRows(d), n = Math.max(7, R.length), sum = (k) => R.reduce((a, r) => a + r[k], 0);
     let body = '';
-    for (let i = 0; i < n; i++) { const r = R[i]; body += `<tr><td class="c">${i + 1}</td><td>${r ? E(r.j) : ''}</td><td class="nm">${r ? r.names : ''}</td><td class="c">${r ? r.plan : ''}</td><td class="c">${r ? r.act : ''}</td><td class="c">${r ? r.vac : 0}</td><td>${r ? E(r.prog) : ''}</td></tr>`; }
-    return `<table><colgroup><col style="width:5%"><col style="width:17%"><col style="width:29%"><col style="width:8.5%"><col style="width:8.5%"><col style="width:8.5%"><col style="width:23.5%"></colgroup>
-      <thead><tr><th colspan="7" class="ttl">Jobsite ${E(name)}</th></tr><tr><th>No</th><th>Jabatan</th><th>Nama</th><th>Plan</th><th>Actual</th><th>Vacant</th><th>Progress</th></tr></thead>
+    for (let i = 0; i < n; i++) { const r = R[i]; body += `<tr><td class="c">${i + 1}</td><td>${r ? E(r.j) : ''}</td><td class="nm">${r ? r.names : ''}</td><td class="c">${r ? r.plan : ''}</td><td class="c">${r ? r.act : ''}</td><td class="c">${r ? r.vac : 0}</td><td class="kt">${r ? r.ket : ''}</td></tr>`; }
+    return `<table><colgroup><col style="width:5%"><col style="width:16%"><col style="width:24%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:32.5%"></colgroup>
+      <thead><tr><th colspan="7" class="ttl">Jobsite ${E(name)}</th></tr><tr><th>No</th><th>Jabatan</th><th>Nama</th><th>Plan</th><th>Actual</th><th>Vacant</th><th>Keterangan</th></tr></thead>
       <tbody>${body}</tbody><tfoot><tr><td colspan="3">Total</td><td class="r">${sum('plan')}</td><td class="r">${sum('act')}</td><td class="r">${sum('vac')}</td><td></td></tr></tfoot></table>`;
   }
   function rkName() {
@@ -271,9 +269,9 @@
       table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px;break-inside:avoid}
       th,td{border:1px dotted #555;padding:2px 5px;height:22px;vertical-align:middle;overflow:hidden;word-wrap:break-word}
       th{font-weight:400;text-align:center;white-space:nowrap}th.ttl{background:#D9D9D9;border:1px solid #555}
-      td.c{text-align:center}td.nm{font-size:10pt;line-height:1.35;padding-top:3px;padding-bottom:3px}.op{color:#C00000;font-weight:700}td.r{text-align:right;padding-right:8px}
+      td.c{text-align:center}td.nm{font-size:10pt;line-height:1.35;padding-top:3px;padding-bottom:3px}.op{color:#C00000;font-weight:700}.ok{color:#15803D;font-weight:700}td.kt{font-size:9.5pt;line-height:1.35;padding-top:3px;padding-bottom:3px}td.r{text-align:right;padding-right:8px}
       tfoot td{background:#D9D9D9;border-left:0;border-right:0}tfoot td:first-child{border-left:1px dotted #555}tfoot td:last-child{border-right:1px dotted #555}
-    </style></head><body><h1>Rekap Manpower Planning ${E(rkName())}</h1><p class="s">Per ${dt.getDate()} ${M[dt.getMonth()]} ${dt.getFullYear()} · <span class="op">Open</span> = posisi belum terisi. Progress otomatis dari tahap pelamar aktif di posisi tersebut.</p>
+    </style></head><body><h1>Rekap Manpower Planning ${E(rkName())}</h1><p class="s">Per ${dt.getDate()} ${M[dt.getMonth()]} ${dt.getFullYear()} · <span class="op">Vacant</span> = posisi belum terisi, <span class="ok">Terpenuhi</span> = tidak ada vacant. Keterangan mengikuti kolom Keterangan di MPP.</p>
       ${sites.map(([n, d]) => rkTable(n, d)).join('')}</body></html>`;
     let fr = document.getElementById('rkFrame'); if (fr) fr.remove();
     fr = document.createElement('iframe'); fr.id = 'rkFrame'; fr.setAttribute('aria-hidden', 'true');
