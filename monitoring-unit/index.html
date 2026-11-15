@@ -872,7 +872,8 @@ body.mu-rsz-on,body.mu-rsz-on *{cursor:col-resize!important;user-select:none!imp
 .slotTbl table.slotFixed td,.slotTbl table.slotFixed th{overflow:hidden;text-overflow:ellipsis;overflow-wrap:anywhere}
 .slotTbl table.slotFixed th{white-space:normal;line-height:1.25}
 .slotTbl table.slotFixed .mu-vendor-tag,.slotTbl table.slotFixed .mu-brand-tag{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.slotTbl table.slotFixed td.act{white-space:normal;text-align:right}
+.slotTbl table.slotFixed td.act{white-space:nowrap;text-align:right}
+@media screen{.slotTbl table.slotFixed col:last-child{width:292px!important}.slotTbl table.slotFixed td.act .btn{padding:5px 9px!important;font-size:12px!important;min-height:0!important;height:30px}.slotTbl table.slotFixed td.act a,.slotTbl table.slotFixed td.act .danger-link{font-size:12px}.slotTbl table.slotFixed th{font-size:10.5px}.slotTbl table.slotFixed th{overflow-wrap:normal!important;word-break:normal!important;letter-spacing:.02em}.slotTbl table.slotFixed td.act .btn{margin:2px 0 2px 4px;display:inline-flex}}
 .slotTbl table.slotFixed .chip{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;box-sizing:border-box}
 .slotTbl table.slotFixed td.act .btn{margin:2px 0 2px 3px}
 @media print{
@@ -3480,8 +3481,39 @@ function showUnitDocs(u){
 }
 function muCanPrint(){ return role==="owner"||role==="editor"||(typeof GUEST_SHARE!=="undefined"&&GUEST_SHARE&&role==="viewer"); }
 /* Print tabel unit satu item saja: semua kolom kecuali tombol aksi, kertas & orientasi bebas di jendela Print. */
+/* ---------- Print: pilihan sertakan bukti ---------- */
+function muBuktiOf(us){ return us.map(u=>({u,d:docsOfUnit(u)})).filter(x=>x.d.length); }
+const muIsImg=d=>/^image\//i.test(String(d.mime||""))||/\.(png|jpe?g|webp|gif)$/i.test(String(d.fileName||""))||(!d.fileName&&!!d.fileId&&!/pdf/i.test(String(d.mime||"")));
+function muBuktiHtml(us){
+  const L=muBuktiOf(us); if(!L.length) return "";
+  return `<section class="pb"><h2>Lampiran bukti</h2><p class="pb-sub">${L.reduce((a,x)=>a+x.d.length,0)} bukti dari ${L.length} unit. Unit tanpa bukti tidak ditampilkan.</p>
+    ${L.map(({u,d})=>{ const imgs=d.filter(x=>muIsImg(x)&&(x.fileId||x.fileUrl)), docs=d.filter(x=>!imgs.includes(x));
+      return `<div class="pb-u"><div class="pb-h"><b>${esc(u.kode||"—")}</b>${u.kodeSementara?'<i class="pb-tmp">nomor sementara</i>':""}<span>${esc(u.tipe||"")}${u.status?" · "+esc(u.status):""}${projKode(u.projectId)?" · "+esc(projKode(u.projectId)):""}</span><em>${d.length} bukti</em></div>
+        ${imgs.length?`<div class="pb-g">${imgs.map(x=>`<figure><img src="${esc(x.fileId?muPhotoImg(x,900):x.fileUrl)}" alt="${esc(x.fileName||"Foto bukti")}" loading="eager"><figcaption><b>${esc(x.tahap||"Bukti")}</b>${x.tanggal?" · "+esc(fmtD(x.tanggal)):""}${x.lokasi?" · "+esc(x.lokasi):""}${x.catatan?`<br>${esc(x.catatan)}`:""}</figcaption></figure>`).join("")}</div>`:""}
+        ${docs.length?`<ul class="pb-d">${docs.map(x=>`<li>📄 <b>${esc(x.fileName||"Dokumen")}</b> · ${esc(x.tahap||"")}${x.tanggal?" · "+esc(fmtD(x.tanggal)):""}${x.catatan?" · "+esc(x.catatan):""}${x.fileUrl?`<br><span>${esc(x.fileUrl)}</span>`:""}</li>`).join("")}</ul>`:""}</div>`; }).join("")}</section>`;
+}
+const MU_PB_CSS=`.pb{break-before:page;margin-top:6mm}.pb h2{font-size:15px;margin:0 0 2px;color:#1E1B3A;border-bottom:2px solid #6D28D9;padding-bottom:6px}.pb-sub{font-size:10.5px;color:#6B6985;margin:4px 0 10px}
+  .pb-u{break-inside:avoid;border:1px solid #E6E4F2;border-radius:10px;padding:8px 10px;margin:0 0 10px}
+  .pb-h{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}.pb-h b{font-family:"JetBrains Mono",monospace;font-size:11px;background:#1E1B3A;color:#fff;border-radius:5px;padding:1px 7px}.pb-h span{font-size:11px;color:#4B4868;flex:1}.pb-h em{font-style:normal;font-size:10px;color:#6B6985}.pb-h i.pb-tmp{font-style:normal;font-size:9.5px;color:#B45309;background:#FFF4E5;border-radius:5px;padding:1px 6px}
+  .pb-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.pb-g figure{margin:0;break-inside:avoid}.pb-g img{width:100%;height:150px;object-fit:cover;border-radius:8px;border:1px solid #E6E4F2;background:#F4F1FD}
+  .pb-g figcaption{font-size:9.5px;color:#4B4868;margin-top:3px;line-height:1.35}.pb-d{margin:6px 0 0;padding-left:0;list-style:none;font-size:10px;color:#4B4868}.pb-d li{margin:3px 0}.pb-d span{color:#6B6985;word-break:break-all;font-size:9px}`;
+function muPrintAsk(us,go){
+  const L=muBuktiOf(us), nb=L.reduce((a,x)=>a+x.d.length,0);
+  if(!nb){ go(false); return; }
+  openForm({title:"Print tabel",desc:`Ada ${nb} bukti (foto/dokumen) dari ${L.length} unit di tabel ini.`,ok:"Print",
+    fields:[{key:"bukti",label:"Bukti",type:"select",options:["Sertakan bukti","Tanpa bukti"],full:true,hint:"Jika disertakan, foto dan dokumen ditampilkan di halaman lampiran setelah tabel. Unit yang belum punya bukti tidak ditampilkan di lampiran."}],
+    values:{bukti:"Sertakan bukti"},onSubmit:v=>{ setTimeout(()=>go(v.bukti==="Sertakan bukti"),60); }});
+}
+/* tunggu foto selesai dimuat (maks. 12 detik) sebelum print */
+function muWaitImgs(root,cb){ const imgs=[...root.querySelectorAll("img")].filter(i=>!i.complete); if(!imgs.length){ cb(); return; }
+  let left=imgs.length, done=false; const fin=()=>{ if(!done){ done=true; cb(); } };
+  imgs.forEach(i=>{ const f=()=>{ if(--left<=0) fin(); }; i.addEventListener("load",f,{once:true}); i.addEventListener("error",f,{once:true}); });
+  setTimeout(fin,12000); }
 function printSlot(k){
   if(!muCanPrint()){ toast("Print hanya untuk Pemilik, Editor, dan Pelihat yang memiliki link khusus."); return; }
+  muPrintAsk(slotUnits(k),withB=>printSlotGo(k,withB));
+}
+function printSlotGo(k,withB){
   const wasOpen=SLOT_OPEN.has(k.id); if(!wasOpen){ SLOT_OPEN.add(k.id); rk(); }
   const btn=document.querySelector(`[data-act="slotPrint"][data-id="${k.id}"]`), box=btn&&btn.closest(".slotBox");
   const tbl=box&&box.querySelector(".slotTbl table"); if(!tbl){ toast("Tabel unit tidak ditemukan."); return; }
@@ -3513,18 +3545,21 @@ function printSlot(k){
     .plate{font-size:9px!important;padding:1px 5px!important}
     td.cat{max-width:none!important}
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    ${MU_PB_CSS}
   </style></head><body>
     <div class="ph"><div><h1>${esc(k.tipe)}</h1><p>${esc([P.kode,P.nama,P.lokasi].filter(Boolean).join(" · "))} · Rencana ${r} unit${k.moda?" · via "+esc(k.moda):""}</p></div>
       <div class="r">Monitoring Unit · Rencana kirim<br>Dicetak ${esc(new Date().toLocaleString("id-ID",{dateStyle:"long",timeStyle:"short"}))}${meEmail?" · "+esc(meEmail):""}</div></div>
     <p class="sm">${sum}</p>
     <div class="slotTbl">${t.outerHTML}</div>
+    ${withB?muBuktiHtml(us):""}
   </body></html>`;
   let fr=document.getElementById("muPrintFrame"); if(fr) fr.remove();
   fr=document.createElement("iframe"); fr.id="muPrintFrame"; fr.setAttribute("aria-hidden","true");
   fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
   document.body.appendChild(fr);
   const doc=fr.contentWindow.document; doc.open(); doc.write(html); doc.close();
-  setTimeout(()=>{ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){ toast("Gagal membuka jendela print."); } if(!wasOpen){ SLOT_OPEN.delete(k.id); rk(); } },350);
+  if(withB) toast("Menyiapkan foto bukti untuk print…");
+  setTimeout(()=>muWaitImgs(doc,()=>{ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){ toast("Gagal membuka jendela print."); } if(!wasOpen){ SLOT_OPEN.delete(k.id); rk(); } }),350);
 }
 function slotRow(k){
   if(!SLOT_OPEN.has(k.id)&&!muKActive()) return "";
@@ -4905,8 +4940,16 @@ $("#btnPrint").addEventListener("click",()=>{
   const P=curProj(), TAB={ringkasan:"Dashboard",pengiriman:"Rencana Kirim",unit:"Unit di Lokasi",mobilisasi:"Rencana Mobilisasi",dokumentasi:"Dokumentasi"};
   const judul=P?`Monitoring Unit ${P.kode} · ${TAB[S.tab]||"Dashboard"}`:"Monitoring Unit & Mobilisasi · Semua Project";
   const ph=$("#printHead"); ph.innerHTML=`<b>${esc(judul)}</b><span>${P&&P.nama?esc(P.nama)+"<br>":""}Dicetak ${esc(new Date().toLocaleString("id-ID",{dateStyle:"long",timeStyle:"short"}))} · ${esc(meEmail)}</span>`;
-  const oldTitle=document.title; document.title=judul.replace(/ · /g," - ")+" - "+todayStr();
-  setTimeout(()=>{ window.print(); setTimeout(()=>{ document.title=oldTitle; },500); },50); });
+  const oldTitle=document.title;
+  const go=withB=>{ let pb=document.getElementById("printBukti"); if(!pb){ pb=document.createElement("div"); pb.id="printBukti"; pb.className="print-only-bukti"; const st=document.createElement("style"); st.textContent="#printBukti{display:none}@media print{#printBukti{display:block}}"+MU_PB_CSS; pb.appendChild(st); document.querySelector("main").appendChild(pb); }
+    pb.querySelectorAll(".pb").forEach(x=>x.remove()); if(withB) pb.insertAdjacentHTML("beforeend",muBuktiHtml(us));
+    document.title=judul.replace(/ · /g," - ")+" - "+todayStr();
+    if(withB) toast("Menyiapkan foto bukti untuk print…");
+    setTimeout(()=>muWaitImgs(pb,()=>{ window.print(); setTimeout(()=>{ document.title=oldTitle; pb.querySelectorAll(".pb").forEach(x=>x.remove()); },800); }),80); };
+  // unit yang ada di tampilan sekarang (project terpilih / semua project)
+  const pids=new Set((P?[P]:projects()).map(p=>p.id));
+  const us=S.tab==="pengiriman"||S.tab==="unit"||S.tab==="ringkasan"?S.units.filter(u=>pids.has(u.projectId)):[];
+  muPrintAsk(us,go); });
 
 /* ---------- susunan kartu project responsif ---------- */
 /*
