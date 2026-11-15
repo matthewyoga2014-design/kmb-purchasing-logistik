@@ -346,74 +346,89 @@
   function run(text, o = {}) {
     return `<r><rPr><rFont val="Calibri"/>${o.b ? '<b/>' : ''}${o.s ? '<strike/>' : ''}${o.c ? `<color rgb="FF${o.c}"/>` : ''}<sz val="${o.sz || 10}"/></rPr><t xml:space="preserve">${X(text)}</t></r>`;
   }
-  function richKet(blocks) {
+  // satu blok keterangan (satu posisi open) → rich text, ukuran huruf sama dengan cetakan
+  function richBlock(b) {
     const out = [];
-    blocks.forEach((b, bi) => {
-      if (bi) out.push(run('\n\n', { sz: 6 }));
-      b.forEach((x, li) => {
-        if (li) out.push(run('\n'));
-        if (x.k === 'ok') out.push(run(x.t, { b: 1, c: '15803D' }));
-        else if (x.k === 'terisi') { out.push(run('Terisi: ', { b: 1, c: '15803D' })); out.push(run(x.t)); }
-        else if (x.k === 'lbl') { out.push(run(x.t, { b: 1, c: 'C00000', sz: 9 })); if (x.ptk) out.push(run(' · ' + x.ptk, { sz: 9 })); }
-        else if (x.k === 'act') out.push(run(x.t, { b: 1 }));
-        else if (x.k === 'cx') out.push(run(x.t, { s: 1, c: '595959' }));
-        else out.push(run(x.t));
-      });
+    b.forEach((x, li) => {
+      if (li) out.push(run('\n', { sz: 9.5 }));
+      if (x.k === 'ok') out.push(run(x.t, { b: 1, c: '15803D', sz: 9.5 }));
+      else if (x.k === 'terisi') { out.push(run('Terisi: ', { b: 1, c: '15803D', sz: 9.5 })); out.push(run(x.t, { sz: 9.5 })); }
+      else if (x.k === 'lbl') { out.push(run(x.t, { b: 1, c: 'C00000', sz: 9 })); if (x.ptk) out.push(run(' · ' + x.ptk, { sz: 9 })); }
+      else if (x.k === 'act') out.push(run(x.t, { b: 1, sz: 9.5 }));
+      else if (x.k === 'cx') out.push(run(x.t, { s: 1, c: '555555', sz: 9.5 }));
+      else out.push(run(x.t, { sz: 9.5 }));
     });
     return out.join('');
   }
+  // perkiraan jumlah baris teks (agar tinggi baris pas seperti cetakan)
+  const wrapN = (txt, per) => String(txt).split('\n').reduce((a, l) => a + Math.max(1, Math.ceil(l.length / per)), 0);
   async function rekapExcel() {
     if (!rkAllowed()) return;
     let Z; try { Z = await loadZip(); } catch (e) { try { toast('Pembuat Excel belum termuat. Periksa koneksi lalu coba lagi.', true); } catch (er) {} return; }
     const sites = await rkSites();
     // style index: 0 biasa · 1 judul · 2 catatan · 3 bar jobsite · 4 header · 5 sel tengah · 6 sel kiri · 7 total kiri · 8 total angka · 9 total kosong
     const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
-<fonts count="3"><font><sz val="11"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="14"/><name val="Calibri"/><family val="2"/></font><font><sz val="9"/><color rgb="FF444444"/><name val="Calibri"/><family val="2"/></font></fonts>
+<fonts count="4"><font><sz val="11"/><name val="Calibri"/><family val="2"/></font><font><b/><sz val="14"/><name val="Calibri"/><family val="2"/></font><font><sz val="9"/><color rgb="FF444444"/><name val="Calibri"/><family val="2"/></font><font><sz val="10"/><name val="Calibri"/><family val="2"/></font></fonts>
 <fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/><bgColor indexed="64"/></patternFill></fill></fills>
-<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="dotted"><color rgb="FF555555"/></left><right style="dotted"><color rgb="FF555555"/></right><top style="dotted"><color rgb="FF555555"/></top><bottom style="dotted"><color rgb="FF555555"/></bottom><diagonal/></border></borders>
+<borders count="3"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="dotted"><color rgb="FF555555"/></left><right style="dotted"><color rgb="FF555555"/></right><top style="dotted"><color rgb="FF555555"/></top><bottom style="dotted"><color rgb="FF555555"/></bottom><diagonal/></border><border><left style="thin"><color rgb="FF555555"/></left><right style="thin"><color rgb="FF555555"/></right><top style="thin"><color rgb="FF555555"/></top><bottom style="thin"><color rgb="FF555555"/></bottom><diagonal/></border></borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="10"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<cellXfs count="11"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
 <xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>
 <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>
-<xf numFmtId="0" fontId="0" fillId="2" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="2" borderId="2" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1"/></xf>
 <xf numFmtId="0" fontId="0" fillId="2" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center"/></xf>
 <xf numFmtId="0" fontId="0" fillId="2" borderId="1" xfId="0" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>
-<xf numFmtId="0" fontId="0" fillId="2" borderId="1" xfId="0" applyFill="1" applyBorder="1"/></cellXfs>
+<xf numFmtId="0" fontId="0" fillId="2" borderId="1" xfId="0" applyFill="1" applyBorder="1"/>
+<xf numFmtId="0" fontId="3" fillId="0" borderId="1" xfId="0" applyFont="1" applyBorder="1" applyAlignment="1"><alignment horizontal="left" vertical="center" wrapText="1" indent="1"/></xf></cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
     const rows = [], merges = [];
     let r = 1;
     const str = (c, rr, s, text) => `<c r="${colL(c)}${rr}" s="${s}" t="inlineStr"><is><t xml:space="preserve">${X(text)}</t></is></c>`;
     const rich = (c, rr, s, runs) => `<c r="${colL(c)}${rr}" s="${s}" t="inlineStr"><is>${runs || '<t></t>'}</is></c>`;
     const num = (c, rr, s, v) => v === '' || v == null ? `<c r="${colL(c)}${rr}" s="${s}"/>` : `<c r="${colL(c)}${rr}" s="${s}"><v>${v}</v></c>`;
+    const blank = (c, rr, s) => `<c r="${colL(c)}${rr}" s="${s}"/>`;
     const row = (rr, cells, ht) => rows.push(`<row r="${rr}"${ht ? ` ht="${ht}" customHeight="1"` : ''}>${cells.join('')}</row>`);
+    const LH = 13;   // tinggi 1 baris teks (pt)
     row(r, [str(1, r, 1, 'Rekap Manpower Planning ' + rkName())], 20); r++;
-    merges.push(`A${r}:G${r}`); row(r, [str(1, r, 2, 'Per ' + rkDate() + ' · ' + RK_NOTE)], 26); r += 2;
+    const note = run('Per ' + rkDate() + ' · ', { sz: 9.5, c: '444444' }) + run('Merah', { sz: 9.5, b: 1, c: 'C00000' }) + run(' = posisi open · ', { sz: 9.5, c: '444444' }) + run('Terisi', { sz: 9.5, b: 1, c: '15803D' }) + run(' = karyawan yang sudah ada · ', { sz: 9.5, c: '444444' }) + run('Terpenuhi', { sz: 9.5, b: 1, c: '15803D' }) + run(' = tidak ada posisi open · Pelamar: Nama - Tahap - Keterangan (aktif ', { sz: 9.5, c: '444444' }) + run('tebal', { sz: 9.5, b: 1, c: '444444' }) + run(', tidak aktif ', { sz: 9.5, c: '444444' }) + run('dicoret', { sz: 9.5, s: 1, c: '444444' }) + run(').', { sz: 9.5, c: '444444' });
+    merges.push(`A${r}:G${r}`); row(r, [rich(1, r, 2, note)], 28); r += 2;
     sites.forEach(([name, d]) => {
       const R = rkRows(d), n = Math.max(7, R.length);
-      merges.push(`A${r}:G${r}`); row(r, [str(1, r, 3, 'Jobsite ' + name)].concat([2, 3, 4, 5, 6, 7].map((c) => `<c r="${colL(c)}${r}" s="3"/>`)), 18); r++;
+      merges.push(`A${r}:G${r}`); row(r, [str(1, r, 3, 'Jobsite ' + name)].concat([2, 3, 4, 5, 6, 7].map((c) => blank(c, r, 3))), 18); r++;
       row(r, ['No', 'Jabatan', 'Nama', 'Plan', 'Actual', 'Vacant', 'Keterangan'].map((h, i) => str(i + 1, r, 4, h)), 18); r++;
       const first = r;
-      for (let i = 0; i < n; i++, r++) {
+      for (let i = 0; i < n; i++) {
         const x = R[i];
-        if (!x) { row(r, [num(1, r, 5, i + 1), str(2, r, 6, ''), str(3, r, 6, ''), num(4, r, 5, ''), num(5, r, 5, ''), num(6, r, 5, 0), str(7, r, 6, '')], 18); continue; }
-        const nm = x.names.map((n, k) => (k ? run(', ') : '') + run(n.t, n.red ? { b: 1, c: 'C00000' } : {})).join('');
-        const lines = x.ket.reduce((a, b) => a + b.reduce((s, y) => s + Math.max(1, Math.ceil(String(y.t + (y.ptk ? ' · ' + y.ptk : '')).length / 80)), 0), 0) + (x.ket.length - 1) * 0.6;
-        const nmL = Math.ceil(x.names.map((n) => n.t).join(', ').length / 30) || 1;
-        row(r, [num(1, r, 5, i + 1), str(2, r, 6, x.j), rich(3, r, 6, nm), num(4, r, 5, x.plan), num(5, r, 5, x.act), num(6, r, 5, x.vac), rich(7, r, 6, richKet(x.ket))], Math.round(Math.max(18, Math.max(lines, nmL) * 13.2 + 5)));
+        if (!x) { row(r, [num(1, r, 5, i + 1), blank(2, r, 6), blank(3, r, 10), blank(4, r, 5), blank(5, r, 5), num(6, r, 5, 0), blank(7, r, 10)], 17); r++; continue; }
+        // satu baris Excel per blok keterangan (sama seperti garis pemisah di cetakan); kolom lain digabung
+        const nm = x.names.map((q, k) => (k ? run(', ', { sz: 10 }) : '') + run(q.t, q.red ? { b: 1, c: 'C00000', sz: 10 } : { sz: 10 })).join('');
+        const bh = x.ket.map((b) => Math.max(17, b.reduce((a, y) => a + wrapN(y.t + (y.ptk ? ' · ' + y.ptk : ''), y.k === 'act' || y.k === 'lbl' ? 42 : 46), 0) * LH + 5));
+        const need = Math.max(wrapN(x.names.map((q) => q.t).join(', '), 27), wrapN(x.j, 17)) * 14 + 6;
+        const tot = bh.reduce((a, h) => a + h, 0); if (tot < need) bh[bh.length - 1] += need - tot;
+        const r0 = r;
+        x.ket.forEach((b, bi) => {
+          const cells = bi === 0
+            ? [num(1, r, 5, i + 1), str(2, r, 6, x.j), rich(3, r, 10, nm), num(4, r, 5, x.plan), num(5, r, 5, x.act), num(6, r, 5, x.vac)]
+            : [blank(1, r, 5), blank(2, r, 6), blank(3, r, 10), blank(4, r, 5), blank(5, r, 5), blank(6, r, 5)];
+          row(r, cells.concat([rich(7, r, 10, richBlock(b))]), Math.round(bh[bi]));
+          r++;
+        });
+        if (r - r0 > 1) for (let c = 1; c <= 6; c++) merges.push(`${colL(c)}${r0}:${colL(c)}${r - 1}`);
       }
       const S = (k) => R.reduce((a, y) => a + y[k], 0);
-      row(r, [str(1, r, 7, 'Total'), `<c r="B${r}" s="9"/>`, `<c r="C${r}" s="9"/>`,
-        `<c r="D${r}" s="8"><f>SUM(D${first}:D${r - 1})</f><v>${S('plan')}</v></c>`, `<c r="E${r}" s="8"><f>SUM(E${first}:E${r - 1})</f><v>${S('act')}</v></c>`, `<c r="F${r}" s="8"><f>SUM(F${first}:F${r - 1})</f><v>${S('vac')}</v></c>`, `<c r="G${r}" s="9"/>`], 18);
+      merges.push(`A${r}:C${r}`);
+      row(r, [str(1, r, 7, 'Total'), blank(2, r, 9), blank(3, r, 9),
+        `<c r="D${r}" s="8"><f>SUM(D${first}:D${r - 1})</f><v>${S('plan')}</v></c>`, `<c r="E${r}" s="8"><f>SUM(E${first}:E${r - 1})</f><v>${S('act')}</v></c>`, `<c r="F${r}" s="8"><f>SUM(F${first}:F${r - 1})</f><v>${S('vac')}</v></c>`, blank(7, r, 9)], 18);
       r += 2;
     });
     const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
 <sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>
-<cols><col min="1" max="1" width="5" customWidth="1"/><col min="2" max="2" width="22" customWidth="1"/><col min="3" max="3" width="30" customWidth="1"/><col min="4" max="4" width="7" customWidth="1"/><col min="5" max="6" width="8" customWidth="1"/><col min="7" max="7" width="70" customWidth="1"/></cols>
+<cols><col min="1" max="1" width="5" customWidth="1"/><col min="2" max="2" width="16" customWidth="1"/><col min="3" max="3" width="25" customWidth="1"/><col min="4" max="6" width="7.5" customWidth="1"/><col min="7" max="7" width="34" customWidth="1"/></cols>
 <sheetData>${rows.join('')}</sheetData>${merges.length ? `<mergeCells count="${merges.length}">${merges.map((m) => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>` : ''}
-<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/></worksheet>`;
+<pageMargins left="0.47" right="0.47" top="0.47" bottom="0.47" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/></worksheet>`;
     const zip = new Z();
     zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>');
     zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
