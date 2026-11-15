@@ -219,9 +219,20 @@
   // ---------- Print Rekap MPP per jobsite (format tabel: No, Jabatan, Plan, Actual, Vacant, Progress) ----------
   // keterangan per posisi open, urutan sama seperti di MPP: pelamar aktif dulu (tebal), yang tidak aktif dicoret
   const rkActive = (c) => !c.status || c.status === 'Aktif' || c.status === 'Hold' || c.status === 'Diterima';
+  const RK_STEP = ['Psikotes', 'Interview User', 'Offering Letter', 'MCU', 'FU MCU', 'On Site', 'Induksi'];
+  const RK_ST = { 'Tidak Lolos': 'Tidak Lolos', 'Mundur': 'Mundur', 'No Response': 'No Response', 'Menolak OL': 'Menolak Offering Letter', 'Hold': 'Hold' };
+  function rkStep(c) {
+    let k = -1; (Array.isArray(c.dates) ? c.dates : []).forEach((d, i) => { if (d) k = i; });
+    return k >= 0 ? RK_STEP[k] : c.scr ? 'Screening CV' : 'Berkas Lamaran / CV';
+  }
+  // format: Nama - Tahap terakhir - Keterangan (keterangan kosong → cukup sampai tahap)
   function rkLine(c) {
-    let n = ''; try { n = autoNote(c) || ''; } catch (e) { n = String(c.note || '').trim(); }
-    const txt = n ? `${c.name} - ${n}` : (c.status === 'Aktif' || c.status === 'Diterima' || !c.status) ? c.name : `${c.name} - ${c.status}`;
+    const st = String(c.status || '').trim();
+    let note = String(c.note || '').trim();
+    if (note && note.toLowerCase() === st.toLowerCase()) note = '';
+    if (!note && st && st !== 'Aktif' && st !== 'Diterima') note = RK_ST[st] || st;
+    if (!note && st === 'Diterima') note = 'Diterima';
+    const txt = [c.name, rkStep(c), note].filter(Boolean).join(' - ');
     return rkActive(c) ? `<div class="ca">${E(txt)}</div>` : `<div class="cx">${E(txt)}</div>`;
   }
   function rkKet(p) {
@@ -242,7 +253,7 @@
       if (open) { r.nOpen++; r.ket.push({ lbl: vac ? 'Vacant' : nm + ' (diganti)', ptk: p.ptk || '', html: rkKet(p) }); }
     });
     return [...m.values()].map((r) => ({ j: r.j, plan: r.plan, act: r.act, vac: r.plan - r.act, names: r.names.join(', '),
-      ket: r.ket.length ? r.ket.map((k) => `<div class="kp">${r.nOpen > 1 || !/^Vacant$/.test(k.lbl) ? `<div class="kl"><span class="op">${E(k.lbl)}</span>${k.ptk ? ' · PTK ' + E(k.ptk) : ''}</div>` : ''}${k.html}</div>`).join('') : '<span class="ok">Terpenuhi</span>' }));
+      ket: r.ket.length ? r.ket.map((k) => `<div class="kp">${r.nOpen > 1 || !/^Vacant$/.test(k.lbl) ? `<div class="kl"><span class="op">${E(k.lbl)}</span>${k.ptk ? ' · ' + (/^ptk/i.test(k.ptk) ? '' : 'PTK ') + E(k.ptk) : ''}</div>` : ''}${k.html}</div>`).join('') : '<span class="ok">Terpenuhi</span>' }));
   }
   function rkTable(name, d) {
     const R = rkRows(d), n = Math.max(7, R.length), sum = (k) => R.reduce((a, r) => a + r[k], 0);
@@ -277,7 +288,7 @@
       th{font-weight:400;text-align:center;white-space:nowrap}th.ttl{background:#D9D9D9;border:1px solid #555}
       td.c{text-align:center}td.nm{font-size:10pt;line-height:1.35;padding-top:3px;padding-bottom:3px}.op{color:#C00000;font-weight:700}.ok{color:#15803D;font-weight:700}.ca{font-weight:700;color:#000}.cx{text-decoration:line-through;color:#555}.kp+.kp{margin-top:4px;padding-top:4px;border-top:1px dotted #999}.kl{font-size:9pt}td.kt{font-size:9.5pt;line-height:1.35;padding-top:3px;padding-bottom:3px}td.r{text-align:right;padding-right:8px}
       tfoot td{background:#D9D9D9;border-left:0;border-right:0}tfoot td:first-child{border-left:1px dotted #555}tfoot td:last-child{border-right:1px dotted #555}
-    </style></head><body><h1>Rekap Manpower Planning ${E(rkName())}</h1><p class="s">Per ${dt.getDate()} ${M[dt.getMonth()]} ${dt.getFullYear()} · Nama <span class="op">merah</span> = posisi masih open (Vacant, atau karyawan yang akan diganti), <span class="ok">Terpenuhi</span> = tidak ada posisi open. Keterangan mengikuti MPP: pelamar aktif <b>tebal</b>, pelamar tidak aktif <span class="cx">dicoret</span>.</p>
+    </style></head><body><h1>Rekap Manpower Planning ${E(rkName())}</h1><p class="s">Per ${dt.getDate()} ${M[dt.getMonth()]} ${dt.getFullYear()} · Nama <span class="op">merah</span> = posisi masih open (Vacant, atau karyawan yang akan diganti), <span class="ok">Terpenuhi</span> = tidak ada posisi open. Keterangan pelamar: Nama - Tahap terakhir - Keterangan; pelamar aktif <b>tebal</b>, tidak aktif <span class="cx">dicoret</span>.</p>
       ${sites.map(([n, d]) => rkTable(n, d)).join('')}</body></html>`;
     let fr = document.getElementById('rkFrame'); if (fr) fr.remove();
     fr = document.createElement('iframe'); fr.id = 'rkFrame'; fr.setAttribute('aria-hidden', 'true');
