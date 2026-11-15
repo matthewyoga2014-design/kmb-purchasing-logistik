@@ -7,7 +7,7 @@
   if (window.__dashSubs) return; window.__dashSubs = true;
   if (typeof pageDashboard !== 'function' || typeof render !== 'function' || typeof ui !== 'object') return;
 
-  const SUBS = [['ringkasan', 'Ringkasan'], ['progress', 'Progress Rekrutmen'], ['vacant', 'Vacant per Jabatan'], ['status', 'Status & Unit'], ['mpp', 'Rincian MPP']];
+  const SUBS = [['ringkasan', 'Ringkasan'], ['progress', 'Progress Rekrutmen'], ['vacant', 'Vacant per Jabatan'], ['unit', 'Populasi Unit'], ['mpp', 'Rincian MPP']];
   const has = (k) => SUBS.some((s) => s[0] === k);
   let saved = null; try { saved = localStorage.getItem('mp-dsub'); } catch (e) {}
   ui.dsub = has(saved) ? saved : 'ringkasan';
@@ -62,7 +62,26 @@
 .dsub-bar button:focus-visible{outline:2px solid var(--primary,#6D28D9);outline-offset:2px}
 @media (max-width:1100px){.rk-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.rk-grid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:560px){.rk-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.rk-bars{grid-template-columns:96px minmax(0,1fr) 24px}.rk-don{gap:16px}.rk-don svg{width:118px;height:118px}}
-@media print{.dsub-bar{display:none!important}}`;
+.rk-c.rk-split{cursor:default}.rk-c.rk-split:hover{border-color:var(--line,#E8E6F3);box-shadow:none}
+.rk-sub{all:unset;box-sizing:border-box;cursor:pointer;display:grid;gap:8px;border-radius:12px;padding:4px;margin:-4px}
+.rk-sub:hover{background:var(--card-2,#F7F6FD)}.rk-sub:focus-visible{outline:2px solid var(--primary,#6D28D9);outline-offset:2px}
+.rk-sub small{font-size:11.5px;font-weight:700;color:var(--primary-ink,#5B21B6)}
+.up-card .ch{margin-bottom:10px}
+.up-tw{overflow-x:auto;border:1px solid var(--line,#E8E6F3);border-radius:12px}
+.up-t{width:100%;border-collapse:collapse;font-size:12.5px}
+.up-t th{background:var(--card-2,#F7F6FD);color:var(--ink-2,#4B4868);font-size:11.5px;font-weight:700;text-align:left;padding:8px 12px;white-space:nowrap;border-bottom:1px solid var(--line,#E8E6F3)}
+.up-t td{padding:8px 12px;border-bottom:1px solid var(--line,#E8E6F3);vertical-align:middle}
+.up-t tr:last-child td{border-bottom:0}.up-t tfoot td{background:var(--card-2,#F7F6FD);font-weight:800}
+.up-t td.u{font-weight:700;white-space:nowrap}
+.up-n{display:flex;align-items:center;gap:8px;min-width:120px}.up-n b{min-width:22px;text-align:right;font-variant-numeric:tabular-nums}
+.up-n i{flex:1;height:7px;border-radius:99px;background:var(--track,#ECEAF6);overflow:hidden;display:block}.up-n i u{display:block;height:100%;background:#7C3AED;border-radius:99px}
+.uc{display:inline-flex;align-items:center;gap:5px;margin:2px 8px 2px 0;white-space:nowrap;color:var(--ink,#1E1B3A)}
+.uc i{width:8px;height:8px;border-radius:50%;background:#B9B6CC;display:inline-block}.uc b{font-variant-numeric:tabular-nums}
+.uc.g i{background:#16A34A}.uc.a i{background:#F59E0B}.uc.r i{background:#DC2626}.uc.n{color:var(--muted,#8A87A6)}
+.ucfg{position:relative}.ucfg summary{list-style:none;cursor:pointer}.ucfg summary::-webkit-details-marker{display:none}
+.ucfg .ucfg-p{position:absolute;right:0;top:calc(100% + 6px);z-index:20;background:#fff;border:1px solid var(--line,#E8E6F3);border-radius:12px;box-shadow:0 12px 32px rgba(30,27,58,.14);padding:12px 14px;min-width:230px;display:grid;gap:8px}
+.ucfg label{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}.ucfg .ucfg-p p{margin:0;font-size:11.5px;color:var(--muted,#8A87A6)}
+@media print{.dsub-bar,.ucfg,.up-card [data-go]{display:none!important}.up-tw{overflow:visible}}`;
   document.head.appendChild(css);
 
   function title() {
@@ -74,6 +93,56 @@
     return t;
   }
   const isAct = (c) => c.st === 'pr' || c.st === 'hd';
+
+  // ---------- Populasi Unit ringkas (kolom bisa diatur) ----------
+  const UCOLS = [['vendor', 'Vendor'], ['merk', 'Merek'], ['model', 'Model / Tipe'], ['status', 'Status Operasional'], ['kondisi', 'Kondisi'], ['jobsite', 'Jobsite']];
+  const UMISS = { vendor: 'Belum diisi', merk: 'Belum diisi', model: 'Belum diisi', status: 'Belum diketahui', kondisi: 'Belum diperiksa', jobsite: 'Belum diisi' };
+  const UDEF = ['merk', 'status', 'kondisi'];
+  function ucols() {
+    let c = null;
+    try { c = STATE && STATE.meta && STATE.meta.unitCols; } catch (e) {}
+    if (!Array.isArray(c)) { try { c = JSON.parse(localStorage.getItem('mp-unitcols') || 'null'); } catch (e) {} }
+    if (!Array.isArray(c)) c = UDEF;
+    return UCOLS.map((x) => x[0]).filter((k) => c.includes(k));
+  }
+  function unitList() {
+    const us = (typeof DATA !== 'undefined' && Array.isArray(DATA.units)) ? DATA.units : [];
+    return us.map((u) => { const ds = Array.isArray(u.details) ? u.details : []; return { u, ds, n: Math.max(+u.jumlah || 0, ds.length) }; }).filter((x) => x.n > 0 || x.u.unit).sort((a, b) => b.n - a.n);
+  }
+  function tone(k, v) {
+    if (k !== 'status' && k !== 'kondisi') return '';
+    v = v.toLowerCase();
+    if (/^belum/.test(v)) return 'n';
+    if (/breakdown|rusak berat|^rusak$|down|tidak (jalan|operasi|layak)|scrap|afkir/.test(v)) return 'r';
+    if (/standby|stand by|ringan|servis|service|perbaikan|repair|menunggu|cukup/.test(v)) return 'a';
+    if (/operasi|operasional|ready|baik|jalan|aktif|normal|good|layak/.test(v)) return 'g';
+    return '';
+  }
+  function ucount(x, k) {
+    const m = new Map();
+    x.ds.forEach((d) => { const v = String((d && d[k]) || '').trim() || UMISS[k]; m.set(v, (m.get(v) || 0) + 1); });
+    const miss = x.n - x.ds.length; if (miss > 0) m.set(UMISS[k], (m.get(UMISS[k]) || 0) + miss);
+    return [...m].sort((a, b) => (/^belum/i.test(a[0]) - /^belum/i.test(b[0])) || b[1] - a[1]);
+  }
+  function unitSimple() {
+    const L = unitList(), cols = ucols(), tot = L.reduce((a, x) => a + x.n, 0), mx = Math.max(1, ...L.map((x) => x.n));
+    let ce = false; try { ce = !!CAN_EDIT; } catch (e) {}
+    const canGo = typeof permOf !== 'function' || permOf('unit', 'v');
+    const cfg = ce ? `<details class="ucfg"><summary class="btn btn-g btn-sm">⚙ Atur kolom</summary><div class="ucfg-p"><p>Kolom yang tampil di dashboard Populasi Unit (berlaku untuk semua pengguna):</p>${UCOLS.map(([k, l]) => `<label><input type="checkbox" data-ucol="${k}" ${cols.includes(k) ? 'checked' : ''}> ${l}</label>`).join('')}<button type="button" class="btn btn-p btn-sm" id="ucfgSave">Simpan</button></div></details>` : '';
+    const head = `<tr><th>Jenis Unit</th><th>Jumlah</th>${cols.map((k) => `<th>${UCOLS.find((x) => x[0] === k)[1]}</th>`).join('')}</tr>`;
+    const rows = L.map((x) => `<tr><td class="u">${E(x.u.unit || '-')}</td><td><div class="up-n"><b>${x.n}</b><i><u style="width:${Math.round(x.n / mx * 100)}%"></u></i></div></td>${cols.map((k) => `<td>${ucount(x, k).map(([v, n]) => `<span class="uc ${tone(k, v) || (/^belum/i.test(v) ? 'n' : '')}">${tone(k, v) ? '<i></i>' : ''}${E(v)} <b>${n}</b></span>`).join('')}</td>`).join('')}</tr>`).join('');
+    return `<div class="card up-card" style="margin-bottom:18px"><div class="ch"><div><div class="eyebrow">Populasi Unit</div><h2>Populasi Unit</h2><p>Ringkasan per jenis unit. Angka di tiap kolom = jumlah unit${L.some((x) => x.n > x.ds.length) ? '; unit yang identitasnya belum dicatat masuk "Belum diisi / diketahui / diperiksa"' : ''}.</p></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="pill">${tot} unit · ${L.length} jenis</span>${cfg}${canGo ? '<button type="button" class="btn btn-g btn-sm" data-go="unit">Lihat data lengkap →</button>' : ''}</div></div>
+      ${L.length ? `<div class="up-tw"><table class="up-t"><thead>${head}</thead><tbody>${rows}</tbody><tfoot><tr><td>Total</td><td><div class="up-n"><b>${tot}</b></div></td>${cols.map(() => '<td></td>').join('')}</tr></tfoot></table></div>` : '<div class="empty">Belum ada data unit.</div>'}</div>`;
+  }
+  document.addEventListener('click', async (e) => {
+    const b = e.target.closest && e.target.closest('#ucfgSave'); if (!b) return;
+    const cols = [...document.querySelectorAll('[data-ucol]')].filter((x) => x.checked).map((x) => x.dataset.ucol);
+    try { localStorage.setItem('mp-unitcols', JSON.stringify(cols)); } catch (err) {}
+    let ok = false;
+    if (typeof commit === 'function') { b.disabled = true; try { ok = await commit((n) => { n.meta = { ...(n.meta || {}), unitCols: cols }; }, 'Kolom Populasi Unit disimpan.'); } catch (err) { ok = false; } b.disabled = false; }
+    if (!ok) render();
+  });
 
   // ---------- Ringkasan (1 layar) ----------
   function ringkasan(D) {
@@ -95,7 +164,7 @@
     const vbars = vac.length ? `<div class="rk-bars v" style="grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) 92px">${vac.slice(0, 5).map(([j, n, c]) => `<span title="${E(j)}">${E(j)}</span><i><u style="width:${Math.round(n / vmx * 100)}%"></u></i><b>${n} · ${c} pel.</b>`).join('')}</div>${vac.length > 5 ? `<div class="rk-empty">+${vac.length - 5} jabatan lain</div>` : ''}` : '<div class="rk-empty">Tidak ada posisi vacant.</div>';
     const K = D.ket || {};
     const soon = K['HAMPIR JATUH TEMPO'] || 0, late = K['JATUH TEMPO'] || 0, track = Math.max(0, D.open.length - soon - late);
-    const nPos = (typeof DATA !== 'undefined' && DATA.aktif) ? DATA.aktif.length : D.actual;
+    const UL = unitList(), uTot = UL.reduce((a, u) => a + u.n, 0), uJenis = UL.length;
     return `${header('Dashboard · Ringkasan', E(title()), 'Klik angka atau kotak mana pun untuk membuka halaman detailnya. Print tetap mencetak dashboard lengkap.')}
   <div class="rk-kpis">
     ${k('', 'Planning (MPP)', D.planning, 'data-dsub="mpp"', 'Rincian MPP')}
@@ -111,9 +180,9 @@
     <button type="button" class="rk-c" data-dsub="progress"><div class="rk-h"><div><div class="eyebrow">Composition</div><h2>Pemenuhan MPP</h2></div><em>Lihat detail →</em></div>
       <div class="rk-don">${donut}<div class="rk-leg"><div><i style="background:#7C3AED"></i><span>Actual</span><b>${D.actual}</b></div><div><i style="background:#FCA5A5"></i><span>Vacant</span><b>${D.vacant}</b></div><div><i style="background:#E8E6F3"></i><span>Planning</span><b>${D.planning}</b></div></div></div></button>
     <button type="button" class="rk-c" data-dsub="vacant"><div class="rk-h"><div><div class="eyebrow">Vacancy</div><h2>Vacant terbanyak</h2></div><em>Vacant per Jabatan →</em></div>${vbars}</button>
-    <button type="button" class="rk-c" data-dsub="status"><div class="rk-h"><div><div class="eyebrow">Status PTK &amp; Unit</div><h2>Status &amp; Unit</h2></div><em>Lihat detail →</em></div>
-      <div class="rk-st"><div class="g"><span>On Track</span><b>${track}</b></div><div class="a"><span>Hampir jatuh tempo</span><b>${soon}</b></div><div class="r"><span>Jatuh tempo</span><b>${late}</b></div></div>
-      <div class="rk-row"><div><span>Populasi Unit</span><b>${D.unitTot || 0}</b></div><div><span>MP Aktif</span><b>${nPos}</b></div></div></button>
+    <div class="rk-c rk-split"><div class="rk-h"><div><div class="eyebrow">Status PTK &amp; Unit</div><h2>Due Date PTK &amp; Populasi Unit</h2></div></div>
+      <button type="button" class="rk-sub" data-dsub="vacant"><div class="rk-st"><div class="g"><span>On Track</span><b>${track}</b></div><div class="a"><span>Hampir jatuh tempo</span><b>${soon}</b></div><div class="r"><span>Jatuh tempo</span><b>${late}</b></div></div><small>Status PTK di Vacant per Jabatan →</small></button>
+      <button type="button" class="rk-sub" data-dsub="unit"><div class="rk-row"><div><span>Populasi Unit</span><b>${uTot}</b></div><div><span>Jenis Unit</span><b>${uJenis}</b></div></div><small>Populasi Unit →</small></button></div>
   </div>`;
   }
 
@@ -130,14 +199,19 @@
     const bar = `<div class="dsub-bar" role="group" aria-label="Bagian dashboard">${SUBS.map(([id, l]) => `<button type="button" data-dsub="${id}" ${id === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</div>`;
     let body = '';
     if (k === 'progress') body = g([card(/^Progress Kandidat/i), card(/^Pemenuhan MPP/i)], ['s8', 's4']) + out([r.querySelector('#sumCard')]);
-    else if (k === 'vacant') body = g([card(/^Vacant per Jabatan/i), card(/^Resume Vacant/i)], ['s5', 's7']) + out([card(/^Rekapitulasi/i)]);
-    else if (k === 'status') { const sg = [...r.querySelectorAll('.grid')].find((x) => x.querySelector('.stiles')); body = out([sg, r.querySelector('.ud-summary-panel') || card(/Populasi Unit/i)]); }
+    else if (k === 'vacant') { const sg = [...r.querySelectorAll('.grid')].find((x) => x.querySelector('.stiles')); body = out([sg]) + g([card(/^Vacant per Jabatan/i), card(/^Resume Vacant/i)], ['s5', 's7']) + out([card(/^Rekapitulasi/i)]); }
+    else if (k === 'unit') body = unitSimple(D);
     else if (k === 'mpp') body = out([card(/^Rincian Manpower/i)]);
     return (head ? head.outerHTML : '') + bar + (body || '<div class="card"><div class="empty">Bagian ini belum ada data.</div></div>');
   }
 
   pageDashboard = function (D) {
-    if (FULL) return fullDash(D);
+    if (FULL) {
+      const t = document.createElement('template'); t.innerHTML = fullDash(D);
+      const u = t.content.querySelector('.ud-summary-panel') || [...t.content.querySelectorAll('.card')].find((c) => { const h = c.querySelector('h2'); return h && /^Populasi Unit/i.test(h.textContent); });
+      if (u) { const x = document.createElement('template'); x.innerHTML = unitSimple(D); u.replaceWith(x.content); }
+      return t.innerHTML;
+    }
     try { return ui.dsub && ui.dsub !== 'ringkasan' ? part(D, ui.dsub) : ringkasan(D); }
     catch (e) { console.error(e); return fullDash(D); }
   };
@@ -182,6 +256,19 @@
   function goBack() { if (!FULL) return; FULL = false; AUTO = false; if (ui.page === 'dashboard') render(); }
   window.addEventListener('beforeprint', () => { if (goFull()) AUTO = true; }, true);
   window.addEventListener('afterprint', () => { if (AUTO) setTimeout(goBack, 0); });
+  // bagan struktur di dashboard: diperkecil mengikuti lebar kertas yang dipilih (tidak terpotong)
+  window.addEventListener('beforeprint', () => {
+    let st = document.getElementById('dashOrgPrint'); if (!st) { st = document.createElement('style'); st.id = 'dashOrgPrint'; document.head.appendChild(st); }
+    st.textContent = '';
+    if (ui.page !== 'dashboard') return;
+    const sz = document.getElementById('orgSizerD'), og = sz && sz.querySelector('.org'); if (!og) return;
+    const tr = og.style.transform; og.style.transform = 'none'; const W = og.offsetWidth; og.style.transform = tr;
+    if (!W) return;
+    let css = '@media print{#orgSizerD{width:auto!important;height:auto!important}#orgSizerD .org{transform:none!important}#orgWrapD{overflow:visible!important}}';
+    for (let pw = 300; pw < W + 80; pw += 20) css += `@media print and (min-width:${pw}px){#orgSizerD .org{zoom:${Math.min(1, (pw - 80) / W).toFixed(3)}}}`;
+    st.textContent = css;
+  });
+  window.addEventListener('afterprint', () => { const st = document.getElementById('dashOrgPrint'); if (st) st.textContent = ''; });
   if (typeof printPDF === 'function') {
     const _p = printPDF;
     printPDF = async function () {
