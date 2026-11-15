@@ -358,7 +358,7 @@
       '<font><b/><sz val="10"/><color rgb="FFC00000"/><name val="Calibri"/><family val="2"/></font>',        // 4 nama merah
       '<font><sz val="9.5"/><name val="Calibri"/><family val="2"/></font>',                                  // 5 ket biasa
       '<font><b/><sz val="9.5"/><name val="Calibri"/><family val="2"/></font>',                              // 6 ket aktif
-      '<font><strike/><sz val="9.5"/><color rgb="FF555555"/><name val="Calibri"/><family val="2"/></font>',  // 7 ket tidak aktif
+      '<font><sz val="9.5"/><color rgb="FF555555"/><name val="Calibri"/><family val="2"/></font>',  // 7 ket tidak aktif (coret lewat karakter)
       '<font><b/><sz val="9.5"/><color rgb="FF15803D"/><name val="Calibri"/><family val="2"/></font>',       // 8 hijau
       '<font><b/><sz val="9"/><color rgb="FFC00000"/><name val="Calibri"/><family val="2"/></font>',         // 9 label merah
     ];
@@ -416,7 +416,9 @@
           const cells = li === 0
             ? [num(1, r, SC, i + 1), str(2, r, SL, x.j), str(3, r, red ? SNMR : SNM, nameTxt), num(4, r, SC, x.plan), num(5, r, SC, x.act), num(6, r, SC, x.vac)]
             : [blank(1, r, SC), blank(2, r, SL), blank(3, r, SNM), blank(4, r, SC), blank(5, r, SC), blank(6, r, SC)];
-          row(r, cells.concat([str(7, r, KS[l.k][l.top ? 0 : 1], l.t)]), Math.round(hs[li]));
+          // coretan ditulis sebagai karakter (U+0336) agar tetap tercoret di pratinjau Google Drive / aplikasi yang tidak mendukung format coret
+          const txt = l.k === 'cx' ? Array.from(l.t).map((ch) => ch === ' ' ? ' \u0336' : ch + '\u0336').join('') : l.t;
+          row(r, cells.concat([str(7, r, KS[l.k][l.top ? 0 : 1], txt)]), Math.round(hs[li]));
           r++;
         });
         if (r - r0 > 1) for (let c = 1; c <= 6; c++) merges.push(`${colL(c)}${r0}:${colL(c)}${r - 1}`);
