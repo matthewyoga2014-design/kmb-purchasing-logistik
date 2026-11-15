@@ -2394,10 +2394,30 @@ function viewerEl() {
   if (!v) { v = document.createElement('div'); v.id = 'viewer'; v.className = 'modal'; v.style.zIndex = 60; v.innerHTML = '<div class="dialog vdlg" role="dialog" aria-modal="true" aria-labelledby="vTitle"></div>'; document.body.appendChild(v); }
   return v;
 }
+// berkas yang sudah tersimpan di Google Drive dibuka langsung dari Drive (per berkas, tanpa akses folder)
+async function openFromDrive(id, name) {
+  if (typeof WEB === 'undefined' || !WEB.sb) return false;
+  let link = null;
+  try { const r = await WEB.sb.rpc('kta_drive_link', { p_storage_id: id }); link = (r.data || [])[0] || null; } catch (e) { link = null; }
+  if (!link || !link.drive_id) return false;
+  const body = document.getElementById('vBody');
+  if (!link.shared) {
+    if (!link.offloaded) return false; // salinan di web masih ada: pakai cara lama
+    body.innerHTML = '<div class="empty">Berkas ini sudah dipindah ke Google Drive. Akses Anda sedang disiapkan, coba lagi sekitar 10 menit lagi.</div>';
+    return true;
+  }
+  const did = encodeURIComponent(link.drive_id);
+  const dl = document.getElementById('vDl');
+  if (dl) { if (IS_OWNER) { dl.disabled = false; dl.textContent = 'Buka di Drive'; dl.onclick = () => window.open('https://drive.google.com/file/d/' + did + '/view', '_blank', 'noopener'); } else dl.remove(); }
+  const em = (WEB.user && WEB.user.email) || '';
+  body.innerHTML = `<iframe src="https://drive.google.com/file/d/${did}/preview" title="${esc(name || 'Berkas')}" referrerpolicy="no-referrer" style="display:block;width:100%;height:75vh;border:0;border-radius:10px;background:#fff"></iframe><div class="small" style="margin-top:8px">Dibuka dari Google Drive. Tidak tampil? Pastikan browser ini sudah masuk Google dengan email <b>${esc(em)}</b>.</div>`;
+  return true;
+}
 async function openFile(id, name) {
   const v = viewerEl(), d = v.querySelector('.vdlg');
   d.innerHTML = `<div class="cm-h"><h2 id="vTitle">${esc(name || 'Berkas')}</h2><div class="acts">${DL ? '<button type="button" class="btn btn-g btn-sm" id="vDl" disabled>Download</button>' : ''}<button type="button" class="x" id="vClose" aria-label="Tutup">×</button></div></div><div class="vbody" id="vBody"><div class="upst"><span class="spin sm"></span>Memuat berkas…</div></div>`;
   v.hidden = false;
+  if (await openFromDrive(id, name)) return;
   let blob;
   try {
     const r = await fetch('/_blob/' + id, { credentials: 'include' });
@@ -4508,6 +4528,14 @@ function purgeList() {
   }));
   return out;
 }
+// berkas lama tanpa pelamar yang sudah dipindah ke Google Drive (tidak ada lagi di penyimpanan web)
+async function driveOrphans(used, old) {
+  try {
+    const r = await WEB.sb.rpc('kta_drive_registry', { p_state: WEB_ID });
+    if (r.error || !Array.isArray(r.data)) return [];
+    return r.data.filter((x) => x.offloaded && !used.has(x.storage_id) && (Date.parse(x.first_seen || '') || 0) < old).map((x) => x.storage_id);
+  } catch (e) { return []; }
+}
 async function purgeOrphans() {
   // berkas di penyimpanan web yang sudah tidak dipakai pelamar mana pun (mis. pelamar dihapus Editor), lebih dari 1 hari
   const used = new Set(); DATA.positions.forEach((p) => (p.cands || []).forEach((c) => Object.values(c.files || {}).forEach((f) => f && f.id && used.add(f.id))));
@@ -4516,7 +4544,7 @@ async function purgeOrphans() {
   if (r.error || !Array.isArray(r.data)) return [];
   const old = Date.now() - 864e5;
   return r.data.filter((o) => o.id && o.name !== '.emptyFolderPlaceholder').map((o) => ({ id: pre ? pre + '/' + o.name : o.name, t: Date.parse(o.created_at || '') || 0 }))
-    .filter((o) => !used.has(o.id) && o.t && o.t < old).map((o) => o.id);
+    .filter((o) => !used.has(o.id) && o.t && o.t < old).map((o) => o.id).concat(await driveOrphans(used, old));
 }
 const _pagePelamar24 = pagePelamar;
 pagePelamar = function (D) {
@@ -4559,6 +4587,7 @@ async function runPurge() {
   if (ok === false) { const e = document.getElementById('purgeErr'); if (e) { e.hidden = false; e.textContent = 'Gagal menyimpan. Periksa koneksi lalu coba lagi.'; } if (go) { go.disabled = false; go.textContent = `Hapus ${ids.length} Berkas`; } return; }
   let fail = 0;
   for (let i = 0; i < ids.length; i += 100) { const r = await WEB.sb.storage.from(WEB_BUCKET).remove(ids.slice(i, i + 100)); if (r.error) fail += ids.slice(i, i + 100).length; }
+  try { await WEB.sb.rpc('kta_drive_purge', { p_ids: ids }); } catch (e) {} // berkas yang sudah di Google Drive ikut dihapus dari Drive
   closeModal(); render();
   toast(fail ? `${ids.length - fail} berkas dihapus, ${fail} gagal. Coba lagi nanti.` : `${ids.length} berkas dihapus. Di Google Drive ikut terhapus dalam ±10 menit.`, !!fail);
 }

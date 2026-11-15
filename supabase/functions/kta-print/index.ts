@@ -2,7 +2,14 @@
 // Setujui / Tolak decision from the signed link in that email (no login needed on the phone).
 import { createClient } from "npm:@supabase/supabase-js@2.45.4";
 
-const OWNER = "matthewyoga2014@gmail.com";
+// email Pemilik: dari secret OWNER_EMAIL, atau dibaca dari tabel akses (peran owner) saat pertama dipakai
+let OWNER = (Deno.env.get("OWNER_EMAIL") || "").toLowerCase();
+async function loadOwner() {
+  if (OWNER) return OWNER;
+  const { data } = await admin.from("app_access_roles").select("email").eq("app_id", "kta-tra").eq("role", "owner").limit(1).maybeSingle();
+  OWNER = String(data?.email || "").toLowerCase();
+  return OWNER;
+}
 const APPS: Record<string, { name: string; web: string }> = {
   "kta-tra": { name: "KTA-TRA", web: "manpower-kta-tra/" },
   "bupr-ampah": { name: "BUPR Ampah", web: "manpower-bupr/" },
@@ -138,6 +145,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: CORS });
   if (req.method !== "POST") return json({ ok: false }, 405);
   try {
+    await loadOwner();
     const body = await req.json().catch(() => ({}));
     if (body.op === "notify") return await notify(req, appOf(body.app));
     if (body.op === "decide") return await decide(body);
@@ -173,25 +181,83 @@ Deno.serve(async (req) => {
         }
       }
       if (seen.length) await admin.from("kta_drive_files").upsert(seen, { onConflict: "storage_id" });
-      // 2) Drive menyimpan semua berkas di arsip yang objek storage-nya masih ada.
-      //    Editor menghapus pelamar di web -> berkas tetap di Drive (objek storage tidak dihapus).
-      //    Pemilik klik "Hapus berkas tidak aktif" -> objek storage dihapus -> ikut hilang dari Drive.
-      const { data: reg } = await admin.from("kta_drive_files").select("storage_id,state,cand,jabatan,name");
+      // 2) Drive menyimpan semua berkas di arsip.
+      //    Editor menghapus pelamar di web -> berkas tetap di Drive.
+      //    Pemilik klik "Hapus berkas tidak aktif" -> purge_at diisi (atau objek storage dihapus sebelum pindah ke Drive)
+      //    -> baris arsip dihapus -> ikut hilang dari Drive.
+      //    Berkas yang sudah aman di Drive (drive_id terkonfirmasi > 1 hari) dihapus dari Supabase Storage (offloaded_at),
+      //    lalu dibuka langsung dari Google Drive. Baris arsipnya TIDAK dihapus.
+      const { data: reg, error: re } = await admin.from("kta_drive_files").select("storage_id,state,cand,jabatan,name,drive_id,drive_at,drive_seen_at,shared_to,offloaded_at,purge_at");
+      if (re || !Array.isArray(reg)) return json({ ok: false, error: "registry" }, 500);
       const { data: objs, error: oe } = await admin.rpc("kta_storage_names");
       if (oe || !Array.isArray(objs)) return json({ ok: false, error: "storage_list" }, 500);
       const live = new Set((objs as unknown[]).map((o) => (typeof o === "string" ? o : (o as Record<string, string>).kta_storage_names)));
-      const gone = (reg || []).filter((x) => !live.has(x.storage_id)).map((x) => x.storage_id);
+      const goneRows = reg.filter((x) => x.purge_at || (!live.has(x.storage_id) && !x.offloaded_at));
+      const gone = goneRows.map((x) => x.storage_id);
+      const purgeLive = goneRows.filter((x) => live.has(x.storage_id)).map((x) => x.storage_id);
+      if (purgeLive.length) await admin.storage.from("kta-web-docs").remove(purgeLive);
       if (gone.length) await admin.from("kta_drive_files").delete().in("storage_id", gone);
-      const out: unknown[] = [];
-      for (const x of (reg || []).filter((x) => live.has(x.storage_id))) {
-        const { data: su } = await admin.storage.from("kta-web-docs").createSignedUrl(x.storage_id, 900);
-        if (!su?.signedUrl) return json({ ok: false, error: "sign" }, 500); // jangan kirim daftar tidak lengkap
-        out.push({ state: x.state, cand: x.cand, jabatan: x.jabatan, name: x.name, id: x.storage_id, url: su.signedUrl, group: x.jabatan === KARYAWAN ? KARYAWAN : "Berkas Pelamar" });
+      const keep = reg.filter((x) => !gone.includes(x.storage_id));
+      // 3) pindahkan berkas yang sudah aman di Drive keluar dari Supabase Storage (maks 100 per putaran)
+      const { data: ofs } = await admin.from("kta_private_settings").select("value").eq("name", "drive_offload").maybeSingle();
+      const tnow = Date.now();
+      if (ofs && ofs.value === "on") {
+        const ready = keep.filter((x) => live.has(x.storage_id) && !x.offloaded_at && x.drive_id && x.drive_at && x.drive_seen_at &&
+          tnow - Date.parse(x.drive_at) > 864e5 && tnow - Date.parse(x.drive_seen_at) < 2 * 3600e3).slice(0, 100);
+        if (ready.length) {
+          const ids = ready.map((x) => x.storage_id);
+          const { error: rmErr } = await admin.storage.from("kta-web-docs").remove(ids);
+          if (!rmErr) {
+            const at = new Date().toISOString();
+            await admin.from("kta_drive_files").update({ offloaded_at: at }).in("storage_id", ids);
+            for (const x of ready) { x.offloaded_at = at; live.delete(x.storage_id); }
+          }
+        }
       }
-      return json({ ok: true, files: out });
+      // 4) siapa yang boleh melihat tiap berkas di Drive (Editor portal itu; per berkas, bukan per folder)
+      const { data: vw } = await admin.rpc("kta_drive_viewers");
+      const viewers: Record<string, string[]> = {};
+      for (const v of (vw || []) as { state: string; emails: string[] }[]) viewers[v.state] = (v.emails || []).map((e) => String(e).toLowerCase());
+      const out: unknown[] = [];
+      for (const x of keep) {
+        let url: string | null = null;
+        if (live.has(x.storage_id) && !x.offloaded_at) {
+          const { data: su } = await admin.storage.from("kta-web-docs").createSignedUrl(x.storage_id, 900);
+          if (!su?.signedUrl) return json({ ok: false, error: "sign" }, 500); // jangan kirim daftar tidak lengkap
+          url = su.signedUrl;
+        }
+        const want = viewers[x.state] || [];
+        const have = (x.shared_to || []).map((e: string) => String(e).toLowerCase());
+        out.push({ state: x.state, cand: x.cand, jabatan: x.jabatan, name: x.name, id: x.storage_id, url, group: x.jabatan === KARYAWAN ? KARYAWAN : "Berkas Pelamar",
+          drive_id: x.drive_id || null, viewers: want, add: want.filter((e) => !have.includes(e)), remove: have.filter((e) => !want.includes(e)) });
+      }
+      return json({ ok: true, v: 2, files: out });
+    }
+    if (body.op === "drivedone") {
+      // Apps Script melaporkan ID Google Drive tiap berkas + email yang sudah diberi akses Pelihat
+      const { data: tk } = await admin.from("kta_private_settings").select("value").eq("name", "drive_sync_token").maybeSingle();
+      if (!tk || !body.token || body.token !== tk.value) return json({ ok: false, error: "token" }, 403);
+      const list = Array.isArray(body.files) ? body.files : [];
+      const at = new Date().toISOString();
+      const { data: cur } = await admin.from("kta_drive_files").select("storage_id,drive_id,drive_at");
+      const byId: Record<string, { drive_id: string | null; drive_at: string | null }> = {};
+      for (const c of cur || []) byId[c.storage_id] = c;
+      let n = 0;
+      for (let i = 0; i < list.length; i += 20) {
+        await Promise.all(list.slice(i, i + 20).map(async (f: any) => {
+          const c = byId[String(f?.id || "")];
+          if (!c || !f.drive_id || !/^[A-Za-z0-9_-]{10,}$/.test(String(f.drive_id))) return;
+          const patch: Record<string, unknown> = { drive_id: String(f.drive_id), drive_seen_at: at, shared_to: Array.isArray(f.shared_to) ? f.shared_to.map((e: string) => String(e).toLowerCase()) : [] };
+          if (!c.drive_at || c.drive_id !== String(f.drive_id)) patch.drive_at = at; // berkas Drive baru -> tunggu 1 hari lagi sebelum dihapus dari Supabase
+          const { error } = await admin.from("kta_drive_files").update(patch).eq("storage_id", String(f.id));
+          if (!error) n++;
+        }));
+      }
+      return json({ ok: true, updated: n });
     }
     if (body.op === "test") {
-      if ((await caller(req)) !== OWNER) return json({ ok: false, error: "owner_only" }, 403);
+      const who = await caller(req);
+      if (!OWNER || !who || who !== OWNER) return json({ ok: false, error: "owner_only" }, 403);
       const m = await sendMail("Tes notifikasi · Monitoring Manpower", `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:520px;margin:auto;padding:24px;color:#1E1B3A"><div style="font-size:11px;font-weight:800;letter-spacing:.14em;color:#6D28D9">MONITORING MANPOWER KTA-TRA</div><h2 style="margin:6px 0 10px">Notifikasi email aktif ✓</h2><p style="font-size:15px">Permintaan izin cetak dari Pelihat akan masuk ke email ini, lengkap dengan tombol Setujui dan Tolak.</p></div>`);
       return json(m);
     }

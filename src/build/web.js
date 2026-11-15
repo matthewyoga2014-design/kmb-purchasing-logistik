@@ -695,6 +695,14 @@ function purgeList() {
   }));
   return out;
 }
+// berkas lama tanpa pelamar yang sudah dipindah ke Google Drive (tidak ada lagi di penyimpanan web)
+async function driveOrphans(used, old) {
+  try {
+    const r = await WEB.sb.rpc('kta_drive_registry', { p_state: WEB_ID });
+    if (r.error || !Array.isArray(r.data)) return [];
+    return r.data.filter((x) => x.offloaded && !used.has(x.storage_id) && (Date.parse(x.first_seen || '') || 0) < old).map((x) => x.storage_id);
+  } catch (e) { return []; }
+}
 async function purgeOrphans() {
   // berkas di penyimpanan web yang sudah tidak dipakai pelamar mana pun (mis. pelamar dihapus Editor), lebih dari 1 hari
   const used = new Set(); DATA.positions.forEach((p) => (p.cands || []).forEach((c) => Object.values(c.files || {}).forEach((f) => f && f.id && used.add(f.id))));
@@ -703,7 +711,7 @@ async function purgeOrphans() {
   if (r.error || !Array.isArray(r.data)) return [];
   const old = Date.now() - 864e5;
   return r.data.filter((o) => o.id && o.name !== '.emptyFolderPlaceholder').map((o) => ({ id: pre ? pre + '/' + o.name : o.name, t: Date.parse(o.created_at || '') || 0 }))
-    .filter((o) => !used.has(o.id) && o.t && o.t < old).map((o) => o.id);
+    .filter((o) => !used.has(o.id) && o.t && o.t < old).map((o) => o.id).concat(await driveOrphans(used, old));
 }
 const _pagePelamar24 = pagePelamar;
 pagePelamar = function (D) {
@@ -746,6 +754,7 @@ async function runPurge() {
   if (ok === false) { const e = document.getElementById('purgeErr'); if (e) { e.hidden = false; e.textContent = 'Gagal menyimpan. Periksa koneksi lalu coba lagi.'; } if (go) { go.disabled = false; go.textContent = `Hapus ${ids.length} Berkas`; } return; }
   let fail = 0;
   for (let i = 0; i < ids.length; i += 100) { const r = await WEB.sb.storage.from(WEB_BUCKET).remove(ids.slice(i, i + 100)); if (r.error) fail += ids.slice(i, i + 100).length; }
+  try { await WEB.sb.rpc('kta_drive_purge', { p_ids: ids }); } catch (e) {} // berkas yang sudah di Google Drive ikut dihapus dari Drive
   closeModal(); render();
   toast(fail ? `${ids.length - fail} berkas dihapus, ${fail} gagal. Coba lagi nanti.` : `${ids.length} berkas dihapus. Di Google Drive ikut terhapus dalam ±10 menit.`, !!fail);
 }

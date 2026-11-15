@@ -13,10 +13,30 @@ function viewerEl() {
   if (!v) { v = document.createElement('div'); v.id = 'viewer'; v.className = 'modal'; v.style.zIndex = 60; v.innerHTML = '<div class="dialog vdlg" role="dialog" aria-modal="true" aria-labelledby="vTitle"></div>'; document.body.appendChild(v); }
   return v;
 }
+// berkas yang sudah tersimpan di Google Drive dibuka langsung dari Drive (per berkas, tanpa akses folder)
+async function openFromDrive(id, name) {
+  if (typeof WEB === 'undefined' || !WEB.sb) return false;
+  let link = null;
+  try { const r = await WEB.sb.rpc('kta_drive_link', { p_storage_id: id }); link = (r.data || [])[0] || null; } catch (e) { link = null; }
+  if (!link || !link.drive_id) return false;
+  const body = document.getElementById('vBody');
+  if (!link.shared) {
+    if (!link.offloaded) return false; // salinan di web masih ada: pakai cara lama
+    body.innerHTML = '<div class="empty">Berkas ini sudah dipindah ke Google Drive. Akses Anda sedang disiapkan, coba lagi sekitar 10 menit lagi.</div>';
+    return true;
+  }
+  const did = encodeURIComponent(link.drive_id);
+  const dl = document.getElementById('vDl');
+  if (dl) { if (IS_OWNER) { dl.disabled = false; dl.textContent = 'Buka di Drive'; dl.onclick = () => window.open('https://drive.google.com/file/d/' + did + '/view', '_blank', 'noopener'); } else dl.remove(); }
+  const em = (WEB.user && WEB.user.email) || '';
+  body.innerHTML = `<iframe src="https://drive.google.com/file/d/${did}/preview" title="${esc(name || 'Berkas')}" referrerpolicy="no-referrer" style="display:block;width:100%;height:75vh;border:0;border-radius:10px;background:#fff"></iframe><div class="small" style="margin-top:8px">Dibuka dari Google Drive. Tidak tampil? Pastikan browser ini sudah masuk Google dengan email <b>${esc(em)}</b>.</div>`;
+  return true;
+}
 async function openFile(id, name) {
   const v = viewerEl(), d = v.querySelector('.vdlg');
   d.innerHTML = `<div class="cm-h"><h2 id="vTitle">${esc(name || 'Berkas')}</h2><div class="acts">${DL ? '<button type="button" class="btn btn-g btn-sm" id="vDl" disabled>Download</button>' : ''}<button type="button" class="x" id="vClose" aria-label="Tutup">×</button></div></div><div class="vbody" id="vBody"><div class="upst"><span class="spin sm"></span>Memuat berkas…</div></div>`;
   v.hidden = false;
+  if (await openFromDrive(id, name)) return;
   let blob;
   try {
     const r = await fetch('/_blob/' + id, { credentials: 'include' });
