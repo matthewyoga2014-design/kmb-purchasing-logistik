@@ -362,13 +362,13 @@
       '<font><b/><sz val="9.5"/><color rgb="FF15803D"/><name val="Calibri"/><family val="2"/></font>',       // 8 hijau
       '<font><b/><sz val="9"/><color rgb="FFC00000"/><name val="Calibri"/><family val="2"/></font>',         // 9 label merah
     ];
-    const DOT = '<color rgb="FF555555"/>';
+    const DOT = '<color rgb="FF404040"/>';   // garis tegas (thin) agar jelas di Excel maupun pratinjau Google Drive
     const BORDERS = [
       '<border><left/><right/><top/><bottom/><diagonal/></border>',
-      `<border><left style="dotted">${DOT}</left><right style="dotted">${DOT}</right><top style="dotted">${DOT}</top><bottom style="dotted">${DOT}</bottom><diagonal/></border>`,
       `<border><left style="thin">${DOT}</left><right style="thin">${DOT}</right><top style="thin">${DOT}</top><bottom style="thin">${DOT}</bottom><diagonal/></border>`,
-      `<border><left style="dotted">${DOT}</left><right style="dotted">${DOT}</right><top/><bottom/><diagonal/></border>`,                       // 3 sambungan (tanpa garis atas)
-      `<border><left style="dotted">${DOT}</left><right style="dotted">${DOT}</right><top style="dotted">${DOT}</top><bottom/><diagonal/></border>`, // 4 awal blok
+      `<border><left style="thin">${DOT}</left><right style="thin">${DOT}</right><top style="thin">${DOT}</top><bottom style="thin">${DOT}</bottom><diagonal/></border>`,
+      `<border><left style="thin">${DOT}</left><right style="thin">${DOT}</right><top/><bottom/><diagonal/></border>`,                       // 3 sambungan (tanpa garis atas)
+      `<border><left style="thin">${DOT}</left><right style="thin">${DOT}</right><top style="thin">${DOT}</top><bottom/><diagonal/></border>`, // 4 awal blok
     ];
     const XF = [], xf = (font, fill, border, align) => { XF.push(`<xf numFmtId="0" fontId="${font}" fillId="${fill}" borderId="${border}" xfId="0" applyFont="1" applyFill="1" applyBorder="1"${align ? ` applyAlignment="1"><alignment ${align}/></xf>` : '/>'}`); return XF.length - 1; };
     const S0 = xf(0, 0, 0), ST = xf(1, 0, 0), SN = xf(2, 0, 0, 'vertical="top" wrapText="1"'), SBAR = xf(0, 2, 2, 'horizontal="center" vertical="center"'),
