@@ -3519,55 +3519,76 @@ function printSlot(k){
   if(!muCanPrint()){ toast("Print hanya untuk Pemilik, Editor, dan Pelihat yang memiliki link khusus."); return; }
   muPrintAsk(slotUnits(k),o=>printSlotGo(k,o.bukti,o.rev),S.revisi.filter(x=>x.kirimId===k.id).length);
 }
-function printSlotGo(k,withB,withRev){
-  const wasOpen=SLOT_OPEN.has(k.id); if(!wasOpen){ SLOT_OPEN.add(k.id); rk(); }
-  const btn=document.querySelector(`[data-act="slotPrint"][data-id="${k.id}"]`), box=btn&&btn.closest(".slotBox");
-  const tbl=box&&box.querySelector(".slotTbl table"); if(!tbl){ toast("Tabel unit tidak ditemukan."); return; }
-  const t=tbl.cloneNode(true);
-  t.querySelectorAll("tr").forEach(tr=>{ const last=tr.lastElementChild; if(last&&(last.classList.contains("act")||(!last.textContent.trim()&&tr.parentElement.tagName==="THEAD"))) last.remove(); });
-  t.querySelectorAll("button").forEach(b=>b.remove());
-  { const cg=t.querySelector("colgroup"); if(cg) cg.remove(); t.classList.remove("slotFixed"); t.style.tableLayout="auto"; }
-  const P=projOf(k.projectId)||{}, us=slotUnits(k), r=Number(k.rencana)||0;
-  const cnt=[...new Set([...ALL_STATUS.map(x=>x.k),...us.map(u=>u.status).filter(Boolean)])].map(k=>({k,n:us.filter(u=>u.status===k).length})).filter(o=>o.n);
-  const sum=cnt.map(o=>`${o.k}: <b>${o.n}</b>`).join(" · ")+(Math.max(r,us.length)-us.length>0?` · Belum dijadwalkan: <b>${Math.max(r,us.length)-us.length}</b>`:"");
-  const css=[...document.querySelectorAll("style")].map(x=>x.textContent).join("\n");
-  const judul=`Unit ${k.tipe} · ${P.kode||""}`;
-  const html=`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>${esc(judul)} - ${todayStr()}</title><style>${css}
-    @page{margin:8mm}
-    html,body{background:#fff!important;margin:0}
-    body{padding:0;font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:#1E1B3A}
-    body::before{display:none!important}
-    .ph{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid #6D28D9;padding-bottom:8px;margin-bottom:10px}
-    .ph h1{font-size:18px;margin:0}.ph p{margin:2px 0 0;font-size:11px;color:#4B4868}.ph .r{text-align:right;font-size:10.5px;color:#4B4868}
-    .sm{font-size:11px;color:#4B4868;margin:0 0 8px}
-    table{width:100%!important;min-width:0!important;border-collapse:collapse}
-    th,td{border:1px solid #E6E4F2!important;padding:5px 6px!important;font-size:10px!important;vertical-align:middle}
-    th{background:#F4F1FD!important;text-transform:uppercase;font-size:8.5px!important;letter-spacing:.04em}
-    tr{break-inside:avoid}
-    .slotTbl{overflow:visible!important;border:0!important;box-shadow:none!important}
-    .mu-vendor-tag,.mu-brand-tag,.chip,.plate,.mu-cond{white-space:nowrap!important;overflow-wrap:normal!important;word-break:normal!important}
-    .mu-vendor-tag,.mu-brand-tag,.mu-cond{font-size:8.5px!important;padding:1px 5px!important}
-    .chip{font-size:8.5px!important;padding:1px 6px!important}
-    .plate{font-size:9px!important;padding:1px 5px!important}
-    td.cat{max-width:none!important}
-    *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    ${MU_PB_CSS}
-    .pr-rev{margin-top:12px;break-inside:avoid}.pr-rev h2{font-size:13px;margin:0 0 6px;color:#1E1B3A}.pr-rev .ki-hist th,.pr-rev .ki-hist td{border:0!important;border-bottom:1px solid #EEE!important}
+function printSlotGo(k,withB,withRev){ muPrintKirim([k],withB,withRev,`Unit ${k.tipe} · ${(projOf(k.projectId)||{}).kode||""}`); }
+/* bukti satu item, ditaruh di bawah tabel item */
+function muItemBukti(us){
+  const d=us.flatMap(u=>docsOfUnit(u).map(x=>({u,x}))), imgs=d.filter(o=>muIsImg(o.x)&&(o.x.fileId||o.x.fileUrl)), docs=d.filter(o=>!imgs.includes(o));
+  return `<div class="pk-bk"><span class="pk-bl">Foto</span>${imgs.length?`<div class="pk-fg">${imgs.map(({u,x})=>`<figure><img src="${esc(x.fileId?muPhotoImg(x,700):x.fileUrl)}" alt="" loading="eager"><figcaption><b>${esc(u.kode||"—")}</b> · ${esc(x.tahap||"Bukti")}${x.tanggal?" · "+esc(fmtD(x.tanggal)):""}${x.catatan?" · "+esc(x.catatan):""}</figcaption></figure>`).join("")}</div>`:'<span class="pk-dz">–</span>'}</div>
+    <div class="pk-bk"><span class="pk-bl">Dokumen</span><div>${docs.length?docs.map(({u,x})=>`📄 ${x.fileUrl?`<a href="${esc(x.fileUrl)}">${esc(x.fileName||"Dokumen")}</a>`:esc(x.fileName||"Dokumen")} <span class="pk-dm">(${esc(u.kode||"—")}${x.tahap?" · "+esc(x.tahap):""}${x.tanggal?" · "+esc(fmtD(x.tanggal)):""})</span>`).join(" · "):'<span class="pk-dz">–</span>'}</div></div>`;
+}
+/* Print Rencana kirim (satu item atau semua item yang tampil): ringkas; 2 item per baris bila tabelnya muat */
+function muPrintKirim(items,withB,withRev,judul){
+  const opened=items.filter(k=>!SLOT_OPEN.has(k.id)); if(opened.length){ opened.forEach(k=>SLOT_OPEN.add(k.id)); rk(); }
+  try{ muColApplyAll(); }catch(e){}
+  const byP=new Map();
+  items.forEach(k=>{ const btn=document.querySelector(`[data-act="slotPrint"][data-id="${k.id}"]`), box=btn&&btn.closest(".slotBox"), tbl=box&&box.querySelector(".slotTbl table"); if(!tbl) return;
+    const t=tbl.cloneNode(true);
+    t.querySelectorAll("[data-col-hid]").forEach(c=>c.remove()); t.querySelectorAll('[style*="display: none"]').forEach(c=>c.remove());
+    t.querySelectorAll("tr").forEach(tr=>{ const last=tr.lastElementChild; if(last&&(last.classList.contains("act")||(!last.textContent.trim()&&tr.parentElement.tagName==="THEAD"))) last.remove(); });
+    t.querySelectorAll("button,.mu-rsz").forEach(b=>b.remove()); { const cg=t.querySelector("colgroup"); if(cg) cg.remove(); }
+    t.removeAttribute("class"); t.removeAttribute("style"); t.querySelectorAll("th,td").forEach(c=>{ c.style.width=""; c.style.minWidth=""; c.style.maxWidth=""; });
+    const nc=t.tHead&&t.tHead.rows[0]?t.tHead.rows[0].cells.length:1; t.querySelectorAll("td[colspan]").forEach(c=>{ c.colSpan=Math.max(1,nc-(c.parentElement.cells.length-1)); });
+    if(!byP.has(k.projectId)) byP.set(k.projectId,[]); byP.get(k.projectId).push({k,html:t.outerHTML}); });
+  if(opened.length){ opened.forEach(k=>SLOT_OPEN.delete(k.id)); rk(); }
+  if(!byP.size){ toast("Tabel unit tidak ditemukan."); return; }
+  const blocks=[...byP.entries()].map(([pid,arr])=>{ const P=projOf(pid)||{}, st=projStats(pid);
+    return `<div class="pk-pj"><b>${esc(P.kode||"")}</b>${[P.nama,P.lokasi].filter(Boolean).map(x=>" · "+esc(x)).join("")} · ${st.rencana} unit rencana · ${st.jalan} dlm perjalanan · ${st.tiba} tiba · ${st.sisa} sisa kirim</div>
+      <div class="pk-grid">${arr.map(({k,html})=>{ const us=slotUnits(k), r=Number(k.rencana)||0, sk=sisaItem(k);
+        const cnt=[...new Set([...ALL_STATUS.map(x=>x.k),...us.map(u=>u.status).filter(Boolean)])].map(t=>({t,n:us.filter(u=>u.status===t).length})).filter(o=>o.n);
+        const blm=Math.max(r,us.length)-us.length;
+        const sts=[...cnt.map(o=>`${esc(o.t)} ${o.n}`),blm?`Belum dijadwalkan ${blm}`:""].filter(Boolean).join(" · ");
+        const rv=withRev?S.revisi.filter(x=>x.kirimId===k.id):[];
+        return `<div class="pk-it"><div class="pk-ih"><b>${esc(k.tipe)}</b><span>Rencana <b>${r}</b>${sts?" · "+sts:""} · Sisa <b class="${sk?"pk-rd":"pk-ok"}">${sk}</b></span></div>${html}
+          ${withB?muItemBukti(us):""}
+          ${rv.length?`<div class="pk-bk"><span class="pk-bl">Riwayat</span><div>${rv.slice().sort((a,b)=>String(a.waktu||"").localeCompare(String(b.waktu||""))).map(x=>`${esc(fmtD(String(x.waktu||"").slice(0,10)))}: ${x.lama} → ${x.baru} (${x.baru-x.lama>0?"+":""}${x.baru-x.lama}) ${esc(revJenis(x)||"")}${x.alasan?" — "+esc(x.alasan):""}`).join("<br>")}</div></div>`:""}</div>`; }).join("")}</div>`; }).join("");
+  const html=`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>${esc(judul)} - ${todayStr()}</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=JetBrains+Mono:wght@600;700&display=swap">
+  <style>@page{size:A4 landscape;margin:8mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  html,body{margin:0;background:#fff;font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:#1E1B3A}
+  .pk-hd{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid #6D28D9;padding-bottom:6px;margin-bottom:8px}.pk-hd h1{margin:0;font-size:16px}.pk-hd small{font-size:9.5px;color:#4B4868}.pk-hd .r{text-align:right}
+  .pk-pj{background:#F4F1FD;border-radius:6px;padding:5px 8px;font-size:10px;margin:0 0 8px}.pk-pj b{font-size:11.5px}
+  .pk-grid{margin-bottom:10px}.two .pk-grid{columns:2;column-gap:14px}
+  .pk-it{break-inside:avoid;page-break-inside:avoid;border:1px solid #ECE9F6;border-radius:6px;padding:6px;margin:0 0 9px}.two .pk-it{display:inline-block;width:100%}
+  .pk-ih{display:flex;flex-direction:column;gap:1px;font-size:9.5px;padding:1px 0 4px 6px;border-left:3px solid #6D28D9;margin-bottom:4px}.pk-ih>b{font-size:11px}.pk-ih span{color:#4B4868}.pk-rd{color:#E11D48}.pk-ok{color:#15803D}
+  table{width:100%;border-collapse:collapse;font-size:9px}
+  th{background:#F4F1FD;text-align:left;font-size:7.5px;text-transform:uppercase;letter-spacing:.04em;color:#4B4868;padding:3px 4px;border:1px solid #E6E4F2;white-space:nowrap}
+  td{padding:2.5px 4px;border:1px solid #E6E4F2;vertical-align:middle;line-height:1.3}
+  td *{font-size:inherit!important}
+  .chip,.mu-vendor-tag,.mu-brand-tag,.mu-own-tag,.mu-cond,.tag{background:none!important;border:0!important;padding:0!important;color:inherit!important;box-shadow:none!important;font-weight:600}
+  .chip::before,.mu-brand-tag::before{display:none!important}
+  .plate{font-family:"JetBrains Mono",monospace;font-weight:700;background:none!important;color:#1E1B3A!important;padding:0!important}
+  .tmp{color:#B45309;font-weight:700}
+  tr.empty td,tr.slot-empty td{color:#9A97B0;font-style:italic}
+  .pk-bk{display:grid;grid-template-columns:50px minmax(0,1fr);gap:6px;font-size:8.5px;margin-top:5px;align-items:start}.pk-bl{font-size:7.5px;font-weight:700;text-transform:uppercase;color:#6B6985;padding-top:1px}.pk-dz{color:#9A97B0}.pk-dm{color:#6B6985}
+  .pk-bk a{color:#1E1B3A}
+  .pk-fg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}.pk-fg figure{margin:0}.pk-fg img{width:100%;height:78px;object-fit:cover;border-radius:4px;border:1px solid #E6E4F2;background:#F4F1FD}.pk-fg figcaption{font-size:7.5px;color:#4B4868;margin-top:2px;line-height:1.3}
   </style></head><body>
-    <div class="ph"><div><h1>${esc(k.tipe)}</h1><p>${esc([P.kode,P.nama,P.lokasi].filter(Boolean).join(" · "))} · Rencana ${r} unit${k.moda?" · via "+esc(k.moda):""}</p></div>
-      <div class="r">Monitoring Unit · Rencana kirim<br>Dicetak ${esc(new Date().toLocaleString("id-ID",{dateStyle:"long",timeStyle:"short"}))}${meEmail?" · "+esc(meEmail):""}</div></div>
-    <p class="sm">${sum}</p>
-    <div class="slotTbl">${t.outerHTML}</div>
-    ${withRev&&S.revisi.some(x=>x.kirimId===k.id)?`<section class="pr-rev"><h2>Riwayat perubahan jumlah unit</h2>${muItemHist(k)}</section>`:""}
-    ${withB?muBuktiHtml(us):""}
-  </body></html>`;
+  <div class="pk-hd"><div><h1>${esc(judul)}</h1><small>Monitoring Unit · Rencana kirim${withB?" · dengan bukti":""}</small></div><small class="r">Dicetak ${esc(new Date().toLocaleString("id-ID",{dateStyle:"long",timeStyle:"short"}))}${meEmail?"<br>"+esc(meEmail):""}</small></div>
+  <div id="pkBody">${blocks}</div></body></html>`;
   let fr=document.getElementById("muPrintFrame"); if(fr) fr.remove();
   fr=document.createElement("iframe"); fr.id="muPrintFrame"; fr.setAttribute("aria-hidden","true");
-  fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden";
+  // lebar = area cetak A4 landscape (±1060px) agar lebar tabel bisa diukur
+  fr.style.cssText="position:fixed;left:-20000px;top:0;width:1060px;height:800px;border:0;visibility:hidden";
   document.body.appendChild(fr);
   const doc=fr.contentWindow.document; doc.open(); doc.write(html); doc.close();
   if(withB) toast("Menyiapkan foto bukti untuk print…");
-  setTimeout(()=>muWaitImgs(doc,()=>{ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){ toast("Gagal membuka jendela print."); } if(!wasOpen){ SLOT_OPEN.delete(k.id); rk(); } }),350);
+  setTimeout(()=>{
+    try{ // 2 item per baris hanya bila semua tabel muat di setengah halaman dan tulisannya tidak dipaksa mengecil
+      const half=(doc.body.clientWidth-14)/2-14; let fit=items.length>1;
+      doc.querySelectorAll(".pk-it table").forEach(t=>{ t.style.width="auto"; if(t.offsetWidth>half) fit=false; t.style.width=""; });
+      doc.body.classList.toggle("two",fit);
+    }catch(e){}
+    muWaitImgs(doc,()=>{ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){ toast("Gagal membuka jendela print."); } }); },400);
 }
 function slotRow(k){
   if(!SLOT_OPEN.has(k.id)&&!muKActive()) return "";
@@ -4959,6 +4980,10 @@ $("#btnPrint").addEventListener("click",()=>{
   const us=S.tab==="pengiriman"||S.tab==="unit"||S.tab==="ringkasan"?S.units.filter(u=>pids.has(u.projectId)):[];
   const revShown=S.tab==="pengiriman"||(S.tab==="ringkasan"&&!P&&DSEC==="rev");
   const nRev=revShown?S.revisi.filter(x=>{ const k=S.kirim.find(y=>y.id===x.kirimId); return !k||pids.has(k.projectId); }).length:0;
+  if(S.tab==="pengiriman"){
+    const ks=[...document.querySelectorAll('#tKirim [data-act="slotTg"].itemTg')].map(b=>S.kirim.find(k=>k.id===b.dataset.id)).filter(Boolean);
+    if(ks.length){ muPrintAsk(ks.flatMap(k=>slotUnits(k)),o=>muPrintKirim(ks,o.bukti,o.rev,judul),S.revisi.filter(x=>ks.some(k=>k.id===x.kirimId)).length); return; }
+  }
   muPrintAsk(us,go,nRev); });
 
 /* ---------- susunan kartu project responsif ---------- */
