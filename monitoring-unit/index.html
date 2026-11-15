@@ -178,6 +178,7 @@ section.panel{padding-top:20px;display:flex;flex-direction:column;gap:18px}
 .sd-subs button{border:0;background:none;font:inherit;font-size:13px;color:#4B4868;padding:8px 10px;border-radius:8px;text-align:left;cursor:pointer}
 .sd-subs button:hover{background:#F7F5FD}.sd-subs button.on{background:var(--g-purple);color:#fff;font-weight:700;box-shadow:0 6px 14px -8px rgba(124,58,237,.8)}
 .sd-none{font-size:12px;color:var(--muted);padding:6px 10px}
+@media print{body.mu-print-norev #revCard,body.mu-print-norev .card:has(#lastRev){display:none!important}}
 @media print{.mu-side{display:none!important}body.has-side main.pad{padding-left:0!important}}
 .hk-crumb{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:15px;color:#8C88A8}.hk-crumb b{color:#6D28D9}
 .hk-secs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}.hk-secs button{flex:none;border:1px solid #E3E0EF;background:#fff;border-radius:999px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:700;color:#4B4868;cursor:pointer}.hk-secs button.on{background:var(--g-purple);color:#fff;border-color:transparent}
@@ -1821,7 +1822,7 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
       <colgroup class="kirimCols" id="kirimCols"></colgroup>
       <tbody id="tKirim"></tbody>
     </table></div>
-    <div class="card pcard">
+    <div class="card pcard" id="revCard">
       <div class="card-head"><h3><span class="tile-ic" style="background:var(--g-purple)"><svg class="i"><use href="#i-history"/></svg></span>Riwayat perubahan jumlah unit</h3><span class="small muted" id="revCount"></span></div>
       <div class="timeline" id="timeline"></div>
     </div>
@@ -3485,24 +3486,29 @@ function muCanPrint(){ return role==="owner"||role==="editor"||(typeof GUEST_SHA
 function muBuktiOf(us){ return us.map(u=>({u,d:docsOfUnit(u)})).filter(x=>x.d.length); }
 const muIsImg=d=>/^image\//i.test(String(d.mime||""))||/\.(png|jpe?g|webp|gif)$/i.test(String(d.fileName||""))||(!d.fileName&&!!d.fileId&&!/pdf/i.test(String(d.mime||"")));
 function muBuktiHtml(us){
-  const L=muBuktiOf(us); if(!L.length) return "";
-  return `<section class="pb"><h2>Lampiran bukti</h2><p class="pb-sub">${L.reduce((a,x)=>a+x.d.length,0)} bukti dari ${L.length} unit. Unit tanpa bukti tidak ditampilkan.</p>
+  if(!us.length) return "";
+  const L=us.map(u=>({u,d:docsOfUnit(u)})), nb=L.reduce((a,x)=>a+x.d.length,0), nu=L.filter(x=>x.d.length).length;
+  return `<section class="pb"><h2>Lampiran bukti</h2><p class="pb-sub">${nb} bukti dari ${nu} unit${L.length-nu?` · ${L.length-nu} unit belum ada bukti (ditandai –)`:""}.</p>
     ${L.map(({u,d})=>{ const imgs=d.filter(x=>muIsImg(x)&&(x.fileId||x.fileUrl)), docs=d.filter(x=>!imgs.includes(x));
-      return `<div class="pb-u"><div class="pb-h"><b>${esc(u.kode||"—")}</b>${u.kodeSementara?'<i class="pb-tmp">nomor sementara</i>':""}<span>${esc(u.tipe||"")}${u.status?" · "+esc(u.status):""}${projKode(u.projectId)?" · "+esc(projKode(u.projectId)):""}</span><em>${d.length} bukti</em></div>
-        ${imgs.length?`<div class="pb-g">${imgs.map(x=>`<figure><img src="${esc(x.fileId?muPhotoImg(x,900):x.fileUrl)}" alt="${esc(x.fileName||"Foto bukti")}" loading="eager"><figcaption><b>${esc(x.tahap||"Bukti")}</b>${x.tanggal?" · "+esc(fmtD(x.tanggal)):""}${x.lokasi?" · "+esc(x.lokasi):""}${x.catatan?`<br>${esc(x.catatan)}`:""}</figcaption></figure>`).join("")}</div>`:""}
-        ${docs.length?`<ul class="pb-d">${docs.map(x=>`<li>📄 <b>${esc(x.fileName||"Dokumen")}</b> · ${esc(x.tahap||"")}${x.tanggal?" · "+esc(fmtD(x.tanggal)):""}${x.catatan?" · "+esc(x.catatan):""}${x.fileUrl?`<br><span>${esc(x.fileUrl)}</span>`:""}</li>`).join("")}</ul>`:""}</div>`; }).join("")}</section>`;
+      return `<div class="pb-u${d.length?"":" pb-none"}"><div class="pb-h"><b>${esc(u.kode||"—")}</b>${u.kodeSementara?'<i class="pb-tmp">nomor sementara</i>':""}<span>${esc(u.tipe||"")}${u.status?" · "+esc(u.status):""}${projKode(u.projectId)?" · "+esc(projKode(u.projectId)):""}</span><em>${d.length?d.length+" bukti":"–"}</em></div>
+        <div class="pb-row"><span class="pb-l">Foto</span>${imgs.length?`<div class="pb-g">${imgs.map(x=>`<figure><img src="${esc(x.fileId?muPhotoImg(x,900):x.fileUrl)}" alt="${esc(x.fileName||"Foto bukti")}" loading="eager"><figcaption><b>${esc(x.tahap||"Bukti")}</b>${x.tanggal?" · "+esc(fmtD(x.tanggal)):""}${x.lokasi?" · "+esc(x.lokasi):""}${x.catatan?`<br>${esc(x.catatan)}`:""}</figcaption></figure>`).join("")}</div>`:'<span class="pb-dash">–</span>'}</div>
+        <div class="pb-row"><span class="pb-l">Dokumen</span>${docs.length?`<ul class="pb-d">${docs.map(x=>`<li>📄 <b>${esc(x.fileName||"Dokumen")}</b> · ${esc(x.tahap||"")}${x.tanggal?" · "+esc(fmtD(x.tanggal)):""}${x.catatan?" · "+esc(x.catatan):""}${x.fileUrl?`<br><span>${esc(x.fileUrl)}</span>`:""}</li>`).join("")}</ul>`:'<span class="pb-dash">–</span>'}</div></div>`; }).join("")}</section>`;
 }
 const MU_PB_CSS=`.pb{break-before:page;margin-top:6mm}.pb h2{font-size:15px;margin:0 0 2px;color:#1E1B3A;border-bottom:2px solid #6D28D9;padding-bottom:6px}.pb-sub{font-size:10.5px;color:#6B6985;margin:4px 0 10px}
   .pb-u{break-inside:avoid;border:1px solid #E6E4F2;border-radius:10px;padding:8px 10px;margin:0 0 10px}
   .pb-h{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}.pb-h b{font-family:"JetBrains Mono",monospace;font-size:11px;background:#1E1B3A;color:#fff;border-radius:5px;padding:1px 7px}.pb-h span{font-size:11px;color:#4B4868;flex:1}.pb-h em{font-style:normal;font-size:10px;color:#6B6985}.pb-h i.pb-tmp{font-style:normal;font-size:9.5px;color:#B45309;background:#FFF4E5;border-radius:5px;padding:1px 6px}
   .pb-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.pb-g figure{margin:0;break-inside:avoid}.pb-g img{width:100%;height:150px;object-fit:cover;border-radius:8px;border:1px solid #E6E4F2;background:#F4F1FD}
+  .pb-row{display:grid;grid-template-columns:62px minmax(0,1fr);gap:8px;align-items:start;margin-top:5px}.pb-l{font-size:9.5px;font-weight:700;color:#6B6985;text-transform:uppercase;letter-spacing:.04em;padding-top:2px}.pb-dash{font-size:11px;color:#9A97B0}.pb-row .pb-d{margin:0}
+  .pb-none{padding:6px 10px}.pb-none .pb-h{margin-bottom:0}.pb-none .pb-row{display:inline-grid;grid-template-columns:auto auto;margin:4px 18px 0 0}
   .pb-g figcaption{font-size:9.5px;color:#4B4868;margin-top:3px;line-height:1.35}.pb-d{margin:6px 0 0;padding-left:0;list-style:none;font-size:10px;color:#4B4868}.pb-d li{margin:3px 0}.pb-d span{color:#6B6985;word-break:break-all;font-size:9px}`;
-function muPrintAsk(us,go){
-  const L=muBuktiOf(us), nb=L.reduce((a,x)=>a+x.d.length,0);
-  if(!nb){ go(false); return; }
-  openForm({title:"Print tabel",desc:`Ada ${nb} bukti (foto/dokumen) dari ${L.length} unit di tabel ini.`,ok:"Print",
-    fields:[{key:"bukti",label:"Bukti",type:"select",options:["Sertakan bukti","Tanpa bukti"],full:true,hint:"Jika disertakan, foto dan dokumen ditampilkan di halaman lampiran setelah tabel. Unit yang belum punya bukti tidak ditampilkan di lampiran."}],
-    values:{bukti:"Sertakan bukti"},onSubmit:v=>{ setTimeout(()=>go(v.bukti==="Sertakan bukti"),60); }});
+function muPrintAsk(us,go,nRev){
+  const L=muBuktiOf(us), nb=L.reduce((a,x)=>a+x.d.length,0); nRev=nRev||0;
+  if(!nb&&!nRev&&!us.length){ go({bukti:false,rev:true}); return; }
+  const fields=[], desc=[];
+  if(us.length){ fields.push({key:"bukti",label:"Bukti (foto/dokumen)",type:"select",options:["Sertakan bukti","Tanpa bukti"],full:true,hint:"Jika disertakan, lampiran ditaruh setelah tabel: per unit ada Foto dan Dokumen. Yang belum ada ditandai –."}); desc.push(nb?`${nb} bukti dari ${L.length} unit`:"Belum ada bukti di tabel ini"); }
+  if(nRev){ fields.push({key:"rev",label:"Riwayat perubahan jumlah unit",type:"select",options:["Tampilkan riwayat","Sembunyikan riwayat"],full:true}); desc.push(`${nRev} riwayat perubahan`); }
+  openForm({title:"Print",desc:desc.join(" · ")+".",ok:"Print",fields,
+    values:{bukti:nb?"Sertakan bukti":"Tanpa bukti",rev:"Tampilkan riwayat"},onSubmit:v=>{ setTimeout(()=>go({bukti:v.bukti==="Sertakan bukti",rev:v.rev!=="Sembunyikan riwayat"}),60); }});
 }
 /* tunggu foto selesai dimuat (maks. 12 detik) sebelum print */
 function muWaitImgs(root,cb){ const imgs=[...root.querySelectorAll("img")].filter(i=>!i.complete); if(!imgs.length){ cb(); return; }
@@ -3511,9 +3517,9 @@ function muWaitImgs(root,cb){ const imgs=[...root.querySelectorAll("img")].filte
   setTimeout(fin,12000); }
 function printSlot(k){
   if(!muCanPrint()){ toast("Print hanya untuk Pemilik, Editor, dan Pelihat yang memiliki link khusus."); return; }
-  muPrintAsk(slotUnits(k),withB=>printSlotGo(k,withB));
+  muPrintAsk(slotUnits(k),o=>printSlotGo(k,o.bukti,o.rev),S.revisi.filter(x=>x.kirimId===k.id).length);
 }
-function printSlotGo(k,withB){
+function printSlotGo(k,withB,withRev){
   const wasOpen=SLOT_OPEN.has(k.id); if(!wasOpen){ SLOT_OPEN.add(k.id); rk(); }
   const btn=document.querySelector(`[data-act="slotPrint"][data-id="${k.id}"]`), box=btn&&btn.closest(".slotBox");
   const tbl=box&&box.querySelector(".slotTbl table"); if(!tbl){ toast("Tabel unit tidak ditemukan."); return; }
@@ -3546,11 +3552,13 @@ function printSlotGo(k,withB){
     td.cat{max-width:none!important}
     *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
     ${MU_PB_CSS}
+    .pr-rev{margin-top:12px;break-inside:avoid}.pr-rev h2{font-size:13px;margin:0 0 6px;color:#1E1B3A}.pr-rev .ki-hist th,.pr-rev .ki-hist td{border:0!important;border-bottom:1px solid #EEE!important}
   </style></head><body>
     <div class="ph"><div><h1>${esc(k.tipe)}</h1><p>${esc([P.kode,P.nama,P.lokasi].filter(Boolean).join(" · "))} · Rencana ${r} unit${k.moda?" · via "+esc(k.moda):""}</p></div>
       <div class="r">Monitoring Unit · Rencana kirim<br>Dicetak ${esc(new Date().toLocaleString("id-ID",{dateStyle:"long",timeStyle:"short"}))}${meEmail?" · "+esc(meEmail):""}</div></div>
     <p class="sm">${sum}</p>
     <div class="slotTbl">${t.outerHTML}</div>
+    ${withRev&&S.revisi.some(x=>x.kirimId===k.id)?`<section class="pr-rev"><h2>Riwayat perubahan jumlah unit</h2>${muItemHist(k)}</section>`:""}
     ${withB?muBuktiHtml(us):""}
   </body></html>`;
   let fr=document.getElementById("muPrintFrame"); if(fr) fr.remove();
@@ -4941,15 +4949,17 @@ $("#btnPrint").addEventListener("click",()=>{
   const judul=P?`Monitoring Unit ${P.kode} · ${TAB[S.tab]||"Dashboard"}`:"Monitoring Unit & Mobilisasi · Semua Project";
   const ph=$("#printHead"); ph.innerHTML=`<b>${esc(judul)}</b><span>${P&&P.nama?esc(P.nama)+"<br>":""}Dicetak ${esc(new Date().toLocaleString("id-ID",{dateStyle:"long",timeStyle:"short"}))} · ${esc(meEmail)}</span>`;
   const oldTitle=document.title;
-  const go=withB=>{ let pb=document.getElementById("printBukti"); if(!pb){ pb=document.createElement("div"); pb.id="printBukti"; pb.className="print-only-bukti"; const st=document.createElement("style"); st.textContent="#printBukti{display:none}@media print{#printBukti{display:block}}"+MU_PB_CSS; pb.appendChild(st); document.querySelector("main").appendChild(pb); }
+  const go=o=>{ const withB=o.bukti; document.body.classList.toggle("mu-print-norev",!o.rev); let pb=document.getElementById("printBukti"); if(!pb){ pb=document.createElement("div"); pb.id="printBukti"; pb.className="print-only-bukti"; const st=document.createElement("style"); st.textContent="#printBukti{display:none}@media print{#printBukti{display:block}}"+MU_PB_CSS; pb.appendChild(st); document.querySelector("main").appendChild(pb); }
     pb.querySelectorAll(".pb").forEach(x=>x.remove()); if(withB) pb.insertAdjacentHTML("beforeend",muBuktiHtml(us));
     document.title=judul.replace(/ · /g," - ")+" - "+todayStr();
     if(withB) toast("Menyiapkan foto bukti untuk print…");
-    setTimeout(()=>muWaitImgs(pb,()=>{ window.print(); setTimeout(()=>{ document.title=oldTitle; pb.querySelectorAll(".pb").forEach(x=>x.remove()); },800); }),80); };
+    setTimeout(()=>muWaitImgs(pb,()=>{ window.print(); setTimeout(()=>{ document.title=oldTitle; pb.querySelectorAll(".pb").forEach(x=>x.remove()); document.body.classList.remove("mu-print-norev"); },800); }),80); };
   // unit yang ada di tampilan sekarang (project terpilih / semua project)
   const pids=new Set((P?[P]:projects()).map(p=>p.id));
   const us=S.tab==="pengiriman"||S.tab==="unit"||S.tab==="ringkasan"?S.units.filter(u=>pids.has(u.projectId)):[];
-  muPrintAsk(us,go); });
+  const revShown=S.tab==="pengiriman"||(S.tab==="ringkasan"&&!P&&DSEC==="rev");
+  const nRev=revShown?S.revisi.filter(x=>{ const k=S.kirim.find(y=>y.id===x.kirimId); return !k||pids.has(k.projectId); }).length:0;
+  muPrintAsk(us,go,nRev); });
 
 /* ---------- susunan kartu project responsif ---------- */
 /*
