@@ -139,6 +139,26 @@ section.panel{padding-top:20px;display:flex;flex-direction:column;gap:18px}
 .hk-p{color:var(--muted)}
 .hk-al{display:flex;flex-wrap:wrap;gap:6px;margin:10px 16px 0}
 #hkHome{display:flex;flex-direction:column;gap:16px;margin-bottom:18px}
+.mu-pt .pt-h{margin:2px 0 0;font-size:18px}
+.pt-kpi{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border:1px solid #F0EEF6;border-radius:14px;margin:12px 0;background:#fff;overflow:hidden}
+.pt-kpi div{padding:10px 16px;border-right:1px solid #F0EEF6}.pt-kpi div:last-child{border-right:0}.pt-kpi small{display:block;font-size:11.5px;color:#6B6985;font-weight:600}.pt-kpi b{font-size:22px;font-weight:800}
+.pt-tools{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.pt-tools input,.pt-tools select{height:34px;border:1px solid #E3E0EF;border-radius:10px;padding:0 12px;font:inherit;font-size:12.5px;background:#fff;color:#4B4868}.pt-tools input{width:300px;max-width:100%}
+.pt-tw{overflow-x:auto;border:1px solid #ECE9F6;border-radius:14px;background:#fff}
+.mu-pt-table{width:100%;border-collapse:collapse;font-size:13px}
+.mu-pt-table th{background:#FAF9FE;text-align:left;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:#6B6985;font-weight:700;padding:9px 12px;border-bottom:1px solid #E3E0EF;vertical-align:bottom}
+.mu-pt-table th.n,.mu-pt-table td.n{text-align:right;font-variant-numeric:tabular-nums}
+.mu-pt-table td{padding:8px 12px;border-bottom:1px solid #F3F1F9;color:#4B4868;vertical-align:middle}
+.mu-pt-table tr.pt-cont>td{border-top:0}.mu-pt-table tr.pt-first>td{border-top:1px solid #E3E0EF}.mu-pt-table tbody tr:first-child>td{border-top:0}
+.mu-pt-table tr.pt-g1>td{background:#FCFBFE}
+.mu-pt-table td.pt-jn{color:var(--ink);min-width:170px;vertical-align:top}.pt-jn b{display:block}.pt-jn small{display:block;font-size:11.5px;color:#8C88A8;margin-top:2px}
+.mu-pt-table tr.pt-cont td.pt-jn{border-bottom-color:transparent}
+.pt-z{color:#C9C6DA}.pt-m{color:#9A97B0;font-size:12px}
+.pt-kd{white-space:nowrap}.pt-kd i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px}
+.mu-pt-table .mu-pop-plates{min-width:240px}
+.pt-w{display:inline-block;min-width:26px;text-align:center;font-weight:800;color:#B45309;background:#FFF4E5;border-radius:6px;padding:2px 6px}
+.mu-pt-table tfoot td{font-weight:800;background:#F5F2FD;border-top:2px solid #E3E0EF;color:var(--ink)}
+@media (max-width:900px){.pt-kpi{grid-template-columns:repeat(3,minmax(0,1fr))}.pt-kpi div:nth-child(3){border-right:0}}
 .mu-side{display:none}
 @media screen and (min-width:1000px){
  body.has-side .mu-side{display:flex;flex-direction:column;gap:4px;position:fixed;top:var(--muTop,64px);left:0;bottom:0;width:250px;overflow:auto;background:#fff;border-right:1px solid #E8E5F3;padding:14px 12px 24px;z-index:25;box-sizing:border-box}
@@ -3147,6 +3167,9 @@ function muPopBadges(items,field,isCondition){
     '<span class="mu-pbadge '+muPopTone(label,isCondition)+'" title="'+esc(n+" unit: "+label)+'">'+
       '<strong>'+n+'×</strong><span>'+esc(label)+'</span></span>').join("");
 }
+const MU_PT=(()=>{ try{ return JSON.parse(sessionStorage.getItem("mu_pt")||"{}"); }catch(e){ return {}; } })();
+document.addEventListener("input",e=>{ const t=e.target.closest&&e.target.closest("[data-pt]"); if(!t) return; MU_PT[t.dataset.pt]=t.value; try{ sessionStorage.setItem("mu_pt",JSON.stringify(MU_PT)); }catch(er){}
+  const pos=t.selectionStart; renderPopDash(); if(t.dataset.pt==="q"){ const n=document.querySelector('#popDash [data-pt="q"]'); if(n){ n.focus(); try{ n.setSelectionRange(pos,pos); }catch(er){} } } });
 function renderPopDash(){
   const el=$("#popDash");if(!el)return;
   const P=curProj(),us=S.units.filter(u=>arrived(u)&&(!P||u.projectId===P.id));
@@ -3168,59 +3191,52 @@ function renderPopDash(){
     v.brands.get(bkey).items.push(rec);
     v.count++;
   });
-  // Warna senada dengan dashboard utama: variasi ungu/indigo lembut.
-  const colors=[
-    {edge:"#6D28D9",head:"#EDE9FE",wash:"#F8F6FF"},
-    {edge:"#4F46E5",head:"#E9ECFF",wash:"#F7F8FF"},
-    {edge:"#7C3AED",head:"#F1E9FF",wash:"#FAF7FF"},
-    {edge:"#6366F1",head:"#E8EAFE",wash:"#F7F8FF"},
-    {edge:"#9333EA",head:"#F4E9FF",wash:"#FBF7FF"},
-    {edge:"#5B21B6",head:"#ECE7FC",wash:"#F8F6FF"}
-  ];
-  const types=[...grouped.entries()].sort((x,y)=>muPopSort(x[0],y[0]));
-  const content=types.map(([type,vs],i)=>{
-    const vendors=[...vs.values()].sort((a,b)=>muPopSort(a.vendor,b.vendor));
-    const count=vendors.reduce((sum,v)=>sum+v.count,0);
-    const color=colors[i%colors.length],title=type==="SIDE DUMP TRUCK"?"Side Dump Truck":type;
-    const incomplete=vendors.flatMap(v=>[...v.brands.values()].flatMap(b=>b.items))
-      .filter(x=>!String(x.u.kode||"").trim()||x.u.kodeSementara).length;
-    const vendorHTML=vendors.map(v=>{
-      const brands=[...v.brands.values()].sort((a,b)=>muPopSort(a.brand,b.brand));
-      return '<section class="mu-pop-vendor">'+
-        '<div class="mu-pop-vendor-head"><b>Vendor: '+muVendorTag(v.vendor)+'</b><strong>'+v.count+' unit</strong></div>'+
-        '<div class="mu-pop-table-scroller"><table class="mu-pop-table"><thead><tr>'+
-          '<th>Merek Unit</th><th>Total</th><th>Status Operasional</th><th>Kondisi Unit</th><th>Kepemilikan</th><th>Posisi</th><th>No. lambung</th><th>Model / tipe</th><th>Tahun</th><th>Kategori</th><th>PIC</th>'+
-        '</tr></thead><tbody>'+
-        brands.map(b=>
-          '<tr><td class="mu-pop-brand">'+muBrandTag(b.brand)+'</td><td class="mu-pop-number">'+b.items.length+'</td>'+
-          '<td><div class="mu-pop-badges">'+muPopBadges(b.items,x=>x.operational,false)+'</div></td>'+
-          '<td><div class="mu-pop-badges">'+muPopBadges(b.items,x=>x.kondisi,true)+'</div></td>'+
-          ['kepemilikan','lokasi'].map(f=>'<td><div class="mu-pop-badges">'+muPopBadges(b.items,x=>f==='lokasi'?x.u.lokasi:muDetails(x.u)[f],false)+'</div></td>').join('')+
-          '<td><div class="mu-pop-plates">'+b.items.map(x=>x.u.kodeSementara||!String(x.u.kode||'').trim()?'<span class="tmp">belum diisi</span>':'<span class="plate">'+esc(x.u.kode)+'</span>').join('')+'</div></td>'+
-          ['model','tahun','kategori','pic'].map(f=>'<td><div class="mu-pop-badges">'+muPopBadges(b.items,x=>muDetails(x.u)[f],false)+'</div></td>').join('')+'</tr>'
-        ).join('')+'</tbody></table></div></section>';
-    }).join("");
-    const key='type:'+type,hidden=muDashboardHidden(key);
-    return '<article class="mu-pop-card'+(hidden?' mu-is-hidden':'')+'" style="--mu-head:'+color.head+';--mu-accent:'+color.edge+';--mu-wash:'+color.wash+'">'+
-      '<div class="mu-pop-card-head"><span class="mu-pop-truck">'+MU_UNIT_ICON+'</span>'+
-        '<h3>'+esc(title)+'</h3><span class="mu-pop-card-count"><strong>'+count+'</strong> unit</span>'+
-        '<button class="mu-toggle-type" type="button" data-dash-type-toggle="'+esc(encodeURIComponent(type))+'">'+(hidden?'Tampilkan ▾':'Sembunyikan ▴')+'</button></div>'+
-      '<div class="mu-pop-card-content"><div class="mu-pop-vendors">'+vendorHTML+'</div></div>'+
-      (incomplete?'<div class="mu-pop-card-foot"><span>⚠ '+incomplete+' unit masih menggunakan nomor sementara / identitas belum lengkap.</span></div>':'')+
-      '</article>';
-  }).join("");
-  const populationHtml='<section class="mu-pop-dashboard" aria-label="Rekap populasi unit aktual">'+
-    '<div class="mu-pop-titlebar"><div class="mu-pop-mainheading">'+
-      '<span class="mu-pop-eyebrow">POPULASI UNIT</span>'+
-      '<p>Rekap otomatis berdasarkan jenis, vendor, merek, status operasional, dan kondisi dari sheet Populasi Unit'+
-      (P?' — '+esc(P.kode):'')+'.</p></div>'+
-      '<div class="mu-pop-head-actions"><span class="mu-pop-total">'+us.length+' <small>Total unit</small></span>'+
-        '<button type="button" class="btn small mu-pop-source colcfg" data-colcfg="popdash" data-needwrite'+(canWrite?'':' hidden')+'>Atur kolom</button><button type="button" class="btn small mu-pop-source" data-goto="unit">Lihat sumber data →</button>'+muDashboardCollapseButton("population")+'</div></div>'+
-    '<div class="mu-pop-guide">ⓘ <b>Jenis Unit → Vendor → Merek</b> · Jumlah status dan kondisi adalah rincian unit, bukan tambahan populasi.</div>'+
-    (types.length?'<div class="mu-pop-grid">'+content+'</div>':
-      '<div class="mu-pop-no-data">Belum ada unit yang tercatat di lokasi. '+(canWrite?'Input melalui sheet Populasi Unit.':'')+'</div>')+
-    '<p class="mu-pop-legend"><b>Belum Diketahui</b> = status operasional belum dicatat (termasuk status hanya “Tiba”). '+
-    '<b>Belum Diperiksa</b> = kondisi belum dinilai. Semua angka dihitung otomatis dari Populasi Unit.</p>'+
+  // Tabel datar: satu baris = satu kombinasi vendor & merek; nama jenis ditulis sekali per kelompok.
+  const stOf=x=>{ const t=String(x.operational||"").toLowerCase(); if(/beroperasi|operasi/.test(t)) return 0; if(/standby/.test(t)) return 1; if(/breakdown|rusak/.test(t)) return 2; if(/belum diketahui/.test(t)) return 4; return 3; };
+  const isTmp=x=>x.u.kodeSementara||!String(x.u.kode||"").trim();
+  const fq=String(MU_PT.q||"").trim().toLowerCase();
+  let groups=[...grouped.entries()].map(([type,vs])=>{
+    const rows=[]; [...vs.values()].sort((a,b)=>muPopSort(a.vendor,b.vendor)).forEach(v=>[...v.brands.values()].sort((a,b)=>b.items.length-a.items.length||muPopSort(a.brand,b.brand)).forEach(b=>rows.push({vendor:v.vendor,brand:b.brand,items:b.items})));
+    const all=rows.flatMap(r=>r.items);
+    return {type,title:type,rows,n:all.length,bd:all.filter(x=>stOf(x)===2).length,tmp:all.filter(isTmp).length}; });
+  const allItems=groups.flatMap(g=>g.rows.flatMap(r=>r.items));
+  const K=[0,1,2].map(k=>allItems.filter(x=>stOf(x)===k).length), KT=allItems.filter(isTmp).length;
+  if(fq) groups=groups.map(g=>g.title.toLowerCase().includes(fq)?g:{...g,rows:g.rows.filter(r=>(r.vendor+" "+r.brand).toLowerCase().includes(fq))}).filter(g=>g.rows.length);
+  if(MU_PT.f==="bd") groups=groups.filter(g=>g.bd); else if(MU_PT.f==="tmp") groups=groups.filter(g=>g.tmp);
+  groups.sort(MU_PT.s==="az"?(a,b)=>muPopSort(a.title,b.title):(a,b)=>b.n-a.n||muPopSort(a.title,b.title));
+  const SC=["#16A34A","#7C3AED","#E11D48","#B45309","#94A3B8"], dash='<span class="pt-z">–</span>';
+  const num=(n,k)=>n?`<b style="color:${SC[k]}">${n}</b>`:dash;
+  const txt=v=>/^belum diketahui$/i.test(v)?'<span class="pt-z">—</span>':esc(v);
+  const kTone=l=>{ const t=muPopTone(l,true); return t==="good"?"#16A34A":t==="bad"?"#E11D48":t==="warn"?"#F59E0B":"#94A3B8"; };
+  const extra=(items,f)=>`<td>${muPopCount(items,x=>f==="lokasi"?x.u.lokasi:muDetails(x.u)[f]).filter(c=>c.label!=="Belum Diketahui").map(c=>`${esc(c.label)}${c.n>1||items.length>1?` <span class="pt-m">${c.n}</span>`:""}`).join(", ")||'<span class="pt-z">—</span>'}</td>`;
+  const HEAD=["Jenis unit","Vendor","Merek","Unit","Operasi","Standby","Breakdown","Status lain","Belum diketahui","Kondisi terbanyak","No. lambung belum diisi","Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"];
+  let body="";
+  groups.forEach((g,gi)=>g.rows.forEach((r,ri)=>{
+    const it=r.items, st=[0,1,2,3,4].map(k=>it.filter(x=>stOf(x)===k).length), kd=muPopCount(it,x=>x.kondisi)[0], tmp=it.filter(isTmp).length;
+    const lain=st[3]?muPopCount(it.filter(x=>stOf(x)===3),x=>x.operational).map(c=>c.label+" "+c.n).join(", "):"";
+    body+=`<tr class="${gi%2?"pt-g1":"pt-g0"}${ri===0?" pt-first":" pt-cont"}">
+      <td class="pt-jn">${ri===0?`<b>${esc(g.title)}</b>${g.rows.length>1?`<small>${g.n} unit · ${g.rows.length} kombinasi</small>`:""}`:""}</td>
+      <td>${txt(r.vendor)}</td><td>${txt(r.brand)}</td><td class="n"><b>${it.length}</b></td>
+      <td class="n">${num(st[0],0)}</td><td class="n">${num(st[1],1)}</td><td class="n">${num(st[2],2)}</td><td class="n" title="${esc(lain)}">${num(st[3],3)}</td><td class="n">${num(st[4],4)}</td>
+      <td class="pt-kd"><i style="background:${kTone(kd.label)}"></i>${esc(kd.label)} <span class="pt-m">${kd.n} dari ${it.length}</span></td>
+      <td class="n">${tmp?`<span class="pt-w">${tmp}</span>`:dash}</td>
+      ${extra(it,"kepemilikan")}${extra(it,"lokasi")}
+      <td><div class="mu-pop-plates">${it.map(x=>isTmp(x)?'<span class="tmp">belum diisi</span>':'<span class="plate">'+esc(x.u.kode)+'</span>').join("")}</div></td>
+      ${extra(it,"model")}${extra(it,"tahun")}${extra(it,"kategori")}${extra(it,"pic")}</tr>`; }));
+  const shown=groups.flatMap(g=>g.rows.flatMap(r=>r.items)), T=[0,1,2,3,4].map(k=>shown.filter(x=>stOf(x)===k).length);
+  const foot=`<tr><td>Total · ${groups.length} jenis</td><td></td><td></td><td class="n">${shown.length}</td>${T.map((n,k)=>`<td class="n" style="color:${SC[k]}">${n||"–"}</td>`).join("")}<td></td><td class="n" style="color:#B45309">${shown.filter(isTmp).length||"–"}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>`;
+  const kpi=(l,v,c)=>`<div><small>${l}</small><b${c?` style="color:${c}"`:""}>${v}</b></div>`;
+  const populationHtml='<section class="mu-pop-dashboard mu-pt" aria-label="Rekap populasi unit aktual">'+
+    '<div class="mu-pop-titlebar"><div class="mu-pop-mainheading"><span class="mu-pop-eyebrow">POPULASI UNIT</span>'+
+      '<h3 class="pt-h">Rekap populasi unit'+(P?' — '+esc(P.kode):'')+'</h3></div>'+
+      '<div class="mu-pop-head-actions"><button type="button" class="btn small mu-pop-source colcfg" data-colcfg="poptbl" data-needwrite'+(canWrite?'':' hidden')+'>Atur kolom</button><button type="button" class="btn small mu-pop-source" data-goto="unit">Lihat sumber data →</button>'+muDashboardCollapseButton("population")+'</div></div>'+
+    `<div class="pt-kpi">${kpi("Total unit",us.length)}${kpi("Jenis unit",grouped.size)}${kpi("Beroperasi",K[0],"#16A34A")}${kpi("Standby",K[1],"#7C3AED")}${kpi("Breakdown",K[2],"#E11D48")}${kpi("No. lambung belum diisi",KT,"#B45309")}</div>`+
+    `<div class="pt-tools"><input type="search" class="pt-q" data-pt="q" placeholder="Cari jenis, vendor, atau merek…" value="${esc(MU_PT.q||"")}">
+      <select data-pt="s" aria-label="Urutkan"><option value="n"${MU_PT.s!=="az"?" selected":""}>Urut: unit terbanyak</option><option value="az"${MU_PT.s==="az"?" selected":""}>Urut: A–Z</option></select>
+      <select data-pt="f" aria-label="Tampilkan"><option value="">Tampilkan: semua</option><option value="bd"${MU_PT.f==="bd"?" selected":""}>Ada breakdown</option><option value="tmp"${MU_PT.f==="tmp"?" selected":""}>Ada no. lambung belum diisi</option></select></div>`+
+    (groups.length?`<div class="pt-tw"><table class="mu-pt-table"><thead><tr>${HEAD.map(h=>`<th class="${/^(Unit|Operasi|Standby|Breakdown|Status lain|Belum diketahui|No. lambung belum diisi)$/.test(h)?"n":""}">${h}</th>`).join("")}</tr></thead><tbody>${body}</tbody><tfoot>${foot}</tfoot></table></div>`
+      :'<div class="mu-pop-no-data">'+(us.length?'Tidak ada yang cocok dengan pencarian/filter.':'Belum ada unit yang tercatat di lokasi. '+(canWrite?'Input melalui sheet Populasi Unit.':''))+'</div>')+
+    '<p class="mu-pop-legend">Satu baris = satu kombinasi vendor &amp; merek. Jenis dengan beberapa vendor/merek ditulis sekali di kolom pertama. Tanda – berarti 0. <b>Belum diketahui</b> = status belum dicatat (termasuk hanya “Tiba”). Angka dihitung otomatis dari Populasi Unit.</p>'+
     '</section>';
   el.innerHTML=muDashboardWrap("population","Populasi Unit",populationHtml);
 }
@@ -4396,6 +4412,7 @@ const MU_COLT={
   dashitem:{pair:["dashitem","dash"],tab:"Item unit",sel:"table.mu-kcol-none",name:"Ringkasan per item unit (dashboard)",sub:"isian item unit",labels:MU_DICOLS,defHidden:["ETA","Rencana awal","Perubahan","Via","Asal"]},
   dash:{pair:["dashitem","dash"],tab:"Isian unit",sel:"table.rk-t2",name:"Tabel Rencana kirim per unit (dashboard)",labels:["No","No. lambung","Vendor","Merek","Status kirim","Kepemilikan","Posisi","ETD","ETA","Catatan","Tgl kirim","Actual","Kondisi","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM"],defHidden:["Tgl kirim","Actual","Kondisi","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM"]},
   pop:{sel:"table.mu-mpp-detail-table",name:"Tabel detail Populasi Unit"},
+  poptbl:{sel:"table.mu-pt-table",name:"Rekap Populasi Unit (dashboard)",sub:"data Populasi Unit",labels:["Jenis unit","Vendor","Merek","Unit","Operasi","Standby","Breakdown","Status lain","Belum diketahui","Kondisi terbanyak","No. lambung belum diisi","Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"],defHidden:["Status lain","Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"]},
   popdash:{sel:"table.mu-pop-table",name:"Rekap Populasi Unit (dashboard)",sub:"data Populasi Unit",labels:["Merek Unit","Total","Status Operasional","Kondisi Unit","Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"],defHidden:["Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"]},
   item:{pair:["item","slot"],tab:"Item unit",sel:"table.mu-kcol-none",name:"Baris item unit Rencana kirim",sub:"isian item unit",labels:["Rencana","Status unit","Sisa kirim","Rencana awal","Perubahan","Tiba","Dlm perjalanan","ETA","Keterangan","Via","Asal"],defHidden:["Rencana awal","Perubahan","Tiba","Dlm perjalanan","ETA","Keterangan","Via","Asal"]},
   mob:{sel:"#p-mobilisasi .tbl-wrap table",name:"Tabel Mobilisasi"}
