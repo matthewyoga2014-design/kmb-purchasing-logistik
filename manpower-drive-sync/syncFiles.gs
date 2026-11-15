@@ -17,7 +17,7 @@
  * Yang dilakukan versi 2:
  *   - Menyalin berkas baru dari web ke Drive (seperti sebelumnya).
  *   - Melaporkan ID Drive tiap berkas ke web, sehingga web membuka berkas langsung dari Drive.
- *     Setelah 1 hari aman di Drive, salinan di Supabase dihapus otomatis (hemat kuota).
+ *     Setelah 1 jam aman di Drive, salinan di Supabase dihapus otomatis (hemat kuota).
  *   - Membagikan tiap berkas (bukan folder) ke email Editor portal itu sebagai PELIHAT,
  *     tanpa email pemberitahuan, dan mematikan unduh/cetak/salin untuk pelihat.
  *   - Mencabut akses berkas dari email yang sudah tidak menjadi Editor.

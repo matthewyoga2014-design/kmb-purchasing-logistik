@@ -185,7 +185,7 @@ Deno.serve(async (req) => {
       //    Editor menghapus pelamar di web -> berkas tetap di Drive.
       //    Pemilik klik "Hapus berkas tidak aktif" -> purge_at diisi (atau objek storage dihapus sebelum pindah ke Drive)
       //    -> baris arsip dihapus -> ikut hilang dari Drive.
-      //    Berkas yang sudah aman di Drive (drive_id terkonfirmasi > 1 hari) dihapus dari Supabase Storage (offloaded_at),
+      //    Berkas yang sudah aman di Drive (drive_id terkonfirmasi > 1 jam) dihapus dari Supabase Storage (offloaded_at),
       //    lalu dibuka langsung dari Google Drive. Baris arsipnya TIDAK dihapus.
       const { data: reg, error: re } = await admin.from("kta_drive_files").select("storage_id,state,cand,jabatan,name,drive_id,drive_at,drive_seen_at,shared_to,offloaded_at,purge_at");
       if (re || !Array.isArray(reg)) return json({ ok: false, error: "registry" }, 500);
@@ -203,7 +203,7 @@ Deno.serve(async (req) => {
       const tnow = Date.now();
       if (ofs && ofs.value === "on") {
         const ready = keep.filter((x) => live.has(x.storage_id) && !x.offloaded_at && x.drive_id && x.drive_at && x.drive_seen_at &&
-          tnow - Date.parse(x.drive_at) > 864e5 && tnow - Date.parse(x.drive_seen_at) < 2 * 3600e3).slice(0, 100);
+          tnow - Date.parse(x.drive_at) > 3600e3 && tnow - Date.parse(x.drive_seen_at) < 2 * 3600e3).slice(0, 100);
         if (ready.length) {
           const ids = ready.map((x) => x.storage_id);
           const { error: rmErr } = await admin.storage.from("kta-web-docs").remove(ids);
@@ -248,7 +248,7 @@ Deno.serve(async (req) => {
           const c = byId[String(f?.id || "")];
           if (!c || !f.drive_id || !/^[A-Za-z0-9_-]{10,}$/.test(String(f.drive_id))) return;
           const patch: Record<string, unknown> = { drive_id: String(f.drive_id), drive_seen_at: at, shared_to: Array.isArray(f.shared_to) ? f.shared_to.map((e: string) => String(e).toLowerCase()) : [] };
-          if (!c.drive_at || c.drive_id !== String(f.drive_id)) patch.drive_at = at; // berkas Drive baru -> tunggu 1 hari lagi sebelum dihapus dari Supabase
+          if (!c.drive_at || c.drive_id !== String(f.drive_id)) patch.drive_at = at; // berkas Drive baru -> tunggu 1 jam lagi sebelum dihapus dari Supabase
           const { error } = await admin.from("kta_drive_files").update(patch).eq("storage_id", String(f.id));
           if (!error) n++;
         }));
