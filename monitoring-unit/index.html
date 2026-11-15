@@ -139,6 +139,48 @@ section.panel{padding-top:20px;display:flex;flex-direction:column;gap:18px}
 .hk-p{color:var(--muted)}
 .hk-al{display:flex;flex-wrap:wrap;gap:6px;margin:10px 16px 0}
 #hkHome{display:flex;flex-direction:column;gap:16px;margin-bottom:18px}
+.mu-side{display:none}
+@media screen and (min-width:1000px){
+ body.has-side .mu-side{display:flex;flex-direction:column;gap:4px;position:fixed;top:var(--muTop,64px);left:0;bottom:0;width:250px;overflow:auto;background:#fff;border-right:1px solid #E8E5F3;padding:14px 12px 24px;z-index:25;box-sizing:border-box}
+ body.has-side main.pad{padding-left:274px!important;padding-right:24px!important}
+ body.has-side .scene,body.has-side .side-l,body.has-side .side-r{display:none!important}
+ body.has-side #tabs{display:none!important}
+ body.has-side .hk-secs{display:none}
+ body.mu-home .hero{display:none!important}
+}
+.sd-q{height:36px;border-radius:10px;background:#F7F6FC;border:1px solid #E8E5F3;padding:0 12px;font:inherit;font-size:12.5px;margin-bottom:10px;outline:none}.sd-q:focus{border-color:#A78BFA}
+.sd-h{display:flex;align-items:center;gap:10px;width:100%;padding:10px;border:0;border-radius:10px;background:none;font:inherit;font-size:14px;font-weight:700;color:#1C1A33;cursor:pointer;text-align:left}
+.sd-h:hover{background:#F7F5FD}.sd-h .i{width:18px;height:18px;color:#6D28D9;flex:none}.sd-h span{flex:1}
+.sd-h em{font-style:normal;font-size:11px;font-weight:700;background:#EFE9FE;color:#5B21B6;border-radius:999px;padding:1px 8px}.sd-h i{font-style:normal;color:#9F9BC2;font-size:12px}
+.sd-g.open>.sd-h{background:#F5F1FF;color:#5B21B6}
+.sd-it.on{background:var(--g-purple);color:#fff}.sd-it.on .i{color:#fff}.sd-it.on em{background:rgba(255,255,255,.25);color:#fff}
+.sd-subs{display:flex;flex-direction:column;gap:2px;margin:4px 0 6px 19px;padding-left:12px;border-left:2px solid #EFE9FE}
+.sd-subs button{border:0;background:none;font:inherit;font-size:13px;color:#4B4868;padding:8px 10px;border-radius:8px;text-align:left;cursor:pointer}
+.sd-subs button:hover{background:#F7F5FD}.sd-subs button.on{background:var(--g-purple);color:#fff;font-weight:700;box-shadow:0 6px 14px -8px rgba(124,58,237,.8)}
+.sd-none{font-size:12px;color:var(--muted);padding:6px 10px}
+@media print{.mu-side{display:none!important}body.has-side main.pad{padding-left:0!important}}
+.hk-crumb{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:15px;color:#8C88A8}.hk-crumb b{color:#6D28D9}
+.hk-secs{display:flex;gap:6px;overflow-x:auto;padding-bottom:2px}.hk-secs button{flex:none;border:1px solid #E3E0EF;background:#fff;border-radius:999px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:700;color:#4B4868;cursor:pointer}.hk-secs button.on{background:var(--g-purple);color:#fff;border-color:transparent}
+.hk-gtiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px}
+.hk-gt{border-radius:18px;color:#fff;padding:18px 22px;min-height:112px;box-shadow:0 10px 22px -12px rgba(30,27,58,.45)}.hk-gt small{display:block;font-size:14px;font-weight:600;opacity:.92}.hk-gt b{display:block;font-size:34px;font-weight:800;line-height:1.2;margin-top:6px}.hk-gt span{font-size:12.5px;opacity:.92}
+.hk-row2{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px;align-items:start}
+.hk-pc{padding:16px 18px!important;border-radius:18px}
+.hk-ph{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:10px}.hk-ph h3{margin:0;font-size:16px}.hk-ph small{font-size:12px;color:#8C88A8;font-weight:600}
+.hk-tw{overflow-x:auto}
+.hk-pt{width:100%;border-collapse:collapse;font-size:13px}.hk-pt th{background:#F7F6FC;text-align:left;font-size:12px;color:#4B4868;padding:9px 10px;border-bottom:1px solid #ECE9F6;white-space:nowrap}
+.hk-pt td{padding:9px 10px;border-bottom:1px solid #F0EEF6;vertical-align:middle}.hk-pt td small{display:block;font-size:11.5px;color:#8C88A8}.hk-pt .n{text-align:right}
+.hk-pt tfoot td{font-weight:800;background:#FAF9FE;border-bottom:0}.hk-pt .hk-bar{width:150px}
+.hk-pn{border:0;background:none;padding:0;font:inherit;font-weight:800;color:var(--ink);cursor:pointer;text-align:left}.hk-pn:hover{color:#6D28D9}
+.hk-go2{border:0;background:none;font:inherit;font-size:12.5px;font-weight:800;color:#6D28D9;cursor:pointer;white-space:nowrap}
+.hk-pc .hk-leg{margin-top:10px}
+.hk-chk{list-style:none;margin:0;padding:0}.hk-chk li{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #F0EEF6;cursor:pointer}.hk-chk li:hover b{color:#6D28D9}
+.hk-chk i{width:10px;height:10px;border-radius:50%;margin-top:5px;flex:none}.hk-chk b{display:block;font-size:13px}.hk-chk small{font-size:11.5px;color:#8C88A8}
+body.mu-home:not(.mu-dsec-populasi) #popDash,body.mu-home:not(.mu-dsec-populasi) #dashControls{display:none!important}
+body.mu-home:not(.mu-dsec-mob):not(.mu-dsec-rev) #ovBottom{display:none!important}
+body.mu-dsec-mob #ovBottom,body.mu-dsec-rev #ovBottom{grid-template-columns:1fr!important}
+body.mu-dsec-mob #ovBottom>.card:nth-child(2),body.mu-dsec-rev #ovBottom>.card:first-child{display:none!important}
+@media (max-width:1100px){.hk-row2{grid-template-columns:1fr}}
+@media (max-width:900px){.hk-gtiles{grid-template-columns:repeat(2,minmax(0,1fr))}}
 #hkHome[hidden]{display:none}
 .hk-top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .hk-eb{font-size:11px;font-weight:800;letter-spacing:.08em;color:#6D28D9}
@@ -1692,6 +1734,7 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
   <button class="who" id="who" type="button" title="Akun & aturan akses" hidden><span class="av" id="whoAv">?</span><span class="who-t"><b id="whoName">Memuat…</b><small id="whoRole">Memeriksa akses</small></span></button>
   <span hidden><span id="today"></span><b id="time"></b></span>
 </header>
+<aside id="muSide" class="mu-side" aria-label="Menu Monitoring Unit"></aside>
 
 <main class="pad">
 <div class="scene" aria-hidden="true"></div><div class="side-l" aria-hidden="true"></div><div class="side-r" aria-hidden="true"></div>
@@ -2728,7 +2771,7 @@ function render(){
   $("#cMob").textContent=S.mobs.filter(m=>isAktif(m)&&inFilter(mobProj(m))).length;
   $("#cRev").textContent=S.revisi.filter(r=>inFilter(r.projectId)).length;
   ["addUnit","addExisting","addMob","addKirim"].forEach(id=>$("#"+id).hidden=!canWrite); $("#addProj").hidden=true;
-  renderBanner(); renderSummary(); renderKpi(); renderFbar(); renderCharts(); renderPFilter(); renderRingkasan(); renderPopDash(); muDashboardControls(); renderKirim(); renderUnit(); renderMob(); renderDok();
+  renderBanner(); renderSummary(); renderKpi(); renderFbar(); renderCharts(); renderPFilter(); renderRingkasan(); renderPopDash(); muDashboardControls(); renderKirim(); renderUnit(); renderMob(); renderDok(); try{ renderSide(); }catch(e){ console.error(e); }
 }
 function renderBanner(){
   const b=$("#banner");
@@ -3181,19 +3224,45 @@ function renderPopDash(){
 }
 
 /* Dashboard semua project: ringkas, satu kartu per project (seperti beranda Portal MPP) */
+const MU_DSEC=[["ringkasan","Ringkasan pengiriman"],["progres","Progres per project"],["populasi","Populasi unit"],["mob","Jadwal mobilisasi"],["rev","Perubahan rencana"]];
+let DSEC=(()=>{ try{ const v=localStorage.getItem("mu_dsec"); return MU_DSEC.some(x=>x[0]===v)?v:"ringkasan"; }catch(e){ return "ringkasan"; } })();
+function muSetDsec(k){ DSEC=k; try{ localStorage.setItem("mu_dsec",k); }catch(e){} }
 function renderHkHome(L,ps){
   const el=$("#hkHome"); if(!el) return;
-  if(!ps.length){ el.innerHTML=`<div class="card">${emptyState(L?"Memuat data…":"Belum ada project",L?"":"Tambahkan project dan item unit yang direncanakan dikirim.",canWrite&&!L?`<button class="btn primary small" data-act="addProj" type="button">+ Project</button>`:"")}</div>`; return; }
+  const secName=(MU_DSEC.find(x=>x[0]===DSEC)||MU_DSEC[0])[1];
+  const head=`<div class="hk-crumb"><span>Dashboard / <b>${esc(secName)}</b></span><span class="hk-crumb-a">${canWrite?`<button class="btn small" data-act="addProj" type="button">+ Project</button>`:""}</span></div>
+    <div class="hk-secs" role="tablist">${MU_DSEC.map(([k,n])=>`<button type="button" data-dsec="${k}" class="${k===DSEC?"on":""}" aria-selected="${k===DSEC}">${n}</button>`).join("")}</div>`;
+  if(!ps.length){ el.innerHTML=head+`<div class="card">${emptyState(L?"Memuat data…":"Belum ada project",L?"":"Tambahkan project dan item unit yang direncanakan dikirim.",canWrite&&!L?`<button class="btn primary small" data-act="addProj" type="button">+ Project</button>`:"")}</div>`; return; }
+  if(DSEC==="populasi"||DSEC==="mob"||DSEC==="rev"){ el.innerHTML=head; return; }
   const SS=ps.map(p=>({p,s:projStats(p.id)})), T=SS.reduce((a,{s})=>({r:a.r+s.rencana,t:a.t+s.tiba,j:a.j+s.jalan,k:a.k+s.sisa}),{r:0,t:0,j:0,k:0});
-  const tile=(l,v,c,sub)=>`<div class="hk-tile"><div class="hk-tl"><i style="background:${c}"></i>${l}</div><b>${v}</b><small>${sub}</small></div>`;
-  const strip=SS.map(({p,s})=>`<button type="button" class="hk-strip" data-act="openProj" data-id="${p.id}" title="Buka ${esc(p.kode)}"><b>${esc(p.kode)}</b>${hkBar(s.rencana,s.tiba,s.jalan)}<span>${pct(s.tiba,s.rencana)}% tiba</span></button>`).join("");
-  const stat=(l,v,c)=>`<div class="hk-st"><small>${l}</small><b style="color:${c}">${v}</b></div>`;
+  if(DSEC==="ringkasan"){
+    const tile=(l,v,g,sub)=>`<div class="hk-gt" style="background:${g}"><small>${l}</small><b>${v}</b><span>${sub}</span></div>`;
+    const tr=SS.map(({p,s})=>`<tr><td><button type="button" class="hk-pn" data-act="openProj" data-id="${p.id}">${esc(p.kode)}</button><small>${esc([p.nama,p.lokasi].filter(Boolean).join(" · ")||"—")}</small></td>
+      <td class="n">${s.rencana}</td><td class="n c-green"><b>${s.tiba}</b></td><td class="n hk-j"><b>${s.jalan}</b></td><td class="n ${s.sisa?"c-red":""}"><b>${s.sisa}</b></td>
+      <td>${hkBar(s.rencana,s.tiba,s.jalan)}</td><td class="n"><b>${pct(s.tiba,s.rencana)}%</b></td><td class="n"><button type="button" class="hk-go2" data-act="openProj" data-id="${p.id}">Buka →</button></td></tr>`).join("");
+    const chk=[];
+    SS.filter(x=>x.s.sisa>0).sort((a,b)=>b.s.sisa-a.s.sisa).forEach(({p,s})=>{ const it=s.items.filter(k=>sisaItem(k)>0);
+      chk.push({c:"#E11D48",id:p.id,t:`${p.kode} · ${s.sisa} unit belum dikirim`,d:it.length===1?`${it[0].tipe} · ${Math.min(tibaItem(it[0]),Number(it[0].rencana)||0)}/${Number(it[0].rencana)||0} tiba`:`${it.length} item unit · ${pct(s.tiba,s.rencana)}% tiba`}); });
+    SS.forEach(({p})=>{ const pu=S.units.filter(u=>u.projectId===p.id), bd=pu.filter(u=>/breakdown/i.test(u.status||"")).length, tmp=pu.filter(u=>u.kodeSementara||!String(u.kode||"").trim()).length;
+      if(bd) chk.push({c:"#E11D48",id:p.id,t:`${p.kode} · ${bd} unit Breakdown`,d:"Cek kondisi di Populasi Unit"});
+      if(tmp) chk.push({c:"#F59E0B",id:p.id,t:`${p.kode} · ${tmp} nomor lambung belum diisi`,d:"Masih memakai nomor sementara"}); });
+    el.innerHTML=head+`<div class="hk-gtiles">${tile("Unit rencana",T.r,"var(--g-purple)",`${ps.length} project`)}${tile("Sudah tiba",T.t,"linear-gradient(120deg,#15803D,#4ADE80)",`${pct(T.t,T.r)}% dari rencana`)}${tile("Dalam perjalanan",T.j,"var(--g-blue)",`${pct(T.j,T.r)}% dari rencana`)}${tile("Sisa kirim",T.k,"var(--g-red)",`${pct(T.k,T.r)}% belum dikirim`)}</div>
+      <div class="hk-row2"><div class="card hk-pc"><div class="hk-ph"><h3>Progres per project</h3><small>Klik nama project atau Buka → untuk rincian item &amp; unit</small></div>
+        <div class="hk-tw"><table class="hk-pt"><thead><tr><th>Project</th><th class="n">Rencana</th><th class="n">Tiba</th><th class="n">Dlm jalan</th><th class="n">Sisa</th><th>Progres</th><th class="n">% tiba</th><th></th></tr></thead><tbody>${tr}</tbody>
+        <tfoot><tr><td>Total · ${ps.length} project</td><td class="n">${T.r}</td><td class="n c-green">${T.t}</td><td class="n hk-j">${T.j}</td><td class="n ${T.k?"c-red":""}">${T.k}</td><td>${hkBar(T.r,T.t,T.j)}</td><td class="n">${pct(T.t,T.r)}%</td><td></td></tr></tfoot></table></div>
+        <div class="hk-leg"><span><i style="background:#16A34A"></i>tiba</span><span><i style="background:#2563EB"></i>dalam perjalanan</span><span><i style="background:#F6D3DB"></i>sisa kirim</span></div></div>
+      <div class="card hk-pc"><div class="hk-ph"><h3>Perlu dicek</h3><small>otomatis dari data</small></div>
+        ${chk.length?`<ul class="hk-chk">${chk.slice(0,10).map(x=>`<li data-proj="${x.id}"><i style="background:${x.c}"></i><div><b>${esc(x.t)}</b><small>${esc(x.d)}</small></div></li>`).join("")}</ul>${chk.length>10?`<p class="muted small">+${chk.length-10} lainnya</p>`:""}`:`<p class="muted small">Tidak ada yang perlu dicek. 👍</p>`}</div></div>`;
+    return;
+  }
+  // progres: kartu per project
   const cards=SS.map(({p,s})=>{
     const sub=[p.nama,p.lokasi].filter(Boolean).join(" · "), done=s.rencana>0&&s.sisa===0&&s.jalan===0;
     const rows=s.items.map(k=>{ const r=Number(k.rencana)||0, t=Math.min(tibaItem(k),r), j=jalanItem(k);
       return `<div class="hk-row"><span class="nm">${esc(k.tipe)}</span>${hkBar(r,t,j)}<span class="ct">${r&&t>=r?`<b class="c-green">Lengkap</b>`:`<b>${t}/${r}</b> tiba (${pct(t,r)}%)${j?` · <b class="hk-j">${j}</b> jalan`:""}`}</span></div>`; }).join("");
     const pu=S.units.filter(u=>u.projectId===p.id), bd=pu.filter(u=>/breakdown/i.test(u.status||"")).length, tmp=pu.filter(u=>u.kodeSementara||!String(u.kode||"").trim()).length;
     const al=[bd?`${bd} unit Breakdown`:"",tmp?`${tmp} nomor lambung belum diisi`:""].filter(Boolean);
+    const stat=(l,v,c)=>`<div class="hk-st"><small>${l}</small><b style="color:${c}">${v}</b></div>`;
     return `<article class="hk-card" data-proj="${p.id}">
       <div class="hk-h"><span class="hk-ic">${ic(projIcon(p.id))}</span><div class="hk-tt"><h3>${esc(p.kode)}</h3><p>${esc(sub||"—")}</p></div>
         ${done?`<span class="hk-done">Semua tiba</span>`:""}${role==="owner"?`<button class="btn small" data-act="editProj" data-id="${p.id}" type="button">✎ Edit</button>`:""}<button class="hk-go" data-act="openProj" data-id="${p.id}" type="button">Buka →</button></div>
@@ -3204,12 +3273,40 @@ function renderHkHome(L,ps){
       ${p.catatan?`<p class="hk-note">${ic("alert")}${esc(p.catatan)}</p>`:""}
       <div class="hk-f"><span>${s.items.length} item unit · ${s.rencana} unit · ${s.unitCount} di lokasi</span><span>${ic("clock")}Diperbarui ${s.last?fmtTime(s.last):"—"}</span></div>
     </article>`; }).join("");
-  el.innerHTML=`<div class="hk-top"><div><div class="hk-eb">DASHBOARD UNIT</div><h2>Ringkasan pengiriman unit</h2><p>Satu kartu per project. Klik <b>Buka →</b> untuk tabel detail, filter, Atur kolom, upload bukti, Excel &amp; print.</p></div>
-      <div class="hk-leg"><span><i style="background:#16A34A"></i>Tiba</span><span><i style="background:#2563EB"></i>Dlm perjalanan</span><span><i style="background:#F6D3DB"></i>Sisa kirim</span></div></div>
-    <div class="hk-tiles">${tile("Unit rencana",T.r,"#1C1A33",`${ps.length} project`)}${tile("Sudah tiba",T.t,"#16A34A",`${pct(T.t,T.r)}% dari rencana`)}${tile("Dalam perjalanan",T.j,"#2563EB",`${pct(T.j,T.r)}% dari rencana`)}${tile("Sisa kirim",T.k,"#E11D48",`${pct(T.k,T.r)}% belum dikirim`)}</div>
-    <div class="hk-strips">${strip}</div>
-    <div class="hk-grid">${cards}</div>`;
+  el.innerHTML=head+`<div class="hk-grid">${cards}</div>`;
 }
+/* Menu samping (dropdown) */
+let MU_SIDE_OPEN=(()=>{ try{ return JSON.parse(localStorage.getItem("mu_side_open")||'{"dash":true,"proj":true}'); }catch(e){ return {dash:true,proj:true}; } })();
+function renderSide(){
+  const el=$("#muSide"); if(!el) return; document.body.classList.add("has-side");
+  const P=curProj(), home=!P&&S.tab==="ringkasan", ps=projects();
+  const SV=(d)=>`<svg class="i"><use href="#i-${d}"/></svg>`;
+  const grp=(k,icon,name,subs,count)=>{ const op=!!MU_SIDE_OPEN[k];
+    return `<div class="sd-g${op?" open":""}" data-g="${k}"><button type="button" class="sd-h" data-sd="grp" data-k="${k}" aria-expanded="${op}">${SV(icon)}<span>${name}</span>${count!=null?`<em>${count}</em>`:""}<i>${op?"▾":"▸"}</i></button>${op?`<div class="sd-subs">${subs}</div>`:""}</div>`; };
+  const item=(icon,name,tab,count)=>`<button type="button" class="sd-h sd-it${S.tab===tab?" on":""}" data-sd="tab" data-k="${tab}">${SV(icon)}<span>${name}</span><em>${count}</em></button>`;
+  const q=(el.querySelector("#sdQ")||{}).value||"";
+  el.innerHTML=`<input type="search" id="sdQ" class="sd-q" placeholder="Cari menu…" value="${esc(q)}" aria-label="Cari menu">
+    ${grp("dash","pie","Dashboard",MU_DSEC.map(([k,n])=>`<button type="button" data-sd="sec" data-k="${k}" class="${home&&DSEC===k?"on":""}">${n}</button>`).join(""))}
+    ${grp("proj","pin","Project",ps.map(p=>`<button type="button" data-sd="proj" data-k="${p.id}" class="${P&&P.id===p.id?"on":""}">${esc(p.kode)}</button>`).join("")||'<span class="sd-none">Belum ada project</span>',ps.length)}
+    ${item("ship","Rencana kirim","pengiriman",$("#cRev").textContent)}${item("pin","Populasi Unit","unit",$("#cUnit").textContent)}${item("route","Mobilisasi","mobilisasi",$("#cMob").textContent)}${item("cam","Dokumentasi","dokumentasi",$("#cDok").textContent)}`;
+  if(q) muSideFilter(q);
+  document.body.classList.toggle("mu-home",home);
+  MU_DSEC.forEach(([k])=>document.body.classList.toggle("mu-dsec-"+k,home&&DSEC===k));
+  try{ const h=document.querySelector(".top"); if(h) document.documentElement.style.setProperty("--muTop",h.offsetHeight+"px"); }catch(e){}
+}
+function muSideFilter(q){ const t=q.trim().toLowerCase(), el=$("#muSide");
+  el.querySelectorAll(".sd-subs button,.sd-it").forEach(b=>{ b.hidden=!!t&&!b.textContent.toLowerCase().includes(t); }); }
+document.addEventListener("click",e=>{
+  const b=e.target.closest("#muSide [data-sd], #hkHome [data-dsec]"); if(!b) return;
+  if(b.dataset.dsec){ muSetDsec(b.dataset.dsec); render(); return; }
+  const k=b.dataset.k, a=b.dataset.sd;
+  if(a==="grp"){ MU_SIDE_OPEN[k]=!MU_SIDE_OPEN[k]; try{ localStorage.setItem("mu_side_open",JSON.stringify(MU_SIDE_OPEN)); }catch(e){} renderSide(); }
+  else if(a==="sec"){ muSetDsec(k); if(curProj()) backAll(); else { setTab("ringkasan"); render(); } try{ window.scrollTo({top:0,behavior:"smooth"}); }catch(er){} }
+  else if(a==="proj"){ openProject(k); }
+  else if(a==="tab"){ setTab(k); renderSide(); }
+});
+document.addEventListener("input",e=>{ if(e.target&&e.target.id==="sdQ"){ const q=e.target.value; if(q&&!MU_SIDE_OPEN.dash||q&&!MU_SIDE_OPEN.proj){ MU_SIDE_OPEN.dash=MU_SIDE_OPEN.proj=true; renderSide(); const n=$("#sdQ"); n.focus(); n.setSelectionRange(q.length,q.length); } muSideFilter(q); } });
+window.addEventListener("resize",()=>{ try{ const h=document.querySelector(".top"); if(h) document.documentElement.style.setProperty("--muTop",h.offsetHeight+"px"); }catch(e){} });
 /* bar bertumpuk: hijau = tiba, biru = dalam perjalanan, sisanya = sisa kirim */
 function hkBar(r,t,j,big){ const w=n=>r?Math.max(0,Math.min(100,n/r*100)).toFixed(1)+"%":"0%";
   return `<span class="hk-bar${big?" big":""}" role="img" title="${t} tiba (${pct(t,r)}%) · ${j} dalam perjalanan (${pct(j,r)}%) · ${Math.max(0,r-t-j)} sisa kirim dari ${r}" aria-label="${t} tiba, ${j} dalam perjalanan dari ${r}"><i class="t" style="width:${w(t)}"></i><i class="j" style="width:${w(j)}"></i></span>`; }
@@ -3866,7 +3963,7 @@ function muSearchSync(t){ const g=$("#gSearch"); if(!g) return;
   g.placeholder=ph; g.value=t==="pengiriman"?(S.qKirim||""):t==="mobilisasi"?(S.qMob||""):(S.q||""); }
 function setTab(t){ S.tab=t; try{ muSearchSync(t); }catch(e){} document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===t)));
   ["ringkasan","unit","mobilisasi","pengiriman","dokumentasi"].forEach(x=>$("#p-"+x).hidden=x!==t); renderPFilter();
-  try{ localStorage.setItem("mu_tab",t); }catch(e){} const ts=$("#fTabSel"); if(ts) ts.value=t;
+  try{ localStorage.setItem("mu_tab",t); }catch(e){} const ts=$("#fTabSel"); if(ts) ts.value=t; try{ if(typeof renderSide==="function"&&$("#muSide")&&$("#muSide").innerHTML) renderSide(); }catch(e){}
   const was=document.body.classList.contains("tabview"); document.body.classList.toggle("tabview",t!=="ringkasan");
   if(window.__muReady && (was||t!=="ringkasan")) try{ window.scrollTo({top:0,behavior:"smooth"}); }catch(e){ window.scrollTo(0,0); } }
 $("#tabs").addEventListener("click",e=>{ const b=e.target.closest("button[data-tab]"); if(b) setTab(b.dataset.tab); });
@@ -5045,7 +5142,7 @@ window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,la
   // input file yang terlihat (kotak "Choose file") diganti tombol Upload + area seret, seperti KTA - TRA
   const UPI = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 15V4M7 9l5-5 5 5M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
   function enhance(root) {
-    (root.querySelectorAll ? root.querySelectorAll('input[type=file]') : []).forEach((i) => {
+    ((root && root.querySelectorAll) ? root.querySelectorAll('input[type=file]') : []).forEach((i) => {
       if (i._upkW || i.hidden || skip(i) || i.closest('#upPick') || getComputedStyle(i).display === 'none') return;
       const w = document.createElement('div'); w.className = 'upk-w'; w.tabIndex = -1;
       w.innerHTML = `<button type="button" class="upk-wb">${UPI}Upload</button><span class="upk-wf"></span>`;
