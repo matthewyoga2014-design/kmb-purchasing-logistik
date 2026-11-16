@@ -158,6 +158,16 @@ body.has-topnav .hero,body.has-topnav .scene,body.has-topnav .side-l,body.has-to
 @media print{.mu-topnav{display:none!important}}
 /* dashboard project gaya baru */
 .pd{display:flex;flex-direction:column;gap:16px}
+button.pd-k,button.hk-gt{border:0;text-align:left;font:inherit;cursor:pointer;position:relative;transition:transform .12s,box-shadow .12s}
+button.pd-k:hover,button.hk-gt:hover{transform:translateY(-2px);box-shadow:0 14px 26px -14px rgba(30,27,58,.6)}
+.pd-k em,.hk-gt em{position:absolute;right:16px;top:16px;font-style:normal;font-size:12px;font-weight:800;opacity:.85}
+.pd-ch{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap}.pd-ch h3{margin:0}
+.pd-per{display:flex;background:#F3F0FB;border-radius:10px;padding:3px;gap:2px}.pd-per button{border:0;background:none;font:inherit;font-size:12px;font-weight:700;color:#5B5675;padding:5px 10px;border-radius:8px;cursor:pointer}.pd-per button.on{background:#fff;color:#5B21B6;box-shadow:0 1px 3px rgba(0,0,0,.08)}
+.pd-leg b{color:#1C1A33;margin-left:3px}.pd-legn{margin-left:auto;color:#8C88A8}
+.pd-svg text.v{font-size:10px;font-weight:800}
+.pd-head{margin-bottom:-4px}.pd-secs{display:flex}
+.sd-x{font-size:10px;opacity:.85;margin-left:4px}
+@media print{.pd-per,.pd-secs,.pd-k em,.hk-gt em{display:none!important}}
 .pd-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
 .pd-k{border-radius:18px;color:#fff;padding:18px 20px;min-height:118px;box-shadow:0 10px 22px -14px rgba(30,27,58,.5)}.pd-k small{display:block;font-size:15px;font-weight:700}.pd-k b{display:block;font-size:38px;font-weight:800;line-height:1.15}.pd-k span{font-size:12.5px;font-weight:700;opacity:.95}
 .pd-row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:stretch}
@@ -183,7 +193,7 @@ body.has-topnav .hero,body.has-topnav .scene,body.has-topnav .side-l,body.has-to
 .pd-foot{display:flex;justify-content:space-between;background:linear-gradient(110deg,#4C1D95,#3730A3);color:#E0DBFF;border-radius:16px;padding:12px 20px;font-size:13px}
 @media (max-width:1100px){.pd-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.pd-row3,.pd-row2{grid-template-columns:1fr}}
 @media (max-width:640px){.pd-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-html body.mu-projdash.mu-projdash #kpis,html body.mu-projdash.mu-projdash #popDash,html body.mu-projdash.mu-projdash #dashControls{display:none!important}
+html body.mu-projdash.mu-projdash #kpis{display:none!important}
 .mu-pt .pt-h{margin:2px 0 0;font-size:18px}
 .pt-kpi{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border:1px solid #F0EEF6;border-radius:14px;margin:12px 0;background:#fff;overflow:hidden}
 .pt-kpi div{padding:10px 16px;border-right:1px solid #F0EEF6}.pt-kpi div:last-child{border-right:0}.pt-kpi small{display:block;font-size:11.5px;color:#6B6985;font-weight:600}.pt-kpi b{font-size:22px;font-weight:800}
@@ -251,8 +261,8 @@ html body.mu-print-full.mu-print-full.mu-print-full.mu-print-full #popDash{displ
 .hk-pc .hk-leg{margin-top:10px}
 .hk-chk{list-style:none;margin:0;padding:0}.hk-chk li{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid #F0EEF6;cursor:pointer}.hk-chk li:hover b{color:#6D28D9}
 .hk-chk i{width:10px;height:10px;border-radius:50%;margin-top:5px;flex:none}.hk-chk b{display:block;font-size:13px}.hk-chk small{font-size:11.5px;color:#8C88A8}
-body.mu-home:not(.mu-dsec-populasi) #popDash,body.mu-home:not(.mu-dsec-populasi) #dashControls{display:none!important}
-body.mu-home:not(.mu-dsec-mob):not(.mu-dsec-rev) #ovBottom{display:none!important}
+body.mu-dash:not(.mu-dsec-populasi) #popDash,body.mu-dash:not(.mu-dsec-populasi) #dashControls{display:none!important}
+body.mu-dash:not(.mu-dsec-mob):not(.mu-dsec-rev) #ovBottom{display:none!important}
 body.mu-dsec-mob #ovBottom,body.mu-dsec-rev #ovBottom{grid-template-columns:1fr!important}
 body.mu-dsec-mob #ovBottom>.card:nth-child(2),body.mu-dsec-rev #ovBottom>.card:first-child{display:none!important}
 @media (max-width:1100px){.hk-row2{grid-template-columns:1fr}}
@@ -3037,21 +3047,29 @@ function renderProjDash2(P){
   const day=s=>{ const d=new Date(String(s||"").slice(0,10)+"T00:00:00"); return isNaN(d)?null:d; };
   const now=new Date(), wk=new Date(now); wk.setDate(now.getDate()-7);
   const berangkat7=pu.filter(u=>{ const d=day(u.tglKirim); return d&&d>=wk&&d<=now; }).length;
-  const tile=(t,v,sub,g)=>`<div class="pd-k" style="background:${g}"><small>${t}</small><b>${v}</b><span>${sub}</span></div>`;
-  const kpis=`<div class="pd-kpis">${tile("Rencana kirim",st.rencana,`${items.length} item unit`,"var(--g-purple)")}${tile("Dalam pengiriman",st.jalan,berangkat7?`+${berangkat7} berangkat minggu ini`:"belum ada yang berangkat minggu ini","linear-gradient(120deg,#EA580C,#F59E0B)")}${tile("Sisa kirim",st.sisa,`${pct(st.sisa,st.rencana)}% belum berangkat`,"var(--g-red)")}${tile("Sudah tiba",st.tiba,`${pct(st.tiba,st.rencana)}% dari rencana`,"linear-gradient(120deg,#15803D,#22C55E)")}${tile("Populasi di lokasi",atLoc.length,atLoc.length?`${new Set(atLoc.map(u=>u.tipe)).size} jenis unit`:"belum ada unit","var(--g-blue)")}</div>`;
-  // grafik mingguan (dikirim vs tiba)
-  const ds=pu.flatMap(u=>[day(u.tglKirim),day(u.tglTiba)]).filter(Boolean);
-  const start=new Date(Math.min(now.getTime()-63*864e5,...ds.map(d=>d.getTime()))); start.setDate(start.getDate()-((start.getDay()+6)%7));
-  const weeks=[]; for(let d=new Date(start); d<=now; d.setDate(d.getDate()+7)) weeks.push(new Date(d));
-  const wi=d=>Math.floor((d-start)/(7*864e5));
-  const kirimW=weeks.map(()=>0), tibaW=weeks.map(()=>0);
-  pu.forEach(u=>{ const a=day(u.tglKirim), b=day(u.tglTiba); if(a&&a>=start) kirimW[Math.min(weeks.length-1,wi(a))]++; if(b&&b>=start&&arrived(u)) tibaW[Math.min(weeks.length-1,wi(b))]++; });
-  const W=420,H=150,mx=Math.max(5,...kirimW,...tibaW), X=i=>34+i*(W-44)/Math.max(1,weeks.length-1), Y=v=>H-22-v*(H-40)/mx;
+  const tile=(t,v,sub,g,go,fi)=>`<button type="button" class="pd-k" style="background:${g}" data-pdgo="${go}" data-pdfi="${fi||""}" title="Buka ${go==="unit"?"Populasi Unit":"Rencana kirim"}"><small>${t}</small><b>${v}</b><span>${sub}</span><em>Lihat →</em></button>`;
+  const kpis=`<div class="pd-kpis">${tile("Rencana kirim",st.rencana,`${items.length} item unit`,"var(--g-purple)","pengiriman","all")}${tile("Dalam pengiriman",st.jalan,berangkat7?`+${berangkat7} berangkat minggu ini`:"belum ada yang berangkat minggu ini","linear-gradient(120deg,#EA580C,#F59E0B)","pengiriman","sisa")}${tile("Sisa kirim",st.sisa,`${pct(st.sisa,st.rencana)}% belum berangkat`,"var(--g-red)","pengiriman","sisa")}${tile("Sudah tiba",st.tiba,`${pct(st.tiba,st.rencana)}% dari rencana`,"linear-gradient(120deg,#15803D,#22C55E)","unit")}${tile("Populasi di lokasi",atLoc.length,atLoc.length?`${new Set(atLoc.map(u=>u.tipe)).size} jenis unit`:"belum ada unit","var(--g-blue)","unit")}</div>`;
+  // grafik dikirim vs tiba: per hari / minggu / bulan / tahun
+  const PER=MU_CHART_P, MN=["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"];
+  const keyOf=d=>PER==="hari"?d.toISOString().slice(0,10):PER==="bulan"?d.getFullYear()+"-"+d.getMonth():PER==="tahun"?String(d.getFullYear()):(()=>{ const m=new Date(d); m.setDate(m.getDate()-((m.getDay()+6)%7)); return m.toISOString().slice(0,10); })();
+  const buckets=[]; { const end=new Date(now); end.setHours(0,0,0,0);
+    if(PER==="hari"){ for(let i=29;i>=0;i--){ const d=new Date(end); d.setDate(d.getDate()-i); buckets.push({k:keyOf(d),l:`${d.getDate()} ${MN[d.getMonth()]}`}); } }
+    else if(PER==="bulan"){ for(let i=11;i>=0;i--){ const d=new Date(end.getFullYear(),end.getMonth()-i,1); buckets.push({k:keyOf(d),l:`${MN[d.getMonth()]} ${String(d.getFullYear()).slice(2)}`}); } }
+    else if(PER==="tahun"){ const ys=pu.flatMap(u=>[day(u.tglKirim),day(u.tglTiba)]).filter(Boolean).map(d=>d.getFullYear()); const y0=Math.min(end.getFullYear()-2,...ys); for(let y=y0;y<=end.getFullYear();y++) buckets.push({k:String(y),l:String(y)}); }
+    else { for(let i=11;i>=0;i--){ const d=new Date(end); d.setDate(d.getDate()-7*i); buckets.push({k:keyOf(d),l:(()=>{ const m=new Date(d); m.setDate(m.getDate()-((m.getDay()+6)%7)); return `${m.getDate()} ${MN[m.getMonth()]}`; })()}); } } }
+  const idx=new Map(buckets.map((b,i)=>[b.k,i])), kirimW=buckets.map(()=>0), tibaW=buckets.map(()=>0);
+  pu.forEach(u=>{ const a=day(u.tglKirim), b=day(u.tglTiba); if(a&&idx.has(keyOf(a))) kirimW[idx.get(keyOf(a))]++; if(b&&arrived(u)&&idx.has(keyOf(b))) tibaW[idx.get(keyOf(b))]++; });
+  const totK=kirimW.reduce((a,b)=>a+b,0), totT=tibaW.reduce((a,b)=>a+b,0);
+  const W=440,H=170,n=buckets.length,mx=Math.max(4,...kirimW,...tibaW), X=i=>34+i*(W-48)/Math.max(1,n-1), Y=v=>H-24-v*(H-48)/mx;
   const line=a=>a.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
-  const lbl=weeks.map((d,i)=>i%Math.ceil(weeks.length/5)===0||i===weeks.length-1?`<text x="${X(i)}" y="${H-4}" text-anchor="middle">${d.getDate()} ${["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"][d.getMonth()]}</text>`:"").join("");
-  const grid=[0,Math.round(mx/2),mx].map(v=>`<line x1="34" x2="${W-10}" y1="${Y(v)}" y2="${Y(v)}"/><text x="26" y="${Y(v)+3}" text-anchor="end">${v}</text>`).join("");
-  const chart=`<div class="card pd-c"><h3>Unit dikirim &amp; tiba per minggu</h3><div class="pd-leg"><span><i style="background:#F97316"></i>Dikirim</span><span><i style="background:#16A34A"></i>Tiba</span></div>
-    <svg viewBox="0 0 ${W} ${H}" class="pd-svg" role="img" aria-label="Grafik unit dikirim dan tiba per minggu"><g class="g">${grid}</g><polygon points="${X(0)},${Y(0)} ${line(kirimW)} ${X(weeks.length-1)},${Y(0)}" fill="#F97316" fill-opacity=".12"/><polyline points="${line(kirimW)}" fill="none" stroke="#F97316" stroke-width="2"/><polyline points="${line(tibaW)}" fill="none" stroke="#16A34A" stroke-width="2"/><g class="g">${lbl}</g></svg></div>`;
+  const step=Math.ceil(n/6);
+  const lbl=buckets.map((b,i)=>i%step===0||i===n-1?`<text x="${X(i)}" y="${H-6}" text-anchor="middle">${b.l}</text>`:"").join("");
+  const grid=[0,Math.round(mx/2),mx].map(v=>`<line x1="34" x2="${W-12}" y1="${Y(v)}" y2="${Y(v)}"/><text x="26" y="${Y(v)+3}" text-anchor="end">${v}</text>`).join("");
+  const dots=(a,c,dy)=>a.map((v,i)=>v?`<circle cx="${X(i)}" cy="${Y(v)}" r="3.2" fill="${c}"><title>${buckets[i].l}: ${v} ${c==="#F97316"?"dikirim":"tiba"}</title></circle><text class="v" x="${X(i)}" y="${Y(v)+dy}" text-anchor="middle" fill="${c}">${v}</text>`:"").join("");
+  const PB=[["hari","Hari"],["minggu","Minggu"],["bulan","Bulan"],["tahun","Tahun"]];
+  const chart=`<div class="card pd-c"><div class="pd-ch"><h3>Unit dikirim &amp; tiba per ${PB.find(x=>x[0]===PER)[1].toLowerCase()}</h3><div class="pd-per" role="tablist">${PB.map(([k,l])=>`<button type="button" data-pdper="${k}" class="${PER===k?"on":""}">${l}</button>`).join("")}</div></div>
+    <div class="pd-leg"><span><i style="background:#F97316"></i>Dikirim <b>${totK}</b></span><span><i style="background:#16A34A"></i>Tiba <b>${totT}</b></span><span class="pd-legn">${PER==="hari"?"30 hari terakhir":PER==="minggu"?"12 minggu terakhir":PER==="bulan"?"12 bulan terakhir":"per tahun"}</span></div>
+    <svg viewBox="0 0 ${W} ${H}" class="pd-svg" role="img" aria-label="Grafik unit dikirim dan tiba"><g class="g">${grid}</g><polygon points="${X(0)},${Y(0)} ${line(kirimW)} ${X(n-1)},${Y(0)}" fill="#F97316" fill-opacity=".12"/><polyline points="${line(kirimW)}" fill="none" stroke="#F97316" stroke-width="2"/><polyline points="${line(tibaW)}" fill="none" stroke="#16A34A" stroke-width="2"/>${dots(kirimW,"#F97316",-7)}${dots(tibaW,"#16A34A",13)}<g class="g">${lbl}</g></svg></div>`;
   // status di lokasi (donat)
   const sc=new Map(); atLoc.forEach(u=>{ const k=String(u.status||"").trim()||"Tiba"; sc.set(k,(sc.get(k)||0)+1); });
   let acc=0; const R=46, C=2*Math.PI*R;
@@ -3081,8 +3099,11 @@ function renderProjDash2(P){
   // populasi unit di lokasi
   const pj=new Map(); atLoc.forEach(u=>pj.set(u.tipe,(pj.get(u.tipe)||0)+1));
   const pop=`<div class="card pd-c"><h3>Populasi unit <small>${atLoc.length} unit</small></h3>${atLoc.length?`<ul class="pd-pop">${[...pj.entries()].sort((a,b)=>b[1]-a[1]).map(([t,n])=>`<li><span>${esc(t)}</span><b>${n}</b></li>`).join("")}</ul><button type="button" class="pd-link" data-tn="unit">Lihat di Populasi Unit →</button>`:`<div class="pd-empty">Belum ada unit di lokasi. Unit otomatis muncul di sini setelah statusnya Tiba.</div>`}</div>`;
-  el.innerHTML=`<div class="pd">${kpis}<div class="pd-row3">${chart}${status}${funnel}</div>${table}<div class="pd-row2">${belum}${pop}</div>
-    <div class="pd-foot"><span>Diupdate ${st.last?fmtTime(st.last):"—"}</span><span>Monitoring Unit · PT KMB</span></div></div>`;
+  const F=MU_PRINT_FULL, sec=DSEC, nm=(MU_DSEC.find(x=>x[0]===sec)||MU_DSEC[0])[1];
+  const head=`<div class="hk-ph2 pd-head"><div><div class="hk-eb">Dashboard · ${esc(P.kode)} · ${esc(F?"Lengkap":nm)}</div><h2>${esc(F?"Dashboard "+P.kode:nm)}</h2><p>Klik angka atau kotak untuk membuka detailnya. Pilih project lain atau klik project yang aktif di menu untuk kembali ke semua project. Print tetap mencetak dashboard lengkap.</p></div></div>
+    <div class="hk-secs pd-secs" role="tablist">${MU_DSEC.map(([k,n])=>`<button type="button" data-dsec="${k}" class="${k===sec?"on":""}">${n}</button>`).join("")}</div>`;
+  const body=(F||sec==="ringkasan"?kpis+`<div class="pd-row3">${chart}${status}${funnel}</div>`:"")+(F||sec==="progres"?table+`<div class="pd-row2">${belum}${pop}</div>`:"")+(!F&&sec==="populasi"?`<div class="pd-row2">${pop}<div></div></div>`:"");
+  el.innerHTML=`<div class="pd">${head}${body}${F||sec==="ringkasan"||sec==="progres"?`<div class="pd-foot"><span>Diupdate ${st.last?fmtTime(st.last):"—"}</span><span>Monitoring Unit · PT KMB</span></div>`:""}</div>`;
 }
 function renderProjDash(P){
   const st=projStats(P.id), us=S.units.filter(u=>arrived(u)&&u.projectId===P.id);
@@ -3358,8 +3379,13 @@ function renderPopDash(){
 
 /* Dashboard semua project: ringkas, satu kartu per project (seperti beranda Portal MPP) */
 let MU_PRINT_FULL=false;
+let MU_CHART_P=(()=>{ try{ const v=localStorage.getItem("mu_chart_p"); return ["hari","minggu","bulan","tahun"].includes(v)?v:"minggu"; }catch(e){ return "minggu"; } })();
+document.addEventListener("click",e=>{
+  const pb=e.target.closest("[data-pdper]"); if(pb){ MU_CHART_P=pb.dataset.pdper; try{ localStorage.setItem("mu_chart_p",MU_CHART_P); }catch(er){} const P=curProj(); if(P) renderProjDash2(P); return; }
+  const g=e.target.closest("[data-pdgo]"); if(g){ if(g.dataset.pdfi) S.fItem=g.dataset.pdfi; setTab(g.dataset.pdgo); render(); try{ window.scrollTo({top:0,behavior:"smooth"}); }catch(er){} }
+});
 /* Print dari Dashboard selalu mencetak dashboard lengkap (semua bagian), seperti portal Monitoring Manpower */
-function muPrintFullOn(){ if(MU_PRINT_FULL||S.tab!=="ringkasan"||curProj()) return false; MU_PRINT_FULL=true; document.body.classList.add("mu-print-full"); try{ renderRingkasan(); muColApplyAll(); }catch(e){} return true; }
+function muPrintFullOn(){ if(MU_PRINT_FULL||S.tab!=="ringkasan") return false; MU_PRINT_FULL=true; document.body.classList.add("mu-print-full"); try{ renderRingkasan(); muColApplyAll(); }catch(e){} return true; }
 function muPrintFullOff(){ if(!MU_PRINT_FULL) return; MU_PRINT_FULL=false; document.body.classList.remove("mu-print-full"); try{ renderRingkasan(); }catch(e){} }
 window.addEventListener("beforeprint",()=>{ muPrintFullOn(); });
 window.addEventListener("afterprint",()=>{ setTimeout(muPrintFullOff,0); });
@@ -3378,7 +3404,7 @@ function renderHkHome(L,ps){
   const SS=ps.map(p=>({p,s:projStats(p.id)})), T=SS.reduce((a,{s})=>({r:a.r+s.rencana,t:a.t+s.tiba,j:a.j+s.jalan,k:a.k+s.sisa}),{r:0,t:0,j:0,k:0});
   let ringHtml="";
   if(DSEC==="ringkasan"||MU_PRINT_FULL){
-    const tile=(l,v,g,sub)=>`<div class="hk-gt" style="background:${g}"><small>${l}</small><b>${v}</b><span>${sub}</span></div>`;
+    const tile=(l,v,g,sub,go,fi)=>`<button type="button" class="hk-gt" style="background:${g}" data-pdgo="${go}" data-pdfi="${fi||""}"><small>${l}</small><b>${v}</b><span>${sub}</span><em>Lihat →</em></button>`;
     const tr=SS.map(({p,s})=>`<tr><td><button type="button" class="hk-pn" data-act="openProj" data-id="${p.id}">${esc(p.kode)}</button><small>${esc([p.nama,p.lokasi].filter(Boolean).join(" · ")||"—")}</small></td>
       <td class="n">${s.rencana}</td><td class="n c-green"><b>${s.tiba}</b></td><td class="n hk-j"><b>${s.jalan}</b></td><td class="n ${s.sisa?"c-red":""}"><b>${s.sisa}</b></td>
       <td>${hkBar(s.rencana,s.tiba,s.jalan)}</td><td class="n"><b>${pct(s.tiba,s.rencana)}%</b></td><td class="n"><button type="button" class="hk-go2" data-act="openProj" data-id="${p.id}">Buka →</button></td></tr>`).join("");
@@ -3388,7 +3414,7 @@ function renderHkHome(L,ps){
     SS.forEach(({p})=>{ const pu=S.units.filter(u=>u.projectId===p.id), bd=pu.filter(u=>/breakdown/i.test(u.status||"")).length, tmp=pu.filter(u=>u.kodeSementara||!String(u.kode||"").trim()).length;
       if(bd) chk.push({c:"#E11D48",id:p.id,t:`${p.kode} · ${bd} unit Breakdown`,d:"Cek kondisi di Populasi Unit"});
       if(tmp) chk.push({c:"#F59E0B",id:p.id,t:`${p.kode} · ${tmp} nomor lambung belum diisi`,d:"Masih memakai nomor sementara"}); });
-    el.innerHTML=head+`<div class="hk-gtiles">${tile("Unit rencana",T.r,"var(--g-purple)",`${ps.length} project`)}${tile("Sudah tiba",T.t,"linear-gradient(120deg,#15803D,#4ADE80)",`${pct(T.t,T.r)}% dari rencana`)}${tile("Dalam perjalanan",T.j,"var(--g-blue)",`${pct(T.j,T.r)}% dari rencana`)}${tile("Sisa kirim",T.k,"var(--g-red)",`${pct(T.k,T.r)}% belum dikirim`)}</div>
+    el.innerHTML=head+`<div class="hk-gtiles">${tile("Unit rencana",T.r,"var(--g-purple)",`${ps.length} project`,"pengiriman","all")}${tile("Sudah tiba",T.t,"linear-gradient(120deg,#15803D,#4ADE80)",`${pct(T.t,T.r)}% dari rencana`,"unit")}${tile("Dalam perjalanan",T.j,"var(--g-blue)",`${pct(T.j,T.r)}% dari rencana`,"pengiriman","sisa")}${tile("Sisa kirim",T.k,"var(--g-red)",`${pct(T.k,T.r)}% belum dikirim`,"pengiriman","sisa")}</div>
       <div class="hk-row2"><div class="card hk-pc"><div class="hk-ph"><h3>Progres per project</h3><small>Klik nama project atau Buka → untuk rincian item &amp; unit</small></div>
         <div class="hk-tw"><table class="hk-pt"><thead><tr><th>Project</th><th class="n">Rencana</th><th class="n">Tiba</th><th class="n">Dlm jalan</th><th class="n">Sisa</th><th>Progres</th><th class="n">% tiba</th><th></th></tr></thead><tbody>${tr}</tbody>
         <tfoot><tr><td>Total · ${ps.length} project</td><td class="n">${T.r}</td><td class="n c-green">${T.t}</td><td class="n hk-j">${T.j}</td><td class="n ${T.k?"c-red":""}">${T.k}</td><td>${hkBar(T.r,T.t,T.j)}</td><td class="n">${pct(T.t,T.r)}%</td><td></td></tr></tfoot></table></div>
@@ -3458,15 +3484,16 @@ function renderSide(){
   const q=(el.querySelector("#sdQ")||{}).value||"";
   el.innerHTML=`<a class="sd-pusat" href="../">← Pusat Monitoring</a><input type="search" id="sdQ" class="sd-q" placeholder="Cari menu…" value="${esc(q)}" aria-label="Cari menu">
     <div class="sd-lab">Ringkasan</div>
-    ${grp("dash","pie","Dashboard",MU_DSEC.map(([k,n])=>`<button type="button" data-sd="sec" data-k="${k}" class="${home&&DSEC===k?"on":""}">${n}</button>`).join(""))}
+    ${grp("dash","pie","Dashboard",MU_DSEC.map(([k,n])=>`<button type="button" data-sd="sec" data-k="${k}" class="${S.tab==="ringkasan"&&DSEC===k?"on":""}">${n}</button>`).join(""))}
     <div class="sd-lab">Project</div>
-    ${grp("proj","pin","Project",ps.map(p=>`<button type="button" data-sd="proj" data-k="${p.id}" class="${P&&P.id===p.id?"on":""}">${esc(p.kode)}</button>`).join("")||'<span class="sd-none">Belum ada project</span>',ps.length)}
+    ${grp("proj","pin","Project",ps.map(p=>`<button type="button" data-sd="proj" data-k="${p.id}" class="${P&&P.id===p.id?"on":""}" title="${P&&P.id===p.id?"Klik lagi untuk kembali ke semua project":"Filter project "+esc(p.kode)}">${esc(p.kode)}${P&&P.id===p.id?' <span class="sd-x">✕</span>':""}</button>`).join("")||'<span class="sd-none">Belum ada project</span>',ps.length)}
     <div class="sd-lab">Monitoring</div>
     ${item("ship","Rencana kirim","pengiriman",$("#cRev").textContent)}${item("pin","Populasi Unit","unit",$("#cUnit").textContent)}${item("route","Mobilisasi","mobilisasi",$("#cMob").textContent)}${item("cam","Dokumentasi","dokumentasi",$("#cDok").textContent)}`;
   if(q) muSideFilter(q);
   document.body.classList.toggle("mu-home",home);
   document.body.classList.toggle("mu-projdash",!!P&&S.tab==="ringkasan");
-  MU_DSEC.forEach(([k])=>document.body.classList.toggle("mu-dsec-"+k,home&&DSEC===k));
+  const dash=S.tab==="ringkasan"; document.body.classList.toggle("mu-dash",dash);
+  MU_DSEC.forEach(([k])=>document.body.classList.toggle("mu-dsec-"+k,dash&&DSEC===k));
   try{ const h=document.querySelector(".top"); if(h) document.documentElement.style.setProperty("--muTop",h.offsetHeight+"px"); }catch(e){}
 }
 function muSideFilter(q){ const t=q.trim().toLowerCase(), el=$("#muSide");
@@ -3476,8 +3503,8 @@ document.addEventListener("click",e=>{
   if(b.dataset.dsec){ muSetDsec(b.dataset.dsec); render(); return; }
   const k=b.dataset.k, a=b.dataset.sd;
   if(a==="grp"){ MU_SIDE_OPEN[k]=!MU_SIDE_OPEN[k]; try{ localStorage.setItem("mu_side_open",JSON.stringify(MU_SIDE_OPEN)); }catch(e){} renderSide(); }
-  else if(a==="sec"){ muSetDsec(k); if(curProj()) backAll(); else { setTab("ringkasan"); render(); } try{ window.scrollTo({top:0,behavior:"smooth"}); }catch(er){} }
-  else if(a==="proj"){ openProject(k); }
+  else if(a==="sec"){ muSetDsec(k); setTab("ringkasan"); render(); try{ window.scrollTo({top:0,behavior:"smooth"}); }catch(er){} }
+  else if(a==="proj"){ const P=curProj(); if(P&&P.id===k){ const t=S.tab; S.view="all"; S.fProj="all"; setTab(t); render(); } else { const t=S.tab; openProject(k); if(t!==S.tab){ setTab(t); render(); } } }
   else if(a==="tab"){ setTab(k); renderSide(); }
 });
 document.addEventListener("input",e=>{ if(e.target&&e.target.id==="sdQ"){ const q=e.target.value; if(q&&!MU_SIDE_OPEN.dash||q&&!MU_SIDE_OPEN.proj){ MU_SIDE_OPEN.dash=MU_SIDE_OPEN.proj=true; renderSide(); const n=$("#sdQ"); n.focus(); n.setSelectionRange(q.length,q.length); } muSideFilter(q); } });
@@ -3487,7 +3514,7 @@ function hkBar(r,t,j,big){ const w=n=>r?Math.max(0,Math.min(100,n/r*100)).toFixe
   return `<span class="hk-bar${big?" big":""}" role="img" title="${t} tiba (${pct(t,r)}%) · ${j} dalam perjalanan (${pct(j,r)}%) · ${Math.max(0,r-t-j)} sisa kirim dari ${r}" aria-label="${t} tiba, ${j} dalam perjalanan dari ${r}"><i class="t" style="width:${w(t)}"></i><i class="j" style="width:${w(j)}"></i></span>`; }
 function renderRingkasan(){
   const L=!S.ready, ps=projects(), P=curProj();
-  $("#projDash").hidden=!P; $("#projCards").hidden=true; $("#homeTop").hidden=true; $("#ovBottom").hidden=!!P;
+  $("#projDash").hidden=!P; $("#projCards").hidden=true; $("#homeTop").hidden=true; $("#ovBottom").hidden=false;
   $("#hkHome").hidden=!!P; $("#kpis").hidden=!P;
   if(P) renderProjDash2(P); else renderHkHome(L,ps);
   if(P){
