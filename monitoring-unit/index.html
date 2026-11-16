@@ -189,6 +189,10 @@ button.pd-k:hover,button.hk-gt:hover{transform:translateY(-2px);box-shadow:0 14p
 .pd-t tfoot td{font-weight:800;border-bottom:0}
 .pd-t2{font-size:13px}.pd-t2 td{white-space:nowrap}.pd-t2 td:last-child{white-space:normal;min-width:180px}.pd-t2 th{font-size:13px}.pd-t2 td small{display:block;font-size:11px;color:#8C88A8}.pd-rm{color:#BE123C}
 .pd-tmp{color:#B45309;font-weight:700}
+.pc{display:flex;flex-direction:column;gap:6px}.pc-h{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px}.pc-h b{font-size:13px}.pc-h span{font-size:12px}
+.pc-l{display:grid;gap:6px}.pc-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.pc-o{display:flex;gap:9px;align-items:flex-start;border:1px solid #E8E5F3;border-radius:10px;padding:8px 10px;cursor:pointer;background:#fff}.pc-o:has(input:checked){border-color:#A78BFA;background:#F8F5FF}
+.pc-o input{margin:2px 0 0!important;accent-color:#6D28D9;width:16px!important;height:16px!important;min-height:0!important;flex:none;padding:0!important;box-shadow:none!important}.pc-o span{flex:1;min-width:0;text-align:left}.pc-o b{display:block;font-size:13px}.pc-o small{display:block;font-size:11.5px;color:var(--muted)}
 html body.mu-dash.mu-dash #fbar{display:none!important}
 .pd-s{display:inline-block;font-size:11.5px;font-weight:800;border-radius:999px;padding:3px 10px;white-space:nowrap}.pd-s.o{background:#FFEDD5;color:#C2410C}.pd-s.p{background:#EDE9FE;color:#6D28D9}.pd-s.g{background:#F1F5F9;color:#475569}
 .pd-pop{list-style:none;margin:0 0 10px;padding:0}.pd-pop li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F1EEF8;font-size:13.5px}
@@ -3378,6 +3382,8 @@ function renderPopDash(){
 
 /* Dashboard semua project: ringkas, satu kartu per project (seperti beranda Portal MPP) */
 let MU_PRINT_FULL=false;
+document.addEventListener("click",e=>{ const a=e.target.closest("[data-pcall],[data-pcnone]"); if(!a) return; const n=a.dataset.pcall||a.dataset.pcnone, on=!!a.dataset.pcall;
+  document.querySelectorAll(`dialog[open] input[name="${n}"]`).forEach(x=>x.checked=on); });
 /* Satu sumber kolom untuk Dashboard project & print: mengikuti Atur kolom (Kolom item / Kolom unit) di Rencana kirim */
 const MU_KNUM={"Rencana":"124,58,237","Dlm perjalanan":"249,115,22","Sisa kirim":"225,29,72","Tiba":"22,163,74","Rencana awal":"148,163,184"};
 function muItemVal(k,l){ const r=Number(k.rencana)||0, aw=Number(k.rencanaAwal)||r, us=slotUnits(k);
@@ -3394,9 +3400,10 @@ function muUnitCols(){ try{ return muCfVisibleCols(); }catch(e){ return ["ETD","
 function muBelumTiba(pids){ const rows=[]; S.kirim.filter(k=>pids.has(k.projectId)).forEach(k=>slotUnits(k).forEach(u=>{ if(!arrived(u)) rows.push([u,k]); })); return rows; }
 function muUnitVal(u,k,l){ const v=(MU_CFV[l]||(()=>""))(u,k,muDetails(u)); return v===KONG?"–":v; }
 /* Laporan print Dashboard: tabel rapi; isi mengikuti sub menu & project yang dipilih (atau lengkap) */
-function muPrintDash(full){
-  const P=curProj(), ps=P?[P]:projects(), sec=DSEC, nm=(MU_DSEC.find(x=>x[0]===sec)||MU_DSEC[0])[1];
-  const want=k=>full||sec===k;
+function muPrintDash(opt){
+  opt=opt||{}; const secs=opt.secs||new Set([DSEC]), ps=projects().filter(p=>!opt.pids||opt.pids.has(p.id)), P=ps.length===1?ps[0]:null;
+  const full=secs.size===MU_DSEC.length, nm=MU_DSEC.filter(x=>secs.has(x[0])).map(x=>x[1]).join(", ");
+  const want=k=>secs.has(k);
   const SS=ps.map(p=>({p,s:projStats(p.id)})), T=SS.reduce((a,{s})=>({r:a.r+s.rencana,t:a.t+s.tiba,j:a.j+s.jalan,k:a.k+s.sisa}),{r:0,t:0,j:0,k:0});
   const pids=new Set(ps.map(p=>p.id)), pu=S.units.filter(u=>pids.has(u.projectId)), atLoc=pu.filter(arrived);
   const bar=(r,t,j)=>{ const w=n=>r?(n/r*100).toFixed(0)+"%":"0%"; return `<span class="bar"><i style="width:${w(t)};background:#16A34A"></i><i style="width:${w(j)};background:#2563EB"></i></span>`; };
@@ -3429,9 +3436,14 @@ function muPrintDash(full){
   }
   // populasi
   if(want("populasi")){
-    const t=document.querySelector("#popDash table.mu-pt-table"); let html='<p class="mut">Belum ada unit yang tercatat.</p>';
-    if(t){ try{ muColApplyAll(); }catch(e){} const c=t.cloneNode(true); c.querySelectorAll("[data-col-hid]").forEach(x=>x.remove()); c.querySelectorAll('[style*="display: none"]').forEach(x=>x.remove()); c.querySelectorAll(".mu-rsz,button").forEach(x=>x.remove()); c.removeAttribute("class"); c.querySelectorAll("th,td").forEach(x=>{ x.style.width=""; x.style.minWidth=""; x.style.maxWidth=""; }); html=c.outerHTML; }
-    out.push(`<section class="pr-sec"><h2>Rekap Populasi Unit <small>${P?esc(P.kode):"semua project"} · ${pu.length} unit</small></h2>${html}</section>`);
+    // tabel rekap dibuat ulang sesuai project yang dicentang (semua project = satu tabel gabungan)
+    const grab=()=>{ try{ muColApplyAll(); }catch(e){} const t=document.querySelector("#popDash table.mu-pt-table"); if(!t) return '<p class="mut">Belum ada unit yang tercatat.</p>';
+      const c=t.cloneNode(true); c.querySelectorAll("[data-col-hid]").forEach(x=>x.remove()); c.querySelectorAll('[style*="display: none"]').forEach(x=>x.remove()); c.querySelectorAll(".mu-rsz,button").forEach(x=>x.remove()); c.removeAttribute("class"); c.querySelectorAll("th,td").forEach(x=>{ x.style.width=""; x.style.minWidth=""; x.style.maxWidth=""; }); return c.outerHTML; };
+    const v0=S.view, f0=S.fProj, q0=JSON.stringify(MU_PT); MU_PT.q=""; MU_PT.f="";
+    const scopes=ps.length===projects().length?[null]:ps;
+    scopes.forEach(sp=>{ S.view=sp?sp.id:"all"; S.fProj=sp?sp.id:"all"; renderPopDash(); const n=S.units.filter(u=>!sp||u.projectId===sp.id).length;
+      out.push(`<section class="pr-sec"><h2>Rekap Populasi Unit <small>${sp?esc(sp.kode):"semua project"} · ${n} unit</small></h2>${grab()}</section>`); });
+    S.view=v0; S.fProj=f0; Object.assign(MU_PT,JSON.parse(q0)); renderPopDash();
   }
   // mobilisasi
   if(want("mob")){
@@ -3444,7 +3456,7 @@ function muPrintDash(full){
     out.push(`<section class="pr-sec"><h2>Perubahan rencana <small>${rv.length} perubahan</small></h2>${rv.length?`<table><thead><tr><th>Tanggal</th><th>Project</th><th>Item unit</th><th class="n">Jumlah</th><th class="n">Selisih</th><th>Jenis</th><th>Alasan</th><th>Oleh</th></tr></thead><tbody>${rv.map(r=>{ const k=S.kirim.find(x=>x.id===r.kirimId)||{}; const d=(Number(r.baru)||0)-(Number(r.lama)||0);
       return `<tr><td>${fmtTime(r.waktu)}</td><td>${esc(projKode(r.projectId||k.projectId))}</td><td>${esc(k.tipe||r.tipe||"–")}</td><td class="n">${r.lama} → ${r.baru}</td><td class="n ${d<0?"rd":""}">${d>0?"+":""}${d}</td><td>${esc(revJenis(r))}</td><td class="mut">${esc(r.alasan||"")}</td><td class="mut">${esc(r.oleh||"")}</td></tr>`; }).join("")}</tbody></table>`:'<p class="mut">Belum ada perubahan rencana.</p>'}</section>`);
   }
-  const judul=`Laporan Monitoring Unit${P?" · "+P.kode:""}`, sub=`${P?[P.nama,P.lokasi].filter(Boolean).join(" · "):`Semua project · ${ps.length} project`} · ${full?"Dashboard lengkap":nm}`;
+  const judul=`Laporan Monitoring Unit${P?" · "+P.kode:""}`, sub=`${P?[P.nama,P.lokasi].filter(Boolean).join(" · "):(ps.length===projects().length?`Semua project · ${ps.length} project`:ps.map(p=>p.kode).join(", "))} · ${full?"Dashboard lengkap":nm}`;
   const html=`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>${esc(judul)} - ${todayStr()}</title>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
   <style>@page{size:A4 landscape;margin:9mm 9mm 12mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
@@ -5240,10 +5252,17 @@ $("#btnPrint").addEventListener("click",()=>{
   if(!(role==="owner"||role==="editor"||(GUEST_SHARE&&role==="viewer"))){ toast("Print hanya untuk Pemilik, Editor, dan Pelihat yang memiliki link khusus."); return; }
   const P=curProj(), TAB={ringkasan:"Dashboard",pengiriman:"Rencana Kirim",unit:"Unit di Lokasi",mobilisasi:"Rencana Mobilisasi",dokumentasi:"Dokumentasi"};
   const judul=P?`Monitoring Unit ${P.kode} · ${TAB[S.tab]||"Dashboard"}`:"Monitoring Unit & Mobilisasi · Semua Project";
-  if(S.tab==="ringkasan"){ const nm=(MU_DSEC.find(x=>x[0]===DSEC)||MU_DSEC[0])[1];
-    openForm({title:"Print Dashboard",desc:`${P?P.kode:"Semua project"} · bagian yang sedang dibuka: ${nm}.`,ok:"Print",
-      fields:[{key:"isi",label:"Yang dicetak",type:"select",options:[`Bagian ini saja (${nm})`,"Dashboard lengkap"],full:true,hint:"Laporan disusun rapi untuk kertas A4 landscape."}],
-      values:{isi:`Bagian ini saja (${nm})`},onSubmit:v=>{ setTimeout(()=>muPrintDash(v.isi==="Dashboard lengkap"),60); }});
+  if(S.tab==="ringkasan"){
+    const ps=projects(), cb=(name,val,lab,on,sub)=>`<label class="pc-o"><input type="checkbox" name="${name}" value="${esc(val)}"${on?" checked":""}><span><b>${esc(lab)}</b>${sub?`<small>${esc(sub)}</small>`:""}</span></label>`;
+    const html=`<div class="pc"><div class="pc-h"><b>Bagian yang dicetak</b><span><button type="button" class="linkish" data-pcall="sec">Pilih semua</button> · <button type="button" class="linkish" data-pcnone="sec">Kosongkan</button></span></div>
+      <div class="pc-l pc-2">${MU_DSEC.map(([k,n])=>cb("sec",k,n,k===DSEC,k===DSEC?"sedang dibuka":"")).join("")}</div>
+      <div class="pc-h"><b>Project</b><span><button type="button" class="linkish" data-pcall="prj">Pilih semua</button> · <button type="button" class="linkish" data-pcnone="prj">Kosongkan</button></span></div>
+      <div class="pc-l pc-2">${ps.map(p=>cb("prj",p.id,p.kode,P?P.id===p.id:true,[p.nama,p.lokasi].filter(Boolean).join(" · "))).join("")}</div>
+      <p class="muted small" style="margin:6px 0 0">Laporan disusun rapi untuk kertas A4 landscape, urut sesuai daftar di atas.</p></div>`;
+    openForm({title:"Print Dashboard",desc:"Centang bagian dan project yang mau dicetak.",ok:"Print",fields:[{key:"pc",type:"html",html}],
+      onSubmit:()=>{ const sel=n=>[...document.querySelectorAll(`dialog[open] input[name="${n}"]:checked`)].map(x=>x.value);
+        const secs=sel("sec"), pids=sel("prj"); if(!secs.length){ toast("Pilih minimal satu bagian."); return false; } if(!pids.length){ toast("Pilih minimal satu project."); return false; }
+        setTimeout(()=>muPrintDash({secs:new Set(secs),pids:new Set(pids)}),60); }});
     return; }
   const ph=$("#printHead"); ph.innerHTML=`<b>${esc(judul)}</b><span>${P&&P.nama?esc(P.nama)+"<br>":""}Dicetak ${esc(new Date().toLocaleString("id-ID",{dateStyle:"long",timeStyle:"short"}))} · ${esc(meEmail)}</span>`;
   const oldTitle=document.title;
