@@ -187,7 +187,9 @@ button.pd-k:hover,button.hk-gt:hover{transform:translateY(-2px);box-shadow:0 14p
 .pd-t{width:100%;border-collapse:collapse;font-size:14px}.pd-t th{text-align:left;font-size:13.5px;font-weight:700;color:#1C1A33;padding:10px 12px;border-bottom:1px solid #ECE9F6;white-space:nowrap}
 .pd-t td{padding:10px 12px;border-bottom:1px solid #F1EEF8}.pd-t .n{text-align:right;font-variant-numeric:tabular-nums}.pd-un{font-weight:700}.pd-ket{color:#6B6985;font-size:13px}
 .pd-t tfoot td{font-weight:800;border-bottom:0}
-.pd-t2{font-size:13px}.pd-t2 th{font-size:13px}.pd-t2 td small{display:block;font-size:11px;color:#8C88A8}.pd-rm{color:#BE123C}
+.pd-t2{font-size:13px}.pd-t2 td{white-space:nowrap}.pd-t2 td:last-child{white-space:normal;min-width:180px}.pd-t2 th{font-size:13px}.pd-t2 td small{display:block;font-size:11px;color:#8C88A8}.pd-rm{color:#BE123C}
+.pd-tmp{color:#B45309;font-weight:700}
+html body.mu-dash.mu-dash #fbar{display:none!important}
 .pd-s{display:inline-block;font-size:11.5px;font-weight:800;border-radius:999px;padding:3px 10px;white-space:nowrap}.pd-s.o{background:#FFEDD5;color:#C2410C}.pd-s.p{background:#EDE9FE;color:#6D28D9}.pd-s.g{background:#F1F5F9;color:#475569}
 .pd-pop{list-style:none;margin:0 0 10px;padding:0}.pd-pop li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F1EEF8;font-size:13.5px}
 .pd-foot{display:flex;justify-content:space-between;background:linear-gradient(110deg,#4C1D95,#3730A3);color:#E0DBFF;border-radius:16px;padding:12px 20px;font-size:13px}
@@ -3081,28 +3083,25 @@ function renderProjDash2(P){
   const dikirim=st.jalan+st.tiba, oper=atLoc.filter(u=>/beroperasi|operasi/i.test(u.status||"")).length;
   const fn=[["Rencana kirim",st.rencana,"100%","#6D28D9",100],["Dikirim",dikirim,`${pct(dikirim,st.rencana)}% dari rencana`,"#4F46E5",86],["Tiba",st.tiba,`${pct(st.tiba,dikirim)}% dari dikirim`,"#2563EB",72],["Beroperasi",oper,atLoc.length?`${pct(oper,atLoc.length)}% dari unit di lokasi`:"–","#0891B2",58]];
   const funnel=`<div class="card pd-c"><h3>Alur unit</h3><div class="pd-fn">${fn.map(([l,v,sub,c,w])=>`<div class="fn-r"><span class="fn-b" style="width:${w}%;background:${c}">${v}</span><span class="fn-t"><b>${l}</b><small>${sub}</small></span></div>`).join("")}</div></div>`;
-  // tabel rencana kirim per unit (heat)
-  const mxR=Math.max(1,...items.map(k=>Number(k.rencana)||0)), mxJ=Math.max(1,...items.map(jalanItem)), mxS=Math.max(1,...items.map(sisaItem)), mxT=Math.max(1,...items.map(tibaItem));
-  const heat=(v,m,rgb)=>v?`background:rgba(${rgb},${(0.12+0.55*v/m).toFixed(2)})`:"";
-  const rows=items.map(k=>{ const r=Number(k.rencana)||0, j=jalanItem(k), sk=sisaItem(k), t=Math.min(tibaItem(k),r);
-    const eta=unitsOfItem(k).filter(u=>!arrived(u)).map(u=>muDetails(u).eta).filter(Boolean).sort()[0]||k.eta;
-    return `<tr><td class="pd-un">${esc(k.tipe)}</td><td class="n" style="${heat(r,mxR,"124,58,237")}">${r}</td><td style="${heat(j,mxJ,"249,115,22")}">${j?`${j} unit${eta?` · ETA ${fmtD(eta)}`:""}`:"–"}</td><td class="n" style="${heat(sk,mxS,"225,29,72")}">${sk||"–"}</td><td class="n" style="${heat(t,mxT,"22,163,74")}">${t||"–"}</td><td class="pd-ket">${esc(String(k.catatan||"").trim())}</td></tr>`; }).join("");
-  const table=`<div class="card pd-c pd-wide"><div class="pd-th"><div><h3>Rencana kirim per unit</h3><small>Rencana = Dalam pengiriman + Sisa kirim + Sudah tiba · warna makin pekat = angka makin besar</small></div><button type="button" class="pd-link" data-tn="pengiriman">Edit di Rencana kirim →</button></div>
-    <div class="pd-tw"><table class="pd-t"><thead><tr><th>Unit</th><th class="n">Rencana</th><th>Dalam pengiriman</th><th class="n">Sisa kirim</th><th class="n">Sudah tiba</th><th>Keterangan</th></tr></thead><tbody>${rows||`<tr><td colspan="6" class="muted">Belum ada rencana kirim.</td></tr>`}</tbody>
-    <tfoot><tr><td>Total · ${items.length} item</td><td class="n">${st.rencana}</td><td>${st.jalan}</td><td class="n">${st.sisa}</td><td class="n">${st.tiba}</td><td></td></tr></tfoot></table></div></div>`;
-  // unit belum tiba
-  const stCls=t=>/perjalanan/i.test(t)?"o":/persiapan/i.test(t)?"p":"g";
-  const bt=notArr.slice().sort((a,b)=>String(muDetails(a).eta||"9").localeCompare(String(muDetails(b).eta||"9"))).map(u=>{ const md=muDetails(u);
-    return `<tr><td>${esc(md.kategori||"–")}</td><td><b>${esc(u.kodeSementara?"belum diisi":u.kode)}</b>${md.merk?` · ${esc(md.merk)}`:""}<small>${esc(u.tipe||"")}</small></td><td>${esc(u.lokasi||"–")}</td><td>${md.etd?fmtD(md.etd):"–"}</td><td><b>${md.eta?fmtD(md.eta):"–"}</b></td><td><span class="pd-s ${stCls(u.status||"")}">${esc(u.status||"Belum dikirim")}</span></td><td>${esc(md.pic||"–")}</td><td class="pd-rm">${esc(md.catatan||"")}</td></tr>`; }).join("");
-  const blm=Math.max(0,st.rencana-pu.length);
-  const belum=`<div class="card pd-c"><h3>Unit yang belum tiba <small>${notArr.length} unit${blm?` · ${blm} belum dijadwalkan`:""}</small></h3>${notArr.length?`<div class="pd-tw"><table class="pd-t pd-t2"><thead><tr><th>Kategori</th><th>Unit</th><th>Lokasi</th><th>ETD</th><th>ETA</th><th>Status kirim</th><th>PIC</th><th>Remarks</th></tr></thead><tbody>${bt}</tbody></table></div>`:`<div class="pd-empty">Semua unit yang dijadwalkan sudah tiba.</div>`}</div>`;
+  // tabel rencana kirim per unit — kolom mengikuti "Kolom item" di Rencana kirim
+  const IC=muItemCols(), mxs={}; IC.forEach(l=>{ if(MU_KNUM[l]) mxs[l]=Math.max(1,...items.map(k=>Number(muItemVal(k,l))||0)); });
+  const heat=(l,v)=>MU_KNUM[l]&&Number(v)?`background:rgba(${MU_KNUM[l]},${(0.12+0.55*Number(v)/mxs[l]).toFixed(2)})`:"";
+  const rows=items.map(k=>`<tr><td class="pd-un">${esc(k.tipe)}</td>${IC.map(l=>{ const v=muItemVal(k,l); return MU_KNUM[l]?`<td class="n" style="${heat(l,v)}">${v||"–"}</td>`:`<td class="${l==="Keterangan"?"pd-ket":""}">${esc(String(v))}</td>`; }).join("")}</tr>`).join("");
+  const foot=IC.map(l=>MU_KNUM[l]?`<td class="n">${items.reduce((a,k)=>a+(Number(muItemVal(k,l))||0),0)}</td>`:"<td></td>").join("");
+  const table=`<div class="card pd-c pd-wide"><div class="pd-th"><div><h3>Rencana kirim per unit</h3><small>Kolom mengikuti pengaturan "Kolom item" di Rencana kirim · warna makin pekat = angka makin besar</small></div><button type="button" class="pd-link" data-tn="pengiriman">Edit di Rencana kirim →</button></div>
+    <div class="pd-tw"><table class="pd-t"><thead><tr><th>Item unit</th>${IC.map(l=>`<th class="${MU_KNUM[l]?"n":""}">${esc(l)}</th>`).join("")}</tr></thead><tbody>${rows||`<tr><td colspan="${IC.length+1}" class="muted">Belum ada rencana kirim.</td></tr>`}</tbody>
+    <tfoot><tr><td>Total · ${items.length} item</td>${foot}</tr></tfoot></table></div></div>`;
+  // unit belum tiba — sama dengan unit di Rencana kirim; kolom mengikuti "Kolom unit"
+  const UC=muUnitCols(), BT=muBelumTiba(new Set([P.id]));
+  const blm=items.reduce((a,k)=>a+Math.max(0,(Number(k.rencana)||0)-slotUnits(k).length),0);
+  const belum=`<div class="card pd-c"><h3>Unit yang belum tiba <small>${BT.length} unit${blm?` · ${blm} belum dijadwalkan`:""}</small></h3>${BT.length?`<div class="pd-tw"><table class="pd-t pd-t2"><thead><tr><th>Item unit</th>${UC.map(l=>`<th>${esc(l)}</th>`).join("")}</tr></thead><tbody>${BT.map(([u,k])=>`<tr><td>${esc(k.tipe)}</td>${UC.map(l=>{ const v=muUnitVal(u,k,l); return `<td class="${l==="No. lambung"&&v==="belum diisi"?"pd-tmp":""}">${esc(v)}</td>`; }).join("")}</tr>`).join("")}</tbody></table></div>`:`<div class="pd-empty">Semua unit yang dijadwalkan sudah tiba.</div>`}</div>`;
   // populasi unit di lokasi
   const pj=new Map(); atLoc.forEach(u=>pj.set(u.tipe,(pj.get(u.tipe)||0)+1));
   const pop=`<div class="card pd-c"><h3>Populasi unit <small>${atLoc.length} unit</small></h3>${atLoc.length?`<ul class="pd-pop">${[...pj.entries()].sort((a,b)=>b[1]-a[1]).map(([t,n])=>`<li><span>${esc(t)}</span><b>${n}</b></li>`).join("")}</ul><button type="button" class="pd-link" data-tn="unit">Lihat di Populasi Unit →</button>`:`<div class="pd-empty">Belum ada unit di lokasi. Unit otomatis muncul di sini setelah statusnya Tiba.</div>`}</div>`;
   const F=MU_PRINT_FULL, sec=DSEC, nm=(MU_DSEC.find(x=>x[0]===sec)||MU_DSEC[0])[1];
-  const head=`<div class="hk-ph2 pd-head"><div><div class="hk-eb">Dashboard · ${esc(P.kode)} · ${esc(F?"Lengkap":nm)}</div><h2>${esc(F?"Dashboard "+P.kode:nm)}</h2><p>Klik angka atau kotak untuk membuka detailnya. Pilih project lain atau klik project yang aktif di menu untuk kembali ke semua project. Print tetap mencetak dashboard lengkap.</p></div></div>
+  const head=`<div class="hk-ph2 pd-head"><div><div class="hk-eb">Dashboard · ${esc(P.kode)} · ${esc(F?"Lengkap":nm)}</div><h2>${esc(F?"Dashboard "+P.kode:nm)}</h2><p>Klik angka atau kotak untuk membuka detailnya. Pilih project lain atau klik project yang aktif di menu untuk kembali ke semua project. Print mencetak bagian yang sedang dibuka (bisa pilih lengkap).</p></div></div>
     <div class="hk-secs pd-secs" role="tablist">${MU_DSEC.map(([k,n])=>`<button type="button" data-dsec="${k}" class="${k===sec?"on":""}">${n}</button>`).join("")}</div>`;
-  const body=(F||sec==="ringkasan"?kpis+`<div class="pd-row3">${chart}${status}${funnel}</div>`:"")+(F||sec==="progres"?table+`<div class="pd-row2">${belum}${pop}</div>`:"")+(!F&&sec==="populasi"?`<div class="pd-row2">${pop}<div></div></div>`:"");
+  const body=(F||sec==="ringkasan"?kpis+`<div class="pd-row3">${chart}${status}${funnel}</div>`:"")+(F||sec==="progres"?`<div class="pd-row2">${table}${pop}</div>${belum}`:"")+(!F&&sec==="populasi"?`<div class="pd-row2">${pop}<div></div></div>`:"");
   el.innerHTML=`<div class="pd">${head}${body}${F||sec==="ringkasan"||sec==="progres"?`<div class="pd-foot"><span>Diupdate ${st.last?fmtTime(st.last):"—"}</span><span>Monitoring Unit · PT KMB</span></div>`:""}</div>`;
 }
 function renderProjDash(P){
@@ -3379,6 +3378,21 @@ function renderPopDash(){
 
 /* Dashboard semua project: ringkas, satu kartu per project (seperti beranda Portal MPP) */
 let MU_PRINT_FULL=false;
+/* Satu sumber kolom untuk Dashboard project & print: mengikuti Atur kolom (Kolom item / Kolom unit) di Rencana kirim */
+const MU_KNUM={"Rencana":"124,58,237","Dlm perjalanan":"249,115,22","Sisa kirim":"225,29,72","Tiba":"22,163,74","Rencana awal":"148,163,184"};
+function muItemVal(k,l){ const r=Number(k.rencana)||0, aw=Number(k.rencanaAwal)||r, us=slotUnits(k);
+  switch(l){
+    case "Rencana": return r; case "Rencana awal": return aw; case "Tiba": return Math.min(tibaItem(k),r); case "Dlm perjalanan": return jalanItem(k);
+    case "Sisa kirim": { const sk=r-tibaItem(k)-jalanItem(k); return sk>=0?sisaItem(k):"lebih "+(-sk); }
+    case "Perubahan": return r!==aw?(r-aw>0?"+":"")+(r-aw):"–";
+    case "Status unit": { const m=new Map(); us.forEach(u=>{ const t=String(u.status||"").trim()||"Status kosong"; m.set(t,(m.get(t)||0)+1); }); const blm=Math.max(0,r-us.length); return [...[...m.entries()].map(([t,n])=>t+" "+n),blm?"Belum dijadwalkan "+blm:""].filter(Boolean).join(", ")||"–"; }
+    case "ETA": { const e=us.filter(u=>!arrived(u)).map(u=>muDetails(u).eta).filter(Boolean).sort()[0]||k.eta; return e?fmtD(e):"–"; }
+    case "Keterangan": return String(k.catatan||"").trim(); case "Via": return k.moda||"–"; case "Asal": return k.asal||"–";
+  } return ""; }
+function muItemCols(){ try{ return muKCols(); }catch(e){ return ["Rencana","Status unit","Sisa kirim"]; } }
+function muUnitCols(){ try{ return muCfVisibleCols(); }catch(e){ return ["ETD","ETA","No. lambung","Status"]; } }
+function muBelumTiba(pids){ const rows=[]; S.kirim.filter(k=>pids.has(k.projectId)).forEach(k=>slotUnits(k).forEach(u=>{ if(!arrived(u)) rows.push([u,k]); })); return rows; }
+function muUnitVal(u,k,l){ const v=(MU_CFV[l]||(()=>""))(u,k,muDetails(u)); return v===KONG?"–":v; }
 /* Laporan print Dashboard: tabel rapi; isi mengikuti sub menu & project yang dipilih (atau lengkap) */
 function muPrintDash(full){
   const P=curProj(), ps=P?[P]:projects(), sec=DSEC, nm=(MU_DSEC.find(x=>x[0]===sec)||MU_DSEC[0])[1];
@@ -3403,15 +3417,15 @@ function muPrintDash(full){
   }
   // per project
   if(want("progres")){
-    SS.forEach(({p,s})=>{ const us=S.units.filter(u=>u.projectId===p.id), loc=us.filter(arrived), nar=us.filter(u=>!arrived(u));
-      const it=s.items.map(k=>{ const r=Number(k.rencana)||0, t=Math.min(tibaItem(k),r), j=jalanItem(k), sk=sisaItem(k); const eta=unitsOfItem(k).filter(u=>!arrived(u)).map(u=>muDetails(u).eta).filter(Boolean).sort()[0]||k.eta;
-        return `<tr><td>${esc(k.tipe)}</td><td class="n">${r}</td><td class="n">${dash(t)}</td><td class="n">${dash(j)}</td><td class="n ${sk?"rd":""}">${dash(sk)}</td><td>${eta?fmtD(eta):"–"}</td><td class="mut">${esc(String(k.catatan||"").trim())}</td></tr>`; }).join("");
+    const IC=muItemCols(), UC=muUnitCols();
+    SS.forEach(({p,s})=>{ const us=S.units.filter(u=>u.projectId===p.id), loc=us.filter(arrived), nar=muBelumTiba(new Set([p.id]));
+      const it=s.items.map(k=>`<tr><td>${esc(k.tipe)}</td>${IC.map(l=>{ const v=muItemVal(k,l); return MU_KNUM[l]?`<td class="n ${l==="Sisa kirim"&&Number(v)?"rd":""}">${v||"–"}</td>`:`<td class="${l==="Keterangan"?"mut":""}">${esc(String(v))}</td>`; }).join("")}</tr>`).join("");
+      const ft=IC.map(l=>MU_KNUM[l]?`<td class="n">${s.items.reduce((a,k)=>a+(Number(muItemVal(k,l))||0),0)}</td>`:"<td></td>").join("");
       const lj=new Map(); loc.forEach(u=>{ const o=lj.get(u.tipe)||{n:0,st:new Map()}; o.n++; const k=String(u.status||"").trim()||"Tiba"; o.st.set(k,(o.st.get(k)||0)+1); lj.set(u.tipe,o); });
       out.push(`<section class="pr-sec pr-proj"><div class="pj"><span><b>${esc(p.kode)}</b>${[p.nama,p.lokasi].filter(Boolean).map(x=>" · "+esc(x)).join("")}</span><span>${s.rencana} rencana · ${s.tiba} tiba · ${s.jalan} dlm perjalanan · <b class="${s.sisa?"rd":""}">${s.sisa} sisa</b></span></div>
-        <div class="two"><div><h2>Rencana kirim per item</h2>${it?`<table><thead><tr><th>Item unit</th><th class="n">Rencana</th><th class="n">Tiba</th><th class="n">Dlm jalan</th><th class="n">Sisa</th><th>ETA terdekat</th><th>Keterangan</th></tr></thead><tbody>${it}</tbody><tfoot><tr><td>Total · ${s.items.length} item</td><td class="n">${s.rencana}</td><td class="n">${s.tiba}</td><td class="n">${s.jalan}</td><td class="n">${s.sisa}</td><td></td><td></td></tr></tfoot></table>`:'<p class="mut">Belum ada rencana kirim.</p>'}</div>
+        <div class="two"><div><h2>Rencana kirim per item</h2>${it?`<table><thead><tr><th>Item unit</th>${IC.map(l=>`<th class="${MU_KNUM[l]?"n":""}">${esc(l)}</th>`).join("")}</tr></thead><tbody>${it}</tbody><tfoot><tr><td>Total · ${s.items.length} item</td>${ft}</tr></tfoot></table>`:'<p class="mut">Belum ada rencana kirim.</p>'}</div>
         <div><h2>Populasi di lokasi <small>${loc.length} unit</small></h2>${loc.length?`<table><thead><tr><th>Jenis</th><th class="n">Unit</th><th>Status</th></tr></thead><tbody>${[...lj.entries()].sort((a,b)=>b[1].n-a[1].n).map(([t,o])=>`<tr><td>${esc(t)}</td><td class="n">${o.n}</td><td>${[...o.st.entries()].map(([k,n])=>`${esc(k)} ${n}`).join(", ")}</td></tr>`).join("")}</tbody></table>`:'<p class="mut">Belum ada unit di lokasi.</p>'}</div></div>
-        ${nar.length?`<h2>Unit yang belum tiba <small>${nar.length} unit</small></h2><table><thead><tr><th>Kategori</th><th>Unit</th><th>Lokasi</th><th>ETD</th><th>ETA</th><th>Status kirim</th><th>PIC</th><th>Remarks</th></tr></thead><tbody>${nar.map(u=>{ const md=muDetails(u), tmp=u.kodeSementara||!String(u.kode||"").trim();
-          return `<tr><td>${esc(md.kategori||"–")}</td><td class="${tmp?"bd":""}">${esc(tmp?"belum diisi":u.kode)}${md.merk?" · "+esc(md.merk):""}<small>${esc(u.tipe||"")}</small></td><td>${esc(u.lokasi||"–")}</td><td>${md.etd?fmtD(md.etd):"–"}</td><td>${md.eta?fmtD(md.eta):"–"}</td><td>${esc(u.status||"Belum dikirim")}</td><td>${esc(md.pic||"–")}</td><td class="mut">${esc(md.catatan||"")}</td></tr>`; }).join("")}</tbody></table>`:""}</section>`); });
+        ${nar.length?`<h2>Unit yang belum tiba <small>${nar.length} unit</small></h2><table><thead><tr><th>Item unit</th>${UC.map(l=>`<th>${esc(l)}</th>`).join("")}</tr></thead><tbody>${nar.map(([u,k])=>`<tr><td>${esc(k.tipe)}</td>${UC.map(l=>{ const v=muUnitVal(u,k,l); return `<td class="${l==="No. lambung"&&v==="belum diisi"?"bd":""}">${esc(v)}</td>`; }).join("")}</tr>`).join("")}</tbody></table>`:""}</section>`); });
   }
   // populasi
   if(want("populasi")){
@@ -3475,7 +3489,7 @@ function renderHkHome(L,ps){
   const el=$("#hkHome"); if(!el) return;
   const secName=(MU_DSEC.find(x=>x[0]===DSEC)||MU_DSEC[0])[1];
   const lastU=S.units.concat(S.kirim).map(x=>x.updatedAt||x.waktu||"").filter(Boolean).sort().pop();
-  const head=`<div class="hk-ph2"><div><div class="hk-eb">Dashboard · ${esc(MU_PRINT_FULL?"Lengkap":secName)}</div><h2>${esc(MU_PRINT_FULL?"Dashboard Monitoring Unit":secName)}</h2><p>Klik angka atau project mana pun untuk membuka detailnya. Print tetap mencetak dashboard lengkap.</p></div>
+  const head=`<div class="hk-ph2"><div><div class="hk-eb">Dashboard · ${esc(MU_PRINT_FULL?"Lengkap":secName)}</div><h2>${esc(MU_PRINT_FULL?"Dashboard Monitoring Unit":secName)}</h2><p>Klik angka atau project mana pun untuk membuka detailnya. Print mencetak bagian yang sedang dibuka (bisa pilih lengkap).</p></div>
       <div class="hk-ph2-r"><span class="hk-upd"><i></i><span><small>Update terakhir</small><b>${lastU?fmtTime(lastU):"—"}</b></span></span>${canWrite?`<button class="btn" data-act="addProj" type="button">+ Project</button>`:""}</div></div>
     <div class="hk-secs" role="tablist">${MU_DSEC.map(([k,n])=>`<button type="button" data-dsec="${k}" class="${k===DSEC?"on":""}" aria-selected="${k===DSEC}">${n}</button>`).join("")}</div>`;
   if(!ps.length){ el.innerHTML=head+`<div class="card">${emptyState(L?"Memuat data…":"Belum ada project",L?"":"Tambahkan project dan item unit yang direncanakan dikirim.",canWrite&&!L?`<button class="btn primary small" data-act="addProj" type="button">+ Project</button>`:"")}</div>`; return; }
