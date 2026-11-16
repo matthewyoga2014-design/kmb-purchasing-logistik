@@ -3379,6 +3379,86 @@ function renderPopDash(){
 
 /* Dashboard semua project: ringkas, satu kartu per project (seperti beranda Portal MPP) */
 let MU_PRINT_FULL=false;
+/* Laporan print Dashboard: tabel rapi; isi mengikuti sub menu & project yang dipilih (atau lengkap) */
+function muPrintDash(full){
+  const P=curProj(), ps=P?[P]:projects(), sec=DSEC, nm=(MU_DSEC.find(x=>x[0]===sec)||MU_DSEC[0])[1];
+  const want=k=>full||sec===k;
+  const SS=ps.map(p=>({p,s:projStats(p.id)})), T=SS.reduce((a,{s})=>({r:a.r+s.rencana,t:a.t+s.tiba,j:a.j+s.jalan,k:a.k+s.sisa}),{r:0,t:0,j:0,k:0});
+  const pids=new Set(ps.map(p=>p.id)), pu=S.units.filter(u=>pids.has(u.projectId)), atLoc=pu.filter(arrived);
+  const bar=(r,t,j)=>{ const w=n=>r?(n/r*100).toFixed(0)+"%":"0%"; return `<span class="bar"><i style="width:${w(t)};background:#16A34A"></i><i style="width:${w(j)};background:#2563EB"></i></span>`; };
+  const dash=v=>v?v:"–";
+  const out=[];
+  // ringkasan
+  if(want("ringkasan")){
+    const chk=[];
+    SS.filter(x=>x.s.sisa>0).sort((a,b)=>b.s.sisa-a.s.sisa).forEach(({p,s})=>chk.push({c:"#E11D48",t:`${p.kode} · ${s.sisa} unit belum dikirim`,d:`${s.items.length} item unit · ${pct(s.tiba,s.rencana)}% tiba`}));
+    SS.forEach(({p})=>{ const u=S.units.filter(x=>x.projectId===p.id), bd=u.filter(x=>/breakdown/i.test(x.status||"")).length, tmp=u.filter(x=>x.kodeSementara||!String(x.kode||"").trim()).length;
+      if(bd) chk.push({c:"#E11D48",t:`${p.kode} · ${bd} unit Breakdown`,d:"Cek kondisi di Populasi Unit"}); if(tmp) chk.push({c:"#F59E0B",t:`${p.kode} · ${tmp} nomor lambung belum diisi`,d:"Masih memakai nomor sementara"}); });
+    out.push(`<section class="pr-sec"><div class="kpi"><div><small>Unit rencana</small><b>${T.r}</b></div><div><small>Sudah tiba</small><b style="color:#16A34A">${T.t}</b><span>${pct(T.t,T.r)}%</span></div><div><small>Dalam perjalanan</small><b style="color:#2563EB">${T.j}</b><span>${pct(T.j,T.r)}%</span></div><div><small>Sisa kirim</small><b style="color:#E11D48">${T.k}</b><span>${pct(T.k,T.r)}%</span></div><div><small>Populasi di lokasi</small><b>${atLoc.length}</b><span>${new Set(atLoc.map(u=>u.tipe)).size} jenis</span></div></div>
+      <div class="two"><div><h2>Progres per project</h2><table><thead><tr><th>Project</th><th class="n">Rencana</th><th class="n">Tiba</th><th class="n">Dlm jalan</th><th class="n">Sisa</th><th>Progres</th><th class="n">% tiba</th></tr></thead><tbody>
+        ${SS.map(({p,s})=>`<tr><td><b>${esc(p.kode)}</b><small>${esc([p.nama,p.lokasi].filter(Boolean).join(" · "))}</small></td><td class="n">${s.rencana}</td><td class="n">${s.tiba}</td><td class="n">${s.jalan}</td><td class="n ${s.sisa?"rd":""}">${s.sisa}</td><td>${bar(s.rencana,s.tiba,s.jalan)}</td><td class="n"><b>${pct(s.tiba,s.rencana)}%</b></td></tr>`).join("")}</tbody>
+        <tfoot><tr><td>Total · ${ps.length} project</td><td class="n">${T.r}</td><td class="n">${T.t}</td><td class="n">${T.j}</td><td class="n">${T.k}</td><td>${bar(T.r,T.t,T.j)}</td><td class="n">${pct(T.t,T.r)}%</td></tr></tfoot></table>
+        <div class="leg"><i style="background:#16A34A"></i>tiba<i style="background:#2563EB"></i>dalam perjalanan<i style="background:#F6D3DB"></i>sisa kirim</div></div>
+      <div><h2>Perlu dicek</h2>${chk.length?`<ul>${chk.slice(0,12).map(x=>`<li><i style="background:${x.c}"></i><b>${esc(x.t)}</b><small>${esc(x.d)}</small></li>`).join("")}</ul>`:'<p class="mut">Tidak ada yang perlu dicek.</p>'}</div></div></section>`);
+  }
+  // per project
+  if(want("progres")){
+    SS.forEach(({p,s})=>{ const us=S.units.filter(u=>u.projectId===p.id), loc=us.filter(arrived), nar=us.filter(u=>!arrived(u));
+      const it=s.items.map(k=>{ const r=Number(k.rencana)||0, t=Math.min(tibaItem(k),r), j=jalanItem(k), sk=sisaItem(k); const eta=unitsOfItem(k).filter(u=>!arrived(u)).map(u=>muDetails(u).eta).filter(Boolean).sort()[0]||k.eta;
+        return `<tr><td>${esc(k.tipe)}</td><td class="n">${r}</td><td class="n">${dash(t)}</td><td class="n">${dash(j)}</td><td class="n ${sk?"rd":""}">${dash(sk)}</td><td>${eta?fmtD(eta):"–"}</td><td class="mut">${esc(String(k.catatan||"").trim())}</td></tr>`; }).join("");
+      const lj=new Map(); loc.forEach(u=>{ const o=lj.get(u.tipe)||{n:0,st:new Map()}; o.n++; const k=String(u.status||"").trim()||"Tiba"; o.st.set(k,(o.st.get(k)||0)+1); lj.set(u.tipe,o); });
+      out.push(`<section class="pr-sec pr-proj"><div class="pj"><span><b>${esc(p.kode)}</b>${[p.nama,p.lokasi].filter(Boolean).map(x=>" · "+esc(x)).join("")}</span><span>${s.rencana} rencana · ${s.tiba} tiba · ${s.jalan} dlm perjalanan · <b class="${s.sisa?"rd":""}">${s.sisa} sisa</b></span></div>
+        <div class="two"><div><h2>Rencana kirim per item</h2>${it?`<table><thead><tr><th>Item unit</th><th class="n">Rencana</th><th class="n">Tiba</th><th class="n">Dlm jalan</th><th class="n">Sisa</th><th>ETA terdekat</th><th>Keterangan</th></tr></thead><tbody>${it}</tbody><tfoot><tr><td>Total · ${s.items.length} item</td><td class="n">${s.rencana}</td><td class="n">${s.tiba}</td><td class="n">${s.jalan}</td><td class="n">${s.sisa}</td><td></td><td></td></tr></tfoot></table>`:'<p class="mut">Belum ada rencana kirim.</p>'}</div>
+        <div><h2>Populasi di lokasi <small>${loc.length} unit</small></h2>${loc.length?`<table><thead><tr><th>Jenis</th><th class="n">Unit</th><th>Status</th></tr></thead><tbody>${[...lj.entries()].sort((a,b)=>b[1].n-a[1].n).map(([t,o])=>`<tr><td>${esc(t)}</td><td class="n">${o.n}</td><td>${[...o.st.entries()].map(([k,n])=>`${esc(k)} ${n}`).join(", ")}</td></tr>`).join("")}</tbody></table>`:'<p class="mut">Belum ada unit di lokasi.</p>'}</div></div>
+        ${nar.length?`<h2>Unit yang belum tiba <small>${nar.length} unit</small></h2><table><thead><tr><th>Kategori</th><th>Unit</th><th>Lokasi</th><th>ETD</th><th>ETA</th><th>Status kirim</th><th>PIC</th><th>Remarks</th></tr></thead><tbody>${nar.map(u=>{ const md=muDetails(u), tmp=u.kodeSementara||!String(u.kode||"").trim();
+          return `<tr><td>${esc(md.kategori||"–")}</td><td class="${tmp?"bd":""}">${esc(tmp?"belum diisi":u.kode)}${md.merk?" · "+esc(md.merk):""}<small>${esc(u.tipe||"")}</small></td><td>${esc(u.lokasi||"–")}</td><td>${md.etd?fmtD(md.etd):"–"}</td><td>${md.eta?fmtD(md.eta):"–"}</td><td>${esc(u.status||"Belum dikirim")}</td><td>${esc(md.pic||"–")}</td><td class="mut">${esc(md.catatan||"")}</td></tr>`; }).join("")}</tbody></table>`:""}</section>`); });
+  }
+  // populasi
+  if(want("populasi")){
+    const t=document.querySelector("#popDash table.mu-pt-table"); let html='<p class="mut">Belum ada unit yang tercatat.</p>';
+    if(t){ try{ muColApplyAll(); }catch(e){} const c=t.cloneNode(true); c.querySelectorAll("[data-col-hid]").forEach(x=>x.remove()); c.querySelectorAll('[style*="display: none"]').forEach(x=>x.remove()); c.querySelectorAll(".mu-rsz,button").forEach(x=>x.remove()); c.removeAttribute("class"); c.querySelectorAll("th,td").forEach(x=>{ x.style.width=""; x.style.minWidth=""; x.style.maxWidth=""; }); html=c.outerHTML; }
+    out.push(`<section class="pr-sec"><h2>Rekap Populasi Unit <small>${P?esc(P.kode):"semua project"} · ${pu.length} unit</small></h2>${html}</section>`);
+  }
+  // mobilisasi
+  if(want("mob")){
+    const ms=S.mobs.filter(m=>isAktif(m)&&pids.has(mobProj(m))).sort((a,b)=>(a.tanggal+a.jam).localeCompare(b.tanggal+b.jam));
+    out.push(`<section class="pr-sec"><h2>Jadwal mobilisasi <small>${ms.length} aktif</small></h2>${ms.length?`<table><thead><tr><th>Tanggal</th><th>Jam</th><th>Unit</th><th>Project</th><th>Tujuan</th><th>Status</th><th>Catatan</th></tr></thead><tbody>${ms.map(m=>`<tr><td>${fmtD(m.tanggal)}</td><td>${esc(m.jam||"–")}</td><td><b>${esc(m.unitKode||"–")}</b></td><td>${esc(projKode(mobProj(m)))}</td><td>${esc(m.ke||m.tujuan||"–")}</td><td>${esc(m.status||"")}</td><td class="mut">${esc(m.catatan||"")}</td></tr>`).join("")}</tbody></table>`:'<p class="mut">Belum ada mobilisasi terjadwal.</p>'}</section>`);
+  }
+  // perubahan rencana
+  if(want("rev")){
+    const rv=S.revisi.filter(r=>pids.has(r.projectId)||(S.kirim.find(k=>k.id===r.kirimId)||{}).projectId&&pids.has((S.kirim.find(k=>k.id===r.kirimId)||{}).projectId)).slice().sort((a,b)=>String(b.waktu||"").localeCompare(String(a.waktu||"")));
+    out.push(`<section class="pr-sec"><h2>Perubahan rencana <small>${rv.length} perubahan</small></h2>${rv.length?`<table><thead><tr><th>Tanggal</th><th>Project</th><th>Item unit</th><th class="n">Jumlah</th><th class="n">Selisih</th><th>Jenis</th><th>Alasan</th><th>Oleh</th></tr></thead><tbody>${rv.map(r=>{ const k=S.kirim.find(x=>x.id===r.kirimId)||{}; const d=(Number(r.baru)||0)-(Number(r.lama)||0);
+      return `<tr><td>${fmtTime(r.waktu)}</td><td>${esc(projKode(r.projectId||k.projectId))}</td><td>${esc(k.tipe||r.tipe||"–")}</td><td class="n">${r.lama} → ${r.baru}</td><td class="n ${d<0?"rd":""}">${d>0?"+":""}${d}</td><td>${esc(revJenis(r))}</td><td class="mut">${esc(r.alasan||"")}</td><td class="mut">${esc(r.oleh||"")}</td></tr>`; }).join("")}</tbody></table>`:'<p class="mut">Belum ada perubahan rencana.</p>'}</section>`);
+  }
+  const judul=`Laporan Monitoring Unit${P?" · "+P.kode:""}`, sub=`${P?[P.nama,P.lokasi].filter(Boolean).join(" · "):`Semua project · ${ps.length} project`} · ${full?"Dashboard lengkap":nm}`;
+  const html=`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>${esc(judul)} - ${todayStr()}</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap">
+  <style>@page{size:A4 landscape;margin:9mm 9mm 12mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  html,body{margin:0;background:#fff;font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:#1E1B3A}
+  .hd{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid #6D28D9;padding-bottom:6px;margin-bottom:10px}.hd h1{margin:0;font-size:17px}.hd small{font-size:9.5px;color:#4B4868}.hd .r{text-align:right}
+  h2{font-size:12px;margin:10px 0 5px;display:flex;justify-content:space-between;align-items:baseline;break-after:avoid}h2 small{font-weight:500;color:#6B6985;font-size:9px}
+  .pr-sec{margin-bottom:10px}.pr-proj{break-inside:avoid;page-break-inside:avoid;border-top:1px dashed #E6E4F2;padding-top:6px}.pr-proj:first-child{border-top:0}
+  .kpi{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid #E6E4F2;border-radius:6px;overflow:hidden}.kpi div{padding:7px 10px;border-right:1px solid #E6E4F2}.kpi div:last-child{border-right:0}.kpi small{display:block;font-size:8.5px;color:#6B6985;font-weight:600;text-transform:uppercase;letter-spacing:.04em}.kpi b{font-size:18px}.kpi span{font-size:8.5px;color:#6B6985;margin-left:4px}
+  table{width:100%;border-collapse:collapse;font-size:9.5px}thead{display:table-header-group}tr{break-inside:avoid}
+  th{background:#F4F1FD;text-align:left;font-size:7.8px;text-transform:uppercase;letter-spacing:.04em;color:#4B4868;padding:4px 6px;border:1px solid #E6E4F2;white-space:nowrap}
+  td{padding:3.5px 6px;border:1px solid #E6E4F2;vertical-align:middle}td small{display:block;font-size:8px;color:#6B6985}.n{text-align:right;font-variant-numeric:tabular-nums}.rd{color:#E11D48;font-weight:700}.mut{color:#4B4868}.bd{color:#B45309;font-weight:700}
+  td *{font-size:inherit}td .chip,td .tag,td .mu-vendor-tag,td .mu-brand-tag{background:none!important;border:0!important;padding:0!important}
+  tfoot td{font-weight:800;background:#FAF9FE}
+  .bar{display:flex;height:6px;width:110px;border-radius:4px;overflow:hidden;background:#F6D3DB}.bar i{display:block;height:100%}
+  .two{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;align-items:start}
+  ul{margin:0;padding:0;list-style:none;font-size:9.5px}li{padding:4px 0 4px 12px;border-bottom:1px solid #EEE;position:relative}li b{display:block}li small{color:#6B6985;font-size:8.5px}li i{position:absolute;left:0;top:7px;width:7px;height:7px;border-radius:50%}
+  .pj{background:#F4F1FD;border-radius:6px;padding:6px 10px;font-size:10px;margin:0 0 4px;display:flex;justify-content:space-between;gap:10px}.pj b{font-size:12px}.pj .rd{font-size:10px}
+  .leg{font-size:8.5px;color:#6B6985;margin-top:4px}.leg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin:0 3px 0 10px;vertical-align:-1px}
+  p.mut{font-size:9.5px;color:#8C88A8;margin:2px 0}
+  </style></head><body>
+  <div class="hd"><div><h1>${esc(judul)}</h1><small>${esc(sub)}</small></div><small class="r">Dicetak ${esc(new Date().toLocaleString("id-ID",{dateStyle:"long",timeStyle:"short"}))}${meEmail?"<br>"+esc(meEmail):""}</small></div>
+  ${out.join("")}</body></html>`;
+  let fr=document.getElementById("muPrintFrame"); if(fr) fr.remove();
+  fr=document.createElement("iframe"); fr.id="muPrintFrame"; fr.setAttribute("aria-hidden","true");
+  fr.style.cssText="position:fixed;left:-20000px;top:0;width:1060px;height:800px;border:0;visibility:hidden"; document.body.appendChild(fr);
+  const doc=fr.contentWindow.document; doc.open(); doc.write(html); doc.close();
+  setTimeout(()=>{ try{ fr.contentWindow.focus(); fr.contentWindow.print(); }catch(e){ toast("Gagal membuka jendela print."); } },500);
+}
 let MU_CHART_P=(()=>{ try{ const v=localStorage.getItem("mu_chart_p"); return ["hari","minggu","bulan","tahun"].includes(v)?v:"minggu"; }catch(e){ return "minggu"; } })();
 document.addEventListener("click",e=>{
   const pb=e.target.closest("[data-pdper]"); if(pb){ MU_CHART_P=pb.dataset.pdper; try{ localStorage.setItem("mu_chart_p",MU_CHART_P); }catch(er){} const P=curProj(); if(P) renderProjDash2(P); return; }
@@ -3387,8 +3467,7 @@ document.addEventListener("click",e=>{
 /* Print dari Dashboard selalu mencetak dashboard lengkap (semua bagian), seperti portal Monitoring Manpower */
 function muPrintFullOn(){ if(MU_PRINT_FULL||S.tab!=="ringkasan") return false; MU_PRINT_FULL=true; document.body.classList.add("mu-print-full"); try{ renderRingkasan(); muColApplyAll(); }catch(e){} return true; }
 function muPrintFullOff(){ if(!MU_PRINT_FULL) return; MU_PRINT_FULL=false; document.body.classList.remove("mu-print-full"); try{ renderRingkasan(); }catch(e){} }
-window.addEventListener("beforeprint",()=>{ muPrintFullOn(); });
-window.addEventListener("afterprint",()=>{ setTimeout(muPrintFullOff,0); });
+// (print Dashboard sekarang memakai laporan khusus muPrintDash, mengikuti bagian yang dipilih)
 const MU_DSEC=[["ringkasan","Ringkasan pengiriman"],["progres","Progres per project"],["populasi","Populasi unit"],["mob","Jadwal mobilisasi"],["rev","Perubahan rencana"]];
 let DSEC=(()=>{ try{ const v=localStorage.getItem("mu_dsec"); return MU_DSEC.some(x=>x[0]===v)?v:"ringkasan"; }catch(e){ return "ringkasan"; } })();
 function muSetDsec(k){ DSEC=k; try{ localStorage.setItem("mu_dsec",k); }catch(e){} }
@@ -5147,6 +5226,11 @@ $("#btnPrint").addEventListener("click",()=>{
   if(!(role==="owner"||role==="editor"||(GUEST_SHARE&&role==="viewer"))){ toast("Print hanya untuk Pemilik, Editor, dan Pelihat yang memiliki link khusus."); return; }
   const P=curProj(), TAB={ringkasan:"Dashboard",pengiriman:"Rencana Kirim",unit:"Unit di Lokasi",mobilisasi:"Rencana Mobilisasi",dokumentasi:"Dokumentasi"};
   const judul=P?`Monitoring Unit ${P.kode} · ${TAB[S.tab]||"Dashboard"}`:"Monitoring Unit & Mobilisasi · Semua Project";
+  if(S.tab==="ringkasan"){ const nm=(MU_DSEC.find(x=>x[0]===DSEC)||MU_DSEC[0])[1];
+    openForm({title:"Print Dashboard",desc:`${P?P.kode:"Semua project"} · bagian yang sedang dibuka: ${nm}.`,ok:"Print",
+      fields:[{key:"isi",label:"Yang dicetak",type:"select",options:[`Bagian ini saja (${nm})`,"Dashboard lengkap"],full:true,hint:"Laporan disusun rapi untuk kertas A4 landscape."}],
+      values:{isi:`Bagian ini saja (${nm})`},onSubmit:v=>{ setTimeout(()=>muPrintDash(v.isi==="Dashboard lengkap"),60); }});
+    return; }
   const ph=$("#printHead"); ph.innerHTML=`<b>${esc(judul)}</b><span>${P&&P.nama?esc(P.nama)+"<br>":""}Dicetak ${esc(new Date().toLocaleString("id-ID",{dateStyle:"long",timeStyle:"short"}))} · ${esc(meEmail)}</span>`;
   const oldTitle=document.title;
   const go=o=>{ const withB=o.bukti; document.body.classList.toggle("mu-print-norev",!o.rev); let pb=document.getElementById("printBukti"); if(!pb){ pb=document.createElement("div"); pb.id="printBukti"; pb.className="print-only-bukti"; const st=document.createElement("style"); st.textContent="#printBukti{display:none}@media print{#printBukti{display:block}}"+MU_PB_CSS; pb.appendChild(st); document.querySelector("main").appendChild(pb); }
