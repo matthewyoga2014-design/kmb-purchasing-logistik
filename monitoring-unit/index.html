@@ -183,7 +183,7 @@ body.has-topnav .hero,body.has-topnav .scene,body.has-topnav .side-l,body.has-to
 .pd-foot{display:flex;justify-content:space-between;background:linear-gradient(110deg,#4C1D95,#3730A3);color:#E0DBFF;border-radius:16px;padding:12px 20px;font-size:13px}
 @media (max-width:1100px){.pd-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.pd-row3,.pd-row2{grid-template-columns:1fr}}
 @media (max-width:640px){.pd-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-body.has-topnav.mu-projdash #kpis,body.has-topnav.mu-projdash #popDash,body.has-topnav.mu-projdash #dashControls,body.has-topnav.mu-projdash #fbar{display:none!important}
+html body.mu-projdash.mu-projdash #kpis,html body.mu-projdash.mu-projdash #popDash,html body.mu-projdash.mu-projdash #dashControls{display:none!important}
 .mu-pt .pt-h{margin:2px 0 0;font-size:18px}
 .pt-kpi{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border:1px solid #F0EEF6;border-radius:14px;margin:12px 0;background:#fff;overflow:hidden}
 .pt-kpi div{padding:10px 16px;border-right:1px solid #F0EEF6}.pt-kpi div:last-child{border-right:0}.pt-kpi small{display:block;font-size:11.5px;color:#6B6985;font-weight:600}.pt-kpi b{font-size:22px;font-weight:800}
@@ -213,6 +213,16 @@ body.has-topnav.mu-projdash #kpis,body.has-topnav.mu-projdash #popDash,body.has-
  body.has-side .hk-secs{display:none}
  body.mu-home .hero{display:none!important}
 }
+.sd-pusat{display:block;background:#F3EEFF;color:#5B21B6;font-weight:700;font-size:13px;border-radius:10px;padding:9px 12px;text-decoration:none;margin-bottom:10px}.sd-pusat:hover{background:#EDE5FF}
+.sd-lab{font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:#8C88A8;margin:14px 10px 4px}
+.hk-ph2{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.hk-ph2 .hk-eb{font-size:11.5px;letter-spacing:.12em;text-transform:uppercase}.hk-ph2 h2{margin:4px 0 4px;font-size:30px;font-weight:800;letter-spacing:-.01em}.hk-ph2 p{margin:0;font-size:13.5px;color:var(--muted)}
+.hk-ph2-r{display:flex;gap:10px;align-items:center}.hk-upd{display:flex;align-items:center;gap:10px;background:#fff;border:1px solid #E8E5F3;border-radius:14px;padding:9px 14px}.hk-upd>i{width:10px;height:10px;border-radius:50%;background:#22C55E;box-shadow:0 0 0 4px #DCFCE7}.hk-upd small{display:block;font-size:11px;color:#8C88A8}.hk-upd b{font-size:13.5px}
+.hk-pt-h{margin:8px 0 0;font-size:16px;break-after:avoid;page-break-after:avoid}
+.mu-topnav:empty{display:none!important}
+.sd-q{flex:none;min-height:36px}
+html body.mu-print-full.mu-print-full.mu-print-full.mu-print-full #popDash{display:block!important}html body.mu-print-full.mu-print-full.mu-print-full.mu-print-full #ovBottom{display:grid!important;grid-template-columns:1fr 1fr!important}html body.mu-print-full.mu-print-full.mu-print-full.mu-print-full #ovBottom>.card{display:block!important}
+@media print{body.has-side main.pad{padding-left:0!important}.hk-ph2-r .btn,.hk-secs{display:none!important}}
 .sd-q{height:36px;border-radius:10px;background:#F7F6FC;border:1px solid #E8E5F3;padding:0 12px;font:inherit;font-size:12.5px;margin-bottom:10px;outline:none}.sd-q:focus{border-color:#A78BFA}
 .sd-h{display:flex;align-items:center;gap:10px;width:100%;padding:10px;border:0;border-radius:10px;background:none;font:inherit;font-size:14px;font-weight:700;color:#1C1A33;cursor:pointer;text-align:left}
 .sd-h:hover{background:#F7F5FD}.sd-h .i{width:18px;height:18px;color:#6D28D9;flex:none}.sd-h span{flex:1}
@@ -3347,18 +3357,27 @@ function renderPopDash(){
 }
 
 /* Dashboard semua project: ringkas, satu kartu per project (seperti beranda Portal MPP) */
+let MU_PRINT_FULL=false;
+/* Print dari Dashboard selalu mencetak dashboard lengkap (semua bagian), seperti portal Monitoring Manpower */
+function muPrintFullOn(){ if(MU_PRINT_FULL||S.tab!=="ringkasan"||curProj()) return false; MU_PRINT_FULL=true; document.body.classList.add("mu-print-full"); try{ renderRingkasan(); muColApplyAll(); }catch(e){} return true; }
+function muPrintFullOff(){ if(!MU_PRINT_FULL) return; MU_PRINT_FULL=false; document.body.classList.remove("mu-print-full"); try{ renderRingkasan(); }catch(e){} }
+window.addEventListener("beforeprint",()=>{ muPrintFullOn(); });
+window.addEventListener("afterprint",()=>{ setTimeout(muPrintFullOff,0); });
 const MU_DSEC=[["ringkasan","Ringkasan pengiriman"],["progres","Progres per project"],["populasi","Populasi unit"],["mob","Jadwal mobilisasi"],["rev","Perubahan rencana"]];
 let DSEC=(()=>{ try{ const v=localStorage.getItem("mu_dsec"); return MU_DSEC.some(x=>x[0]===v)?v:"ringkasan"; }catch(e){ return "ringkasan"; } })();
 function muSetDsec(k){ DSEC=k; try{ localStorage.setItem("mu_dsec",k); }catch(e){} }
 function renderHkHome(L,ps){
   const el=$("#hkHome"); if(!el) return;
   const secName=(MU_DSEC.find(x=>x[0]===DSEC)||MU_DSEC[0])[1];
-  const head=`<div class="hk-crumb"><span>Dashboard / <b>${esc(secName)}</b></span><span class="hk-crumb-a">${canWrite?`<button class="btn small" data-act="addProj" type="button">+ Project</button>`:""}</span></div>
+  const lastU=S.units.concat(S.kirim).map(x=>x.updatedAt||x.waktu||"").filter(Boolean).sort().pop();
+  const head=`<div class="hk-ph2"><div><div class="hk-eb">Dashboard · ${esc(MU_PRINT_FULL?"Lengkap":secName)}</div><h2>${esc(MU_PRINT_FULL?"Dashboard Monitoring Unit":secName)}</h2><p>Klik angka atau project mana pun untuk membuka detailnya. Print tetap mencetak dashboard lengkap.</p></div>
+      <div class="hk-ph2-r"><span class="hk-upd"><i></i><span><small>Update terakhir</small><b>${lastU?fmtTime(lastU):"—"}</b></span></span>${canWrite?`<button class="btn" data-act="addProj" type="button">+ Project</button>`:""}</div></div>
     <div class="hk-secs" role="tablist">${MU_DSEC.map(([k,n])=>`<button type="button" data-dsec="${k}" class="${k===DSEC?"on":""}" aria-selected="${k===DSEC}">${n}</button>`).join("")}</div>`;
   if(!ps.length){ el.innerHTML=head+`<div class="card">${emptyState(L?"Memuat data…":"Belum ada project",L?"":"Tambahkan project dan item unit yang direncanakan dikirim.",canWrite&&!L?`<button class="btn primary small" data-act="addProj" type="button">+ Project</button>`:"")}</div>`; return; }
-  if(DSEC==="populasi"||DSEC==="mob"||DSEC==="rev"){ el.innerHTML=head; return; }
+  if(!MU_PRINT_FULL&&(DSEC==="populasi"||DSEC==="mob"||DSEC==="rev")){ el.innerHTML=head; return; }
   const SS=ps.map(p=>({p,s:projStats(p.id)})), T=SS.reduce((a,{s})=>({r:a.r+s.rencana,t:a.t+s.tiba,j:a.j+s.jalan,k:a.k+s.sisa}),{r:0,t:0,j:0,k:0});
-  if(DSEC==="ringkasan"){
+  let ringHtml="";
+  if(DSEC==="ringkasan"||MU_PRINT_FULL){
     const tile=(l,v,g,sub)=>`<div class="hk-gt" style="background:${g}"><small>${l}</small><b>${v}</b><span>${sub}</span></div>`;
     const tr=SS.map(({p,s})=>`<tr><td><button type="button" class="hk-pn" data-act="openProj" data-id="${p.id}">${esc(p.kode)}</button><small>${esc([p.nama,p.lokasi].filter(Boolean).join(" · ")||"—")}</small></td>
       <td class="n">${s.rencana}</td><td class="n c-green"><b>${s.tiba}</b></td><td class="n hk-j"><b>${s.jalan}</b></td><td class="n ${s.sisa?"c-red":""}"><b>${s.sisa}</b></td>
@@ -3376,7 +3395,8 @@ function renderHkHome(L,ps){
         <div class="hk-leg"><span><i style="background:#16A34A"></i>tiba</span><span><i style="background:#2563EB"></i>dalam perjalanan</span><span><i style="background:#F6D3DB"></i>sisa kirim</span></div></div>
       <div class="card hk-pc"><div class="hk-ph"><h3>Perlu dicek</h3><small>otomatis dari data</small></div>
         ${chk.length?`<ul class="hk-chk">${chk.slice(0,10).map(x=>`<li data-proj="${x.id}"><i style="background:${x.c}"></i><div><b>${esc(x.t)}</b><small>${esc(x.d)}</small></div></li>`).join("")}</ul>${chk.length>10?`<p class="muted small">+${chk.length-10} lainnya</p>`:""}`:`<p class="muted small">Tidak ada yang perlu dicek. 👍</p>`}</div></div>`;
-    return;
+    if(!MU_PRINT_FULL) return;
+    ringHtml=el.innerHTML.slice(head.length);
   }
   // progres: kartu per project
   const cards=SS.map(({p,s})=>{
@@ -3396,7 +3416,7 @@ function renderHkHome(L,ps){
       ${p.catatan?`<p class="hk-note">${ic("alert")}${esc(p.catatan)}</p>`:""}
       <div class="hk-f"><span>${s.items.length} item unit · ${s.rencana} unit · ${s.unitCount} di lokasi</span><span>${ic("clock")}Diperbarui ${s.last?fmtTime(s.last):"—"}</span></div>
     </article>`; }).join("");
-  el.innerHTML=head+`<div class="hk-grid hk-pack">${cards}</div>`;
+  el.innerHTML=head+ringHtml+(MU_PRINT_FULL?`<h3 class="hk-pt-h">Progres per project</h3>`:"")+`<div class="hk-grid hk-pack">${cards}</div>`;
   hkPack();
 }
 /* susun kartu ke kolom terpendek (padat, tanpa ruang kosong), urutan tetap kiri→kanan */
@@ -3427,17 +3447,21 @@ document.addEventListener("click",e=>{ const b=e.target.closest("#muTopnav [data
   if(b.dataset.tn){ setTab(b.dataset.tn); render(); } else { const t=document.getElementById(b.dataset.tnbtn); if(t) t.click(); } });
 document.addEventListener("change",e=>{ const t=e.target.closest&&e.target.closest("#muTopnav [data-tnproj]"); if(!t) return; if(t.value==="all") backAll(); else openProject(t.value); });
 function renderSide(){
-  try{ renderTopnav(); }catch(e){ console.error(e); }
-  const el=$("#muSide"); if(!el) return; document.body.classList.remove("has-side");
+  // Menu samping bergaya portal Monitoring Manpower (menu atas ungu tidak dipakai lagi)
+  document.body.classList.remove("has-topnav"); { const tn=$("#muTopnav"); if(tn) tn.replaceChildren(); }
+  const el=$("#muSide"); if(!el) return; document.body.classList.add("has-side");
   const P=curProj(), home=!P&&S.tab==="ringkasan", ps=projects();
   const SV=(d)=>`<svg class="i"><use href="#i-${d}"/></svg>`;
   const grp=(k,icon,name,subs,count)=>{ const op=!!MU_SIDE_OPEN[k];
     return `<div class="sd-g${op?" open":""}" data-g="${k}"><button type="button" class="sd-h" data-sd="grp" data-k="${k}" aria-expanded="${op}">${SV(icon)}<span>${name}</span>${count!=null?`<em>${count}</em>`:""}<i>${op?"▾":"▸"}</i></button>${op?`<div class="sd-subs">${subs}</div>`:""}</div>`; };
   const item=(icon,name,tab,count)=>`<button type="button" class="sd-h sd-it${S.tab===tab?" on":""}" data-sd="tab" data-k="${tab}">${SV(icon)}<span>${name}</span><em>${count}</em></button>`;
   const q=(el.querySelector("#sdQ")||{}).value||"";
-  el.innerHTML=`<input type="search" id="sdQ" class="sd-q" placeholder="Cari menu…" value="${esc(q)}" aria-label="Cari menu">
+  el.innerHTML=`<a class="sd-pusat" href="../">← Pusat Monitoring</a><input type="search" id="sdQ" class="sd-q" placeholder="Cari menu…" value="${esc(q)}" aria-label="Cari menu">
+    <div class="sd-lab">Ringkasan</div>
     ${grp("dash","pie","Dashboard",MU_DSEC.map(([k,n])=>`<button type="button" data-sd="sec" data-k="${k}" class="${home&&DSEC===k?"on":""}">${n}</button>`).join(""))}
+    <div class="sd-lab">Project</div>
     ${grp("proj","pin","Project",ps.map(p=>`<button type="button" data-sd="proj" data-k="${p.id}" class="${P&&P.id===p.id?"on":""}">${esc(p.kode)}</button>`).join("")||'<span class="sd-none">Belum ada project</span>',ps.length)}
+    <div class="sd-lab">Monitoring</div>
     ${item("ship","Rencana kirim","pengiriman",$("#cRev").textContent)}${item("pin","Populasi Unit","unit",$("#cUnit").textContent)}${item("route","Mobilisasi","mobilisasi",$("#cMob").textContent)}${item("cam","Dokumentasi","dokumentasi",$("#cDok").textContent)}`;
   if(q) muSideFilter(q);
   document.body.classList.toggle("mu-home",home);
