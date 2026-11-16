@@ -139,6 +139,51 @@ section.panel{padding-top:20px;display:flex;flex-direction:column;gap:18px}
 .hk-p{color:var(--muted)}
 .hk-al{display:flex;flex-wrap:wrap;gap:6px;margin:10px 16px 0}
 #hkHome{display:flex;flex-direction:column;gap:16px;margin-bottom:18px}
+body.has-topnav #tabs{display:none!important}
+body.has-topnav .hero,body.has-topnav .scene,body.has-topnav .side-l,body.has-topnav .side-r{display:none!important}
+@media screen{body.has-topnav .hk-secs{display:flex}}
+.mu-topnav{display:flex;align-items:stretch;background:#fff;border-radius:24px;box-shadow:0 8px 24px -16px rgba(30,27,58,.35);margin:6px 0 16px;overflow:hidden;min-height:96px}
+.tn-l{display:flex;align-items:center;gap:12px;padding:14px 22px;min-width:260px;max-width:320px;flex:none}
+.tn-logo{flex:none;width:44px;height:44px;border-radius:12px;background:var(--g-purple);color:#fff;font-weight:800;font-size:20px;display:flex;align-items:center;justify-content:center}
+.tn-t{display:flex;flex-direction:column;min-width:0}.tn-t b{font-size:21px;line-height:1.15}.tn-t small{font-size:11.5px;font-weight:700;color:#6D28D9;text-transform:uppercase;letter-spacing:.02em}
+.tn-back{border:0;background:none;padding:0;font:inherit;font-size:12px;font-weight:700;color:#6D28D9;cursor:pointer;text-align:left}.tn-muted{color:#8C88A8;cursor:default}
+.tn-ren{margin-left:auto;border:1px solid #E3E0EF;background:#fff;border-radius:8px;width:30px;height:30px;cursor:pointer;color:#6D28D9}
+.tn-r{flex:1;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:nowrap;padding:14px 22px 14px 40px;background:linear-gradient(110deg,#4C1D95,#3730A3 55%,#312E81);border-radius:48px 0 0 48px;color:#fff}
+.tn-tabs{display:flex;gap:2px;flex-wrap:nowrap;min-width:0;overflow-x:auto}.tn-tabs button{flex:none;border:0;background:none;color:#E0DBFF;font:inherit;font-size:14px;font-weight:700;padding:9px 12px;border-radius:10px;cursor:pointer}
+.tn-tabs button:hover{background:rgba(255,255,255,.1);color:#fff}.tn-tabs button.on{background:rgba(255,255,255,.18);color:#fff}
+.tn-sp{flex:1}.tn-proj{display:flex;align-items:center;gap:8px;font-size:13px;color:#D8D3FF}.tn-proj select{height:36px;border-radius:10px;border:0;padding:0 10px;font:inherit;font-size:13px;font-weight:700;color:#1C1A33;min-width:150px;max-width:190px}.tn-btn{flex:none}
+@media (max-width:1250px){.tn-r{flex-wrap:wrap}}
+.tn-btn{height:36px;border-radius:10px;border:1px solid rgba(255,255,255,.5);background:#fff;color:#3730A3;font:inherit;font-size:13px;font-weight:800;padding:0 14px;cursor:pointer}
+@media (max-width:1000px){.mu-topnav{flex-direction:column;border-radius:18px}.tn-l{max-width:none}.tn-r{border-radius:0;padding:12px 16px}}
+@media print{.mu-topnav{display:none!important}}
+/* dashboard project gaya baru */
+.pd{display:flex;flex-direction:column;gap:16px}
+.pd-kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
+.pd-k{border-radius:18px;color:#fff;padding:18px 20px;min-height:118px;box-shadow:0 10px 22px -14px rgba(30,27,58,.5)}.pd-k small{display:block;font-size:15px;font-weight:700}.pd-k b{display:block;font-size:38px;font-weight:800;line-height:1.15}.pd-k span{font-size:12.5px;font-weight:700;opacity:.95}
+.pd-row3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:stretch}
+.pd-row2{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:16px;align-items:start}
+.pd-c{padding:18px 20px!important;border-radius:18px;margin:0!important}.pd-c h3{margin:0 0 8px;font-size:17px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}.pd-c h3 small{font-size:12px;color:#8C88A8;font-weight:600}
+.pd-leg{display:flex;gap:14px;font-size:12px;color:#6B6985;margin-bottom:4px}.pd-leg i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:5px}
+.pd-svg{width:100%;height:auto}.pd-svg .g line{stroke:#EEECF5}.pd-svg .g text{font-size:9px;fill:#8C88A8}
+.pd-empty{border:1.5px dashed #E3E0EF;border-radius:14px;padding:40px 18px;text-align:center;color:#6B6985;font-size:13px;min-height:150px;display:flex;align-items:center;justify-content:center}
+.pd-don{display:flex;align-items:center;gap:16px}.pd-don ul{list-style:none;margin:0;padding:0;flex:1}.pd-don li{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0}.pd-don li i{width:9px;height:9px;border-radius:50%}.pd-don li b{margin-left:auto}
+.dn-n{font-size:22px;font-weight:800;fill:#1C1A33}.dn-l{font-size:10px;fill:#8C88A8}
+.pd-fn{display:flex;flex-direction:column;gap:8px}.fn-r{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:12px;align-items:center}
+.fn-b{display:flex;align-items:center;justify-content:center;height:46px;margin:0 auto;color:#fff;font-size:22px;font-weight:800;clip-path:polygon(0 0,100% 0,94% 100%,6% 100%)}
+.fn-t b{display:block;font-size:14px}.fn-t small{font-size:11.5px;color:#8C88A8}
+.pd-th{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:10px}.pd-th small{font-size:12px;color:#8C88A8}
+.pd-link{border:0;background:none;font:inherit;font-size:13px;font-weight:800;color:#5B21B6;cursor:pointer;white-space:nowrap;padding:0}
+.pd-tw{overflow-x:auto}
+.pd-t{width:100%;border-collapse:collapse;font-size:14px}.pd-t th{text-align:left;font-size:13.5px;font-weight:700;color:#1C1A33;padding:10px 12px;border-bottom:1px solid #ECE9F6;white-space:nowrap}
+.pd-t td{padding:10px 12px;border-bottom:1px solid #F1EEF8}.pd-t .n{text-align:right;font-variant-numeric:tabular-nums}.pd-un{font-weight:700}.pd-ket{color:#6B6985;font-size:13px}
+.pd-t tfoot td{font-weight:800;border-bottom:0}
+.pd-t2{font-size:13px}.pd-t2 th{font-size:13px}.pd-t2 td small{display:block;font-size:11px;color:#8C88A8}.pd-rm{color:#BE123C}
+.pd-s{display:inline-block;font-size:11.5px;font-weight:800;border-radius:999px;padding:3px 10px;white-space:nowrap}.pd-s.o{background:#FFEDD5;color:#C2410C}.pd-s.p{background:#EDE9FE;color:#6D28D9}.pd-s.g{background:#F1F5F9;color:#475569}
+.pd-pop{list-style:none;margin:0 0 10px;padding:0}.pd-pop li{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F1EEF8;font-size:13.5px}
+.pd-foot{display:flex;justify-content:space-between;background:linear-gradient(110deg,#4C1D95,#3730A3);color:#E0DBFF;border-radius:16px;padding:12px 20px;font-size:13px}
+@media (max-width:1100px){.pd-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.pd-row3,.pd-row2{grid-template-columns:1fr}}
+@media (max-width:640px){.pd-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+body.has-topnav.mu-projdash #kpis,body.has-topnav.mu-projdash #popDash,body.has-topnav.mu-projdash #dashControls,body.has-topnav.mu-projdash #fbar{display:none!important}
 .mu-pt .pt-h{margin:2px 0 0;font-size:18px}
 .pt-kpi{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));border:1px solid #F0EEF6;border-radius:14px;margin:12px 0;background:#fff;overflow:hidden}
 .pt-kpi div{padding:10px 16px;border-right:1px solid #F0EEF6}.pt-kpi div:last-child{border-right:0}.pt-kpi small{display:block;font-size:11.5px;color:#6B6985;font-weight:600}.pt-kpi b{font-size:22px;font-weight:800}
@@ -1763,6 +1808,7 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
 <main class="pad">
 <div class="scene" aria-hidden="true"></div><div class="side-l" aria-hidden="true"></div><div class="side-r" aria-hidden="true"></div>
 <div class="wrap">
+  <div id="muTopnav" class="mu-topnav"></div>
   <div class="hero">
     <div class="crumbs" id="crumbs" hidden><button type="button" class="back" data-act="backAll">← Semua project</button><span>/</span><span id="crumbName"></span></div>
     <span class="eyebrow" id="heroEyebrow">Integrated Monitoring</span>
@@ -2974,6 +3020,60 @@ function unitLocationMini(pid, compact=false){
      '<div class="mu-loc-empty">Belum ada unit di lokasi.</div>')+
     (!compact&&us.length?'<div class="mu-loc-detail-note">Nomor lambung dan rincian ada di sheet Populasi Unit.</div>':"")+'</div>';
 }
+/* Dashboard satu project (gaya baru): KPI, grafik mingguan, status di lokasi, alur unit, tabel rencana per unit, unit belum tiba, populasi */
+function renderProjDash2(P){
+  const el=$("#projDash"); if(!el) return;
+  const st=projStats(P.id), items=st.items, pu=S.units.filter(u=>u.projectId===P.id), atLoc=pu.filter(arrived), notArr=pu.filter(u=>!arrived(u));
+  const day=s=>{ const d=new Date(String(s||"").slice(0,10)+"T00:00:00"); return isNaN(d)?null:d; };
+  const now=new Date(), wk=new Date(now); wk.setDate(now.getDate()-7);
+  const berangkat7=pu.filter(u=>{ const d=day(u.tglKirim); return d&&d>=wk&&d<=now; }).length;
+  const tile=(t,v,sub,g)=>`<div class="pd-k" style="background:${g}"><small>${t}</small><b>${v}</b><span>${sub}</span></div>`;
+  const kpis=`<div class="pd-kpis">${tile("Rencana kirim",st.rencana,`${items.length} item unit`,"var(--g-purple)")}${tile("Dalam pengiriman",st.jalan,berangkat7?`+${berangkat7} berangkat minggu ini`:"belum ada yang berangkat minggu ini","linear-gradient(120deg,#EA580C,#F59E0B)")}${tile("Sisa kirim",st.sisa,`${pct(st.sisa,st.rencana)}% belum berangkat`,"var(--g-red)")}${tile("Sudah tiba",st.tiba,`${pct(st.tiba,st.rencana)}% dari rencana`,"linear-gradient(120deg,#15803D,#22C55E)")}${tile("Populasi di lokasi",atLoc.length,atLoc.length?`${new Set(atLoc.map(u=>u.tipe)).size} jenis unit`:"belum ada unit","var(--g-blue)")}</div>`;
+  // grafik mingguan (dikirim vs tiba)
+  const ds=pu.flatMap(u=>[day(u.tglKirim),day(u.tglTiba)]).filter(Boolean);
+  const start=new Date(Math.min(now.getTime()-63*864e5,...ds.map(d=>d.getTime()))); start.setDate(start.getDate()-((start.getDay()+6)%7));
+  const weeks=[]; for(let d=new Date(start); d<=now; d.setDate(d.getDate()+7)) weeks.push(new Date(d));
+  const wi=d=>Math.floor((d-start)/(7*864e5));
+  const kirimW=weeks.map(()=>0), tibaW=weeks.map(()=>0);
+  pu.forEach(u=>{ const a=day(u.tglKirim), b=day(u.tglTiba); if(a&&a>=start) kirimW[Math.min(weeks.length-1,wi(a))]++; if(b&&b>=start&&arrived(u)) tibaW[Math.min(weeks.length-1,wi(b))]++; });
+  const W=420,H=150,mx=Math.max(5,...kirimW,...tibaW), X=i=>34+i*(W-44)/Math.max(1,weeks.length-1), Y=v=>H-22-v*(H-40)/mx;
+  const line=a=>a.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(" ");
+  const lbl=weeks.map((d,i)=>i%Math.ceil(weeks.length/5)===0||i===weeks.length-1?`<text x="${X(i)}" y="${H-4}" text-anchor="middle">${d.getDate()} ${["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"][d.getMonth()]}</text>`:"").join("");
+  const grid=[0,Math.round(mx/2),mx].map(v=>`<line x1="34" x2="${W-10}" y1="${Y(v)}" y2="${Y(v)}"/><text x="26" y="${Y(v)+3}" text-anchor="end">${v}</text>`).join("");
+  const chart=`<div class="card pd-c"><h3>Unit dikirim &amp; tiba per minggu</h3><div class="pd-leg"><span><i style="background:#F97316"></i>Dikirim</span><span><i style="background:#16A34A"></i>Tiba</span></div>
+    <svg viewBox="0 0 ${W} ${H}" class="pd-svg" role="img" aria-label="Grafik unit dikirim dan tiba per minggu"><g class="g">${grid}</g><polygon points="${X(0)},${Y(0)} ${line(kirimW)} ${X(weeks.length-1)},${Y(0)}" fill="#F97316" fill-opacity=".12"/><polyline points="${line(kirimW)}" fill="none" stroke="#F97316" stroke-width="2"/><polyline points="${line(tibaW)}" fill="none" stroke="#16A34A" stroke-width="2"/><g class="g">${lbl}</g></svg></div>`;
+  // status di lokasi (donat)
+  const sc=new Map(); atLoc.forEach(u=>{ const k=String(u.status||"").trim()||"Tiba"; sc.set(k,(sc.get(k)||0)+1); });
+  let acc=0; const R=46, C=2*Math.PI*R;
+  const donut=atLoc.length?`<div class="pd-don"><svg viewBox="0 0 120 120" width="130" height="130"><circle cx="60" cy="60" r="${R}" fill="none" stroke="#F1EEF8" stroke-width="16"/>${[...sc.entries()].map(([k,n])=>{ const len=n/atLoc.length*C, seg=`<circle cx="60" cy="60" r="${R}" fill="none" stroke="${muStatCol(k)}" stroke-width="16" stroke-dasharray="${len} ${C-len}" stroke-dashoffset="${-acc}" transform="rotate(-90 60 60)"/>`; acc+=len; return seg; }).join("")}<text x="60" y="58" text-anchor="middle" class="dn-n">${atLoc.length}</text><text x="60" y="74" text-anchor="middle" class="dn-l">unit</text></svg>
+      <ul>${[...sc.entries()].sort((a,b)=>b[1]-a[1]).map(([k,n])=>`<li><i style="background:${muStatCol(k)}"></i>${esc(k)}<b>${n}</b></li>`).join("")}</ul></div>`
+    :`<div class="pd-empty">Belum ada unit yang tiba di ${esc(P.kode)}. Status unit (Tiba, Standby, Beroperasi, Breakdown) muncul di sini setelah unit tiba.</div>`;
+  const status=`<div class="card pd-c"><h3>Status unit di lokasi <small>${atLoc.length} unit</small></h3>${donut}</div>`;
+  // alur unit (corong)
+  const dikirim=st.jalan+st.tiba, oper=atLoc.filter(u=>/beroperasi|operasi/i.test(u.status||"")).length;
+  const fn=[["Rencana kirim",st.rencana,"100%","#6D28D9",100],["Dikirim",dikirim,`${pct(dikirim,st.rencana)}% dari rencana`,"#4F46E5",86],["Tiba",st.tiba,`${pct(st.tiba,dikirim)}% dari dikirim`,"#2563EB",72],["Beroperasi",oper,atLoc.length?`${pct(oper,atLoc.length)}% dari unit di lokasi`:"–","#0891B2",58]];
+  const funnel=`<div class="card pd-c"><h3>Alur unit</h3><div class="pd-fn">${fn.map(([l,v,sub,c,w])=>`<div class="fn-r"><span class="fn-b" style="width:${w}%;background:${c}">${v}</span><span class="fn-t"><b>${l}</b><small>${sub}</small></span></div>`).join("")}</div></div>`;
+  // tabel rencana kirim per unit (heat)
+  const mxR=Math.max(1,...items.map(k=>Number(k.rencana)||0)), mxJ=Math.max(1,...items.map(jalanItem)), mxS=Math.max(1,...items.map(sisaItem)), mxT=Math.max(1,...items.map(tibaItem));
+  const heat=(v,m,rgb)=>v?`background:rgba(${rgb},${(0.12+0.55*v/m).toFixed(2)})`:"";
+  const rows=items.map(k=>{ const r=Number(k.rencana)||0, j=jalanItem(k), sk=sisaItem(k), t=Math.min(tibaItem(k),r);
+    const eta=unitsOfItem(k).filter(u=>!arrived(u)).map(u=>muDetails(u).eta).filter(Boolean).sort()[0]||k.eta;
+    return `<tr><td class="pd-un">${esc(k.tipe)}</td><td class="n" style="${heat(r,mxR,"124,58,237")}">${r}</td><td style="${heat(j,mxJ,"249,115,22")}">${j?`${j} unit${eta?` · ETA ${fmtD(eta)}`:""}`:"–"}</td><td class="n" style="${heat(sk,mxS,"225,29,72")}">${sk||"–"}</td><td class="n" style="${heat(t,mxT,"22,163,74")}">${t||"–"}</td><td class="pd-ket">${esc(String(k.catatan||"").trim())}</td></tr>`; }).join("");
+  const table=`<div class="card pd-c pd-wide"><div class="pd-th"><div><h3>Rencana kirim per unit</h3><small>Rencana = Dalam pengiriman + Sisa kirim + Sudah tiba · warna makin pekat = angka makin besar</small></div><button type="button" class="pd-link" data-tn="pengiriman">Edit di Rencana kirim →</button></div>
+    <div class="pd-tw"><table class="pd-t"><thead><tr><th>Unit</th><th class="n">Rencana</th><th>Dalam pengiriman</th><th class="n">Sisa kirim</th><th class="n">Sudah tiba</th><th>Keterangan</th></tr></thead><tbody>${rows||`<tr><td colspan="6" class="muted">Belum ada rencana kirim.</td></tr>`}</tbody>
+    <tfoot><tr><td>Total · ${items.length} item</td><td class="n">${st.rencana}</td><td>${st.jalan}</td><td class="n">${st.sisa}</td><td class="n">${st.tiba}</td><td></td></tr></tfoot></table></div></div>`;
+  // unit belum tiba
+  const stCls=t=>/perjalanan/i.test(t)?"o":/persiapan/i.test(t)?"p":"g";
+  const bt=notArr.slice().sort((a,b)=>String(muDetails(a).eta||"9").localeCompare(String(muDetails(b).eta||"9"))).map(u=>{ const md=muDetails(u);
+    return `<tr><td>${esc(md.kategori||"–")}</td><td><b>${esc(u.kodeSementara?"belum diisi":u.kode)}</b>${md.merk?` · ${esc(md.merk)}`:""}<small>${esc(u.tipe||"")}</small></td><td>${esc(u.lokasi||"–")}</td><td>${md.etd?fmtD(md.etd):"–"}</td><td><b>${md.eta?fmtD(md.eta):"–"}</b></td><td><span class="pd-s ${stCls(u.status||"")}">${esc(u.status||"Belum dikirim")}</span></td><td>${esc(md.pic||"–")}</td><td class="pd-rm">${esc(md.catatan||"")}</td></tr>`; }).join("");
+  const blm=Math.max(0,st.rencana-pu.length);
+  const belum=`<div class="card pd-c"><h3>Unit yang belum tiba <small>${notArr.length} unit${blm?` · ${blm} belum dijadwalkan`:""}</small></h3>${notArr.length?`<div class="pd-tw"><table class="pd-t pd-t2"><thead><tr><th>Kategori</th><th>Unit</th><th>Lokasi</th><th>ETD</th><th>ETA</th><th>Status kirim</th><th>PIC</th><th>Remarks</th></tr></thead><tbody>${bt}</tbody></table></div>`:`<div class="pd-empty">Semua unit yang dijadwalkan sudah tiba.</div>`}</div>`;
+  // populasi unit di lokasi
+  const pj=new Map(); atLoc.forEach(u=>pj.set(u.tipe,(pj.get(u.tipe)||0)+1));
+  const pop=`<div class="card pd-c"><h3>Populasi unit <small>${atLoc.length} unit</small></h3>${atLoc.length?`<ul class="pd-pop">${[...pj.entries()].sort((a,b)=>b[1]-a[1]).map(([t,n])=>`<li><span>${esc(t)}</span><b>${n}</b></li>`).join("")}</ul><button type="button" class="pd-link" data-tn="unit">Lihat di Populasi Unit →</button>`:`<div class="pd-empty">Belum ada unit di lokasi. Unit otomatis muncul di sini setelah statusnya Tiba.</div>`}</div>`;
+  el.innerHTML=`<div class="pd">${kpis}<div class="pd-row3">${chart}${status}${funnel}</div>${table}<div class="pd-row2">${belum}${pop}</div>
+    <div class="pd-foot"><span>Diupdate ${st.last?fmtTime(st.last):"—"}</span><span>Monitoring Unit · PT KMB</span></div></div>`;
+}
 function renderProjDash(P){
   const st=projStats(P.id), us=S.units.filter(u=>arrived(u)&&u.projectId===P.id);
   const SUMI=st.items.filter(itemOk);
@@ -3312,8 +3412,23 @@ function hkPack(){
 window.addEventListener("resize",()=>{ const g=document.querySelector("#hkHome .hk-pack"); if(g){ g.dataset.n=""; hkPack(); } });
 /* Menu samping (dropdown) */
 let MU_SIDE_OPEN=(()=>{ try{ return JSON.parse(localStorage.getItem("mu_side_open")||'{"dash":true,"proj":true}'); }catch(e){ return {dash:true,proj:true}; } })();
+function renderTopnav(){
+  const el=$("#muTopnav"); if(!el) return; document.body.classList.add("has-topnav");
+  const P=curProj(), ps=projects();
+  const tabs=[["ringkasan","Dashboard"],["pengiriman","Rencana kirim"],["unit","Populasi Unit"],["mobilisasi","Mobilisasi"],["dokumentasi","Dokumentasi"]];
+  const sub=P?[P.nama,P.lokasi].filter(Boolean).join(" · "):`${ps.length} project`;
+  el.innerHTML=`<div class="tn-l"><span class="tn-logo">M</span><div class="tn-t">${P?`<button type="button" class="tn-back" data-act="backAll">← Semua project</button>`:`<span class="tn-back tn-muted">Monitoring Unit</span>`}
+      <b>${esc(P?P.kode:"Semua project")}</b><small>${esc(sub)}</small></div>${P&&role==="owner"?`<button type="button" class="tn-ren" data-act="editProj" data-id="${P.id}" title="Edit project">✎</button>`:""}</div>
+    <div class="tn-r"><nav class="tn-tabs" role="tablist">${tabs.map(([k,n])=>`<button type="button" role="tab" data-tn="${k}" class="${S.tab===k?"on":""}" aria-selected="${S.tab===k}">${n}</button>`).join("")}</nav>
+      <span class="tn-sp"></span><label class="tn-proj"><span>Project</span><select data-tnproj aria-label="Pilih project"><option value="all">Semua project</option>${ps.map(p=>`<option value="${p.id}"${P&&P.id===p.id?" selected":""}>${esc(p.kode)}</option>`).join("")}</select></label>
+      ${muCanPrint()?`<button type="button" class="tn-btn" data-tnbtn="btnPrint">Print</button>`:""}${$("#btnDownload")&&!$("#btnDownload").hidden?`<button type="button" class="tn-btn" data-tnbtn="btnDownload">Excel</button>`:""}</div>`;
+}
+document.addEventListener("click",e=>{ const b=e.target.closest("#muTopnav [data-tn], #muTopnav [data-tnbtn]"); if(!b) return;
+  if(b.dataset.tn){ setTab(b.dataset.tn); render(); } else { const t=document.getElementById(b.dataset.tnbtn); if(t) t.click(); } });
+document.addEventListener("change",e=>{ const t=e.target.closest&&e.target.closest("#muTopnav [data-tnproj]"); if(!t) return; if(t.value==="all") backAll(); else openProject(t.value); });
 function renderSide(){
-  const el=$("#muSide"); if(!el) return; document.body.classList.add("has-side");
+  try{ renderTopnav(); }catch(e){ console.error(e); }
+  const el=$("#muSide"); if(!el) return; document.body.classList.remove("has-side");
   const P=curProj(), home=!P&&S.tab==="ringkasan", ps=projects();
   const SV=(d)=>`<svg class="i"><use href="#i-${d}"/></svg>`;
   const grp=(k,icon,name,subs,count)=>{ const op=!!MU_SIDE_OPEN[k];
@@ -3326,6 +3441,7 @@ function renderSide(){
     ${item("ship","Rencana kirim","pengiriman",$("#cRev").textContent)}${item("pin","Populasi Unit","unit",$("#cUnit").textContent)}${item("route","Mobilisasi","mobilisasi",$("#cMob").textContent)}${item("cam","Dokumentasi","dokumentasi",$("#cDok").textContent)}`;
   if(q) muSideFilter(q);
   document.body.classList.toggle("mu-home",home);
+  document.body.classList.toggle("mu-projdash",!!P&&S.tab==="ringkasan");
   MU_DSEC.forEach(([k])=>document.body.classList.toggle("mu-dsec-"+k,home&&DSEC===k));
   try{ const h=document.querySelector(".top"); if(h) document.documentElement.style.setProperty("--muTop",h.offsetHeight+"px"); }catch(e){}
 }
@@ -3349,7 +3465,7 @@ function renderRingkasan(){
   const L=!S.ready, ps=projects(), P=curProj();
   $("#projDash").hidden=!P; $("#projCards").hidden=true; $("#homeTop").hidden=true; $("#ovBottom").hidden=!!P;
   $("#hkHome").hidden=!!P; $("#kpis").hidden=!P;
-  if(P) renderProjDash(P); else renderHkHome(L,ps);
+  if(P) renderProjDash2(P); else renderHkHome(L,ps);
   if(P){
     // Filter project aktif: kartu lintas project tidak boleh tertinggal di DOM atau ikut tercetak.
     $("#projCards").replaceChildren();
@@ -3388,7 +3504,7 @@ function renderRingkasan(){
   const rv=S.revisi.filter(r=>!P||r.projectId===P.id).slice(0,5);
   $("#lastRev").innerHTML=rv.length?rv.map(r=>`<div class="li"><span class="when">${fmtTime(r.waktu).replace(", ","<br>")}</span><span class="what"><span class="ptag">${esc(projKode(r.projectId))}</span> <b>${esc(r.tipe)}</b> <span class="calc">${r.lama} → ${r.baru}</span> ${revChip(r)}<span class="small muted" style="display:block">${esc(r.alasan)}</span></span>${deltaChip(r.baru-r.lama)}</div>`).join("")
     :`<div class="muted">${L?"Memuat data…":"Belum ada perubahan rencana. Pakai Ubah jumlah di tab Rencana kirim saat jumlah unit berubah."}</div>`;
-  if(P){ $("#pNext").innerHTML=$("#nextMob").innerHTML; $("#pRev").innerHTML=$("#lastRev").innerHTML; }
+  if(P){ const a=$("#pNext"), b=$("#pRev"); if(a) a.innerHTML=$("#nextMob").innerHTML; if(b) b.innerHTML=$("#lastRev").innerHTML; }
 }
 const SLOT_OPEN=new Set((()=>{ try{ return JSON.parse(localStorage.getItem("mu_slot_open")||"[]"); }catch(e){ return []; } })());
 const VIA_LIST=["Perjalanan darat","Kapal RoRo","Tongkang","Trailer darat","Self-propelled"];
