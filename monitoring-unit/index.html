@@ -2532,6 +2532,9 @@ function muDetails(u){
 function muPrepareUnitData(d){
   // Simpan satu blok kanonis saja, jangan menumpuk tag tiap kali edit.
   const clean=muDetails({catatan:d.catatan}).catatan;
+  // ETD di form = rencana kirim unit. Jika ETD dikosongkan, rencana kirim lama ikut dikosongkan
+  // (kalau tidak, tampilan mengambil tanggal lama sebagai cadangan sehingga ETD seolah tidak terhapus).
+  if("etd" in d) d.rencanaKirim=String(d.etd||"").trim().slice(0,10);
   const lines=Object.entries(MU_DETAIL_NAMES)
     .filter(([key])=>String(d[key]||"").trim())
     .map(([key,label])=>label+": "+String(d[key]).trim().replace(/\r?\n/g," "));
