@@ -3574,8 +3574,8 @@ function renderTopnav(){
       <span class="tn-sp"></span><label class="tn-proj"><span>Project</span><select data-tnproj aria-label="Pilih project"><option value="all">Semua project</option>${ps.map(p=>`<option value="${p.id}"${P&&P.id===p.id?" selected":""}>${esc(p.kode)}</option>`).join("")}</select></label>
       ${muCanPrint()?`<button type="button" class="tn-btn" data-tnbtn="btnPrint">Print</button>`:""}${$("#btnDownload")&&!$("#btnDownload").hidden?`<button type="button" class="tn-btn" data-tnbtn="btnDownload">Excel</button>`:""}</div>`;
 }
-document.addEventListener("click",e=>{ const b=e.target.closest("#muTopnav [data-tn], #muTopnav [data-tnbtn]"); if(!b) return;
-  if(b.dataset.tn){ setTab(b.dataset.tn); render(); } else { const t=document.getElementById(b.dataset.tnbtn); if(t) t.click(); } });
+document.addEventListener("click",e=>{ const b=e.target.closest("[data-tn], [data-tnbtn]"); if(!b) return;
+  if(b.dataset.tn){ setTab(b.dataset.tn); render(); try{ window.scrollTo({top:0,behavior:"smooth"}); }catch(er){} } else { const t=document.getElementById(b.dataset.tnbtn); if(t) t.click(); } });
 document.addEventListener("change",e=>{ const t=e.target.closest&&e.target.closest("#muTopnav [data-tnproj]"); if(!t) return; if(t.value==="all") backAll(); else openProject(t.value); });
 function renderSide(){
   // Menu samping bergaya portal Monitoring Manpower (menu atas ungu tidak dipakai lagi)
@@ -3604,7 +3604,7 @@ function renderSide(){
 function muSideFilter(q){ const t=q.trim().toLowerCase(), el=$("#muSide");
   el.querySelectorAll(".sd-subs button,.sd-it").forEach(b=>{ b.hidden=!!t&&!b.textContent.toLowerCase().includes(t); }); }
 document.addEventListener("click",e=>{
-  const b=e.target.closest("#muSide [data-sd], #hkHome [data-dsec]"); if(!b) return;
+  const b=e.target.closest("#muSide [data-sd], [data-dsec]"); if(!b) return;
   if(b.dataset.dsec){ muSetDsec(b.dataset.dsec); render(); return; }
   const k=b.dataset.k, a=b.dataset.sd;
   if(a==="grp"){ MU_SIDE_OPEN[k]=!MU_SIDE_OPEN[k]; try{ localStorage.setItem("mu_side_open",JSON.stringify(MU_SIDE_OPEN)); }catch(e){} renderSide(); }
