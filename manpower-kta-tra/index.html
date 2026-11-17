@@ -1256,7 +1256,7 @@ async function commit(mutate, okMsg) {
   if (!CAN_EDIT || SAVING) return false;
   const next = JSON.parse(JSON.stringify(STATE));
   mutate(next);
-  next.positions.forEach((p, i) => { p.no = i + 1; });
+  renumberPos(next.positions);
   next.meta = { ...(next.meta || {}), updated: TODAY };
   SAVING = true; showSaving(true);
   try { sessionStorage.setItem('mp5-flash', okMsg || 'Perubahan tersimpan.'); sessionStorage.setItem('mp5-page', ui.page); } catch (e) {}
@@ -1894,6 +1894,8 @@ function pstBar(D) {
 // ---------- MPP page (compact, like the reference web) ----------
 // ================= Area: Hauling & Mining dalam satu portal KTA-TRA =================
 // Data asli web ini = KTA-TRA Mining; data KTA-TRA Hauling digabung ke sini dengan area = Hauling
+// nomor urut MPP: per project (Hauling 1, 2, 3… dan Mining 1, 2, 3…) bila keduanya ada; selain itu urut biasa
+function renumberPos(P) { if (typeof bothAreas === 'function' && bothAreas(P)) { const c = {}; P.forEach((p) => { const a = areaOf(p); c[a] = (c[a] || 0) + 1; p.no = c[a]; }); } else P.forEach((p, i) => { p.no = i + 1; }); }
 function areaOf(p) { return /hauling/i.test((p && p.area) || '') ? 'Hauling' : 'Mining'; }
 function bothAreas(P) { return (P || []).some((p) => areaOf(p) === 'Hauling') && (P || []).some((p) => areaOf(p) === 'Mining'); }
 // Sinkronkan Excel saat Hauling & Mining sudah digabung: hanya area dari Excel itu yang diganti, area lain tetap
@@ -4037,7 +4039,7 @@ async function commit(mutate, okMsg) {
   if (!CAN_EDIT || SAVING || !WEB.sb) return false;
   const next = JSON.parse(JSON.stringify(STATE));
   mutate(next);
-  next.positions.forEach((p, i) => { p.no = i + 1; });
+  renumberPos(next.positions);
   next.meta = { ...(next.meta || {}), updated: TODAY };
   SAVING = true; showSaving(true);
   let reopen = null; try { reopen = sessionStorage.getItem('mp5-cands'); sessionStorage.removeItem('mp5-cands'); } catch (e) {}
