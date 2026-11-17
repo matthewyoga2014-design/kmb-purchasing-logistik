@@ -372,10 +372,9 @@
   const colL = (c) => String.fromCharCode(64 + c);
   // perkiraan jumlah baris teks (agar tinggi baris pas seperti cetakan)
   const wrapN = (txt, per) => String(txt).split('\n').reduce((a, l) => a + Math.max(1, Math.ceil(l.length / per)), 0);
-  async function rekapExcel() {
-    if (!rkAllowed()) return;
-    let Z; try { Z = await loadZip(); } catch (e) { try { toast('Pembuat Excel belum termuat. Periksa koneksi lalu coba lagi.', true); } catch (er) {} return; }
-    const sites = await rkSites();
+  // ---------- Penulis .xlsx bersama (Rekap MPP & Download Excel seluruh data) ----------
+  async function buildBook(sites, dataSheets) {
+    let Z; try { Z = await loadZip(); } catch (e) { try { toast('Pembuat Excel belum termuat. Periksa koneksi lalu coba lagi.', true); } catch (er) {} return null; }
     // Semua format memakai format SEL (bukan rich text) dan 1 kalimat = 1 baris Excel,
     // supaya tampil sama di Excel, Google Sheets, pratinjau Google Drive, WPS, dan LibreOffice.
     const FONTS = [
@@ -389,6 +388,11 @@
       '<font><sz val="9.5"/><color rgb="FF555555"/><name val="Calibri"/><family val="2"/></font>',  // 7 ket tidak aktif (coret lewat karakter)
       '<font><b/><sz val="9.5"/><color rgb="FF15803D"/><name val="Calibri"/><family val="2"/></font>',       // 8 hijau
       '<font><b/><sz val="9"/><color rgb="FFC00000"/><name val="Calibri"/><family val="2"/></font>',         // 9 label merah
+      '<font><b/><sz val="10"/><name val="Calibri"/><family val="2"/></font>',                               // 10 header data
+      '<font><b/><sz val="10"/><color rgb="FF15803D"/><name val="Calibri"/><family val="2"/></font>',        // 11 hijau 10
+      '<font><b/><sz val="10"/><color rgb="FFB45309"/><name val="Calibri"/><family val="2"/></font>',        // 12 oranye 10
+      '<font><strike/><sz val="10"/><color rgb="FF6B7280"/><name val="Calibri"/><family val="2"/></font>',   // 13 coret 10
+      '<font><b/><sz val="10"/><color rgb="FF1D4ED8"/><name val="Calibri"/><family val="2"/></font>',        // 14 biru 10
     ];
     const DOT = '<color rgb="FF404040"/>';   // garis tegas (thin) agar jelas di Excel maupun pratinjau Google Drive
     const BORDERS = [
@@ -407,6 +411,9 @@
     Object.keys(KF).forEach((k) => { KS[k] = [xf(KF[k], 0, 4, 'horizontal="left" vertical="center" wrapText="1"'), xf(KF[k], 0, 3, 'horizontal="left" vertical="center" wrapText="1"')]; });
     const KEMPTY = xf(5, 0, 1, 'horizontal="left" vertical="center" wrapText="1"');
     void S0;
+    // sheet data: header, isi, dan warna penanda
+    const DH = xf(10, 2, 1, 'horizontal="center" vertical="center" wrapText="1"'), DB = xf(3, 0, 1, 'vertical="top" wrapText="1"'), DBN = xf(3, 0, 1, 'horizontal="center" vertical="top"'),
+      DRED = xf(4, 0, 1, 'vertical="top" wrapText="1"'), DGRN = xf(11, 0, 1, 'vertical="top" wrapText="1"'), DORG = xf(12, 0, 1, 'vertical="top" wrapText="1"'), DBOLD = xf(10, 0, 1, 'vertical="top" wrapText="1"'), DCX = xf(13, 0, 1, 'vertical="top" wrapText="1"'), DBLU = xf(14, 0, 1, 'vertical="top" wrapText="1"');
     const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <fonts count="${FONTS.length}">${FONTS.join('')}</fonts>
 <fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/><bgColor indexed="64"/></patternFill></fill></fills>
@@ -414,9 +421,11 @@
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
 <cellXfs count="${XF.length}">${XF.join('')}</cellXfs>
 <cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
-    const rows = [], merges = [], sst = [];
-    let r = 1;
+    const sst = [];
     const sIdx = (text) => { sst.push(`<t xml:space="preserve">${X(text)}</t>`); return sst.length - 1; };
+    const rekapSheet = () => {
+    const rows = [], merges = [];
+    let r = 1;
     const str = (c, rr, s, text) => `<c r="${colL(c)}${rr}" s="${s}" t="s"><v>${sIdx(text)}</v></c>`;
     const num = (c, rr, s, v) => v === '' || v == null ? `<c r="${colL(c)}${rr}" s="${s}"/>` : `<c r="${colL(c)}${rr}" s="${s}"><v>${v}</v></c>`;
     const blank = (c, rr, s) => `<c r="${colL(c)}${rr}" s="${s}"/>`;
@@ -463,25 +472,117 @@
       row(r, [str(1, r, STL, 'TOTAL ' + rkName() + ' (' + sites.map(([n]) => n.replace(rkName(), '').trim() || n).join(' + ') + ')'), blank(2, r, STE), blank(3, r, STE), num(4, r, STR, g.pl), num(5, r, STR, g.ac), num(6, r, STR, g.vc), blank(7, r, STE)], 20);
       r += 2;
     }
-    const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+    return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
 <sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>
 <cols><col min="1" max="1" width="5" customWidth="1"/><col min="2" max="2" width="16" customWidth="1"/><col min="3" max="3" width="25" customWidth="1"/><col min="4" max="6" width="7.5" customWidth="1"/><col min="7" max="7" width="34" customWidth="1"/></cols>
 <sheetData>${rows.join('')}</sheetData>${merges.length ? `<mergeCells count="${merges.length}">${merges.map((m) => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>` : ''}
 <pageMargins left="0.47" right="0.47" top="0.47" bottom="0.47" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/></worksheet>`;
+    };
+    // sheet data biasa: baris 1 = judul kolom (tetap bisa di-upload lagi lewat Sinkronkan Excel)
+    const dataSheet = (aoa, styleOf) => {
+      const head = aoa[0] || [], n = head.length, rows = [];
+      const w = head.map((h, c) => Math.min(48, Math.max(6, String(h || '').length + 2, ...aoa.slice(1, 400).map((r) => String((r || [])[c] == null ? '' : r[c]).length * 0.95 + 1))));
+      aoa.forEach((r, i) => {
+        const cells = [];
+        for (let c = 0; c < n; c++) {
+          const v = (r || [])[c], ref = colL1(c + 1) + (i + 1);
+          const tok = i === 0 ? null : styleOf && styleOf(String(head[c] || ''), v, i - 1);
+          const s = i === 0 ? DH : ({ red: DRED, grn: DGRN, org: DORG, bold: DBOLD, cx: DCX, blu: DBLU })[tok] || (typeof v === 'number' ? DBN : DB);
+          if (v === null || v === undefined || v === '') cells.push(`<c r="${ref}" s="${s}"/>`);
+          else if (typeof v === 'number' && isFinite(v)) cells.push(`<c r="${ref}" s="${s}"><v>${v}</v></c>`);
+          else cells.push(`<c r="${ref}" s="${s}" t="s"><v>${sIdx(String(v))}</v></c>`);
+        }
+        rows.push(`<row r="${i + 1}"${i === 0 ? ' ht="30" customHeight="1"' : ''}>${cells.join('')}</row>`);
+      });
+      const last = colL1(Math.max(1, n)) + Math.max(1, aoa.length);
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/>
+<cols>${w.map((x, c) => `<col min="${c + 1}" max="${c + 1}" width="${x.toFixed(1)}" customWidth="1"/>`).join('')}</cols>
+<sheetData>${rows.join('')}</sheetData>${aoa.length > 1 && n ? `<autoFilter ref="A1:${last}"/>` : ''}
+<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>`;
+    };
+    const SH_ = [];   // [nama sheet, xml, judul cetak?]
+    (dataSheets || []).forEach(([nm, aoa, styleOf]) => SH_.push([nm, dataSheet(aoa, styleOf), '$1:$1']));
+    if (sites) SH_.push([dataSheets && dataSheets.length ? 'Rekap Manpower' : 'Rekap MPP', rekapSheet(), '$1:$2']);
+    const safeName = (s, i) => (String(s).replace(/[\\/?*[\]:]/g, ' ').slice(0, 31).trim() || 'Sheet' + (i + 1));
+    const names = SH_.map((x, i) => safeName(x[0], i));
     const zip = new Z();
-    zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>');
+    zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' + SH_.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') + '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>');
     zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
-    zip.file('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Rekap MPP" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm.Print_Titles" localSheetId="0">\'Rekap MPP\'!$1:$2</definedName></definedNames></workbook>');
-    zip.file('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>');
+    zip.file('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' + names.map((n, i) => `<sheet name="${X(n)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('') + '</sheets><definedNames>' + names.map((n, i) => `<definedName name="_xlnm.Print_Titles" localSheetId="${i}">'${X(n).replace(/'/g, "''")}'!${SH_[i][2]}</definedName>`).join('') + '</definedNames></workbook>');
+    zip.file('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + SH_.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('') + `<Relationship Id="rId${SH_.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId${SH_.length + 2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>`);
     zip.file('xl/styles.xml', styles);
     zip.file('xl/sharedStrings.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${sst.length}" uniqueCount="${sst.length}">${sst.map((x) => `<si>${x}</si>`).join('')}</sst>`);
-    zip.file('xl/worksheets/sheet1.xml', sheet);
-    const blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', compression: 'DEFLATE' });
-    const fn = `Rekap_MPP_${rkName().replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '')}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-    if (typeof save === 'function') await save(fn, blob);
-    else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fn; document.body.appendChild(a); a.click(); a.remove(); }
+    SH_.forEach((x, i) => zip.file(`xl/worksheets/sheet${i + 1}.xml`, x[1]));
+    return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', compression: 'DEFLATE' });
+  }
+  const colL1 = (n) => { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
+  const saveBlob = async (fn, blob) => { if (typeof save === 'function') await save(fn, blob); else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fn; document.body.appendChild(a); a.click(); a.remove(); } };
+  async function rekapExcel() {
+    if (!rkAllowed()) return;
+    const sites = await rkSites();
+    const blob = await buildBook(sites, null); if (!blob) return;
+    await saveBlob(`Rekap_MPP_${rkName().replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '')}_${new Date().toISOString().slice(0, 10)}.xlsx`, blob);
   }
   window.rekapExcel = rekapExcel;
+
+  // ---------- Download Excel seluruh data (tombol Excel / Pengaturan › Download Excel) ----------
+  // Isi & susunan kolom SAMA dengan unduhan lama (jadi tetap bisa di-upload lagi lewat Sinkronkan Excel),
+  // ditambah format: judul kolom tebal & abu, garis tabel, baris judul terkunci, filter, warna penanda,
+  // sheet "Pelamar" dan sheet "Rekap Manpower" (sama dengan Rekap MPP).
+  function captureOldExport(fn) {
+    if (typeof XLSX === 'undefined' || !XLSX.utils) return null;
+    const U = XLSX.utils, keep = { n: U.book_new, a: U.aoa_to_sheet, b: U.book_append_sheet, w: XLSX.write }, sv = typeof save === 'function' ? save : null;
+    const out = [];
+    U.book_new = () => ({ SheetNames: [], Sheets: {} });
+    U.aoa_to_sheet = (aoa) => ({ __aoa: aoa });
+    U.book_append_sheet = (wb, ws, name) => { out.push([name, (ws && ws.__aoa) || []]); };
+    XLSX.write = () => new Uint8Array(0);
+    if (sv) save = () => {};
+    try { fn(); } catch (e) { console.error(e); } finally { U.book_new = keep.n; U.aoa_to_sheet = keep.a; U.book_append_sheet = keep.b; XLSX.write = keep.w; if (sv) save = sv; }
+    return out;
+  }
+  if (typeof exportXLSX === 'function') {
+    const _oldExport = exportXLSX;
+    exportXLSX = async function () {
+      const sheets = captureOldExport(_oldExport);
+      if (!sheets) return _oldExport.apply(this, arguments);
+      if (!sheets.length) return;   // tidak diizinkan / dibatalkan oleh pengecekan di web
+      try { toast('Menyiapkan Excel…'); } catch (e) {}
+      const P = (typeof DATA !== 'undefined' && DATA.positions) || [];
+      const hasArea = P.some((p) => /hauling/i.test(p.area || '')) && P.some((p) => !/hauling/i.test(p.area || ''));
+      const arOf = (x) => /hauling/i.test((x && x.area) || '') ? 'Hauling' : 'Mining';
+      const out = sheets.map(([nm, aoa]) => {
+        aoa = aoa.map((r) => (r || []).slice());
+        const isMpp = /MPP/i.test(nm), isAkt = /aktif/i.test(nm), isOut = /out|keluar/i.test(nm);
+        // KTA-TRA: kolom Area di paling kanan (tidak menggeser kolom lama)
+        if (hasArea && (isMpp || isAkt || isOut)) {
+          const src = isMpp ? P : isAkt ? (DATA.aktif || []) : (DATA.keluar || []);
+          if (aoa.length - 1 === src.length) { const w = aoa[0].length; aoa[0].push('Area'); src.forEach((x, i) => { const r = aoa[i + 1]; while (r.length < w) r.push(''); r.push(arOf(x)); }); }
+        }
+        const styleOf = (h, v) => {
+          const s = String(v == null ? '' : v);
+          if (/^nama$/i.test(h) && /^vacant$/i.test(s.trim())) return 'red';
+          if (/^ket\.? ?ptk$|keterangan ptk/i.test(h)) return /^jatuh tempo$/i.test(s) ? 'red' : /hampir/i.test(s) ? 'org' : /on track|selesai/i.test(s) ? 'grn' : null;
+          if (/^status$/i.test(h) && isMpp) return /^open$/i.test(s) ? 'red' : /continue/i.test(s) ? 'org' : /close/i.test(s) ? 'grn' : null;
+          if (/^area$/i.test(h)) return /hauling/i.test(s) ? 'org' : 'blu';
+          return null;
+        };
+        return [nm, aoa, styleOf];
+      });
+      // sheet Pelamar: semua pelamar per posisi
+      const ph = ['No Posisi'].concat(hasArea ? ['Area'] : []).concat(['Jabatan', 'Posisi (Nama di MPP)', 'Nama Pelamar', 'Status', 'Tahap Terakhir', 'Keterangan', 'Sumber']);
+      const pr = [ph], act = [];
+      P.forEach((p) => (Array.isArray(p.cands) ? p.cands : []).filter((c) => c && c.name).forEach((c) => {
+        pr.push([p.no].concat(hasArea ? [arOf(p)] : []).concat([p.jabatan || '', p.nama || '', c.name, c.status || 'Aktif', rkStep(c), String(c.note || '').trim(), c.sumber || '']));
+        act.push(rkActive(c));
+      }));
+      if (pr.length > 1) out.push(['Pelamar', pr, (h, v, i) => /^nama pelamar$/i.test(h) ? (act[i] ? 'bold' : 'cx') : /^status$/i.test(h) ? (act[i] ? 'grn' : 'cx') : /^area$/i.test(h) ? (/hauling/i.test(String(v)) ? 'org' : 'blu') : (act[i] ? null : 'cx')]);
+      const sites = await rkSites();
+      const blob = await buildBook(sites, out); if (!blob) return;
+      await saveBlob(`Monitoring_Manpower_${rkName().replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '')}_${new Date().toISOString().slice(0, 10)}.xlsx`, blob);
+    };
+  }
   window.rekapPrint = rekapPrint;
   const RK_IC = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 5h16v14H4zM4 9h16M4 13h16M9 9v10" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>';
   const XL_IC = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
