@@ -560,6 +560,18 @@
           const src = isMpp ? P : isAkt ? (DATA.aktif || []) : (DATA.keluar || []);
           if (aoa.length - 1 === src.length) { const w = aoa[0].length; aoa[0].push('Area'); src.forEach((x, i) => { const r = aoa[i + 1]; while (r.length < w) r.push(''); r.push(arOf(x)); }); }
         }
+        // KTA-TRA: Populasi Unit & Detail Unit dipisah per project (kolom Area + diurutkan Hauling lalu Mining)
+        const isUnit = /populasi unit/i.test(nm), isDet = /detail unit/i.test(nm);
+        if (hasArea && (isUnit || isDet)) {
+          const U = (DATA.units || []);
+          const src = isUnit ? U : U.flatMap((u) => (Array.isArray(u.details) ? u.details : []).map(() => u));
+          if (aoa.length - 1 === src.length) {
+            const w = aoa[0].length; aoa[0].push('Area');
+            const body = aoa.slice(1).map((r, i) => { while (r.length < w) r.push(''); r.push(arOf(src[i])); return r; });
+            body.sort((x, y) => (x[w] === 'Mining') - (y[w] === 'Mining'));
+            aoa = [aoa[0]].concat(body);
+          }
+        }
         const styleOf = (h, v) => {
           const s = String(v == null ? '' : v);
           if (/^nama$/i.test(h) && /^vacant$/i.test(s.trim())) return 'red';
