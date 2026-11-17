@@ -373,7 +373,7 @@
   // perkiraan jumlah baris teks (agar tinggi baris pas seperti cetakan)
   const wrapN = (txt, per) => String(txt).split('\n').reduce((a, l) => a + Math.max(1, Math.ceil(l.length / per)), 0);
   // ---------- Penulis .xlsx bersama (Rekap MPP & Download Excel seluruh data) ----------
-  async function buildBook(sites, dataSheets, org) {
+  async function buildBook(sites, dataSheets, org, pic) {
     let Z; try { Z = await loadZip(); } catch (e) { try { toast('Pembuat Excel belum termuat. Periksa koneksi lalu coba lagi.', true); } catch (er) {} return null; }
     // Semua format memakai format SEL (bukan rich text) dan 1 kalimat = 1 baris Excel,
     // supaya tampil sama di Excel, Google Sheets, pratinjau Google Drive, WPS, dan LibreOffice.
@@ -524,18 +524,32 @@
     };
     const SH_ = [];   // [nama sheet, xml, judul cetak?]
     (dataSheets || []).forEach(([nm, aoa, styleOf]) => SH_.push([nm, dataSheet(aoa, styleOf), '$1:$1']));
+    // gambar bagan SO (sama dengan bagan di web) di sheet sendiri
+    let picIdx = -1;
+    if (pic && pic.bytes) {
+      const maxW = 1500, sc = Math.min(1, maxW / pic.w), cx = Math.round(pic.w * sc * 9525), cy = Math.round(pic.h * sc * 9525);
+      picIdx = SH_.length;
+      SH_.push(['Gambar Struktur Organisasi', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><sheetData><row r="1" ht="22" customHeight="1"><c r="A1" s="${ST}" t="s"><v>${sIdx('Struktur Organisasi ' + (org ? org.name : rkName()) + ' · ' + rkDate())}</v></c></row></sheetData><pageMargins left="0.3" right="0.3" top="0.4" bottom="0.4" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="${pic.w >= pic.h ? 'landscape' : 'portrait'}" fitToWidth="1" fitToHeight="1"/><drawing r:id="rId1"/></worksheet>`, '', { cx, cy }]);
+    }
     if (org && org.rows.length) SH_.push(['Struktur Organisasi', orgSheet(), '$4:$4']);
     if (sites) SH_.push([dataSheets && dataSheets.length ? 'Rekap Manpower' : 'Rekap MPP', rekapSheet(), '$1:$2']);
     const safeName = (s, i) => (String(s).replace(/[\\/?*[\]:]/g, ' ').slice(0, 31).trim() || 'Sheet' + (i + 1));
     const names = SH_.map((x, i) => safeName(x[0], i));
     const zip = new Z();
-    zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' + SH_.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') + '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>');
+    zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' + SH_.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') + (picIdx >= 0 ? '<Default Extension="png" ContentType="image/png"/><Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>' : '') + '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>');
     zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
-    zip.file('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' + names.map((n, i) => `<sheet name="${X(n)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('') + '</sheets><definedNames>' + names.map((n, i) => `<definedName name="_xlnm.Print_Titles" localSheetId="${i}">'${X(n).replace(/'/g, "''")}'!${SH_[i][2]}</definedName>`).join('') + '</definedNames></workbook>');
+    zip.file('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' + names.map((n, i) => `<sheet name="${X(n)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('') + '</sheets><definedNames>' + names.map((n, i) => SH_[i][2] ? `<definedName name="_xlnm.Print_Titles" localSheetId="${i}">'${X(n).replace(/'/g, "''")}'!${SH_[i][2]}</definedName>` : '').join('') + '</definedNames></workbook>');
     zip.file('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + SH_.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('') + `<Relationship Id="rId${SH_.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId${SH_.length + 2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>`);
     zip.file('xl/styles.xml', styles);
     zip.file('xl/sharedStrings.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${sst.length}" uniqueCount="${sst.length}">${sst.map((x) => `<si>${x}</si>`).join('')}</sst>`);
     SH_.forEach((x, i) => zip.file(`xl/worksheets/sheet${i + 1}.xml`, x[1]));
+    if (picIdx >= 0) {
+      const { cx, cy } = SH_[picIdx][3];
+      zip.file(`xl/worksheets/_rels/sheet${picIdx + 1}.xml.rels`, '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>');
+      zip.file('xl/drawings/_rels/drawing1.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/></Relationships>');
+      zip.file('xl/drawings/drawing1.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><xdr:oneCellAnchor><xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>2</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:ext cx="${cx}" cy="${cy}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="2" name="Struktur Organisasi"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor></xdr:wsDr>`);
+      zip.file('xl/media/image1.png', pic.bytes);
+    }
     return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', compression: 'DEFLATE' });
   }
   const colL1 = (n) => { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
@@ -596,6 +610,26 @@
       });
     } else block(P);
     return { name: rkName(), rows: out };
+  }
+  // gambar bagan SO: buka sebentar halaman Struktur Organisasi (semua section/area), ambil gambarnya, lalu kembali
+  async function orgPicture() {
+    if (typeof orgCanvas !== 'function' || !((DATA && DATA.positions) || []).length) return null;
+    const keep = { page: ui.page, osec: ui.osec, oarea: ui.oarea, y: window.scrollY };
+    try { toast('Menyiapkan gambar struktur organisasi…'); } catch (e) {}
+    ui.page = 'org'; ui.osec = 'semua'; if ('oarea' in ui) ui.oarea = 'semua';
+    try {
+      render();
+      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 120)));
+      const cv = await orgCanvas();
+      const pad = 40, W = cv.width + pad * 2, H = cv.height + pad * 2;
+      const out = document.createElement('canvas'); out.width = W; out.height = H;
+      const g = out.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.drawImage(cv, pad, pad);
+      const blob = await new Promise((r) => out.toBlob(r, 'image/png'));
+      return { bytes: new Uint8Array(await blob.arrayBuffer()), w: W / 2, h: H / 2 };
+    } finally {
+      ui.page = keep.page; ui.osec = keep.osec; if (keep.oarea !== undefined) ui.oarea = keep.oarea;
+      render(); window.scrollTo(0, keep.y);
+    }
   }
   function captureOldExport(fn) {
     if (typeof XLSX === 'undefined' || !XLSX.utils) return null;
@@ -659,7 +693,8 @@
       if (pr.length > 1) out.push(['Pelamar', pr, (h, v, i) => /^nama pelamar$/i.test(h) ? (act[i] ? 'bold' : 'cx') : /^status$/i.test(h) ? (act[i] ? 'grn' : 'cx') : /^area$/i.test(h) ? (/hauling/i.test(String(v)) ? 'org' : 'blu') : (act[i] ? null : 'cx')]);
       const sites = await rkSites();
       let org = null; try { org = orgRows(); } catch (e) { console.error(e); }
-      const blob = await buildBook(sites, out, org); if (!blob) return;
+      let pic = null; try { pic = await orgPicture(); } catch (e) { console.error(e); }
+      const blob = await buildBook(sites, out, org, pic); if (!blob) return;
       await saveBlob(`Monitoring_Manpower_${rkName().replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '')}_${new Date().toISOString().slice(0, 10)}.xlsx`, blob);
     };
   }
