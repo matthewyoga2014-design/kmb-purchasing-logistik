@@ -520,7 +520,7 @@
           return rec;
         });
         return commit(S=>{
-          const rec={...(u||{}),unit:v.unit,jumlah:finalJumlah,catatan:v.catatan,details:cleaned};
+          const rec={...(u||((typeof ui!=='undefined'&&ui.area&&ui.area!=='semua')?{area:ui.area}:{})),unit:v.unit,jumlah:finalJumlah,catatan:v.catatan,details:cleaned};
           if(u)S.units[idx]=rec;else S.units.push(rec);
         },u?"Data populasi dan detail unit diperbarui.":"Jenis unit ditambahkan.");
       }

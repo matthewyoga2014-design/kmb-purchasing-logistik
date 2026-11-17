@@ -1918,10 +1918,11 @@ ui.oarea = 'semua';
 const _renderArea = render;
 render = function () {
   const A = ui.area, all = DATA && DATA.positions;
-  if (ui.page !== 'dashboard' || A === 'semua' || !bothAreas(all)) { const r = _renderArea.apply(this, arguments); areaSegDash(); return r; }
+  if ((ui.page !== 'dashboard' && ui.page !== 'unit') || A === 'semua' || !bothAreas(all)) { const r = _renderArea.apply(this, arguments); areaSegDash(); return r; }
   const keep = { positions: DATA.positions, aktif: DATA.aktif, keluar: DATA.keluar, units: DATA.units };
   const idx = []; keep.positions.forEach((p, i) => { if (areaOf(p) === A) idx.push(i); });
   const f = (L) => (L || []).filter((x) => areaOf(x) === A);
+  const uidx = []; (keep.units || []).forEach((u, i) => { if (areaOf(u) === A) uidx.push(i); });
   DATA.positions = idx.map((i) => keep.positions[i]); DATA.aktif = f(keep.aktif); DATA.keluar = f(keep.keluar); DATA.units = f(keep.units);
   let r;
   try { r = _renderArea.apply(this, arguments); }
@@ -1930,11 +1931,16 @@ render = function () {
   document.querySelectorAll('#view [data-cands],#view [data-epos],#view [data-delpos],#view [data-soe]').forEach((el) => {
     ['cands', 'epos', 'delpos', 'soe'].forEach((k) => { const v = el.dataset[k]; if (v !== undefined && /^\d+$/.test(v) && idx[+v] !== undefined) el.dataset[k] = String(idx[+v]); });
   });
+  // Populasi Unit: tombol Edit / foto memakai nomor urut unit
+  document.querySelectorAll('#view [data-eunit]').forEach((el) => { const v = el.dataset.eunit; if (/^\d+$/.test(v) && uidx[+v] !== undefined) el.dataset.eunit = String(uidx[+v]); });
+  document.querySelectorAll('#view [data-ud-edit],#view [data-ud-photo]').forEach((el) => {
+    ['udEdit', 'udPhoto'].forEach((k) => { const v = el.dataset[k]; if (!v) return; const [a, b] = v.split(':'); if (/^\d+$/.test(a) && uidx[+a] !== undefined) el.dataset[k] = uidx[+a] + ':' + b; });
+  });
   areaSegDash();
   return r;
 };
 function areaSegDash() {
-  if (ui.page !== 'dashboard' || !bothAreas(DATA.positions)) return;
+  if ((ui.page !== 'dashboard' && ui.page !== 'unit') || !bothAreas(DATA.positions)) return;
   const head = document.querySelector('#view .head'); if (!head || head.querySelector('.aseg')) return;
   const seg = `<div class="seg aseg" role="group" aria-label="Project" style="margin-top:10px">${[['semua', 'Semua (Hauling + Mining)'], ['Hauling', 'KTA - TRA Hauling'], ['Mining', 'KTA - TRA Mining']].map(([k, l]) => `<button type="button" data-area="${k}" aria-pressed="${ui.area === k}">${l}</button>`).join('')}</div>`;
   const left = head.firstElementChild; (left || head).insertAdjacentHTML('beforeend', seg);
@@ -4851,7 +4857,7 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
   }, true);
   try { after(); } catch (e) {}
 })();
-</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script><script src="../unit-population-detail.js?v=20261023-explorer-v2"></script><script src="../mp-private.js?v=20261108c"></script><script src="../activity-log.js?v=20261024" data-kind="manpower"></script><script src="../otp-login.js?v=20261025"></script><script src="../form-data-karyawan.js?v=20261108"></script><script src="../candidate-resume.js?v=20261114"></script><script src="../manpower-dash.js?v=20261117e"></script><script id="portal-name-sync">
+</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script><script src="../unit-population-detail.js?v=20261117-area"></script><script src="../mp-private.js?v=20261108c"></script><script src="../activity-log.js?v=20261024" data-kind="manpower"></script><script src="../otp-login.js?v=20261025"></script><script src="../form-data-karyawan.js?v=20261108"></script><script src="../candidate-resume.js?v=20261114"></script><script src="../manpower-dash.js?v=20261117e"></script><script id="portal-name-sync">
 // Nama portal mengikuti "Edit nama portal" di Monitoring MPP Achievement (tabel portal_display_settings).
 (function () {
   var KEY = 'portal-name:' + 'kta';
