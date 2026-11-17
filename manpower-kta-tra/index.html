@@ -1733,7 +1733,7 @@ document.getElementById('fileIn').addEventListener('change', async (e) => {
     const parsed = mergeHistory(STATE, parseSheets(sheets));
     if (!parsed.positions.length) throw new Error('Tidak ada posisi yang terbaca di sheet MPP. Pastikan kolom No, Nama, Jabatan masih di kolom A–C.');
     openForm({ eyebrow: 'Sinkronkan Excel', title: `Ganti data web dengan ${file.name}?`, intro: `Terbaca ${parsed.positions.length} posisi MPP, ${parsed.aktif.length} MP Aktif, ${parsed.keluar.length} MP Out, ${parsed.units.length} jenis unit. Perubahan yang dibuat langsung di web akan tertimpa.`, values: {}, fields: [], submit: 'Sinkronkan',
-      onSave: () => commit((S) => { S.positions = parsed.positions; S.aktif = parsed.aktif; S.keluar = parsed.keluar; S.units = parsed.units.length ? parsed.units : S.units; S.meta = { source: 'Sinkron dari ' + file.name }; }, 'Data disinkronkan dari Excel.') });
+      onSave: () => commit((S) => { areaSync(S, parsed); S.meta = { source: 'Sinkron dari ' + file.name }; }, 'Data disinkronkan dari Excel.') });
   } catch (err) { toast(err.message || 'File tidak bisa dibaca.', true); }
 });
 
@@ -1893,7 +1893,23 @@ function pstBar(D) {
 
 // ---------- MPP page (compact, like the reference web) ----------
 // ================= Area: Hauling & Mining dalam satu portal KTA-TRA =================
-function areaOf(p) { return /mining/i.test((p && p.area) || '') ? 'Mining' : 'Hauling'; }
+// Data asli web ini = KTA-TRA Mining; data KTA-TRA Hauling digabung ke sini dengan area = Hauling
+function areaOf(p) { return /hauling/i.test((p && p.area) || '') ? 'Hauling' : 'Mining'; }
+function bothAreas(P) { return (P || []).some((p) => areaOf(p) === 'Hauling') && (P || []).some((p) => areaOf(p) === 'Mining'); }
+// Sinkronkan Excel saat Hauling & Mining sudah digabung: hanya area dari Excel itu yang diganti, area lain tetap
+function areaSync(S, parsed) {
+  if (!bothAreas(S.positions)) { S.positions = parsed.positions; S.aktif = parsed.aktif; S.keluar = parsed.keluar; S.units = parsed.units.length ? parsed.units : S.units; return; }
+  const c = { Hauling: 0, Mining: 0 }; parsed.positions.forEach((p) => { if (p.area) c[areaOf(p)]++; });
+  const A = ui.area !== 'semua' ? ui.area : (c.Hauling > c.Mining ? 'Hauling' : 'Mining');
+  const tag = (L) => (L || []).map((x) => ({ ...x, area: A }));
+  const keep = (L) => (L || []).filter((x) => areaOf(x) !== A);
+  const join = (mine, other) => A === 'Hauling' ? other.concat(mine) : mine.concat(other);
+  S.positions = join(tag(parsed.positions), keep(S.positions));
+  S.aktif = join(tag(parsed.aktif), keep(S.aktif));
+  S.keluar = join(tag(parsed.keluar), keep(S.keluar));
+  if (parsed.units.length) S.units = join(tag(parsed.units), keep(S.units));
+  toast(`Data ${A} diganti dari Excel; data ${A === 'Hauling' ? 'Mining' : 'Hauling'} tetap.`);
+}
 ui.area = (() => { try { const v = localStorage.getItem('kta-area'); return v === 'Hauling' || v === 'Mining' ? v : 'semua'; } catch (e) { return 'semua'; } })();
 ui.oarea = 'semua';
 // Sinkronkan Excel: area posisi lama dipertahankan; posisi baru di section bernama "Mining" otomatis Mining
@@ -1906,7 +1922,7 @@ mergeHistory = function (oldD, newD) {
       if (p.area) return;
       const o = old.find((x) => x.no === p.no && normName(x.nama) === normName(p.nama) && x.jabatan === p.jabatan)
         || (!isVacant(p) && old.find((x) => !isVacant(x) && normName(x.nama) === normName(p.nama)));
-      if (o && o.area) p.area = o.area; else if (/mining/i.test(`${p.section || ''} ${p.group || ''}`)) p.area = 'Mining';
+      if (o && o.area) p.area = o.area; else if (/hauling/i.test(`${p.section || ''} ${p.group || ''}`)) p.area = 'Hauling';
     });
   } catch (e) {}
   return r;
@@ -1933,7 +1949,7 @@ function pageMPP(D) {
     if (ui.mf !== 'semua' && (!hasPTK(p) || (p.status || '').toLowerCase() !== ui.mf)) return false;
     return !q || `${p.nama} ${p.jabatan} ${p.section} ${p.group} ${p.ket} ${p.ptk} ${candidates(p).map((c) => c.name).join(' ')}`.toLowerCase().includes(q);
   });
-  const multiArea = D.P.some((p) => areaOf(p) === 'Mining');
+  const multiArea = bothAreas(D.P);
   if (multiArea && ui.area === 'semua') rows.sort((a, b) => (areaOf(a[0]) === 'Mining') - (areaOf(b[0]) === 'Mining') || a[1] - b[1]);
   const AP = D.P.filter((p) => ui.area === 'semua' || areaOf(p) === ui.area);
   const aStat = (a) => { const L = D.P.filter((p) => areaOf(p) === a), v = L.filter(isVacant).length; return `Plan ${L.length} · Actual ${L.length - v} · Vacant ${v}`; };
@@ -2027,7 +2043,7 @@ function delCand(idx, ci) {
 function mppForm(idx) {
   const p = idx == null ? null : DATA.positions[idx];
   const vals = p ? { ...p } : { nama: 'Vacant', section: SEC_OPTS()[0] || '', status: 'Open', aju: TODAY, pic: 'PT. KAI' };
-  vals.area = p ? areaOf(p) : (ui.area !== 'semua' ? ui.area : 'Hauling');
+  vals.area = p ? areaOf(p) : (ui.area !== 'semua' ? ui.area : 'Mining');
   if (p) p.stages.forEach((s, i) => { vals['st' + i] = s; });
   openForm({
     eyebrow: 'MPP KTA - TRA', title: p ? `Edit Posisi No. ${p.no}` : 'Tambah Data MPP',
@@ -2052,7 +2068,7 @@ function mppForm(idx) {
       { title: 'Progress rekrutmen (tanggal)', fields: STAGE_FIELDS.map((l, i) => ({ k: 'st' + i, label: l, type: 'date', freeText: true })) },
     ],
     onSave: (v) => commit((S) => {
-      const rec = { area: v.area === 'Mining' ? 'Mining' : 'Hauling', section: v.section, group: v.group || v.section, nama: v.nama || 'Vacant', jabatan: v.jabatan, pic: v.pic, ptk: v.ptk, aju: v.aju, stages: STAGE_FIELDS.map((_, i) => v['st' + i] || null), due: v.due, status: v.status, close: v.close };
+      const rec = { area: v.area === 'Hauling' ? 'Hauling' : 'Mining', section: v.section, group: v.group || v.section, nama: v.nama || 'Vacant', jabatan: v.jabatan, pic: v.pic, ptk: v.ptk, aju: v.aju, stages: STAGE_FIELDS.map((_, i) => v['st' + i] || null), due: v.due, status: v.status, close: v.close };
       if (rec.status === 'Close' && !rec.close) rec.close = TODAY;
       if (p) { S.positions[idx] = { ...S.positions[idx], ...rec }; }
       else {
@@ -2787,7 +2803,7 @@ function orgChart(D) {
   const P = D.P; const M = orgModel(P);
   const freeSet = new Set(M.free.map((p) => p.uid));
   const secs = orgSections(P);
-  const multiArea = P.some((p) => areaOf(p) === 'Mining');
+  const multiArea = bothAreas(P);
   const isTop = (s) => /penanggung|pjo|manajemen|management/i.test(s.name);
   const top = secs.filter(isTop).flatMap((s) => s.groups.flatMap((g) => g.list)).filter((p) => freeSet.has(p.uid));
   const body = secs.filter((s) => !isTop(s)).filter((s) => ui.osec === 'semua' || s.name === ui.osec);
@@ -2823,7 +2839,7 @@ function pageOrg(D) {
   const fams = [...new Set(D.P.map((p) => roleFamily(p.jabatan)))];
   return `<div class="mhead"><div><div class="eyebrow">Monitoring Manpower KTA - TRA</div><h1>Struktur Organisasi</h1><p>Otomatis dari MPP KTA - TRA. Jabatan yang sama tampil sejajar, dikelompokkan per section dan sub-section.</p></div>
     <div class="mtools"><input type="search" id="oq" placeholder="Cari nama / jabatan" value="${esc(ui.oq)}" aria-label="Cari di struktur">
-      ${D.P.some((p) => areaOf(p) === 'Mining') ? `<select id="oArea" aria-label="Pilih area">${[['semua', 'Semua (Hauling + Mining)'], ['Hauling', 'Hauling saja'], ['Mining', 'Mining saja']].map(([k, l]) => `<option value="${k}" ${ui.oarea === k ? 'selected' : ''}>${l}</option>`).join('')}</select>` : ''}
+      ${bothAreas(D.P) ? `<select id="oArea" aria-label="Pilih area">${[['semua', 'Semua (Hauling + Mining)'], ['Hauling', 'Hauling saja'], ['Mining', 'Mining saja']].map(([k, l]) => `<option value="${k}" ${ui.oarea === k ? 'selected' : ''}>${l}</option>`).join('')}</select>` : ''}
       <select id="oSec" aria-label="Pilih section"><option value="semua">Semua section</option>${secs.map((s) => `<option ${ui.osec === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
       <div class="seg" role="group" aria-label="Tata letak sub-section"><button type="button" data-olay="h" aria-pressed="${ui.olay !== 'v'}" title="Sub-section berjajar ke samping (lebar)">Mendatar</button><button type="button" data-olay="v" aria-pressed="${ui.olay === 'v'}" title="Sub-section bersusun ke bawah (ringkas, mudah dibaca)">Sub-section menurun</button></div>
       <div class="seg" role="group" aria-label="Zoom"><button type="button" data-oz="-" title="Perkecil">−</button><button type="button" data-oz="100" title="Ukuran asli" id="ozLbl">${ui.oz === null ? 'Pas' : Math.round(ui.oz * 100) + '%'}</button><button type="button" data-oz="+" title="Perbesar">+</button><button type="button" data-oz="fit" aria-pressed="${ui.oz === null}" title="Seluruh struktur pas dengan lebar layar">Pas lebar</button></div>
@@ -3122,18 +3138,23 @@ function orgChart(D) {
     return `<li><div class="onode sec" data-dsec="${esc(s.name)}" ${CAN_EDIT ? `data-rsec="${esc(s.name)}" role="button" tabindex="0" title="Klik untuk ganti nama section"` : ''}><b>${esc(s.name)}</b><span>${all.length} MPP · ${mpa} MPA · ${all.length ? Math.round(mpa / all.length * 100) : 0}%</span></div>${frames}</li>`;
   };
   let secRow = body.length ? `<ul class="tier secs">${body.map(secLi).join('')}</ul>` : '';
-  if (P.some((p) => areaOf(p) === 'Mining')) {
-    // satu bagan, dua cabang: Hauling & Mining (section dihitung per area agar nama section yang sama tidak tercampur)
+  let areaMode = false;
+  if (bothAreas(P)) {
+    // satu bagan, dua cabang: Hauling & Mining; Dept Head / PJO masing-masing area ada di cabangnya
+    areaMode = true;
     const br = ['Hauling', 'Mining'].filter((a) => ui.oarea === 'semua' || ui.oarea === a).map((a) => {
-      const ss = orgSections(P.filter((p) => areaOf(p) === a)).filter((s) => !isTop(s) && !secOut(s.name)).filter((s) => ui.osec === 'semua' || s.name === ui.osec);
-      if (!ss.length) return '';
-      const all = ss.flatMap((s) => s.groups.flatMap((g) => g.list)), v = all.filter(isVacant).length;
-      return `<li><div class="onode sec oarea ${a === 'Mining' ? 'am' : 'ah'}"><b>${a.toUpperCase()}</b><span>${all.length} MPP · ${all.length - v} MPA · ${v} Vacant</span></div><ul class="tier secs">${ss.map(secLi).join('')}</ul></li>`;
+      const all0 = orgSections(P.filter((p) => areaOf(p) === a));
+      const ss = all0.filter((s) => !isTop(s) && !secOut(s.name)).filter((s) => ui.osec === 'semua' || s.name === ui.osec);
+      const topA = ui.osec === 'semua' ? all0.filter(isTop).flatMap((s) => s.groups.flatMap((g) => g.list)).filter((p) => freeSet.has(p.uid)) : [];
+      if (!ss.length && !topA.length) return '';
+      const all = all0.flatMap((s) => s.groups.flatMap((g) => g.list)), v = all.filter(isVacant).length;
+      const ssRow = ss.length ? `<ul class="tier secs">${ss.map(secLi).join('')}</ul>` : '';
+      return `<li><div class="onode sec oarea ${a === 'Mining' ? 'am' : 'ah'}"><b>KTA - TRA ${a.toUpperCase()}</b><span>${all.length} MPP · ${all.length - v} MPA · ${v} Vacant</span></div>${topA.length ? tiersHtml(topA, M, ssRow) : ssRow}</li>`;
     }).filter(Boolean);
     secRow = br.length ? `<ul class="tier secs">${br.join('')}</ul>` : '';
   }
   const outBlk = outs.length ? `<div class="orgroot out"><div class="outlbl" ${CAN_EDIT ? 'data-outmv="1" title="Seret untuk memindahkan kotak ini ke kiri / kanan / bawah struktur"' : ''}>${CAN_EDIT ? '<i class="grip">⠿</i>' : ''}Di luar Struktur Organisasi (SO)</div><div class="tiers"><ul class="tier secs">${outs.map(secLi).join('')}</ul></div></div>` : '';
-  const main = ui.osec !== 'semua' ? (secRow ? `<div class="orgroot">${tiersHtml([], M, secRow)}</div>` : '') : `<div class="orgroot">${top.length ? tiersHtml(top, M, secRow) : `<div class="tiers">${secRow}</div>`}</div>`;
+  const main = areaMode ? (secRow ? `<div class="orgroot"><div class="tiers">${secRow}</div></div>` : '') : ui.osec !== 'semua' ? (secRow ? `<div class="orgroot">${tiersHtml([], M, secRow)}</div>` : '') : `<div class="orgroot">${top.length ? tiersHtml(top, M, secRow) : `<div class="tiers">${secRow}</div>`}</div>`;
   return `<div class="org pos-${['left', 'bottom'].includes(DATA.orgOutPos) ? DATA.orgOutPos : 'right'}">${main}${outBlk}</div>`;
 }
 function secOut(name, S) { const m = ((S || DATA).orgSecMode) || {}; return m[name] ? m[name] === 'out' : /luar\s*so|non[\s-]*so/i.test(name || ''); }
@@ -4787,7 +4808,7 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
   }, true);
   try { after(); } catch (e) {}
 })();
-</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script><script src="../unit-population-detail.js?v=20261023-explorer-v2"></script><script src="../mp-private.js?v=20261108c"></script><script src="../activity-log.js?v=20261024" data-kind="manpower"></script><script src="../otp-login.js?v=20261025"></script><script src="../form-data-karyawan.js?v=20261108"></script><script src="../candidate-resume.js?v=20261114"></script><script src="../manpower-dash.js?v=20261117b"></script><script id="portal-name-sync">
+</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script><script src="../unit-population-detail.js?v=20261023-explorer-v2"></script><script src="../mp-private.js?v=20261108c"></script><script src="../activity-log.js?v=20261024" data-kind="manpower"></script><script src="../otp-login.js?v=20261025"></script><script src="../form-data-karyawan.js?v=20261108"></script><script src="../candidate-resume.js?v=20261114"></script><script src="../manpower-dash.js?v=20261117c"></script><script id="portal-name-sync">
 // Nama portal mengikuti "Edit nama portal" di Monitoring MPP Achievement (tabel portal_display_settings).
 (function () {
   var KEY = 'portal-name:' + 'kta';

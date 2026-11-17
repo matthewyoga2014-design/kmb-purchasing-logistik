@@ -330,8 +330,8 @@
     // KTA-TRA: posisi punya Area (Hauling / Mining) → satu tabel per area
     const out = []; let split = false;
     sites.forEach(([n, d]) => {
-      const ps = (d && d.positions) || [], ar = (p) => /mining/i.test((p && p.area) || '') ? 'Mining' : 'Hauling';
-      if (ps.some((p) => ar(p) === 'Mining')) { split = true; ['Hauling', 'Mining'].forEach((a) => { const L = ps.filter((p) => ar(p) === a); if (L.length) out.push([n + ' ' + a, { ...d, positions: L }]); }); }
+      const ps = (d && d.positions) || [], ar = (p) => /hauling/i.test((p && p.area) || '') ? 'Hauling' : 'Mining';
+      if (ps.some((p) => ar(p) === 'Hauling') && ps.some((p) => ar(p) === 'Mining')) { split = true; ['Hauling', 'Mining'].forEach((a) => { const L = ps.filter((p) => ar(p) === a); if (L.length) out.push([n + ' ' + a, { ...d, positions: L }]); }); }
       else out.push([n, d]);
     });
     out.split = split;

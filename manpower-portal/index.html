@@ -2,7 +2,7 @@
 <html lang="id"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Portal Monitoring Manpower</title>
-<meta name="description" content="Portal Monitoring Manpower KMB: KTA-TRA, BUPR Ampah, MBJ, dan KMB (4 jobsite).">
+<meta name="description" content="Portal Monitoring Manpower KMB: KTA-TRA (Hauling &amp; Mining), BUPR Ampah, dan KMB (4 jobsite).">
 <meta name="theme-color" content="#6D28D9">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2716%27 fill=%27%236D28D9%27/%3E%3Ctext x=%2732%27 y=%2740%27 font-family=%27Arial%27 font-weight=%27700%27 font-size=%2734%27 fill=%27white%27 text-anchor=%27middle%27%3EM%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -225,7 +225,7 @@ a.hb { text-decoration: none; }
   <section class="hero">
     <div class="eb">Integrated Monitoring</div>
     <div class="fdk-head"><h1>Monitoring MPP Achievement All Jobsite</h1><button type="button" class="btn btn-g fdk-btn" data-fdk-blank title="Cetak Form Data Karyawan kosong (Word / Excel / PDF)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>Cetak Form Data Karyawan</button></div>
-    <p class="sub">Pencapaian pemenuhan manpower (MPP vs MPA) dan progres rekrutmen di seluruh jobsite: KTA-TRA, BUPR Ampah, MBJ, dan KMB. Angka diperbarui otomatis dari setiap web proyek.</p>
+    <p class="sub">Pencapaian pemenuhan manpower (MPP vs MPA) dan progres rekrutmen di seluruh jobsite: KTA-TRA (Hauling &amp; Mining), BUPR Ampah, dan KMB. Angka diperbarui otomatis dari setiap web proyek.</p>
     
     <div class="mpp-project-actions"><button type="button" class="btn btn-p" id="mppAddProject" hidden>+ Project</button></div>
   </section>
@@ -288,7 +288,6 @@ const I = {
 const PROJECTS = [
   { key: 'kta', name: 'KTA - TRA', desc: 'Monitoring Manpower KTA - TRA', href: '../manpower-kta-tra/', ids: ['main'], icon: 'mount' },
   { key: 'bupr', name: 'BUPR Ampah', desc: 'Monitoring Manpower BUPR Ampah', href: '../manpower-bupr/', ids: ['bupr'], icon: 'exc' },
-  { key: 'mbj', name: 'MBJ', desc: 'Monitoring Manpower MBJ', href: '../manpower-mbj/', ids: ['mbj'], icon: 'sun' },
   { key: 'kmb', name: 'KMB', desc: '4 jobsite: C4, SLR, Workshop', href: '../manpower-kmb/', icon: 'home',
     sites: [['kmb-c4', 'C4'], ['kmb-slr-maintenance', 'SLR - Maintenance'], ['kmb-slr-rekondisi', 'SLR - Rekondisi'], ['kmb-workshop', 'Workshop Legok']] },
 ];
@@ -420,13 +419,17 @@ function totHtml(list) {
 }
 function cardHtml(p, s, per, last) {
   const v = (x) => s ? x : '<span class="sk">00</span>';
+  // KTA-TRA: Hauling & Mining dalam satu web → rincian per area seperti jobsite KMB
+  const arOf = (x) => /hauling/i.test((x && x.area) || '') ? 'Hauling' : 'Mining';
+  const aps = !p.sites && per && per[0] && per[0].d && Array.isArray(per[0].d.positions) ? per[0].d.positions : [];
+  const areaRows = aps.some((x) => arOf(x) === 'Hauling') && aps.some((x) => arOf(x) === 'Mining') ? `<div class="sites">${['Hauling', 'Mining'].map((a) => { const x = stats({ positions: aps.filter((q) => arOf(q) === a) }); return `<a href="${hrefOf(p)}" data-area="${a}"><span class="n">${esc(p.name)} ${a}</span><span class="x">${x.act}/${x.mpp} MPP</span><span class="x pc">${x.pct}%</span><span class="x ${x.vac ? 'v' : ''}">${x.vac ? x.vac + ' vacant' : 'Lengkap'}</span><span class="ch2">${I.chev}</span></a>`; }).join('')}</div>` : '';
   const sites = p.sites ? `<div class="sites">${p.sites.map(([id, nm], i) => { const x = per ? per[i].s : null; return `<a href="${hrefOf(p)}" data-site="${id}"><span class="n">${esc(nm)}</span><span class="x">${x ? `${x.act}/${x.mpp} MPP` : ''}</span><span class="x pc">${x ? x.pct + '%' : ''}</span><span class="x ${x && x.vac ? 'v' : ''}">${x ? (x.vac ? x.vac + ' vacant' : 'Lengkap') : ''}</span><span class="ch2">${I.chev}</span></a>`; }).join('')}</div>` : '';
   return `<article class="card k-${p.theme||p.key}" style="--art:url('${ART[p.key]}')">
     <div class="ch"><span class="ic">${I[p.icon]}</span><div><h2>${esc(p.name)}</h2><p>${esc(p.desc)}</p></div>${IS_OWNER?(p.extra?'<button type="button" class="portal-rename-btn" data-project-edit="'+esc(p.key)+'">✎ Edit</button>':'<button type="button" class="portal-rename-btn" data-portal-rename="'+esc(p.key)+'">✎ Edit</button>'):''}<a class="go" href="${hrefOf(p)}">Buka →</a></div>
     <div class="cb">
       <div class="st"><div>${I.people('#7C3AED')}<span><b>${v(s && s.mpp)}</b><span>MPP</span></span></div><div>${I.helmet('#2563EB')}<span><b>${v(s && s.act)}</b><span>Actual</span></span></div><div class="v">${I.vac('#E11D48')}<span><b>${v(s && s.vac)}</b><span>Vacant</span></span></div><div class="o">${I.doc('#F59E0B')}<span><b>${v(s && s.open)}</b><span>PTK open</span></span></div></div>
       <div class="bar" title="${s ? s.pct : 0}% terisi"><i style="width:${s ? s.pct : 0}%"></i></div>
-      ${sites}
+      ${sites}${areaRows}
       <div class="meta"><span>${s ? s.pct : 0}% MPP terisi</span><span class="tm">${I.clock}Diperbarui ${fmtDate(last)}</span></div>
       ${actsHtml(p)}
     </div></article>`;
@@ -441,7 +444,7 @@ function render(rows) {
   document.body.classList.toggle('locked', false);
   const cards = visP().map((p) => {
     const ids = p.sites ? p.sites.map((s) => s[0]) : p.ids;
-    const per = ids.map((id) => ({ id, s: stats(by[id] && by[id].data), at: by[id] && by[id].updated_at }));
+    const per = ids.map((id) => ({ id, s: stats(by[id] && by[id].data), at: by[id] && by[id].updated_at, d: by[id] && by[id].data }));
     const s = per.reduce((a, x) => add(a, x.s), { mpp: 0, act: 0, vac: 0, open: 0 });
     s.pct = s.mpp ? Math.round(s.act / s.mpp * 100) : 0;
     all = add(all, s); per1[p.key] = s;
@@ -450,6 +453,7 @@ function render(rows) {
   document.getElementById('tot').innerHTML = totHtml(per1);
   document.getElementById('grid').innerHTML = cards.join('');
 }
+document.addEventListener('click', (e) => { const a = e.target.closest('a[data-area]'); if (a) { try { localStorage.setItem('kta-area', a.dataset.area); } catch (er) {} } });
 document.addEventListener('click', (e) => { const a = e.target.closest('[data-site]'); if (a) { try { localStorage.setItem('kta-site:kmb', a.dataset.site); } catch (er) {} } });
 
 let SB = null, USER = null;
