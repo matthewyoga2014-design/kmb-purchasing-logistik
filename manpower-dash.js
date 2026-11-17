@@ -549,5 +549,27 @@
     };
   }
 
+  // ---------- Berkas: langsung buka di Google Drive (tab baru), tidak dimuat di web ----------
+  // Pemilik & pengguna berizin download → langsung ke Drive. Pelihat tanpa izin tetap pratinjau di web.
+  // Berkas yang belum tersinkron ke Drive (baru diupload, < 10 menit) tetap dibuka dengan pratinjau lama.
+  if (typeof openFile === 'function') {
+    const _openFile = openFile;
+    openFile = async function (id, name) {
+      let owner = false, dl = false; try { owner = !!IS_OWNER; dl = !!DL; } catch (e) {}
+      if (!(owner || dl) || typeof WEB === 'undefined' || !WEB.sb) return _openFile.apply(this, arguments);
+      const w = window.open('', '_blank');   // dibuka saat klik supaya tidak diblokir pop-up
+      try { if (w) w.document.write('<title>Membuka…</title><p style="font:15px system-ui,sans-serif;padding:24px;color:#444">Membuka berkas di Google Drive…</p>'); } catch (e) {}
+      let link = null;
+      try { const r = await WEB.sb.rpc('kta_drive_link', { p_storage_id: id }); link = (r.data || [])[0] || null; } catch (e) { link = null; }
+      if (link && link.drive_id && (owner || link.shared)) {
+        const u = 'https://drive.google.com/file/d/' + encodeURIComponent(link.drive_id) + '/view';
+        if (w) { try { w.opener = null; } catch (e) {} w.location.href = u; } else window.open(u, '_blank', 'noopener');
+        return;
+      }
+      try { if (w) w.close(); } catch (e) {}
+      return _openFile.apply(this, arguments);
+    };
+  }
+
   try { if (ui.page === 'dashboard') render(); else navSubs(); } catch (e) {}
 })();
