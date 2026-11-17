@@ -88,7 +88,7 @@
       let prev = null; try { prev = JSON.parse(JSON.stringify(STATE)); } catch (e) {}
       const r = await _c.apply(this, arguments);
       if (r !== false && prev) {
-        try { const lines = diff(prev, STATE); if (lines.length) L.log(okMsg || 'Perubahan tersimpan', lines); } catch (e) {}
+        try { const lines = diff(prev, STATE); if (lines.length) L.log(((window.KTAApproval && KTAApproval.mode() === 'draft') ? 'Draf (belum disetujui): ' : '') + (okMsg || 'Perubahan tersimpan'), lines); } catch (e) {}
       }
       return r;
     };
