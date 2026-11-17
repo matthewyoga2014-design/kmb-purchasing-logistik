@@ -373,7 +373,7 @@
   // perkiraan jumlah baris teks (agar tinggi baris pas seperti cetakan)
   const wrapN = (txt, per) => String(txt).split('\n').reduce((a, l) => a + Math.max(1, Math.ceil(l.length / per)), 0);
   // ---------- Penulis .xlsx bersama (Rekap MPP & Download Excel seluruh data) ----------
-  async function buildBook(sites, dataSheets) {
+  async function buildBook(sites, dataSheets, org) {
     let Z; try { Z = await loadZip(); } catch (e) { try { toast('Pembuat Excel belum termuat. Periksa koneksi lalu coba lagi.', true); } catch (er) {} return null; }
     // Semua format memakai format SEL (bukan rich text) dan 1 kalimat = 1 baris Excel,
     // supaya tampil sama di Excel, Google Sheets, pratinjau Google Drive, WPS, dan LibreOffice.
@@ -414,9 +414,10 @@
     // sheet data: header, isi, dan warna penanda
     const DH = xf(10, 2, 1, 'horizontal="center" vertical="center" wrapText="1"'), DB = xf(3, 0, 1, 'vertical="top" wrapText="1"'), DBN = xf(3, 0, 1, 'horizontal="center" vertical="top"'),
       DRED = xf(4, 0, 1, 'vertical="top" wrapText="1"'), DGRN = xf(11, 0, 1, 'vertical="top" wrapText="1"'), DORG = xf(12, 0, 1, 'vertical="top" wrapText="1"'), DBOLD = xf(10, 0, 1, 'vertical="top" wrapText="1"'), DCX = xf(13, 0, 1, 'vertical="top" wrapText="1"'), DBLU = xf(14, 0, 1, 'vertical="top" wrapText="1"');
+    const OBAR = { top: xf(10, 5, 1, 'horizontal="left" vertical="center"'), Hauling: xf(12, 3, 1, 'horizontal="left" vertical="center"'), Mining: xf(14, 4, 1, 'horizontal="left" vertical="center"'), sec: xf(10, 2, 1, 'horizontal="left" vertical="center"'), grp: xf(3, 0, 1, 'horizontal="left" vertical="center"') };
     const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <fonts count="${FONTS.length}">${FONTS.join('')}</fonts>
-<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/><bgColor indexed="64"/></patternFill></fill></fills>
+<fills count="6"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFEF3C7"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDBEAFE"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEDE9FE"/><bgColor indexed="64"/></patternFill></fill></fills>
 <borders count="${BORDERS.length}">${BORDERS.join('')}</borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
 <cellXfs count="${XF.length}">${XF.join('')}</cellXfs>
@@ -501,8 +502,29 @@
 <sheetData>${rows.join('')}</sheetData>${aoa.length > 1 && n ? `<autoFilter ref="A1:${last}"/>` : ''}
 <pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>`;
     };
+    // sheet Struktur Organisasi: bar project / section berwarna, satu baris per posisi, bawahan menjorok (↳)
+    const orgSheet = () => {
+      const rows = [], merges = []; let r = 1;
+      const cell = (c, s, v) => v === '' || v == null ? `<c r="${colL1(c)}${r}" s="${s}"/>` : typeof v === 'number' ? `<c r="${colL1(c)}${r}" s="${s}"><v>${v}</v></c>` : `<c r="${colL1(c)}${r}" s="${s}" t="s"><v>${sIdx(String(v))}</v></c>`;
+      const N = 7;
+      rows.push(`<row r="${r}" ht="22" customHeight="1">${cell(1, ST, 'Struktur Organisasi ' + org.name)}</row>`); r++;
+      merges.push(`A${r}:G${r}`); rows.push(`<row r="${r}" ht="18" customHeight="1">${cell(1, SN, 'Per ' + rkDate() + ' · urutan sama dengan bagan di web · ↳ = bawahan dari baris di atasnya · Vacant merah, akan diganti oranye')}</row>`); r += 2;
+      rows.push(`<row r="${r}" ht="20" customHeight="1">${['No', 'Jabatan', 'Nama', 'Atasan', 'Sub-section', 'Status', 'Keterangan PTK'].map((h, i) => cell(i + 1, DH, h)).join('')}</row>`); r++;
+      org.rows.forEach((x) => {
+        if (x.bar) { merges.push(`A${r}:G${r}`); rows.push(`<row r="${r}" ht="20" customHeight="1">${cell(1, OBAR[x.bar] || OBAR.sec, x.text)}${[2, 3, 4, 5, 6, 7].map((c) => cell(c, OBAR[x.bar] || OBAR.sec, '')).join('')}</row>`); r++; return; }
+        const st = { red: DRED, org: DORG, grn: DGRN }[x.tone] || DB;
+        rows.push(`<row r="${r}">${[cell(1, DBN, x.no), cell(2, x.depth ? DB : DBOLD, x.jab), cell(3, x.vac ? DRED : x.repl ? DORG : DB, x.nama), cell(4, DB, x.atasan), cell(5, DB, x.grp), cell(6, st, x.status), cell(7, DB, x.ket)].join('')}</row>`); r++;
+      });
+      void N;
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/>
+<cols><col min="1" max="1" width="6" customWidth="1"/><col min="2" max="2" width="34" customWidth="1"/><col min="3" max="3" width="30" customWidth="1"/><col min="4" max="4" width="24" customWidth="1"/><col min="5" max="5" width="22" customWidth="1"/><col min="6" max="6" width="14" customWidth="1"/><col min="7" max="7" width="22" customWidth="1"/></cols>
+<sheetData>${rows.join('')}</sheetData>${merges.length ? `<mergeCells count="${merges.length}">${merges.map((m) => `<mergeCell ref="${m}"/>`).join('')}</mergeCells>` : ''}
+<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="portrait" fitToWidth="1" fitToHeight="0"/></worksheet>`;
+    };
     const SH_ = [];   // [nama sheet, xml, judul cetak?]
     (dataSheets || []).forEach(([nm, aoa, styleOf]) => SH_.push([nm, dataSheet(aoa, styleOf), '$1:$1']));
+    if (org && org.rows.length) SH_.push(['Struktur Organisasi', orgSheet(), '$4:$4']);
     if (sites) SH_.push([dataSheets && dataSheets.length ? 'Rekap Manpower' : 'Rekap MPP', rekapSheet(), '$1:$2']);
     const safeName = (s, i) => (String(s).replace(/[\\/?*[\]:]/g, ' ').slice(0, 31).trim() || 'Sheet' + (i + 1));
     const names = SH_.map((x, i) => safeName(x[0], i));
@@ -530,6 +552,51 @@
   // Isi & susunan kolom SAMA dengan unduhan lama (jadi tetap bisa di-upload lagi lewat Sinkronkan Excel),
   // ditambah format: judul kolom tebal & abu, garis tabel, baris judul terkunci, filter, warna penanda,
   // sheet "Pelamar" dan sheet "Rekap Manpower" (sama dengan Rekap MPP).
+  // data Struktur Organisasi (urutan & hubungan atasan sama dengan bagan di web)
+  function orgRows() {
+    const P = ((typeof DATA !== 'undefined' && DATA.positions) || []).filter((p) => p && !p.hidden);
+    if (!P.length) return null;
+    const isVac = (p) => /^vacant$/i.test(String(p.nama || '').trim());
+    const isRepl = (p) => !isVac(p) && !!p.ptk && /open|continue/i.test(String(p.status || ''));
+    const byUid = {}; P.forEach((p) => { if (p.uid) byUid[p.uid] = p; });
+    const nm = (p) => p ? (isVac(p) ? 'Vacant (' + (p.jabatan || '') + ')' : String(p.nama || '').trim()) : '';
+    const arOf = (x) => /hauling/i.test((x && x.area) || '') ? 'Hauling' : 'Mining';
+    const both = P.some((p) => arOf(p) === 'Hauling') && P.some((p) => arOf(p) === 'Mining');
+    const isTopS = (s) => /penanggung|pjo|manajemen|management/i.test(s || '');
+    const ord = (typeof DATA !== 'undefined' && Array.isArray(DATA.orgSecOrder)) ? DATA.orgSecOrder : [];
+    const secs = (L) => { const o = [], ix = {}; L.forEach((p) => { const s = p.section || 'Lainnya'; if (ix[s] === undefined) { ix[s] = o.length; o.push({ name: s, list: [] }); } o[ix[s]].list.push(p); }); return o.sort((a, b) => { const i = ord.indexOf(a.name), j = ord.indexOf(b.name); return (i < 0 ? 999 : i) - (j < 0 ? 999 : j); }); };
+    const out = []; let no = 0; const done = new Set();
+    const stat = (L) => { const v = L.filter(isVac).length; return `${L.length} MPP · ${L.length - v} MPA · ${v} Vacant`; };
+    const person = (p, depth) => {
+      if (done.has(p)) return; done.add(p);
+      const ket = (typeof ketPTK === 'function' && p.ptk) ? (() => { try { const k = ketPTK(p); return k && (k.t || k.label || k.text || (typeof k === 'string' ? k : '')) || ''; } catch (e) { return ''; } })() : '';
+      out.push({ no: ++no, depth, jab: (depth ? '   '.repeat(depth - 1) + '↳ ' : '') + (p.jabatan || ''), nama: isVac(p) ? 'Vacant' : String(p.nama || '').trim(), vac: isVac(p), repl: isRepl(p),
+        atasan: (p.__at || p.atasan) && byUid[p.__at || p.atasan] ? nm(byUid[p.__at || p.atasan]) : '', grp: p.group && p.group !== p.section ? p.group : '', status: isVac(p) ? 'Vacant' : isRepl(p) ? 'Akan diganti' : 'Terisi', tone: isVac(p) ? 'red' : isRepl(p) ? 'org' : 'grn', ket: ket && (isVac(p) || isRepl(p)) ? String(ket).toUpperCase() : '' });
+      P.filter((k) => k.atasan === p.uid && k !== p && (k.section || 'Lainnya') === (p.section || 'Lainnya') && arOf(k) === arOf(p)).forEach((k) => person(k, depth + 1));   // bawahan di section lain tampil di section-nya (kolom Atasan)
+    };
+    const roots = (L) => L.filter((p) => !p.atasan || !byUid[p.atasan] || !L.includes(byUid[p.atasan]));
+    const block = (L) => {
+      secs(L).forEach((s) => {
+        if (!isTopS(s.name)) out.push({ bar: 'sec', text: `${String(s.name).toUpperCase()} · ${stat(s.list)}` });
+        roots(s.list).forEach((p) => person(p, 0));
+        s.list.forEach((p) => person(p, 0));   // sisa (rantai atasan lintas section)
+      });
+    };
+    if (both) {
+      const head = P.filter((p) => isTopS(p.section) && !p.atasan && p.orgTop !== false && (p.orgTop === true || (/dep(ar)?t(e)?(ment|men)?\.?\s*head|manager/i.test(p.jabatan || '') && !/supervisor|spv/i.test(p.jabatan || ''))));
+      if (head.length) { out.push({ bar: 'top', text: 'DEPT HEAD · membawahi KTA - TRA Hauling & Mining' }); head.forEach((p) => { done.add(p); out.push({ no: ++no, depth: 0, jab: p.jabatan || '', nama: isVac(p) ? 'Vacant' : String(p.nama || '').trim(), vac: isVac(p), repl: isRepl(p), atasan: '', grp: '', status: isVac(p) ? 'Vacant' : 'Terisi', tone: isVac(p) ? 'red' : 'grn', ket: '' }); }); }
+      ['Hauling', 'Mining'].forEach((a) => {
+        const L = P.filter((p) => arOf(p) === a && !done.has(p)); if (!L.length) return;
+        out.push({ bar: a, text: `KTA - TRA ${a.toUpperCase()} · ${stat(P.filter((p) => arOf(p) === a))}` });
+        // supervisor / PJO project tampil paling atas; bawahan langsung Dept Head dihitung sebagai pimpinan project
+        const hs = new Set(head.map((h) => h.uid));
+        L.forEach((p) => { if (hs.has(p.atasan)) p.__root = true; });
+        const saveAt = L.map((p) => [p, p.atasan]); L.forEach((p) => { if (p.__root) { p.__at = p.atasan; p.atasan = null; } });
+        try { block(L); } finally { saveAt.forEach(([p, at]) => { p.atasan = at; delete p.__root; delete p.__at; }); }
+      });
+    } else block(P);
+    return { name: rkName(), rows: out };
+  }
   function captureOldExport(fn) {
     if (typeof XLSX === 'undefined' || !XLSX.utils) return null;
     const U = XLSX.utils, keep = { n: U.book_new, a: U.aoa_to_sheet, b: U.book_append_sheet, w: XLSX.write }, sv = typeof save === 'function' ? save : null;
@@ -591,7 +658,8 @@
       }));
       if (pr.length > 1) out.push(['Pelamar', pr, (h, v, i) => /^nama pelamar$/i.test(h) ? (act[i] ? 'bold' : 'cx') : /^status$/i.test(h) ? (act[i] ? 'grn' : 'cx') : /^area$/i.test(h) ? (/hauling/i.test(String(v)) ? 'org' : 'blu') : (act[i] ? null : 'cx')]);
       const sites = await rkSites();
-      const blob = await buildBook(sites, out); if (!blob) return;
+      let org = null; try { org = orgRows(); } catch (e) { console.error(e); }
+      const blob = await buildBook(sites, out, org); if (!blob) return;
       await saveBlob(`Monitoring_Manpower_${rkName().replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '')}_${new Date().toISOString().slice(0, 10)}.xlsx`, blob);
     };
   }
