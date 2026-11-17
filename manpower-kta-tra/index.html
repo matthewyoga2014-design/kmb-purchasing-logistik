@@ -1892,33 +1892,74 @@ function pstBar(D) {
 })();
 
 // ---------- MPP page (compact, like the reference web) ----------
+// ================= Area: Hauling & Mining dalam satu portal KTA-TRA =================
+function areaOf(p) { return /mining/i.test((p && p.area) || '') ? 'Mining' : 'Hauling'; }
+ui.area = (() => { try { const v = localStorage.getItem('kta-area'); return v === 'Hauling' || v === 'Mining' ? v : 'semua'; } catch (e) { return 'semua'; } })();
+ui.oarea = 'semua';
+// Sinkronkan Excel: area posisi lama dipertahankan; posisi baru di section bernama "Mining" otomatis Mining
+const _mergeHistoryArea = mergeHistory;
+mergeHistory = function (oldD, newD) {
+  const r = _mergeHistoryArea(oldD, newD);
+  try {
+    const old = (oldD && oldD.positions) || [];
+    ((r && r.positions) || []).forEach((p) => {
+      if (p.area) return;
+      const o = old.find((x) => x.no === p.no && normName(x.nama) === normName(p.nama) && x.jabatan === p.jabatan)
+        || (!isVacant(p) && old.find((x) => !isVacant(x) && normName(x.nama) === normName(p.nama)));
+      if (o && o.area) p.area = o.area; else if (/mining/i.test(`${p.section || ''} ${p.group || ''}`)) p.area = 'Mining';
+    });
+  } catch (e) {}
+  return r;
+};
+(() => { const s = document.createElement('style'); s.textContent = `
+.aseg button[data-area="Hauling"][aria-pressed="true"]{background:#D97706;color:#fff}.aseg button[data-area="Mining"][aria-pressed="true"]{background:#2563EB;color:#fff}
+.mstats small.asplit{display:block;font-size:11.5px;margin-top:4px;color:var(--ink-2,#4B4868);line-height:1.3}.mstats small.asplit b{display:inline!important;font-size:11.5px!important;font-weight:700!important;line-height:1.3!important;margin:0!important}.asplit .ah{color:#B45309}.asplit .am{color:#1D4ED8}
+tr.agrp td{padding:9px 14px!important;font-size:13px}tr.agrp td span{margin-left:12px;font-size:12px;font-weight:600}
+tr.agrp.ah td{background:#FFFBEB;color:#92400E;border-bottom:1px solid #FDE68A}tr.agrp.am td{background:#EFF6FF;color:#1E40AF;border-bottom:1px solid #BFDBFE}
+.abadge{display:inline-block;border-radius:99px;padding:3px 10px;font-size:11.5px;font-weight:700;white-space:nowrap}.abadge.ah{background:#FEF3C7;color:#92400E}.abadge.am{background:#DBEAFE;color:#1E40AF}
+.onode.oarea.ah{background:#FEF3C7!important;border:2px solid #D97706!important;color:#92400E!important}.onode.oarea.am{background:#DBEAFE!important;border:2px solid #2563EB!important;color:#1E40AF!important}
+.onode.oarea b{font-size:15px;letter-spacing:.04em}
+@media print{.aseg{display:none!important}}`; document.head.appendChild(s); })();
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('[data-area]'); if (!b) return;
+  ui.area = b.dataset.area; try { localStorage.setItem('kta-area', ui.area); } catch (er) {} render();
+});
+document.addEventListener('change', (e) => { if (e.target && e.target.id === 'oArea') { ui.oarea = e.target.value; render(); } });
 function pageMPP(D) {
   const q = ui.mq.toLowerCase();
   const rows = D.P.map((p, i) => [p, i]).filter(([p]) => {
+    if (ui.area !== 'semua' && areaOf(p) !== ui.area) return false;
     if (ui.pst && !candidates(p).some(pstOk)) return false;
     if (ui.mf !== 'semua' && (!hasPTK(p) || (p.status || '').toLowerCase() !== ui.mf)) return false;
     return !q || `${p.nama} ${p.jabatan} ${p.section} ${p.group} ${p.ket} ${p.ptk} ${candidates(p).map((c) => c.name).join(' ')}`.toLowerCase().includes(q);
   });
-  const cnt = (s) => D.P.filter((p) => hasPTK(p) && (p.status || '').toLowerCase() === s).length;
+  const multiArea = D.P.some((p) => areaOf(p) === 'Mining');
+  if (multiArea && ui.area === 'semua') rows.sort((a, b) => (areaOf(a[0]) === 'Mining') - (areaOf(b[0]) === 'Mining') || a[1] - b[1]);
+  const AP = D.P.filter((p) => ui.area === 'semua' || areaOf(p) === ui.area);
+  const aStat = (a) => { const L = D.P.filter((p) => areaOf(p) === a), v = L.filter(isVacant).length; return `Plan ${L.length} · Actual ${L.length - v} · Vacant ${v}`; };
+  const aSplit = (fn) => multiArea && ui.area === 'semua' ? `<small class="asplit"><b class="ah">Hauling ${D.P.filter((p) => areaOf(p) === 'Hauling' && fn(p)).length}</b> · <b class="am">Mining ${D.P.filter((p) => areaOf(p) === 'Mining' && fn(p)).length}</b></small>` : '';
+  const cnt = (s) => AP.filter((p) => hasPTK(p) && (p.status || '').toLowerCase() === s).length;
   const kc = (k) => ({ 'JATUH TEMPO': 'crit', 'HAMPIR JATUH TEMPO': 'warn', 'ON TRACK': 'good', 'SELESAI': 'good' }[k] || 'mute');
   const all = D.allCands, c = (s) => all.filter((x) => x.st === s).length;
   const pq = ui.pq.toLowerCase();
   const prow = all.filter((x) => (ui.pf === 'semua' || x.st === ui.pf) && pstOk(x) && (!pq || `${x.name} ${x.p.jabatan} ${x.note} ${x.sumber || ''}`.toLowerCase().includes(pq))).sort((a, b) => (isOpen(b.p) - isOpen(a.p)) || (a.p.no - b.p.no));
   return `<div class="mhead"><div><div class="eyebrow">Monitoring Manpower KTA - TRA</div><h1>MPP KTA - TRA</h1><p>Planning manpower dan monitoring PTK/rekrutmen.</p></div>
     <div class="mtools">
+      ${multiArea || CAN_EDIT ? `<div class="seg aseg" role="group" aria-label="Area">${[['semua', 'Semua'], ['Hauling', 'Hauling'], ['Mining', 'Mining']].map(([k, l]) => `<button type="button" data-area="${k}" aria-pressed="${ui.area === k}">${l}</button>`).join('')}</div>` : ''}
       <input type="search" id="mq" placeholder="Cari nama / jabatan / kandidat" value="${esc(ui.mq)}" aria-label="Cari di MPP">
       <select id="mfSel" aria-label="Filter status">${[['semua', 'Semua Status'], ['open', `Open (${cnt('open')})`], ['continue', `Continue (${cnt('continue')})`], ['close', `Close (${cnt('close')})`]].map(([k, l]) => `<option value="${k}" ${ui.mf === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       ${CAN_EDIT ? '<button type="button" class="btn btn-y" id="addPos">+ Tambah Data</button>' : ''}
       ${DL ? '<button type="button" class="btn btn-g" data-csv="mpp">Export CSV</button>' : ''}
       ${(DL || IS_TOP) ? '<button type="button" class="btn btn-g" id="printBtn">Print</button>' : ''}
     </div></div>
-  <div class="mstats"><div><b>${D.planning}</b><span>Planning</span></div><div><b>${D.actual}</b><span>Actual</span></div><div><b>${D.vacant}</b><span>Vacant</span></div><div><b>${cnt('open') + cnt('continue')}</b><span>Open</span></div><div><b>${cnt('close')}</b><span>Close</span></div></div>
+  <div class="mstats"><div><b>${AP.length}</b><span>Planning</span>${aSplit(() => true)}</div><div><b>${AP.length - AP.filter(isVacant).length}</b><span>Actual</span>${aSplit((p) => !isVacant(p))}</div><div><b>${AP.filter(isVacant).length}</b><span>Vacant</span>${aSplit(isVacant)}</div><div><b>${cnt('open') + cnt('continue')}</b><span>Open</span>${aSplit((p) => hasPTK(p) && /^(open|continue)$/i.test(p.status || ''))}</div><div><b>${cnt('close')}</b><span>Close</span>${aSplit((p) => hasPTK(p) && /^close$/i.test(p.status || ''))}</div></div>
   ${pstBar(D)}<div class="card" style="padding:6px 0;margin-bottom:18px"><div class="tw"><table class="t mt">
-    <thead><tr><th>No</th><th>Nama</th><th>Jabatan</th><th>Pelamar${pstSelect()}</th><th>Keterangan</th><th>PTK</th><th>Status</th><th>Progress</th><th>Due Date</th><th>Ket. PTK</th><th>Aksi</th></tr></thead>
-    <tbody>${rows.map(([p, i]) => {
+    <thead><tr><th>No</th>${multiArea ? '<th>Area</th>' : ''}<th>Nama</th><th>Jabatan</th><th>Pelamar${pstSelect()}</th><th>Keterangan</th><th>PTK</th><th>Status</th><th>Progress</th><th>Due Date</th><th>Ket. PTK</th><th>Aksi</th></tr></thead>
+    <tbody>${rows.map(([p, i], ri) => {
       const cs = candidates(p), fl = cs.filter(inFlight), si = progIdx(p), k = ketPTK(p);
-      return `<tr>
-        <td>${p.no}</td>
+      const ar = areaOf(p), agh = multiArea && ui.area === 'semua' && (ri === 0 || areaOf(rows[ri - 1][0]) !== ar) ? `<tr class="agrp ${ar === 'Mining' ? 'am' : 'ah'}"><td colspan="12"><b>${ar.toUpperCase()}</b><span>${aStat(ar)}</span></td></tr>` : '';
+      return `${agh}<tr>
+        <td>${p.no}</td>${multiArea ? `<td><span class="abadge ${ar === 'Mining' ? 'am' : 'ah'}">${ar}</span></td>` : ''}
         <td class="${isVacant(p) ? 'vacn' : 'b'}">${esc(p.nama)}</td>
         <td>${esc(p.jabatan)}<div class="small">${esc(p.group || p.section || '')}</div></td>
         <td>${cs.length ? `<button type="button" class="pcount" data-cands="${i}">${cs.length} Pelamar</button><div class="plist">${pstList(cs).map((x) => `<div class="${x.st === 'no' ? 'off' : 'on'}"><b>${esc(x.name)}</b>${x.st === 'no' ? '' : `<span>${x.st === 'ok' ? 'DITERIMA' : x.status === 'Hold' ? 'HOLD · ' + cLbl(x) : cLbl(x) + ' ' + cPct(x) + '%'}</span>`}</div>`).join('')}</div>` : '<span class="dash">-</span>'}</td>
@@ -1929,7 +1970,7 @@ function pageMPP(D) {
         <td class="nw">${p.due ? fmt(p.due) : '-'}</td>
         <td><span class="kp ${kc(k)}">${esc(k)}</span></td>
         <td><div class="acts">${CAN_EDIT ? `<button type="button" class="btn btn-g btn-sm" data-epos="${i}">Edit</button>` : ''}${hasPTK(p) || cs.length ? `<button type="button" class="btn btn-y btn-sm" data-cands="${i}">Pelamar</button>` : ''}${CAN_EDIT ? `<button type="button" class="btn btn-g btn-sm red" data-delpos="${i}">Hapus</button>` : ''}</div></td>
-      </tr>`; }).join('') || '<tr><td colspan="11" class="empty">Tidak ada data yang cocok.</td></tr>'}</tbody></table></div></div>
+      </tr>`; }).join('') || `<tr><td colspan="${multiArea ? 12 : 11}" class="empty">Tidak ada data yang cocok.</td></tr>`}</tbody></table></div></div>
   <div class="card">
     <div class="ch"><div><div class="eyebrow">Pelamar</div><h2>Rekap & Arsip Pelamar</h2><p>Semua pelamar dari PTK open maupun close. Pelamar yang tidak lolos tetap tercatat.</p></div></div>
     <div class="apps" style="margin-bottom:16px"><div class="app"><b>${all.length}</b><span>Total pelamar</span></div><div class="app pr"><b>${c('pr')}</b><span>Masih proses</span></div><div class="app hd"><b>${c('hd')}</b><span>Hold</span></div><div class="app no"><b>${c('no')}</b><span>Tidak lolos</span></div><div class="app ok"><b>${c('ok')}</b><span>Diterima</span></div></div>
@@ -1986,6 +2027,7 @@ function delCand(idx, ci) {
 function mppForm(idx) {
   const p = idx == null ? null : DATA.positions[idx];
   const vals = p ? { ...p } : { nama: 'Vacant', section: SEC_OPTS()[0] || '', status: 'Open', aju: TODAY, pic: 'PT. KAI' };
+  vals.area = p ? areaOf(p) : (ui.area !== 'semua' ? ui.area : 'Hauling');
   if (p) p.stages.forEach((s, i) => { vals['st' + i] = s; });
   openForm({
     eyebrow: 'MPP KTA - TRA', title: p ? `Edit Posisi No. ${p.no}` : 'Tambah Data MPP',
@@ -1993,6 +2035,7 @@ function mppForm(idx) {
     values: vals,
     sections: [
       { title: 'Posisi', fields: [
+        { k: 'area', label: 'Area', type: 'select', options: ['Hauling', 'Mining'], req: true },
         { k: 'section', label: 'Section', list: SEC_OPTS(), req: true },
         { k: 'group', label: 'Sub-section', list: GRP_OPTS(), hint: 'Kosongkan jika sama dengan section.' },
         { k: 'jabatan', label: 'Jabatan', list: JAB_OPTS(), req: true },
@@ -2009,7 +2052,7 @@ function mppForm(idx) {
       { title: 'Progress rekrutmen (tanggal)', fields: STAGE_FIELDS.map((l, i) => ({ k: 'st' + i, label: l, type: 'date', freeText: true })) },
     ],
     onSave: (v) => commit((S) => {
-      const rec = { section: v.section, group: v.group || v.section, nama: v.nama || 'Vacant', jabatan: v.jabatan, pic: v.pic, ptk: v.ptk, aju: v.aju, stages: STAGE_FIELDS.map((_, i) => v['st' + i] || null), due: v.due, status: v.status, close: v.close };
+      const rec = { area: v.area === 'Mining' ? 'Mining' : 'Hauling', section: v.section, group: v.group || v.section, nama: v.nama || 'Vacant', jabatan: v.jabatan, pic: v.pic, ptk: v.ptk, aju: v.aju, stages: STAGE_FIELDS.map((_, i) => v['st' + i] || null), due: v.due, status: v.status, close: v.close };
       if (rec.status === 'Close' && !rec.close) rec.close = TODAY;
       if (p) { S.positions[idx] = { ...S.positions[idx], ...rec }; }
       else {
@@ -2744,6 +2787,7 @@ function orgChart(D) {
   const P = D.P; const M = orgModel(P);
   const freeSet = new Set(M.free.map((p) => p.uid));
   const secs = orgSections(P);
+  const multiArea = P.some((p) => areaOf(p) === 'Mining');
   const isTop = (s) => /penanggung|pjo|manajemen|management/i.test(s.name);
   const top = secs.filter(isTop).flatMap((s) => s.groups.flatMap((g) => g.list)).filter((p) => freeSet.has(p.uid));
   const body = secs.filter((s) => !isTop(s)).filter((s) => ui.osec === 'semua' || s.name === ui.osec);
@@ -2758,7 +2802,19 @@ function orgChart(D) {
     const frames = !framesArr.length ? '' : (ui.olay === 'v' || framesArr.length === 1) ? `<div class="glist">${framesArr.join('')}</div>` : `<ul class="gul">${framesArr.map((f) => `<li>${f}</li>`).join('')}</ul>`;
     return `<li><div class="onode sec" data-dsec="${esc(s.name)}" ${CAN_EDIT ? `data-rsec="${esc(s.name)}" role="button" tabindex="0" title="Klik untuk ganti nama section"` : ''}><b>${esc(s.name)}</b><span>${all.length} MPP · ${mpa} MPA · ${all.length ? Math.round(mpa / all.length * 100) : 0}%</span></div>${frames}</li>`;
   };
-  const secRow = body.length ? `<ul class="tier secs">${body.map(secLi).join('')}</ul>` : '';
+  let secRow = body.length ? `<ul class="tier secs">${body.map(secLi).join('')}</ul>` : '';
+  if (multiArea) {
+    // satu bagan, dua cabang: Hauling & Mining (section dihitung per area agar nama section yang sama tidak tercampur)
+    const isTopN = (n) => /penanggung|pjo|manajemen|management/i.test(n);
+    const br = ['Hauling', 'Mining'].filter((a) => ui.oarea === 'semua' || ui.oarea === a).map((a) => {
+      const PA = P.filter((p) => areaOf(p) === a);
+      const ss = orgSections(PA).filter((s) => !isTopN(s.name)).filter((s) => ui.osec === 'semua' || s.name === ui.osec);
+      if (!ss.length) return '';
+      const all = ss.flatMap((s) => s.groups.flatMap((g) => g.list)), v = all.filter(isVacant).length;
+      return `<li><div class="onode sec oarea ${a === 'Mining' ? 'am' : 'ah'}"><b>${a.toUpperCase()}</b><span>${all.length} MPP · ${all.length - v} MPA · ${v} Vacant</span></div><ul class="tier secs">${ss.map(secLi).join('')}</ul></li>`;
+    }).filter(Boolean);
+    secRow = br.length ? `<ul class="tier secs">${br.join('')}</ul>` : '';
+  }
   if (ui.osec !== 'semua') return `<div class="org">${tiersHtml([], M, secRow)}</div>`;
   return `<div class="org">${top.length ? tiersHtml(top, M, secRow) : `<div class="tiers">${secRow}</div>`}</div>`;
 }
@@ -2767,6 +2823,7 @@ function pageOrg(D) {
   const fams = [...new Set(D.P.map((p) => roleFamily(p.jabatan)))];
   return `<div class="mhead"><div><div class="eyebrow">Monitoring Manpower KTA - TRA</div><h1>Struktur Organisasi</h1><p>Otomatis dari MPP KTA - TRA. Jabatan yang sama tampil sejajar, dikelompokkan per section dan sub-section.</p></div>
     <div class="mtools"><input type="search" id="oq" placeholder="Cari nama / jabatan" value="${esc(ui.oq)}" aria-label="Cari di struktur">
+      ${D.P.some((p) => areaOf(p) === 'Mining') ? `<select id="oArea" aria-label="Pilih area">${[['semua', 'Semua (Hauling + Mining)'], ['Hauling', 'Hauling saja'], ['Mining', 'Mining saja']].map(([k, l]) => `<option value="${k}" ${ui.oarea === k ? 'selected' : ''}>${l}</option>`).join('')}</select>` : ''}
       <select id="oSec" aria-label="Pilih section"><option value="semua">Semua section</option>${secs.map((s) => `<option ${ui.osec === s ? 'selected' : ''}>${esc(s)}</option>`).join('')}</select>
       <div class="seg" role="group" aria-label="Tata letak sub-section"><button type="button" data-olay="h" aria-pressed="${ui.olay !== 'v'}" title="Sub-section berjajar ke samping (lebar)">Mendatar</button><button type="button" data-olay="v" aria-pressed="${ui.olay === 'v'}" title="Sub-section bersusun ke bawah (ringkas, mudah dibaca)">Sub-section menurun</button></div>
       <div class="seg" role="group" aria-label="Zoom"><button type="button" data-oz="-" title="Perkecil">−</button><button type="button" data-oz="100" title="Ukuran asli" id="ozLbl">${ui.oz === null ? 'Pas' : Math.round(ui.oz * 100) + '%'}</button><button type="button" data-oz="+" title="Perbesar">+</button><button type="button" data-oz="fit" aria-pressed="${ui.oz === null}" title="Seluruh struktur pas dengan lebar layar">Pas lebar</button></div>
@@ -3064,7 +3121,17 @@ function orgChart(D) {
     const frames = !framesArr.length ? '' : (lay === 'v' || framesArr.length === 1) ? `<div class="glist">${framesArr.join('')}</div>` : `<ul class="gul">${framesArr.map((f) => `<li>${f}</li>`).join('')}</ul>`;
     return `<li><div class="onode sec" data-dsec="${esc(s.name)}" ${CAN_EDIT ? `data-rsec="${esc(s.name)}" role="button" tabindex="0" title="Klik untuk ganti nama section"` : ''}><b>${esc(s.name)}</b><span>${all.length} MPP · ${mpa} MPA · ${all.length ? Math.round(mpa / all.length * 100) : 0}%</span></div>${frames}</li>`;
   };
-  const secRow = body.length ? `<ul class="tier secs">${body.map(secLi).join('')}</ul>` : '';
+  let secRow = body.length ? `<ul class="tier secs">${body.map(secLi).join('')}</ul>` : '';
+  if (P.some((p) => areaOf(p) === 'Mining')) {
+    // satu bagan, dua cabang: Hauling & Mining (section dihitung per area agar nama section yang sama tidak tercampur)
+    const br = ['Hauling', 'Mining'].filter((a) => ui.oarea === 'semua' || ui.oarea === a).map((a) => {
+      const ss = orgSections(P.filter((p) => areaOf(p) === a)).filter((s) => !isTop(s) && !secOut(s.name)).filter((s) => ui.osec === 'semua' || s.name === ui.osec);
+      if (!ss.length) return '';
+      const all = ss.flatMap((s) => s.groups.flatMap((g) => g.list)), v = all.filter(isVacant).length;
+      return `<li><div class="onode sec oarea ${a === 'Mining' ? 'am' : 'ah'}"><b>${a.toUpperCase()}</b><span>${all.length} MPP · ${all.length - v} MPA · ${v} Vacant</span></div><ul class="tier secs">${ss.map(secLi).join('')}</ul></li>`;
+    }).filter(Boolean);
+    secRow = br.length ? `<ul class="tier secs">${br.join('')}</ul>` : '';
+  }
   const outBlk = outs.length ? `<div class="orgroot out"><div class="outlbl" ${CAN_EDIT ? 'data-outmv="1" title="Seret untuk memindahkan kotak ini ke kiri / kanan / bawah struktur"' : ''}>${CAN_EDIT ? '<i class="grip">⠿</i>' : ''}Di luar Struktur Organisasi (SO)</div><div class="tiers"><ul class="tier secs">${outs.map(secLi).join('')}</ul></div></div>` : '';
   const main = ui.osec !== 'semua' ? (secRow ? `<div class="orgroot">${tiersHtml([], M, secRow)}</div>` : '') : `<div class="orgroot">${top.length ? tiersHtml(top, M, secRow) : `<div class="tiers">${secRow}</div>`}</div>`;
   return `<div class="org pos-${['left', 'bottom'].includes(DATA.orgOutPos) ? DATA.orgOutPos : 'right'}">${main}${outBlk}</div>`;
@@ -4720,7 +4787,7 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
   }, true);
   try { after(); } catch (e) {}
 })();
-</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script><script src="../unit-population-detail.js?v=20261023-explorer-v2"></script><script src="../mp-private.js?v=20261108c"></script><script src="../activity-log.js?v=20261024" data-kind="manpower"></script><script src="../otp-login.js?v=20261025"></script><script src="../form-data-karyawan.js?v=20261108"></script><script src="../candidate-resume.js?v=20261114"></script><script src="../manpower-dash.js?v=20261117a"></script><script id="portal-name-sync">
+</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script><script src="../unit-population-detail.js?v=20261023-explorer-v2"></script><script src="../mp-private.js?v=20261108c"></script><script src="../activity-log.js?v=20261024" data-kind="manpower"></script><script src="../otp-login.js?v=20261025"></script><script src="../form-data-karyawan.js?v=20261108"></script><script src="../candidate-resume.js?v=20261114"></script><script src="../manpower-dash.js?v=20261117b"></script><script id="portal-name-sync">
 // Nama portal mengikuti "Edit nama portal" di Monitoring MPP Achievement (tabel portal_display_settings).
 (function () {
   var KEY = 'portal-name:' + 'kta';

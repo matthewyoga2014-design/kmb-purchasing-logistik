@@ -289,6 +289,10 @@
     if (x.k === 'lbl') return `<div class="kl"><span class="op">${E(x.t)}</span>${x.ptk ? ' · ' + E(x.ptk) : ''}</div>`;
     return `<div class="${x.k === 'act' ? 'ca' : x.k === 'cx' ? 'cx' : ''}">${E(x.t)}</div>`;
   }
+  function rkGrand(sites) {
+    let pl = 0, ac = 0; sites.forEach(([, d]) => rkRows(d).forEach((r) => { pl += r.plan; ac += r.act; }));
+    return { pl, ac, vc: pl - ac };
+  }
   function rkTable(name, d) {
     const R = rkRows(d), n = Math.max(7, R.length), sum = (k) => R.reduce((a, r) => a + r[k], 0);
     let body = '';
@@ -323,7 +327,15 @@
       }
     } catch (e) {}
     if (!sites.length) sites.push([rkName() || 'Jobsite', DATA]);
-    return sites;
+    // KTA-TRA: posisi punya Area (Hauling / Mining) → satu tabel per area
+    const out = []; let split = false;
+    sites.forEach(([n, d]) => {
+      const ps = (d && d.positions) || [], ar = (p) => /mining/i.test((p && p.area) || '') ? 'Mining' : 'Hauling';
+      if (ps.some((p) => ar(p) === 'Mining')) { split = true; ['Hauling', 'Mining'].forEach((a) => { const L = ps.filter((p) => ar(p) === a); if (L.length) out.push([n + ' ' + a, { ...d, positions: L }]); }); }
+      else out.push([n, d]);
+    });
+    out.split = split;
+    return out;
   }
   const RK_NOTE = 'Merah = posisi open · Terisi = karyawan yang sudah ada · Terpenuhi = tidak ada posisi open · Pelamar: Nama - Tahap - Keterangan (aktif tebal, tidak aktif dicoret).';
   async function rekapPrint() {
@@ -338,7 +350,7 @@
       td.c{text-align:center}td.nm{font-size:10pt;line-height:1.35;padding-top:3px;padding-bottom:3px}.op{color:#C00000;font-weight:700}.ok{color:#15803D;font-weight:700}.ca{font-weight:700;color:#000}.cx{text-decoration:line-through;color:#555}.kp+.kp{margin-top:4px;padding-top:4px;border-top:1px dotted #999}.kl{font-size:9pt}td.kt{font-size:9.5pt;line-height:1.35;padding-top:3px;padding-bottom:3px}td.r{text-align:right;padding-right:8px}
       tfoot td{background:#D9D9D9;border-left:0;border-right:0}tfoot td:first-child{border-left:1px dotted #555}tfoot td:last-child{border-right:1px dotted #555}
     </style></head><body><h1>Rekap Manpower Planning ${E(rkName())}</h1><p class="s">Per ${rkDate()} · <span class="op">Merah</span> = posisi open · <span class="ok">Terisi</span> = karyawan yang sudah ada · <span class="ok">Terpenuhi</span> = tidak ada posisi open · Pelamar: Nama - Tahap - Keterangan (aktif <b>tebal</b>, tidak aktif <span class="cx">dicoret</span>).</p>
-      ${sites.map(([n, d]) => rkTable(n, d)).join('')}</body></html>`;
+      ${sites.map(([n, d]) => rkTable(n, d)).join('')}${sites.split ? (() => { const g = rkGrand(sites); return `<table style="margin-top:-4px"><colgroup><col style="width:45%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:32.5%"></colgroup><tr><td style="background:#6D28D9;color:#fff;font-weight:700;border:1px solid #555">TOTAL ${E(rkName())} (${sites.map(([n]) => E(n.replace(rkName(), '').trim() || n)).join(' + ')})</td><td class="r" style="background:#6D28D9;color:#fff;font-weight:700;border:1px solid #555">${g.pl}</td><td class="r" style="background:#6D28D9;color:#fff;font-weight:700;border:1px solid #555">${g.ac}</td><td class="r" style="background:#6D28D9;color:#fff;font-weight:700;border:1px solid #555">${g.vc}</td><td style="background:#6D28D9;border:1px solid #555"></td></tr></table>`; })() : ''}</body></html>`;
     let fr = document.getElementById('rkFrame'); if (fr) fr.remove();
     fr = document.createElement('iframe'); fr.id = 'rkFrame'; fr.setAttribute('aria-hidden', 'true');
     fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
@@ -445,6 +457,12 @@
         `<c r="D${r}" s="${STR}"><f>SUM(D${first}:D${r - 1})</f><v>${S('plan')}</v></c>`, `<c r="E${r}" s="${STR}"><f>SUM(E${first}:E${r - 1})</f><v>${S('act')}</v></c>`, `<c r="F${r}" s="${STR}"><f>SUM(F${first}:F${r - 1})</f><v>${S('vac')}</v></c>`, blank(7, r, STE)], 18);
       r += 2;
     });
+    if (sites.split) {
+      const g = rkGrand(sites);
+      merges.push(`A${r}:C${r}`);
+      row(r, [str(1, r, STL, 'TOTAL ' + rkName() + ' (' + sites.map(([n]) => n.replace(rkName(), '').trim() || n).join(' + ') + ')'), blank(2, r, STE), blank(3, r, STE), num(4, r, STR, g.pl), num(5, r, STR, g.ac), num(6, r, STR, g.vc), blank(7, r, STE)], 20);
+      r += 2;
+    }
     const sheet = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
 <sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>
 <cols><col min="1" max="1" width="5" customWidth="1"/><col min="2" max="2" width="16" customWidth="1"/><col min="3" max="3" width="25" customWidth="1"/><col min="4" max="6" width="7.5" customWidth="1"/><col min="7" max="7" width="34" customWidth="1"/></cols>
