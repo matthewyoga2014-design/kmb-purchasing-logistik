@@ -1912,6 +1912,32 @@ function areaSync(S, parsed) {
 }
 ui.area = (() => { try { const v = localStorage.getItem('kta-area'); return v === 'Hauling' || v === 'Mining' ? v : 'semua'; } catch (e) { return 'semua'; } })();
 ui.oarea = 'semua';
+// Dashboard: pilihan Semua / Hauling / Mining — saat render, data sementara dibatasi ke area terpilih
+const _renderArea = render;
+render = function () {
+  const A = ui.area, all = DATA && DATA.positions;
+  if (ui.page !== 'dashboard' || A === 'semua' || !bothAreas(all)) { const r = _renderArea.apply(this, arguments); areaSegDash(); return r; }
+  const keep = { positions: DATA.positions, aktif: DATA.aktif, keluar: DATA.keluar, units: DATA.units };
+  const idx = []; keep.positions.forEach((p, i) => { if (areaOf(p) === A) idx.push(i); });
+  const f = (L) => (L || []).filter((x) => areaOf(x) === A);
+  DATA.positions = idx.map((i) => keep.positions[i]); DATA.aktif = f(keep.aktif); DATA.keluar = f(keep.keluar); DATA.units = f(keep.units);
+  let r;
+  try { r = _renderArea.apply(this, arguments); }
+  finally { Object.assign(DATA, keep); }
+  // tombol yang memakai nomor urut posisi dikembalikan ke nomor urut data lengkap
+  document.querySelectorAll('#view [data-cands],#view [data-epos],#view [data-delpos],#view [data-soe]').forEach((el) => {
+    ['cands', 'epos', 'delpos', 'soe'].forEach((k) => { const v = el.dataset[k]; if (v !== undefined && /^\d+$/.test(v) && idx[+v] !== undefined) el.dataset[k] = String(idx[+v]); });
+  });
+  areaSegDash();
+  return r;
+};
+function areaSegDash() {
+  if (ui.page !== 'dashboard' || !bothAreas(DATA.positions)) return;
+  const head = document.querySelector('#view .head'); if (!head || head.querySelector('.aseg')) return;
+  const seg = `<div class="seg aseg" role="group" aria-label="Project" style="margin-top:10px">${[['semua', 'Semua (Hauling + Mining)'], ['Hauling', 'KTA - TRA Hauling'], ['Mining', 'KTA - TRA Mining']].map(([k, l]) => `<button type="button" data-area="${k}" aria-pressed="${ui.area === k}">${l}</button>`).join('')}</div>`;
+  const left = head.firstElementChild; (left || head).insertAdjacentHTML('beforeend', seg);
+  if (ui.area !== 'semua') { const h1 = head.querySelector('h1'); if (h1 && !/hauling|mining/i.test(h1.textContent)) h1.textContent += ' · ' + ui.area; }
+}
 // Sinkronkan Excel: area posisi lama dipertahankan; posisi baru di section bernama "Mining" otomatis Mining
 const _mergeHistoryArea = mergeHistory;
 mergeHistory = function (oldD, newD) {
