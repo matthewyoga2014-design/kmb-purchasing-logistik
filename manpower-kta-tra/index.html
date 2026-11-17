@@ -2933,6 +2933,14 @@ document.addEventListener('dragstart', (e) => {
   try { e.dataTransfer.setData('text/plain', DRAG); e.dataTransfer.effectAllowed = 'move'; } catch (er) {}
 });
 document.addEventListener('dragend', () => { DRAG = null; document.querySelectorAll('.dragging,.dropok').forEach((x) => x.classList.remove('dragging', 'dropok')); });
+// Area: kotak orang diseret ke tulisan "KTA - TRA HAULING / MINING" → jadi pimpinan project itu
+document.addEventListener('drop', async (e) => {
+  if (!DRAG) return; const n = e.target.closest && e.target.closest('.onode.oarea[data-darea]'); if (!n) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+  const uid = DRAG; DRAG = null; document.querySelectorAll('.dragging,.dropok').forEach((x) => x.classList.remove('dragging', 'dropok'));
+  const a = n.dataset.darea, p = posByUid(DATA, uid); if (!p) return;
+  await commit((S) => { const q = posByUid(S, uid); if (!q) return; q.area = a; q.atasan = null; q.orgTop = false; }, `${nameOf(p)} sekarang langsung di bawah KTA - TRA ${a.toUpperCase()}.`);
+}, true);
 function dropTarget(el) {
   const card = el.closest('.ocard'); if (card) { const u = card.dataset.uid; if (u === DRAG || isUnder(DATA, u, DRAG)) return null; return { el: card, leader: u }; }
   const sec = el.closest('.onode.sec'); if (sec) return { el: sec, section: sec.dataset.dsec, group: sec.dataset.dsec };
@@ -3138,23 +3146,28 @@ function orgChart(D) {
     return `<li><div class="onode sec" data-dsec="${esc(s.name)}" ${CAN_EDIT ? `data-rsec="${esc(s.name)}" role="button" tabindex="0" title="Klik untuk ganti nama section"` : ''}><b>${esc(s.name)}</b><span>${all.length} MPP · ${mpa} MPA · ${all.length ? Math.round(mpa / all.length * 100) : 0}%</span></div>${frames}</li>`;
   };
   let secRow = body.length ? `<ul class="tier secs">${body.map(secLi).join('')}</ul>` : '';
-  let areaMode = false;
+  let areaMode = false, G = [];
   if (bothAreas(P)) {
-    // satu bagan, dua cabang: Hauling & Mining; Dept Head / PJO masing-masing area ada di cabangnya
+    // satu bagan: Dept Head (membawahi semua project) di atas → cabang KTA-TRA Hauling & Mining → supervisor masing-masing → section
     areaMode = true;
+    const isG = (p) => p.orgTop === true || (p.orgTop !== false && /dep(ar)?t(e)?(ment|men)?\.?\s*head|manager/i.test(p.jabatan || '') && !/supervisor|spv/i.test(p.jabatan || ''));
+    G = top.filter(isG);
+    // bawahan langsung Dept Head ditampilkan di cabang project-nya masing-masing
+    G.forEach((g) => { (M.kids[g.uid] || []).forEach((k) => { M.free.push(k); freeSet.add(k.uid); }); M.kids[g.uid] = []; });
+    const gSet = new Set(G.map((g) => g.uid));
     const br = ['Hauling', 'Mining'].filter((a) => ui.oarea === 'semua' || ui.oarea === a).map((a) => {
       const all0 = orgSections(P.filter((p) => areaOf(p) === a));
       const ss = all0.filter((s) => !isTop(s) && !secOut(s.name)).filter((s) => ui.osec === 'semua' || s.name === ui.osec);
-      const topA = ui.osec === 'semua' ? all0.filter(isTop).flatMap((s) => s.groups.flatMap((g) => g.list)).filter((p) => freeSet.has(p.uid)) : [];
+      const topA = ui.osec === 'semua' ? all0.filter(isTop).flatMap((s) => s.groups.flatMap((g) => g.list)).filter((p) => freeSet.has(p.uid) && !gSet.has(p.uid)) : [];
       if (!ss.length && !topA.length) return '';
       const all = all0.flatMap((s) => s.groups.flatMap((g) => g.list)), v = all.filter(isVacant).length;
       const ssRow = ss.length ? `<ul class="tier secs">${ss.map(secLi).join('')}</ul>` : '';
-      return `<li><div class="onode sec oarea ${a === 'Mining' ? 'am' : 'ah'}"><b>KTA - TRA ${a.toUpperCase()}</b><span>${all.length} MPP · ${all.length - v} MPA · ${v} Vacant</span></div>${topA.length ? tiersHtml(topA, M, ssRow) : ssRow}</li>`;
+      return `<li><div class="onode sec oarea ${a === 'Mining' ? 'am' : 'ah'}" data-darea="${a}" ${CAN_EDIT ? 'title="Seret kotak orang ke sini = jadi pimpinan project ini (langsung di bawah tulisan project)"' : ''}><b>KTA - TRA ${a.toUpperCase()}</b><span>${all.length} MPP · ${all.length - v} MPA · ${v} Vacant</span></div>${topA.length ? tiersHtml(topA, M, ssRow) : ssRow}</li>`;
     }).filter(Boolean);
     secRow = br.length ? `<ul class="tier secs">${br.join('')}</ul>` : '';
   }
   const outBlk = outs.length ? `<div class="orgroot out"><div class="outlbl" ${CAN_EDIT ? 'data-outmv="1" title="Seret untuk memindahkan kotak ini ke kiri / kanan / bawah struktur"' : ''}>${CAN_EDIT ? '<i class="grip">⠿</i>' : ''}Di luar Struktur Organisasi (SO)</div><div class="tiers"><ul class="tier secs">${outs.map(secLi).join('')}</ul></div></div>` : '';
-  const main = areaMode ? (secRow ? `<div class="orgroot"><div class="tiers">${secRow}</div></div>` : '') : ui.osec !== 'semua' ? (secRow ? `<div class="orgroot">${tiersHtml([], M, secRow)}</div>` : '') : `<div class="orgroot">${top.length ? tiersHtml(top, M, secRow) : `<div class="tiers">${secRow}</div>`}</div>`;
+  const main = areaMode ? (secRow || G.length ? `<div class="orgroot">${G.length && ui.osec === 'semua' ? tiersHtml(G, M, secRow) : `<div class="tiers">${secRow}</div>`}</div>` : '') : ui.osec !== 'semua' ? (secRow ? `<div class="orgroot">${tiersHtml([], M, secRow)}</div>` : '') : `<div class="orgroot">${top.length ? tiersHtml(top, M, secRow) : `<div class="tiers">${secRow}</div>`}</div>`;
   return `<div class="org pos-${['left', 'bottom'].includes(DATA.orgOutPos) ? DATA.orgOutPos : 'right'}">${main}${outBlk}</div>`;
 }
 function secOut(name, S) { const m = ((S || DATA).orgSecMode) || {}; return m[name] ? m[name] === 'out' : /luar\s*so|non[\s-]*so/i.test(name || ''); }
