@@ -1922,7 +1922,7 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
     <section class="mu-mpp-details" id="muPopDetails" aria-label="Detail unit per jenis">
       <div class="mu-mpp-detail-head"><div><span class="mu-mpp-eyebrow">DETAIL UNIT</span><h3 id="muPopDetailTitle">Seluruh unit di lokasi</h3><p id="muPopDetailSub">Pilih jenis unit pada kartu atau tabel rekap untuk menyaring daftar.</p></div><span class="colcfg-wrap"><button type="button" class="btn small colcfg" data-colcfg="pop" data-needwrite hidden><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Atur kolom</button><button type="button" class="btn small" data-unit-all hidden id="muPopReset">Lihat semua</button></span></div>
       <div class="mu-mpp-detail-wrap"><table class="mu-mpp-detail-table">
-      <thead><tr><th>No</th><th>Nomor lambung</th><th>Jenis Unit</th><th>Vendor</th><th>Merek</th><th>Project</th><th>Posisi</th><th>Status Operasional</th><th>Kondisi</th><th class="n">HM</th><th>Tanggal tiba</th><th>Keterangan</th><th class="mu-mpp-actions">Aksi</th></tr>
+      <thead><tr id="muPopHead"></tr>
       <tr class="mu-colf" id="muColFilter"></tr></thead>
       <tbody id="tUnit"></tbody>
       </table></div>
@@ -4130,6 +4130,8 @@ function muKondFilter(base){
     return `<button type="button" class="${k==="Semua"?"":"mu-kb "+muKondCls(k)}" data-fk="${esc(k)}" aria-pressed="${S.fKond===k}">${k==="Semua"?"":'<i></i>'}${esc(k)} <span class="num">${n}</span></button>`;}).join("");
 }
 /* Filter per kolom di kepala tabel Detail Unit (seperti filter Excel). */
+/* Kolom Populasi Unit: nama & isian sama dengan tabel unit Rencana kirim (+ Jenis unit, Project, Aksi) */
+const MU_POPCOLS=["No","No. lambung","Jenis unit","Vendor","Merek","Project","Posisi","Status","Kondisi","HM","Actual","Catatan","Tgl kirim","ETD","ETA","Kepemilikan","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","Aksi"];
 function muColFilter(base,colOk,nv){
   const row=$("#muColFilter"); if(!row) return;
   const F=S.fCol, act=document.activeElement, typing=act&&act.id==="muColKode", caret=typing?act.selectionStart:0;
@@ -4141,16 +4143,17 @@ function muColFilter(base,colOk,nv){
   const sel=(key,cur,all,html)=>`<select data-colf="${key}" class="${cur&&cur!=="Semua"&&cur!=="all"?"on":""}" aria-label="Filter ${key}"><option value="${all}">Semua</option>${html}</select>`;
   const typeName=u=>String(u.tipe||"Jenis belum diisi").trim();
   const active=[F.kode,F.vendor,F.merk,F.project,F.lokasi].some(Boolean)||S.fUnit!=="Semua"||S.fKond!=="Semua"||(S.unitGroup&&S.unitGroup!=="all");
-  row.innerHTML=`<th>${active?`<button type="button" class="mu-colf-x" data-colf-reset title="Hapus semua filter">✕</button>`:""}</th>
-    <th><input id="muColKode" type="search" placeholder="Cari…" value="${esc(F.kode)}" aria-label="Filter nomor lambung"></th>
-    <th>${sel("jenis",S.unitGroup||"all","all",opts("jenis",u=>MU_TYPE_KEY(u.tipe),typeName,S.unitGroup))}</th>
-    <th>${sel("vendor",F.vendor,"",opts("vendor",u=>nv(muDetails(u).vendor||"Belum diisi"),u=>String(muDetails(u).vendor||"Belum diisi").trim(),F.vendor))}</th>
-    <th>${sel("merk",F.merk,"",opts("merk",u=>nv(muDetails(u).merk||"Belum diisi"),u=>String(muDetails(u).merk||"Belum diisi").trim(),F.merk))}</th>
-    <th>${sel("project",F.project,"",opts("project",u=>u.projectId,u=>projKode(u.projectId),F.project))}</th>
-    <th>${sel("lokasi",F.lokasi,"",opts("lokasi",u=>nv(u.lokasi||"—"),u=>String(u.lokasi||"—").trim(),F.lokasi))}</th>
-    <th>${sel("status",S.fUnit,"Semua",opts("status",u=>u.status,u=>u.status,S.fUnit))}</th>
-    <th>${sel("kondisi",S.fKond,"Semua",opts("kondisi",u=>muKond(u),u=>muKond(u),S.fKond))}</th>
-    <th></th><th></th><th></th><th class="mu-mpp-actions"></th>`;
+  const FC={"No":`<th>${active?`<button type="button" class="mu-colf-x" data-colf-reset title="Hapus semua filter">✕</button>`:""}</th>`,
+    "No. lambung":`<th><input id="muColKode" type="search" placeholder="Cari…" value="${esc(F.kode)}" aria-label="Filter nomor lambung"></th>`,
+    "Jenis unit":`<th>${sel("jenis",S.unitGroup||"all","all",opts("jenis",u=>MU_TYPE_KEY(u.tipe),typeName,S.unitGroup))}</th>`,
+    "Vendor":`<th>${sel("vendor",F.vendor,"",opts("vendor",u=>nv(muDetails(u).vendor||"Belum diisi"),u=>String(muDetails(u).vendor||"Belum diisi").trim(),F.vendor))}</th>`,
+    "Merek":`<th>${sel("merk",F.merk,"",opts("merk",u=>nv(muDetails(u).merk||"Belum diisi"),u=>String(muDetails(u).merk||"Belum diisi").trim(),F.merk))}</th>`,
+    "Project":`<th>${sel("project",F.project,"",opts("project",u=>u.projectId,u=>projKode(u.projectId),F.project))}</th>`,
+    "Posisi":`<th>${sel("lokasi",F.lokasi,"",opts("lokasi",u=>nv(u.lokasi||"—"),u=>String(u.lokasi||"—").trim(),F.lokasi))}</th>`,
+    "Status":`<th>${sel("status",S.fUnit,"Semua",opts("status",u=>u.status,u=>u.status,S.fUnit))}</th>`,
+    "Kondisi":`<th>${sel("kondisi",S.fKond,"Semua",opts("kondisi",u=>muKond(u),u=>muKond(u),S.fKond))}</th>`,
+    "Aksi":`<th class="mu-mpp-actions"></th>`};
+  row.innerHTML=MU_POPCOLS.map(l=>FC[l]||"<th></th>").join("");
   if(typing){ const k=$("#muColKode"); k.focus(); try{ k.setSelectionRange(caret,caret); }catch(e){} }
 }
 function renderUnit(){
@@ -4191,28 +4194,29 @@ function renderUnit(){
   $("#muPopDetailTitle").textContent=selected==="all"?"Seluruh unit di lokasi":(kinds.get(selected)||{}).name||"Unit";
   $("#muPopDetailSub").textContent=selected==="all"?`${summaryTotal} unit · ${groups.length} jenis. Klik salah satu jenis untuk melihat unitnya.`:`${detailRows.length} unit · rincian nomor lambung, status dan lokasi.`;
   $("#muPopReset").hidden=selected==="all";
+  { const hd=$("#muPopHead"), hh=MU_POPCOLS.map(l=>`<th${l==="HM"?' class="n"':l==="Aksi"?' class="mu-mpp-actions"':""}>${esc(l)}</th>`).join(""); if(hd&&hd.dataset.h!==hh){ hd.dataset.h=hh; hd.innerHTML=hh; } }
   $("#tUnit").innerHTML=detailRows.length?detailRows.map((u,i)=>{
     const mob=S.mobs.find(m=>(m.unitId===u.id||m.unitKode===u.kode)&&isAktif(m));
     const m=muDetails(u),catatan=String(m.catatan||"").trim();
     const nFoto=muPhotoRecords(u).length;
     const photoBtn='<button type="button" class="btn small mu-photo-btn" data-unit-photo="'+esc(u.id)+'">📷 Foto'+(nFoto?' ('+nFoto+')':'')+'</button>';
     const ops=photoBtn+(canWrite?`${!mob?`<button class="btn small" data-act="planUnit" data-id="${esc(u.id)}" type="button">Kirim</button>`:""}<button class="btn small edit" data-act="editUnit" data-id="${esc(u.id)}" type="button">Edit</button>${SRC==="sheet"&&u.kirimId?`<button class="btn small ghost" data-act="dokUnit" data-id="${esc(u.id)}" type="button">Bukti</button>`:""}<button class="btn small ghost danger" data-act="delUnit" data-id="${esc(u.id)}" type="button">Hapus</button>`:"");
-    return `<tr>
-      <td class="mu-mpp-num">${i+1}</td>
-      <td><span class="plate">${esc(u.kode)}</span>${isExistingUnit(u)?`<span class="sub" style="font-size:9px;color:#6d28d9">Existing</span>`:""}${u.kodeSementara?`<span class="sub" style="color:var(--warn);font-size:9px">Nomor sementara</span>`:""}</td>
-      <td><b>${esc(u.tipe||"—")}</b></td>
-      <td>${muVendorTag(m.vendor)}</td>
-      <td>${muBrandTag(m.merk)}</td>
-      <td><span class="ptag">${esc(projKode(u.projectId))}</span></td>
-      <td><span title="${esc(u.lokasi||"")}">${esc(u.lokasi||"—")}</span>${mob?`<span class="sub" style="font-size:9px">→ ${esc(mob.ke)} (${esc(mob.status)})</span>`:""}</td>
-      <td>${chip(UNIT_STATUS,u.status)}</td>
-      <td><span class="mu-cond ${muKondCls(m.kondisi)}">${esc(m.kondisi||"Belum diverifikasi")}</span></td>
-      <td class="n">${Number(u.hm||0).toLocaleString("id-ID")}</td>
-      <td>${u.tglTiba?fmtDate(u.tglTiba):"—"}</td>
-      <td class="mu-mpp-description">${catatan?`<span class="mu-mpp-ellipsis" title="${esc(catatan)}">${esc(catatan)}</span><button class="mu-mpp-view" data-act="unitInfo" data-id="${esc(u.id)}" type="button">Lihat detail</button>`:`<button class="mu-mpp-view" data-act="unitInfo" data-id="${esc(u.id)}" type="button">Rincian</button>`}</td>
-      <td class="mu-mpp-actions">${ops||"—"}</td>
-    </tr>`;
-  }).join(""):`<tr><td colspan="13">${emptyState(S.ready?"Belum ada unit untuk filter ini":"Memuat data…",S.ready?"Pilih filter lain atau tambahkan unit existing dan unit tiba.":"",canWrite&&S.ready?`<button class="btn small" data-act="addExistingUnit" type="button">+ Input unit existing</button> ${S.kirim.length?`<button class="btn primary small" data-act="addUnitBtn" type="button">+ Catat unit tiba</button>`:""}`:"")}</td></tr>`;
+    const k=S.kirim.find(x=>x.id===u.kirimId)||{}, ex=l=>`<td>${esc(muUnitVal(u,k,l))}</td>`;
+    const C={"No":`<td class="mu-mpp-num">${i+1}</td>`,
+      "No. lambung":`<td><span class="plate">${esc(u.kode)}</span>${isExistingUnit(u)?`<span class="sub" style="font-size:9px;color:#6d28d9">Existing</span>`:""}${u.kodeSementara?`<span class="sub" style="color:var(--warn);font-size:9px">Nomor sementara</span>`:""}</td>`,
+      "Jenis unit":`<td><b>${esc(u.tipe||"—")}</b></td>`,
+      "Vendor":`<td>${muVendorTag(m.vendor)}</td>`,
+      "Merek":`<td>${muBrandTag(m.merk)}</td>`,
+      "Project":`<td><span class="ptag">${esc(projKode(u.projectId))}</span></td>`,
+      "Posisi":`<td><span title="${esc(u.lokasi||"")}">${esc(u.lokasi||"—")}</span>${mob?`<span class="sub" style="font-size:9px">→ ${esc(mob.ke)} (${esc(mob.status)})</span>`:""}</td>`,
+      "Status":`<td>${chip(UNIT_STATUS,u.status)}</td>`,
+      "Kondisi":`<td><span class="mu-cond ${muKondCls(m.kondisi)}">${esc(m.kondisi||"Belum diverifikasi")}</span></td>`,
+      "HM":`<td class="n">${Number(u.hm||0).toLocaleString("id-ID")}</td>`,
+      "Actual":`<td>${u.tglTiba?fmtDate(u.tglTiba):"—"}</td>`,
+      "Catatan":`<td class="mu-mpp-description">${catatan?`<span class="mu-mpp-ellipsis" title="${esc(catatan)}">${esc(catatan)}</span><button class="mu-mpp-view" data-act="unitInfo" data-id="${esc(u.id)}" type="button">Lihat detail</button>`:`<button class="mu-mpp-view" data-act="unitInfo" data-id="${esc(u.id)}" type="button">Rincian</button>`}</td>`,
+      "Aksi":`<td class="mu-mpp-actions">${ops||"—"}</td>`};
+    return `<tr>${MU_POPCOLS.map(l=>C[l]||ex(l)).join("")}</tr>`;
+  }).join(""):`<tr><td colspan="${MU_POPCOLS.length}">${emptyState(S.ready?"Belum ada unit untuk filter ini":"Memuat data…",S.ready?"Pilih filter lain atau tambahkan unit existing dan unit tiba.":"",canWrite&&S.ready?`<button class="btn small" data-act="addExistingUnit" type="button">+ Input unit existing</button> ${S.kirim.length?`<button class="btn primary small" data-act="addUnitBtn" type="button">+ Catat unit tiba</button>`:""}`:"")}</td></tr>`;
 }
 
 /* Foto per unit: gunakan layanan upload dokumentasi Drive yang sudah ada,
@@ -4763,7 +4767,7 @@ const MU_COLT={
   slot:{pair:["item","slot"],tab:"Isian unit",sel:".slotTbl table.slotFixed",name:"Tabel unit Rencana kirim (semua item)",labels:["#","Tgl kirim","ETD","ETA","Actual","No. lambung","Vendor","Merek","Kepemilikan","Status","Kondisi","Posisi","Kirim berikutnya","Catatan","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM",""],defHidden:["Via", "Kategori", "PIC", "Model / tipe", "Tahun", "Serial / chassis", "HM"]},
   dashitem:{pair:["dashitem","dash"],tab:"Item unit",sel:"table.mu-kcol-none",name:"Ringkasan per item unit (dashboard)",sub:"isian item unit",labels:MU_DICOLS,defHidden:["ETA","Rencana awal","Perubahan","Via","Asal"]},
   dash:{pair:["dashitem","dash"],tab:"Isian unit",sel:"table.rk-t2",name:"Tabel Rencana kirim per unit (dashboard)",labels:["No","No. lambung","Vendor","Merek","Status kirim","Kepemilikan","Posisi","ETD","ETA","Catatan","Tgl kirim","Actual","Kondisi","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM"],defHidden:["Tgl kirim","Actual","Kondisi","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis","HM"]},
-  pop:{sel:"table.mu-mpp-detail-table",name:"Tabel detail Populasi Unit"},
+  pop:{sel:"table.mu-mpp-detail-table",name:"Tabel detail Populasi Unit",labels:MU_POPCOLS,defHidden:["Tgl kirim","ETD","ETA","Kepemilikan","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis"]},
   poptbl:{sel:"table.mu-pt-table",name:"Rekap Populasi Unit (dashboard)",sub:"data Populasi Unit",labels:["Jenis unit","Vendor","Merek","Unit","Operasi","Standby","Breakdown","Status lain","Belum diketahui","Kondisi terbanyak","No. lambung belum diisi","Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"],defHidden:["Status lain","Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"]},
   popdash:{sel:"table.mu-pop-table",name:"Rekap Populasi Unit (dashboard)",sub:"data Populasi Unit",labels:["Merek Unit","Total","Status Operasional","Kondisi Unit","Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"],defHidden:["Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"]},
   item:{pair:["item","slot"],tab:"Item unit",sel:"table.mu-kcol-none",name:"Baris item unit Rencana kirim",sub:"isian item unit",labels:["Rencana","Status unit","Sisa kirim","Rencana awal","Perubahan","Tiba","Dlm perjalanan","ETA","Keterangan","Via","Asal"],defHidden:["Rencana awal","Perubahan","Tiba","Dlm perjalanan","ETA","Keterangan","Via","Asal"]},
@@ -4771,7 +4775,11 @@ const MU_COLT={
 };
 function muColPrefs(){ let p=(SBDATA&&SBDATA.colPrefs)||null;
   try{ if(p) localStorage.setItem("mu_colprefs",JSON.stringify(p)); else p=JSON.parse(localStorage.getItem("mu_colprefs")||"null"); }catch(e){}
-  return p||{}; }
+  return muColRen(p||{}); }
+/* nama kolom lama Populasi Unit -> nama yang sama dengan Rencana kirim */
+const MU_COLREN={pop:{"Nomor lambung":"No. lambung","Jenis Unit":"Jenis unit","Status Operasional":"Status","Keterangan":"Catatan","Tanggal tiba":"Actual"}};
+function muColRen(p){ const o={...p}; Object.entries(MU_COLREN).forEach(([k,m])=>{ const c=o[k]; if(!c) return; const f=l=>m[l]||l;
+  o[k]={...c,...(c.order?{order:c.order.map(f)}:{}),...(c.hidden?{hidden:c.hidden.map(f)}:{}),...(c.w?{w:Object.fromEntries(Object.entries(c.w).map(([l,v])=>[f(l),v]))}:{})}; }); return o; }
 const muColLabel=c=>String(c.dataset.ck||((c.childNodes[0]&&c.childNodes[0].nodeType===3?c.childNodes[0].textContent:c.textContent)||"")).replace(/\s+/g," ").trim();
 const muColFixed=l=>l==="#"||l==="No"||l==="";
 function muColHead(t){ return t.querySelector("thead tr")||t.querySelector("tr.rk-ch"); }
@@ -5230,7 +5238,9 @@ function buildStyledExcel(P,ps){
   }
 
   /* 3. Populasi Unit: rekap jenis + detail (sama dengan sheet Populasi Unit di web) */
-  { const sh=B.sheet("Populasi Unit",{cols:[6,17,22,14,14,20,18,16,20,9,13,40]}); const N=12; let r=head(sh,N,"Populasi Unit","Unit yang sudah tiba / di lokasi");
+  { const PP=muColPrefs().pop, PH=muColHidden("pop",MU_POPCOLS,PP), PV=muColDesired(MU_POPCOLS,PP).filter(l=>l!=="Aksi"&&!PH.has(l));
+    const PW={"No":6,"No. lambung":17,"Jenis unit":22,"Vendor":14,"Merek":14,"Project":20,"Posisi":18,"Status":16,"Kondisi":20,"HM":9,"Actual":13,"Catatan":40};
+    const N=Math.max(7,PV.length), sh=B.sheet("Populasi Unit",{cols:Array.from({length:N},(x,i)=>PW[PV[i]]||(PV[i]?14:10))}); let r=head(sh,N,"Populasi Unit","Unit yang sudah tiba / di lokasi");
     const rows=S.units.filter(u=>arrived(u)&&pset.has(u.projectId)).sort((a,b)=>String(a.tipe||"").localeCompare(String(b.tipe||""),"id")||String(a.kode||"").localeCompare(String(b.kode||""),"id",{numeric:true}));
     const kinds=new Map(); rows.forEach(u=>{ const key=MU_TYPE_KEY(u.tipe); if(!kinds.has(key)) kinds.set(key,{name:String(u.tipe||"Jenis belum diisi").trim(),n:0}); kinds.get(key).n++; });
     const groups=[...kinds.values()].sort((a,b)=>a.name.localeCompare(b.name,"id",{numeric:true}));
@@ -5242,19 +5252,20 @@ function buildStyledExcel(P,ps){
     if(!groups.length) emptyRow(sh,r++,7,"Belum ada unit di lokasi");
     else { const ts={...tdn,b:true,fill:HEAD}; sh.put(r,0,"",ts); sh.merge(r,1,2,"Total",{...ts,h:"left"}); sh.put(r,3,rows.length,{...ts,sz:11,color:ACC}); sh.merge(r,4,5,"",ts); sh.put(r,6,1,{...ts,fmt:"0%",color:ACC}); r++; }
     r++; section(sh,r++,N,"Detail unit di lokasi");
-    const h0=r; header(sh,r,["No","Nomor lambung","Jenis Unit","Vendor","Merek","Project","Posisi","Status Operasional","Kondisi","HM","Tanggal tiba","Keterangan"],[2,11]); r++;
-    rows.forEach((u,i)=>{ const m=muDetails(u), mob=S.mobs.find(x=>(x.unitId===u.id||x.unitKode===u.kode)&&isAktif(x));
-      sh.put(r,0,i+1,{...tdc,color:MUTED});
-      if(u.kodeSementara) sh.put(r,1,u.kode+" (sementara)",{...tdc,i:true,color:"#B45309"}); else sh.put(r,1,u.kode,{...plate,sz:9});
-      sh.put(r,2,u.tipe||"—",{...td,b:true}); sh.put(r,3,String(m.vendor||"").trim()||"Belum diisi",{...vendSt(m.vendor),sz:9});
-      sh.put(r,4,String(m.merk||"").trim()||"Belum diisi",{...brandSt(m.merk),sz:9}); sh.put(r,5,projKode(u.projectId),ptag);
-      sh.put(r,6,(u.lokasi||"—")+(mob?`\n→ ${mob.ke} (${mob.status})`:""),tdc);
-      sh.put(r,7,u.status||"—",{...chipSt(UNIT_STATUS,u.status),sz:9.5}); sh.put(r,8,m.kondisi||"Belum diverifikasi",{...kondSt(m.kondisi),sz:9});
-      sh.put(r,9,Number(u.hm)||0,{...tdn,fmt:"#,##0"}); dv(sh,r,10,u.tglTiba);
-      const ket=[isExistingUnit(u)?"Existing":"",String(m.catatan||"").trim(),[m.model,m.tahun,m.serial?"SN "+m.serial:""].filter(Boolean).join(" · ")].filter(Boolean).join("\n");
-      sh.put(r,11,ket,{...td,sz:9,color:"#4B4868"}); sh.height(r,20); r++; });
+    const h0=r; header(sh,r,PV,[PV.indexOf("Jenis unit"),PV.indexOf("Catatan")].filter(x=>x>=0)); r++;
+    rows.forEach((u,i)=>{ const m=muDetails(u), mob=S.mobs.find(x=>(x.unitId===u.id||x.unitKode===u.kode)&&isAktif(x)), k=S.kirim.find(x=>x.id===u.kirimId)||{};
+      const W={"No":c=>sh.put(r,c,i+1,{...tdc,color:MUTED}),
+        "No. lambung":c=>{ if(u.kodeSementara) sh.put(r,c,u.kode+" (sementara)",{...tdc,i:true,color:"#B45309"}); else sh.put(r,c,u.kode,{...plate,sz:9}); },
+        "Jenis unit":c=>sh.put(r,c,u.tipe||"—",{...td,b:true}), "Vendor":c=>sh.put(r,c,String(m.vendor||"").trim()||"Belum diisi",{...vendSt(m.vendor),sz:9}),
+        "Merek":c=>sh.put(r,c,String(m.merk||"").trim()||"Belum diisi",{...brandSt(m.merk),sz:9}), "Project":c=>sh.put(r,c,projKode(u.projectId),ptag),
+        "Posisi":c=>sh.put(r,c,(u.lokasi||"—")+(mob?`\n→ ${mob.ke} (${mob.status})`:""),tdc),
+        "Status":c=>sh.put(r,c,u.status||"—",{...chipSt(UNIT_STATUS,u.status),sz:9.5}), "Kondisi":c=>sh.put(r,c,m.kondisi||"Belum diverifikasi",{...kondSt(m.kondisi),sz:9}),
+        "HM":c=>sh.put(r,c,Number(u.hm)||0,{...tdn,fmt:"#,##0"}), "Actual":c=>dv(sh,r,c,u.tglTiba),
+        "Catatan":c=>sh.put(r,c,[isExistingUnit(u)?"Existing":"",String(m.catatan||"").trim(),[PV.includes("Model / tipe")?"":m.model,PV.includes("Tahun")?"":m.tahun,!PV.includes("Serial / chassis")&&m.serial?"SN "+m.serial:""].filter(Boolean).join(" · ")].filter(Boolean).join("\n"),{...td,sz:9,color:"#4B4868"})};
+      PV.forEach((l,c)=>W[l]?W[l](c):sh.put(r,c,muUnitVal(u,k,l),{...tdc,sz:9}));
+      sh.height(r,20); r++; });
     if(!rows.length) emptyRow(sh,r++,N,"Belum ada unit di lokasi");
-    else sh.filter=[h0,0,r-1,N-1];
+    else sh.filter=[h0,0,r-1,PV.length-1];
     sh.titles=[h0,h0];
   }
 
