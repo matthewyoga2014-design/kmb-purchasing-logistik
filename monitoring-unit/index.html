@@ -189,6 +189,10 @@ button.pd-k:hover,button.hk-gt:hover{transform:translateY(-2px);box-shadow:0 14p
 .pd-t tfoot td{font-weight:800;border-bottom:0}
 .pd-t2{font-size:13px}.pd-t2 td{white-space:nowrap}.pd-t2 td:last-child{white-space:normal;min-width:180px}.pd-t2 th{font-size:13px}.pd-t2 td small{display:block;font-size:11px;color:#8C88A8}.pd-rm{color:#BE123C}
 .pd-tmp{color:#B45309;font-weight:700}
+details.rkm{position:relative}details.rkm>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px}details.rkm>summary::-webkit-details-marker{display:none}
+.rkm-p{position:absolute;left:0;top:calc(100% + 6px);z-index:60;background:#fff;border:1px solid #E8E5F3;border-radius:12px;box-shadow:0 14px 30px -12px rgba(30,27,58,.35);padding:6px;min-width:190px;display:flex;flex-direction:column}
+.rkm-p button{border:0;background:none;text-align:left;font:inherit;font-size:13.5px;font-weight:600;color:#1C1A33;padding:9px 12px;border-radius:8px;cursor:pointer}.rkm-p button:hover{background:#F5F1FF;color:#5B21B6}
+@media print{details.rkm{display:none!important}}
 .pc{display:flex;flex-direction:column;gap:6px}.pc-h{display:flex;justify-content:space-between;align-items:baseline;margin-top:6px}.pc-h b{font-size:13px}.pc-h span{font-size:12px}
 .pc-l{display:grid;gap:6px}.pc-2{grid-template-columns:repeat(2,minmax(0,1fr))}
 .pc-o{display:flex;gap:9px;align-items:flex-start;border:1px solid #E8E5F3;border-radius:10px;padding:8px 10px;cursor:pointer;background:#fff}.pc-o:has(input:checked){border-color:#A78BFA;background:#F8F5FF}
@@ -3103,7 +3107,7 @@ function renderProjDash2(P){
   const pj=new Map(); atLoc.forEach(u=>pj.set(u.tipe,(pj.get(u.tipe)||0)+1));
   const pop=`<div class="card pd-c"><h3>Populasi unit <small>${atLoc.length} unit</small></h3>${atLoc.length?`<ul class="pd-pop">${[...pj.entries()].sort((a,b)=>b[1]-a[1]).map(([t,n])=>`<li><span>${esc(t)}</span><b>${n}</b></li>`).join("")}</ul><button type="button" class="pd-link" data-tn="unit">Lihat di Populasi Unit →</button>`:`<div class="pd-empty">Belum ada unit di lokasi. Unit otomatis muncul di sini setelah statusnya Tiba.</div>`}</div>`;
   const F=MU_PRINT_FULL, sec=DSEC, nm=(MU_DSEC.find(x=>x[0]===sec)||MU_DSEC[0])[1];
-  const head=`<div class="hk-ph2 pd-head"><div><div class="hk-eb">Dashboard · ${esc(P.kode)} · ${esc(F?"Lengkap":nm)}</div><h2>${esc(F?"Dashboard "+P.kode:nm)}</h2><p>Klik angka atau kotak untuk membuka detailnya. Pilih project lain atau klik project yang aktif di menu untuk kembali ke semua project. Print mencetak bagian yang sedang dibuka (bisa pilih lengkap).</p></div></div>
+  const head=`<div class="hk-ph2 pd-head"><div><div class="hk-eb">Dashboard · ${esc(P.kode)} · ${esc(F?"Lengkap":nm)}</div><h2>${esc(F?"Dashboard "+P.kode:nm)}</h2><p>Klik angka atau kotak untuk membuka detailnya. Pilih project lain atau klik project yang aktif di menu untuk kembali ke semua project. Print mencetak bagian yang sedang dibuka (bisa pilih lengkap).</p></div><div class="hk-ph2-r">${MU_RK_BTN()}</div></div>
     <div class="hk-secs pd-secs" role="tablist">${MU_DSEC.map(([k,n])=>`<button type="button" data-dsec="${k}" class="${k===sec?"on":""}">${n}</button>`).join("")}</div>`;
   const body=(F||sec==="ringkasan"?kpis+`<div class="pd-row3">${chart}${status}${funnel}</div>`:"")+(F||sec==="progres"?`<div class="pd-row2">${table}${pop}</div>${belum}`:"")+(!F&&sec==="populasi"?`<div class="pd-row2">${pop}<div></div></div>`:"");
   el.innerHTML=`<div class="pd">${head}${body}${F||sec==="ringkasan"||sec==="progres"?`<div class="pd-foot"><span>Diupdate ${st.last?fmtTime(st.last):"—"}</span><span>Monitoring Unit · PT KMB</span></div>`:""}</div>`;
@@ -3502,7 +3506,7 @@ function renderHkHome(L,ps){
   const secName=(MU_DSEC.find(x=>x[0]===DSEC)||MU_DSEC[0])[1];
   const lastU=S.units.concat(S.kirim).map(x=>x.updatedAt||x.waktu||"").filter(Boolean).sort().pop();
   const head=`<div class="hk-ph2"><div><div class="hk-eb">Dashboard · ${esc(MU_PRINT_FULL?"Lengkap":secName)}</div><h2>${esc(MU_PRINT_FULL?"Dashboard Monitoring Unit":secName)}</h2><p>Klik angka atau project mana pun untuk membuka detailnya. Print mencetak bagian yang sedang dibuka (bisa pilih lengkap).</p></div>
-      <div class="hk-ph2-r"><span class="hk-upd"><i></i><span><small>Update terakhir</small><b>${lastU?fmtTime(lastU):"—"}</b></span></span>${canWrite?`<button class="btn" data-act="addProj" type="button">+ Project</button>`:""}</div></div>
+      <div class="hk-ph2-r">${MU_RK_BTN()}<span class="hk-upd"><i></i><span><small>Update terakhir</small><b>${lastU?fmtTime(lastU):"—"}</b></span></span>${canWrite?`<button class="btn" data-act="addProj" type="button">+ Project</button>`:""}</div></div>
     <div class="hk-secs" role="tablist">${MU_DSEC.map(([k,n])=>`<button type="button" data-dsec="${k}" class="${k===DSEC?"on":""}" aria-selected="${k===DSEC}">${n}</button>`).join("")}</div>`;
   if(!ps.length){ el.innerHTML=head+`<div class="card">${emptyState(L?"Memuat data…":"Belum ada project",L?"":"Tambahkan project dan item unit yang direncanakan dikirim.",canWrite&&!L?`<button class="btn primary small" data-act="addProj" type="button">+ Project</button>`:"")}</div>`; return; }
   if(!MU_PRINT_FULL&&(DSEC==="populasi"||DSEC==="mob"||DSEC==="rev")){ el.innerHTML=head; return; }
@@ -4954,6 +4958,7 @@ const MUX=(()=>{
       if(v===null||v===undefined||v==="") return `<c ${a}/>`;
       if(typeof v==="number") return isFinite(v)?`<c ${a}><v>${v}</v></c>`:`<c ${a}/>`;
       if(typeof v==="object"&&v.d!==undefined){ const n=serial(v.d); return n===null?`<c ${a} t="inlineStr"><is><t>${x(v.d)}</t></is></c>`:`<c ${a}><v>${n}</v></c>`; }
+      if(typeof v==="object"&&v.f&&v.n!==undefined) return `<c ${a}><f>${x(v.f)}</f><v>${Number(v.n)||0}</v></c>`;
       if(typeof v==="object"&&v.f) return `<c ${a} t="str"><f>${x(v.f)}</f><v>${x(v.v||"")}</v></c>`;
       return `<c ${a} t="inlineStr"><is><t xml:space="preserve">${x(v)}</t></is></c>`; }
     // tinggi baris dihitung dari panjang teks & lebar kolom (Excel tidak menyesuaikan sendiri saat file dibuka)
@@ -4973,7 +4978,7 @@ const MUX=(()=>{
       const pane=sh.freeze?`<pane ySplit="${sh.freeze}" topLeftCell="A${sh.freeze+1}" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A${sh.freeze+1}" sqref="A${sh.freeze+1}"/>`:"";
       return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">`+
         `<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0">${pane}</sheetView></sheetViews><sheetFormatPr defaultRowHeight="15"/>`+
-        (sh.cols.length?`<cols>${sh.cols.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("")}</cols>`:"")+
+        (sh.cols.length?`<cols>${sh.cols.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"${(sh.hide||[]).includes(i)?' hidden="1"':""}/>`).join("")}</cols>`:"")+
         `<sheetData>${rows}</sheetData>`+
         (sh.filter?`<autoFilter ref="${ref(sh.filter[0],sh.filter[1])}:${ref(sh.filter[2],sh.filter[3])}"/>`:"")+
         (sh.merges.length?`<mergeCells count="${sh.merges.length}">${sh.merges.map(m=>`<mergeCell ref="${ref(m[0],m[1])}:${ref(m[2],m[3])}"/>`).join("")}</mergeCells>`:"")+
@@ -4986,14 +4991,14 @@ const MUX=(()=>{
       const files=[
         {name:"[Content_Types].xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>${sheets.map((s,i)=>`<Override PartName="/xl/worksheets/sheet${i+1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join("")}</Types>`},
         {name:"_rels/.rels",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`},
-        {name:"xl/workbook.xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView activeTab="0"/></bookViews><sheets>${sheets.map((s,i)=>`<sheet name="${x(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets>${names?`<definedNames>${names}</definedNames>`:""}</workbook>`},
+        {name:"xl/workbook.xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><bookViews><workbookView activeTab="0"/></bookViews><sheets>${sheets.map((s,i)=>`<sheet name="${x(s.name)}" sheetId="${i+1}" r:id="rId${i+1}"/>`).join("")}</sheets>${names?`<definedNames>${names}</definedNames>`:""}<calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>`},
         {name:"xl/_rels/workbook.xml.rels",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${sheets.map((s,i)=>`<Relationship Id="rId${i+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i+1}.xml"/>`).join("")}<Relationship Id="rId${sheets.length+1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>`},
         {name:"xl/styles.xml",data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">${fmts.length?`<numFmts count="${fmts.length}">${fmts.join("")}</numFmts>`:""}<fonts count="${fonts.length}">${fonts.join("")}</fonts><fills count="${fills.length}">${fills.join("")}</fills><borders count="${borders.length}">${borders.join("")}</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="${xfs.length}">${xfs.join("")}</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`},
         ...sheets.map((s,i)=>({name:`xl/worksheets/sheet${i+1}.xml`,data:sheetXml(s)}))
       ];
       return zip(files); }
     return {sheet,blob}; }
-  return {book};
+  return {book,colL};
 })();
 
 /* warna sama dengan label di web */
@@ -5004,6 +5009,80 @@ function muxVendorC(name){ const key=(String(name||"").trim()||"Belum diisi").re
 function muxBrandC(name){ const key=String(name||"").trim().replace(/\s+/g," ").toUpperCase(); if(!key) return {fg:"#64748B",bg:"#F1F5F9"};
   let c=MU_BRAND_COLORS[key]||MU_BRAND_COLORS[key.split(/[\s/(-]/)[0]]; if(!c){ let h=0; for(let j=0;j<key.length;j++) h=((h*31)+key.charCodeAt(j))>>>0; c=MU_BRAND_PALETTE[h%MU_BRAND_PALETTE.length]; } return c; }
 
+
+/* ===== Rekap Unit (seperti Rekap MPP di portal Manpower): per project → per item: No, Item unit, No. lambung, Rencana, Tiba, Dlm jalan, Sisa kirim, Keterangan ===== */
+function muRekapRows(p){
+  return itemsOf(p.id).map(k=>{ const us=slotUnits(k), r=Number(k.rencana)||0, t=Math.min(tibaItem(k),r), j=jalanItem(k), sk=sisaItem(k);
+    const tmp=x=>x.kodeSementara||!String(x.kode||"").trim();
+    const units=us.map(u=>({t:tmp(u)?"belum diisi":u.kode, tone:arrived(u)?"ok":u.status==="Dalam perjalanan"?"go":"prep", tmp:tmp(u)}));
+    const ket=[], grp=new Map(); us.filter(u=>!arrived(u)).forEach(u=>{ const st=String(u.status||"").trim()||"Belum dikirim"; const g=grp.get(st)||{n:0,eta:[]}; g.n++; const e=muDetails(u).eta; if(e) g.eta.push(e); grp.set(st,g); });
+    grp.forEach((g,st)=>{ const e=g.eta.sort()[0]; ket.push({k:st==="Dalam perjalanan"?"go":"prep",t:`${st} ${g.n}${e?" · ETA "+fmtD(e):""}`}); });
+    const blm=Math.max(0,r-us.length); if(blm) ket.push({k:"bad",t:`Belum dijadwalkan ${blm}`});
+    if(t>r) ket.push({k:"prep",t:`Lebih ${t-r} unit dari rencana`});
+    const c=String(k.catatan||"").trim(); if(c) ket.push({k:"note",t:c});
+    if(!ket.length) ket.push({k:"ok",t:"Lengkap · semua unit tiba"});
+    return {item:k.tipe,units,r,t,j,sk,ket}; }); }
+function muRekapScope(){ const P=curProj(); return {P,ps:P?[P]:projects()}; }
+function muRekapSheet(B,ps,P){
+  const ACC="#6D28D9", INK="#1C1A33";
+  const sh=B.sheet("Rekap Unit",{cols:[5,26,30,9,9,10,10,44],titles:[0,1]}); const N=8; let r=0;
+  const bd={bd:true,bc:"#404040"}, td={...bd,wrap:true,sz:10}, c={...td,h:"center"};
+  sh.merge(r,0,N-1,"Rekap Unit "+(P?P.kode:"Semua Project"),{b:true,sz:14,color:INK}); sh.height(r,22); r++;
+  sh.merge(r,0,N-1,`Per ${new Date().toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"})} · No. lambung hijau = tiba, oranye = dalam perjalanan, ungu = persiapan / belum dikirim · Merah = belum dijadwalkan`,{sz:9,color:"#444444",wrap:true}); sh.height(r,26); r+=2;
+  const G={r:0,t:0,j:0,sk:0};
+  ps.forEach(p=>{ const R=muRekapRows(p);
+    sh.merge(r,0,N-1,`Project ${p.kode}${[p.nama,p.lokasi].filter(Boolean).length?"  ·  "+[p.nama,p.lokasi].filter(Boolean).join(" · "):""}`,{...bd,b:true,sz:11,fill:"#D9D9D9",h:"center"}); sh.height(r,20); r++;
+    ["No","Item unit","No. lambung","Rencana","Tiba","Dlm jalan","Sisa kirim","Keterangan"].forEach((h,i)=>sh.put(r,i,h,{...bd,b:true,sz:10,h:"center",wrap:true})); sh.height(r,20); r++;
+    const a=r;
+    if(!R.length){ sh.merge(r,0,N-1,"Belum ada rencana kirim",{...td,i:true,color:"#777777",h:"center"}); r++; }
+    R.forEach((x,i)=>{ sh.put(r,0,i+1,c); sh.put(r,1,x.item,{...td,b:true});
+      const tiba=x.units.filter(u=>u.tone==="ok"&&!u.tmp).map(u=>u.t), jl=x.units.filter(u=>u.tone==="go"&&!u.tmp).map(u=>u.t), pr=x.units.filter(u=>u.tone==="prep"&&!u.tmp).map(u=>u.t), nt=x.units.filter(u=>u.tmp).length;
+      const lines=[tiba.length?"Tiba: "+tiba.join(", "):"", jl.length?"Dlm perjalanan: "+jl.join(", "):"", pr.length?"Persiapan: "+pr.join(", "):"", nt?`${nt} unit belum diisi nomornya`:""].filter(Boolean);
+      sh.put(r,2,lines.join("\n")||"—",{...td,sz:9.5,color:lines.length?INK:"#999999"});
+      sh.put(r,3,x.r,{...c,b:true}); sh.put(r,4,x.t,{...c,color:x.t?"#15803D":"#999999",b:!!x.t}); sh.put(r,5,x.j,{...c,color:x.j?"#C2410C":"#999999",b:!!x.j}); sh.put(r,6,x.sk,{...c,color:x.sk?"#C00000":"#999999",b:!!x.sk});
+      const bad=x.ket.some(k=>k.k==="bad"), ok=x.ket.length===1&&x.ket[0].k==="ok";
+      sh.put(r,7,x.ket.map(k=>k.t).join("\n"),{...td,sz:9.5,b:bad||ok,color:ok?"#15803D":bad?"#C00000":INK}); r++;
+      G.r+=x.r; G.t+=x.t; G.j+=x.j; G.sk+=x.sk; });
+    const tot={...bd,b:true,fill:"#D9D9D9",h:"center"}, L=MUX.colL, sm=(col,v)=>R.length?{f:`SUM(${L(col)}${a+1}:${L(col)}${r})`,n:v}:0;
+    sh.merge(r,0,2,"Total "+p.kode,{...tot,h:"left",ind:1}); sh.put(r,3,sm(3,R.reduce((s,x)=>s+x.r,0)),tot); sh.put(r,4,sm(4,R.reduce((s,x)=>s+x.t,0)),tot); sh.put(r,5,sm(5,R.reduce((s,x)=>s+x.j,0)),tot); sh.put(r,6,sm(6,R.reduce((s,x)=>s+x.sk,0)),tot); sh.put(r,7,"",tot); r+=2; });
+  if(ps.length>1){ const tot={...bd,b:true,fill:"#EFE8FD",color:ACC,h:"center"};
+    sh.merge(r,0,2,`TOTAL SEMUA PROJECT (${ps.length} project)`,{...tot,h:"left",ind:1}); sh.put(r,3,G.r,tot); sh.put(r,4,G.t,tot); sh.put(r,5,G.j,tot); sh.put(r,6,G.sk,tot); sh.put(r,7,G.r?`${Math.round(G.t/G.r*100)}% tiba`:"",tot); }
+  return sh; }
+async function muRekapExcel(){
+  const {P,ps}=muRekapScope(); const B=MUX.book(); muRekapSheet(B,ps,P);
+  const url=URL.createObjectURL(B.blob()), a=document.createElement("a"); a.href=url; a.download=`Rekap_Unit_${P?P.kode.replace(/[^\w-]+/g,"-"):"All-Project"}_${todayStr()}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); toast("Rekap Unit diunduh."); }
+function muRekapPrint(){
+  const {P,ps}=muRekapScope(); const G={r:0,t:0,j:0,sk:0};
+  const tone={ok:"ok",go:"go",prep:"pr"};
+  const tables=ps.map(p=>{ const R=muRekapRows(p); R.forEach(x=>{ G.r+=x.r; G.t+=x.t; G.j+=x.j; G.sk+=x.sk; });
+    const body=R.length?R.map((x,i)=>{ const nts=x.units.filter(u=>u.tmp).length;
+      const pl=x.units.filter(u=>!u.tmp).map(u=>`<span class="${tone[u.tone]}">${esc(u.t)}</span>`).join(", ")+(nts?`${x.units.some(u=>!u.tmp)?"<br>":""}<span class="tmp">${nts} belum diisi</span>`:"");
+      return `<tr><td class="c">${i+1}</td><td><b>${esc(x.item)}</b></td><td class="nm">${pl||'<span class="mut">—</span>'}</td><td class="c"><b>${x.r}</b></td><td class="c ${x.t?"ok":"mut"}">${x.t}</td><td class="c ${x.j?"go":"mut"}">${x.j}</td><td class="c ${x.sk?"op":"mut"}">${x.sk}</td><td class="kt">${x.ket.map(k=>`<div class="k-${k.k}">${esc(k.t)}</div>`).join("")}</td></tr>`; }).join(""):`<tr><td colspan="8" class="c mut">Belum ada rencana kirim</td></tr>`;
+    const sm=k=>R.reduce((a,x)=>a+x[k],0);
+    return `<table><colgroup><col style="width:4.5%"><col style="width:19%"><col style="width:21%"><col style="width:8.5%"><col style="width:6.5%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:25.5%"></colgroup>
+      <thead><tr><th colspan="8" class="ttl">Project ${esc(p.kode)}${[p.nama,p.lokasi].filter(Boolean).length?" · "+esc([p.nama,p.lokasi].filter(Boolean).join(" · ")):""}</th></tr><tr><th>No</th><th>Item unit</th><th>No. lambung</th><th>Rencana</th><th>Tiba</th><th>Dlm jalan</th><th>Sisa kirim</th><th>Keterangan</th></tr></thead>
+      <tbody>${body}</tbody><tfoot><tr><td colspan="3">Total ${esc(p.kode)}</td><td class="c">${sm("r")}</td><td class="c">${sm("t")}</td><td class="c">${sm("j")}</td><td class="c">${sm("sk")}</td><td></td></tr></tfoot></table>`; }).join("");
+  const grand=ps.length>1?`<table class="gt"><colgroup><col style="width:44.5%"><col style="width:8.5%"><col style="width:6.5%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:25.5%"></colgroup><tr><td>TOTAL SEMUA PROJECT (${ps.length} project)</td><td class="c">${G.r}</td><td class="c">${G.t}</td><td class="c">${G.j}</td><td class="c">${G.sk}</td><td>${G.r?Math.round(G.t/G.r*100)+"% tiba":""}</td></tr></table>`:"";
+  const tgl=new Date().toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
+  const html=`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Rekap Unit ${esc(P?P.kode:"Semua Project")} - ${todayStr()}</title><style>
+    @page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{margin:0;font-family:Calibri,"Segoe UI",Arial,sans-serif;font-size:10.5pt;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    h1{font-size:13pt;margin:0 0 2px}p.s{margin:0 0 10px;font-size:9pt;color:#444}
+    table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 14px}tr{break-inside:avoid}thead{display:table-header-group}tfoot{display:table-row-group}
+    th,td{border:1px dotted #555;padding:2px 5px;height:22px;vertical-align:middle;word-wrap:break-word}
+    th{font-weight:400;text-align:center}th.ttl{background:#D9D9D9;border:1px solid #555;font-weight:700}
+    td.c{text-align:center}td.nm,td.kt{font-size:9.5pt;line-height:1.35;padding-top:3px;padding-bottom:3px}
+    .ok{color:#15803D;font-weight:700}.go{color:#C2410C;font-weight:700}.pr{color:#6D28D9;font-weight:700}.op{color:#C00000;font-weight:700}.tmp{color:#B45309;font-style:italic}.mut{color:#999}
+    .k-bad{color:#C00000;font-weight:700}.k-ok{color:#15803D;font-weight:700}.k-go{color:#C2410C}.k-prep{color:#6D28D9}.k-note{color:#333}
+    tfoot td{background:#D9D9D9;font-weight:700}table.gt td{background:#EFE8FD;color:#5B21B6;font-weight:700;border:1px solid #555}
+  </style></head><body><h1>Rekap Unit ${esc(P?P.kode:"Semua Project")}</h1><p class="s">Per ${tgl} · No. lambung: <span class="ok">hijau = tiba</span>, <span class="go">oranye = dalam perjalanan</span>, <span class="pr">ungu = persiapan / belum dikirim</span> · <span class="op">Merah</span> = belum dijadwalkan / sisa kirim.</p>${tables}${grand}</body></html>`;
+  let fr=document.getElementById("rkuFrame"); if(fr) fr.remove();
+  fr=document.createElement("iframe"); fr.id="rkuFrame"; fr.setAttribute("aria-hidden","true"); fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden"; document.body.appendChild(fr);
+  const w=fr.contentWindow; w.document.open(); w.document.write(html); w.document.close(); setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){ toast("Gagal membuka jendela print."); } },300); }
+function MU_RK_BTN(){ return `<details class="rkm"><summary class="btn" title="Rekap Rencana / Tiba / Sisa per project">Rekap Unit <span aria-hidden="true">▾</span></summary><div class="rkm-p"><button type="button" data-rku="print">Print / PDF</button>${(role==="owner"||role==="editor")?`<button type="button" data-rku="xlsx">Download Excel</button>`:""}</div></details>`; }
+document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-rku]");
+  document.querySelectorAll("details.rkm[open]").forEach(d=>{ if(!d.contains(e.target)) d.open=false; });
+  if(!b) return; e.preventDefault(); const d=b.closest("details"); if(d) d.open=false;
+  if(b.dataset.rku==="xlsx") muRekapExcel(); else muRekapPrint(); });
 function buildStyledExcel(P,ps){
   const B=MUX.book(), pids=ps.map(p=>p.id), pset=new Set(pids);
   const INK="#1C1A33", MUTED="#6B6985", ACC="#6D28D9", SOFT="#EFE8FD", HEAD="#F4F1FD", LINE="#E2DFEE";
@@ -5039,11 +5118,14 @@ function buildStyledExcel(P,ps){
       ["Sisa kirim",t.sisa,`${pct(t.sisa,t.rencana)}% belum berangkat`,"#EF4F5F"],
       ["Sudah tiba",t.tiba,`${q}% dari rencana`,"#16A34A"],
       ["Populasi di lokasi",diL,ex?`${diL-ex} tiba · ${ex} existing`:`${diL} unit di lokasi`,"#2563EB"]];
+    const KR=r;   // kotak angka diisi rumus setelah tabel item (ikut filter Project)
     kpis.forEach((k,i)=>{ const c=i*2, bdr={l:{c:"#FFFFFF",w:"medium"},r:{c:"#FFFFFF",w:"medium"}};
       sh.merge(r,c,c+1,k[0].toUpperCase(),{b:true,sz:9.5,color:"#FFFFFF",fill:k[3],ind:1,bd:bdr});
       sh.merge(r+1,c,c+1,k[1],{b:true,sz:26,color:"#FFFFFF",fill:k[3],h:"left",ind:1,bd:bdr});
       sh.merge(r+2,c,c+1,k[2],{sz:9,color:"#FFFFFF",fill:k[3],ind:1,wrap:true,v:"top",bd:bdr}); });
-    sh.height(r,20); sh.height(r+1,40); sh.height(r+2,30); r+=4;
+    sh.height(r,20); sh.height(r+1,40); sh.height(r+2,30); r+=3;
+    sh.merge(r,0,N-1,"Pilih project lewat tombol filter (▼) di kolom Project pada tabel \"Rencana kirim per item\" — angka di kotak atas ikut menyesuaikan.",{sz:9,i:true,color:ACC,ind:1}); sh.height(r,16); r+=2;
+    sh.cols[10]=8; sh.cols[11]=6; sh.hide=[10,11];
     section(sh,r++,N,"Ringkasan per project");
     header(sh,r,["Project","Nama","Lokasi","Rencana kirim","Dalam pengiriman","Sisa kirim","Sudah tiba","% tiba","Populasi","Update terakhir"],[1,2]); r++;
     const tot={r:0,j:0,t:0,s:0,k:0};
@@ -5058,15 +5140,26 @@ function buildStyledExcel(P,ps){
     else { const ts={...tdn,b:true,fill:HEAD}; sh.put(r,0,"TOTAL",{...ts,color:ACC}); sh.merge(r,1,2,`${ps.length} project`,{...ts,h:"left",color:MUTED});
       sh.put(r,3,tot.r,ts); sh.put(r,4,tot.j,{...ts,color:"#C2410C"}); sh.put(r,6,tot.t,{...ts,color:"#15803D"}); sh.put(r,5,tot.s,{...ts,color:"#E11D48"});
       sh.put(r,7,tot.r?tot.t/tot.r:0,{...ts,fmt:"0%",color:ACC}); sh.put(r,8,tot.k,{...ts,color:"#1D4ED8"}); sh.put(r,9,"",ts); r++; }
-    r++; section(sh,r++,N,"Rencana kirim per item");
-    header(sh,r,["Project","Item unit",null,"Rencana kirim","Dalam pengiriman","Sisa kirim","Sudah tiba","Status",null,"ETA"],[1]); sh.merge(r,1,2,"Item unit",thL); sh.merge(r,7,8,"Status",th); r++;
-    let any=false;
-    ps.forEach(p=>itemsOf(p.id).forEach(k=>{ any=true; const n=tibaItem(k), rr=Number(k.rencana)||0, jl=jalanItem(k), sk=sisaItem(k);
+    r++; section(sh,r++,N,"Rencana kirim per item","filter kolom Project untuk melihat satu project");
+    const IH=r; header(sh,r,["Project","Item unit",null,"Rencana kirim","Dalam pengiriman","Sisa kirim","Sudah tiba","Status",null,"ETA","Populasi","Item"],[1]); sh.merge(r,1,2,"Item unit",thL); sh.merge(r,7,8,"Status",th); r++;
+    let any=false; const IA=r;
+    ps.forEach(p=>{ const its=itemsOf(p.id), popN=S.units.filter(u=>arrived(u)&&u.projectId===p.id).length;
+      if(!its.length){ any=true; sh.put(r,0,p.kode,ptag); sh.merge(r,1,2,"(belum ada rencana kirim)",{...td,i:true,color:MUTED}); [3,4,5,6].forEach(c=>sh.put(r,c,0,{...tdn,color:MUTED})); sh.merge(r,7,8,"—",dash); sh.put(r,9,"—",dash); sh.put(r,10,popN,tdn); sh.put(r,11,0,tdn); r++; return; }
+      its.forEach((k,ki)=>{ sh.put(r,10,ki===0?popN:0,tdn); sh.put(r,11,1,tdn); { any=true; const n=tibaItem(k), rr=Number(k.rencana)||0, jl=jalanItem(k), sk=sisaItem(k);
       sh.put(r,0,p.kode,ptag); sh.merge(r,1,2,k.tipe,{...td,b:true});
       sh.put(r,3,rr,{...tdn,b:true}); sh.put(r,4,jl,{...tdn,color:jl?"#C2410C":MUTED,b:!!jl}); sh.put(r,6,n,{...tdn,b:true,color:n?"#15803D":MUTED}); sh.put(r,5,sk,{...tdn,b:true,color:sk?"#E11D48":MUTED});
       const st=n>rr?["Lebih "+(n-rr),"s-warn"]:sk?[`${sk} sisa${jl?` · ${jl} dlm pengiriman`:""}`,"s-bad"]:jl?[`${jl} dalam pengiriman`,"s-warn"]:["Lengkap","s-ok"];
-      const c=MUX_CHIP[st[1]]; sh.merge(r,7,8,st[0],{...tdc,b:true,color:c[0],fill:c[1]}); dv(sh,r,9,k.eta); r++; }));
+      const c=MUX_CHIP[st[1]]; sh.merge(r,7,8,st[0],{...tdc,b:true,color:c[0],fill:c[1]}); dv(sh,r,9,k.eta); r++; } }); });
     if(!any) emptyRow(sh,r++,N,"Belum ada rencana kirim");
+    else { const IB=r-1, L=c=>MUX.colL(c), rg=c=>`${L(c)}${IA+1}:${L(c)}${IB+1}`, ST=c=>`SUBTOTAL(109,${rg(c)})`;
+      sh.filter=[IH,0,IB,11];
+      const cell=i=>`${L(i*2)}${KR+2}`;
+      const vals=[t.rencana,t.jalan,t.sisa,t.tiba,diL], fs=[ST(3),ST(4),ST(5),ST(6),ST(10)];
+      kpis.forEach((k,i)=>{ const c=i*2, bdr={l:{c:"#FFFFFF",w:"medium"},r:{c:"#FFFFFF",w:"medium"}};
+        sh.merge(KR+1,c,c+1,{f:fs[i],n:vals[i]},{b:true,sz:26,color:"#FFFFFF",fill:k[3],h:"left",ind:1,bd:bdr}); });
+      const subF=[`${ST(11)}&" item unit"`,`TEXT(IFERROR(${cell(1)}/${cell(0)},0),"0%")&" menuju site"`,`TEXT(IFERROR(${cell(2)}/${cell(0)},0),"0%")&" belum berangkat"`,`TEXT(IFERROR(${cell(3)}/${cell(0)},0),"0%")&" dari rencana"`,`${cell(4)}&" unit di lokasi"`];
+      kpis.forEach((k,i)=>{ const c=i*2, bdr={l:{c:"#FFFFFF",w:"medium"},r:{c:"#FFFFFF",w:"medium"}};
+        sh.merge(KR+2,c,c+1,{f:subF[i],v:k[2]},{sz:9,color:"#FFFFFF",fill:k[3],ind:1,wrap:true,v:"top",bd:bdr}); }); }
     const pend=dnPending(S.kirim.filter(k=>pset.has(k.projectId)));
     r++; section(sh,r++,N,"Unit yang belum tiba",`${pend.rows.length} unit · urut ETA terdekat${pend.empty?` · ${pend.empty} unit rencana belum didata`:""}`);
     header(sh,r,["Project","Category","Equipment","Status","Location","ETD","ETA","Status kirim","PIC","Remarks"],[1,2,9]); r++;
@@ -5203,6 +5296,7 @@ function buildStyledExcel(P,ps){
       sh.put(r,8,jj,{...tdc,b:true,sz:9,color:jc[0],fill:jc[1]}); sh.put(r,9,x.alasan||"",{...td,sz:9.5}); sh.put(r,10,x.oleh||"",{...td,sz:9,color:MUTED}); sh.height(r,22); r++; });
     if(!rv.length) emptyRow(sh,r++,N,"Belum ada perubahan rencana"); else sh.filter=[h0,0,r-1,N-1];
   }
+  muRekapSheet(B,ps,P);
   return B.blob();
 }
 async function downloadExcel(){
