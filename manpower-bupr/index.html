@@ -3818,10 +3818,12 @@ if (WEB_ID === PROJ.id || !PROJ.sites) loadCache(); else if (!loadCache() && win
 
 // uploaded files live in a private Supabase bucket; '/_blob/<id>' links are served from there
 const _fetch = window.fetch.bind(window);
+const guestDocs = (fd) => { fd.append('token', SHARE_KEY); return _fetch(WEB_CFG.url + '/functions/v1/kta-guest-docs', { method: 'POST', headers: { apikey: WEB_CFG.key, Authorization: 'Bearer ' + WEB_CFG.key }, body: fd }); };   // Editor lewat link tanpa login
 window.fetch = async function (u, o) {
   if (typeof u === 'string' && u.startsWith('/_blob/')) {
     const id = decodeURIComponent(u.slice(7));
     if (!WEB.sb || !CAN_EDIT) return new Response('', { status: 403 });
+    if (SHARE_KEY && GUEST_ROLE) { const fd = new FormData(); fd.append('op', 'download'); fd.append('id', id); return guestDocs(fd); }
     const { data, error } = await WEB.sb.storage.from(WEB_BUCKET).download(id);
     if (error || !data) return new Response('', { status: /not.?found|404/i.test((error && error.message) || '') ? 404 : 403 });
     const type = data.type || (/\.pdf$/i.test(id) ? 'application/pdf' : /\.png$/i.test(id) ? 'image/png' : /\.webp$/i.test(id) ? 'image/webp' : /\.jpe?g$/i.test(id) ? 'image/jpeg' : '');
@@ -3832,6 +3834,12 @@ window.fetch = async function (u, o) {
 const WEB_ASSETS = { async upload(f) {
   const ext = (f.name.match(/\.[A-Za-z0-9]+$/) || [''])[0].toLowerCase();
   const id = (WEB_ID === 'main' ? '' : WEB_ID + '/') + (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2)) + ext;
+  if (SHARE_KEY && GUEST_ROLE) {
+    const fd = new FormData(); fd.append('op', 'upload'); fd.append('site', WEB_ID); fd.append('file', f, f.name);
+    const res = await guestDocs(fd); let j = {}; try { j = await res.json(); } catch (e) {}
+    if (!res.ok || !j.id) { const e = new Error(j.error || 'Upload gagal'); e.code = res.status === 413 ? 'too_large' : res.status === 403 ? 'not_granted' : 'error'; throw e; }
+    return { id: j.id, contentType: j.contentType || f.type };
+  }
   const { error } = await WEB.sb.storage.from(WEB_BUCKET).upload(id, f, { contentType: f.type, upsert: false });
   if (error) { const e = new Error(error.message); e.code = /size|large/i.test(error.message) ? 'too_large' : /policy|security|denied|unauthor/i.test(error.message) ? 'not_granted' : 'error'; throw e; }
   return { id, contentType: f.type };
