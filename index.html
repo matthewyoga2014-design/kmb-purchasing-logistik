@@ -662,8 +662,10 @@ function shareAll() {
       const check=await S.sb.from('app_access_roles').select('app_id,role').eq('email',guestEmail);
       if(check.error){toast('Tidak bisa memeriksa Editor terdaftar: '+check.error.message,true);return;}
       const eligible=new Set((check.data||[]).filter(r=>['editor','owner'].includes(r.role)).map(r=>r.app_id));
-      const denied=apps.filter(a=>!eligible.has(a));
-      if(denied.length){toast('Email tersebut belum terdaftar sebagai Editor pada: '+denied.map(a=>subOf(a)?.name||a).join(', ')+'. Daftarkan dulu di Pengaturan.',true);return;}
+      // Pemilik langsung mendaftarkan email ini sebagai Editor di web yang belum terdaftar (sama seperti undangan Editor biasa)
+      const denied=[];
+      for(const a of apps.filter(a=>!eligible.has(a))){const g=await registerInvitedEditor(a,guestEmail);if(!g.ok)denied.push((subOf(a)?.name||a)+(g.reason?' ('+g.reason+')':''));}
+      if(denied.length){toast('Email belum bisa didaftarkan sebagai Editor pada: '+denied.join(', ')+'.',true);return;}
     }
     const btn = $('saForm').querySelector('[type=submit]'); btn.disabled = true; btn.textContent = 'Membuat link…';
     const toks = [], fail = [], pendingEditors = [];
