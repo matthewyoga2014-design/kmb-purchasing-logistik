@@ -3636,6 +3636,15 @@ commit = function (mutate, okMsg) {
       const p = S.positions.find((x) => x.nama && !/^vacant$/i.test(x.nama) && mpScore(mpNorm(x.nama), mpNorm(k.nama)) >= 80);
       if (p) { freed.push(p.nama); p.nama = 'Vacant'; }
     });
+    // pelamar "Diterima" yang sudah masuk MP Out (resign) -> tidak aktif lagi, progress posisi ikut turun
+    (S.keluar || []).forEach((k) => S.positions.forEach((p) => {
+      if (p.nama && !/^vacant$/i.test(String(p.nama).trim())) return;
+      (p.cands || []).forEach((c) => {
+        if (c.status !== 'Diterima' || mpScore(mpNorm(c.name), mpNorm(k.nama)) < 80) return;
+        c.status = 'Mundur'; const tg = k.keluar ? ' ' + k.keluar.split('-').reverse().join('/') : '';
+        c.note = 'Resign / MP Out' + tg + (c.note ? ' · ' + c.note : '');
+      });
+    }));
     const added = (S.aktif || []).filter((a) => !before.has(mpNorm(a.nama)));
     mppSync(S);
     const now = new Set(S.aktif.map((a) => mpNorm(a.nama)));
