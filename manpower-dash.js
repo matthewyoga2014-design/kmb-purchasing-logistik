@@ -373,7 +373,7 @@
   // perkiraan jumlah baris teks (agar tinggi baris pas seperti cetakan)
   const wrapN = (txt, per) => String(txt).split('\n').reduce((a, l) => a + Math.max(1, Math.ceil(l.length / per)), 0);
   // ---------- Penulis .xlsx bersama (Rekap MPP & Download Excel seluruh data) ----------
-  async function buildBook(sites, dataSheets, org, pic) {
+  async function buildBook(sites, dataSheets, org) {
     let Z; try { Z = await loadZip(); } catch (e) { try { toast('Pembuat Excel belum termuat. Periksa koneksi lalu coba lagi.', true); } catch (er) {} return null; }
     // Semua format memakai format SEL (bukan rich text) dan 1 kalimat = 1 baris Excel,
     // supaya tampil sama di Excel, Google Sheets, pratinjau Google Drive, WPS, dan LibreOffice.
@@ -393,6 +393,10 @@
       '<font><b/><sz val="10"/><color rgb="FFB45309"/><name val="Calibri"/><family val="2"/></font>',        // 12 oranye 10
       '<font><strike/><sz val="10"/><color rgb="FF6B7280"/><name val="Calibri"/><family val="2"/></font>',   // 13 coret 10
       '<font><b/><sz val="10"/><color rgb="FF1D4ED8"/><name val="Calibri"/><family val="2"/></font>',        // 14 biru 10
+      '<font><b/><sz val="9"/><color rgb="FF3B2F7A"/><name val="Calibri"/><family val="2"/></font>',         // 15 judul kotak bagan
+      '<font><b/><sz val="11"/><color rgb="FFB45309"/><name val="Calibri"/><family val="2"/></font>',        // 16 oranye 11
+      '<font><b/><sz val="11"/><color rgb="FF1D4ED8"/><name val="Calibri"/><family val="2"/></font>',        // 17 biru 11
+      '<font><b/><sz val="11"/><color rgb="FF3B2F7A"/><name val="Calibri"/><family val="2"/></font>',        // 18 ungu 11
     ];
     const DOT = '<color rgb="FF404040"/>';   // garis tegas (thin) agar jelas di Excel maupun pratinjau Google Drive
     const BORDERS = [
@@ -401,6 +405,9 @@
       `<border><left style="thin">${DOT}</left><right style="thin">${DOT}</right><top style="thin">${DOT}</top><bottom style="thin">${DOT}</bottom><diagonal/></border>`,
       `<border><left style="thin">${DOT}</left><right style="thin">${DOT}</right><top/><bottom/><diagonal/></border>`,                       // 3 sambungan (tanpa garis atas)
       `<border><left style="thin">${DOT}</left><right style="thin">${DOT}</right><top style="thin">${DOT}</top><bottom/><diagonal/></border>`, // 4 awal blok
+      '<border><left style="medium"><color rgb="FF8A87A6"/></left><right/><top/><bottom/><diagonal/></border>',                                      // 5 garis bagan |
+      '<border><left/><right/><top style="medium"><color rgb="FF8A87A6"/></top><bottom/><diagonal/></border>',                                      // 6 garis bagan —
+      '<border><left style="medium"><color rgb="FF8A87A6"/></left><right/><top style="medium"><color rgb="FF8A87A6"/></top><bottom/><diagonal/></border>', // 7 garis bagan ┌
     ];
     const XF = [], xf = (font, fill, border, align) => { XF.push(`<xf numFmtId="0" fontId="${font}" fillId="${fill}" borderId="${border}" xfId="0" applyFont="1" applyFill="1" applyBorder="1"${align ? ` applyAlignment="1"><alignment ${align}/></xf>` : '/>'}`); return XF.length - 1; };
     const S0 = xf(0, 0, 0), ST = xf(1, 0, 0), SN = xf(2, 0, 0, 'vertical="top" wrapText="1"'), SBAR = xf(0, 2, 2, 'horizontal="center" vertical="center"'),
@@ -415,6 +422,12 @@
     const DH = xf(10, 2, 1, 'horizontal="center" vertical="center" wrapText="1"'), DB = xf(3, 0, 1, 'vertical="top" wrapText="1"'), DBN = xf(3, 0, 1, 'horizontal="center" vertical="top"'),
       DRED = xf(4, 0, 1, 'vertical="top" wrapText="1"'), DGRN = xf(11, 0, 1, 'vertical="top" wrapText="1"'), DORG = xf(12, 0, 1, 'vertical="top" wrapText="1"'), DBOLD = xf(10, 0, 1, 'vertical="top" wrapText="1"'), DCX = xf(13, 0, 1, 'vertical="top" wrapText="1"'), DBLU = xf(14, 0, 1, 'vertical="top" wrapText="1"');
     const OBAR = { top: xf(10, 5, 1, 'horizontal="left" vertical="center"'), Hauling: xf(12, 3, 1, 'horizontal="left" vertical="center"'), Mining: xf(14, 4, 1, 'horizontal="left" vertical="center"'), sec: xf(10, 2, 1, 'horizontal="left" vertical="center"'), grp: xf(3, 0, 1, 'horizontal="left" vertical="center"') };
+    const CH = { L: xf(0, 0, 5), T: xf(0, 0, 6), TL: xf(0, 0, 7),
+      jab: xf(15, 5, 2, 'horizontal="center" vertical="center" wrapText="1"'),
+      nm: xf(10, 0, 2, 'horizontal="center" vertical="center" wrapText="1"'), nmV: xf(4, 0, 2, 'horizontal="center" vertical="center" wrapText="1"'), nmR: xf(12, 0, 2, 'horizontal="center" vertical="center" wrapText="1"'),
+      st: xf(2, 0, 2, 'horizontal="center" vertical="center" wrapText="1"'),
+      aH: xf(16, 3, 2, 'horizontal="center" vertical="center" wrapText="1"'), aM: xf(17, 4, 2, 'horizontal="center" vertical="center" wrapText="1"'), aS: xf(2, 0, 2, 'horizontal="center" vertical="center" wrapText="1"'),
+      sec: xf(18, 2, 2, 'horizontal="center" vertical="center" wrapText="1"'), note: xf(2, 0, 0, 'vertical="center"') };
     const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <fonts count="${FONTS.length}">${FONTS.join('')}</fonts>
 <fills count="6"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFEF3C7"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDBEAFE"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEDE9FE"/><bgColor indexed="64"/></patternFill></fill></fills>
@@ -524,32 +537,83 @@
     };
     const SH_ = [];   // [nama sheet, xml, judul cetak?]
     (dataSheets || []).forEach(([nm, aoa, styleOf]) => SH_.push([nm, dataSheet(aoa, styleOf), '$1:$1']));
-    // gambar bagan SO (sama dengan bagan di web) di sheet sendiri
-    let picIdx = -1;
-    if (pic && pic.bytes) {
-      const maxW = 1500, sc = Math.min(1, maxW / pic.w), cx = Math.round(pic.w * sc * 9525), cy = Math.round(pic.h * sc * 9525);
-      picIdx = SH_.length;
-      SH_.push(['Gambar Struktur Organisasi', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0"/></sheetViews><sheetFormatPr defaultRowHeight="15"/><sheetData><row r="1" ht="22" customHeight="1"><c r="A1" s="${ST}" t="s"><v>${sIdx('Struktur Organisasi ' + (org ? org.name : rkName()) + ' · ' + rkDate())}</v></c></row></sheetData><pageMargins left="0.3" right="0.3" top="0.4" bottom="0.4" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="${pic.w >= pic.h ? 'landscape' : 'portrait'}" fitToWidth="1" fitToHeight="1"/><drawing r:id="rId1"/></worksheet>`, '', { cx, cy }]);
-    }
+    // bagan SO dibentuk langsung di sel Excel (kotak + garis), susunan sama dengan bagan di web
+    const chartSheet = (m) => {
+      const cells = {}, merges = [], hts = {};
+      const put = (r, c, s, v) => { (cells[r] = cells[r] || {})[c] = { s, v }; };
+      const box = (r, c0, w, lines) => {   // lines: [[style, text, tinggi baris]]
+        lines.forEach(([s, v, h], k) => { const rr = r + k; for (let c = c0; c < c0 + w; c++) put(rr, c, s, c === c0 ? v : ''); if (w > 1) merges.push(`${colL1(c0)}${rr}:${colL1(c0 + w - 1)}${rr}`); hts[rr] = Math.max(hts[rr] || 0, h); });
+        return r + lines.length;
+      };
+      const vline = (r, c) => { const x = (cells[r] || {})[c]; put(r, c, x && (x.s === CH.T || x.s === CH.TL) ? CH.TL : CH.L, ''); };
+      const hline = (r, c1, c2) => { for (let c = Math.min(c1, c2); c < Math.max(c1, c2); c++) { const x = (cells[r] || {})[c]; put(r, c, x && (x.s === CH.L || x.s === CH.TL) ? CH.TL : CH.T, ''); } };
+      const W = 5, GAP = 1, SL = W + GAP, C0 = 2;
+      const lines = (txt, per) => Math.max(1, Math.ceil(String(txt || '').length / per));
+      const person = (r, c0, x) => box(r, c0, W, [
+        [CH.jab, (x.depth ? '↳ ' : '') + x.jab, 13 * lines((x.depth ? '↳ ' : '') + x.jab, 26) + 4],
+        [x.vac ? CH.nmV : x.repl ? CH.nmR : CH.nm, x.nama, 14 * lines(x.nama, 24) + 5],
+        [CH.st, x.status + (x.ket ? ' · ' + x.ket : ''), 12 * lines(x.status + (x.ket ? ' · ' + x.ket : ''), 30) + 3]]);
+      // satu kolom (slot) per section, dikelompokkan per project
+      let slot = 0;
+      m.areas.forEach((a) => { a.slot0 = slot; slot += Math.max(1, a.secs.length, a.tops.length); a.slot1 = slot - 1; });
+      const cx = (sl) => C0 + sl * SL + Math.floor(W / 2);
+      m.areas.forEach((a) => { a.cx = Math.round((cx(a.slot0) + cx(a.slot1)) / 2); a.secs.forEach((s, k) => { s.cx = cx(a.slot0 + k); }); });
+      const allC = m.areas.map((a) => a.cx), gcx = Math.round((Math.min(...allC) + Math.max(...allC)) / 2);
+      const left = (k, total, center) => center - Math.floor((total * SL - GAP) / 2) + k * SL;   // kolom kiri kotak ke-k bila "total" kotak dipusatkan
+      put(1, 1, ST, 'Bagan Struktur Organisasi ' + m.name); hts[1] = 24;
+      put(2, 1, CH.note, 'Per ' + rkDate() + ' · Nama merah = Vacant · oranye = akan diganti · ↳ = bawahan dari kotak di atasnya'); hts[2] = 16;
+      let r = 4;
+      // pimpinan teratas (Dept Head / PJO)
+      if (m.tops.length) {
+        m.tops.forEach((x, k) => person(r, left(k, m.tops.length, gcx), x));
+        r += 3; vline(r, gcx); r++;
+        if (m.areas.length > 1) { hline(r, Math.min(...allC), Math.max(...allC)); allC.forEach((c) => vline(r, c)); r++; }
+      }
+      // kotak project (Hauling / Mining)
+      if (m.multi) { m.areas.forEach((a) => { box(r, a.cx - 2, W, [[a.name === 'Hauling' ? CH.aH : CH.aM, 'KTA - TRA ' + a.name.toUpperCase(), 22], [CH.aS, a.stat, 15]]); }); r += 2; }
+      // per project: pimpinan project → section → anggota
+      const rStart = r;
+      m.areas.forEach((a) => {
+        let rr = rStart;
+        if (m.multi && (a.tops.length || a.secs.length)) { vline(rr, a.cx); rr++; }
+        if (a.tops.length) {
+          if (a.tops.length > 1) { hline(rr - 1, left(0, a.tops.length, a.cx) + 2, left(a.tops.length - 1, a.tops.length, a.cx) + 2); a.tops.forEach((x, k) => vline(rr - 1, left(k, a.tops.length, a.cx) + 2)); }
+          a.tops.forEach((x, k) => person(rr, left(k, a.tops.length, a.cx), x));
+          rr += 3;
+          if (a.secs.length) { vline(rr, a.cx); rr++; }
+        }
+        if (a.secs.length) {
+          if (a.secs.length > 1) hline(rr, a.secs[0].cx, a.secs[a.secs.length - 1].cx);
+          if (a.tops.length || m.multi || m.tops.length) a.secs.forEach((s) => vline(rr, s.cx));
+          rr++;
+          a.secs.forEach((s) => {
+            let q = box(rr, s.cx - 2, W, [[CH.sec, s.name, 13 * lines(s.name, 22) + 6], [CH.aS, s.stat, 15]]);
+            s.members.forEach((x) => { vline(q, s.cx); hts[q] = Math.max(hts[q] || 0, 9); q++; q = person(q, s.cx - 2, x); });
+          });
+        }
+      });
+      const lastCol = C0 + Math.max(1, slot) * SL;
+      const rowsXml = Object.keys(cells).map(Number).sort((a, b) => a - b).map((rr) => `<row r="${rr}"${hts[rr] ? ` ht="${Math.round(hts[rr])}" customHeight="1"` : ''}>${Object.keys(cells[rr]).map(Number).sort((a, b) => a - b).map((c) => { const x = cells[rr][c]; return x.v === '' || x.v == null ? `<c r="${colL1(c)}${rr}" s="${x.s}"/>` : `<c r="${colL1(c)}${rr}" s="${x.s}" t="s"><v>${sIdx(String(x.v))}</v></c>`; }).join('')}</row>`).join('');
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0" zoomScale="80" zoomScaleNormal="80"/></sheetViews><sheetFormatPr defaultRowHeight="15"/>
+<cols><col min="1" max="1" width="2" customWidth="1"/><col min="2" max="${lastCol}" width="5.3" customWidth="1"/></cols>
+<sheetData>${rowsXml}</sheetData>${merges.length ? `<mergeCells count="${merges.length}">${merges.map((x) => `<mergeCell ref="${x}"/>`).join('')}</mergeCells>` : ''}
+<pageMargins left="0.3" right="0.3" top="0.4" bottom="0.4" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>`;
+    };
+    if (org && org.chart && org.chart.areas.length) SH_.push(['Bagan Struktur Organisasi', chartSheet(org.chart), '']);
     if (org && org.rows.length) SH_.push(['Struktur Organisasi', orgSheet(), '$4:$4']);
     if (sites) SH_.push([dataSheets && dataSheets.length ? 'Rekap Manpower' : 'Rekap MPP', rekapSheet(), '$1:$2']);
     const safeName = (s, i) => (String(s).replace(/[\\/?*[\]:]/g, ' ').slice(0, 31).trim() || 'Sheet' + (i + 1));
     const names = SH_.map((x, i) => safeName(x[0], i));
     const zip = new Z();
-    zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' + SH_.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') + (picIdx >= 0 ? '<Default Extension="png" ContentType="image/png"/><Override PartName="/xl/drawings/drawing1.xml" ContentType="application/vnd.openxmlformats-officedocument.drawing+xml"/>' : '') + '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>');
+    zip.file('[Content_Types].xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/>' + SH_.map((_, i) => `<Override PartName="/xl/worksheets/sheet${i + 1}.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>`).join('') + '<Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/><Override PartName="/xl/sharedStrings.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sharedStrings+xml"/></Types>');
     zip.file('_rels/.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
     zip.file('xl/workbook.xml', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' + names.map((n, i) => `<sheet name="${X(n)}" sheetId="${i + 1}" r:id="rId${i + 1}"/>`).join('') + '</sheets><definedNames>' + names.map((n, i) => SH_[i][2] ? `<definedName name="_xlnm.Print_Titles" localSheetId="${i}">'${X(n).replace(/'/g, "''")}'!${SH_[i][2]}</definedName>` : '').join('') + '</definedNames></workbook>');
     zip.file('xl/_rels/workbook.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' + SH_.map((_, i) => `<Relationship Id="rId${i + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet${i + 1}.xml"/>`).join('') + `<Relationship Id="rId${SH_.length + 1}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/><Relationship Id="rId${SH_.length + 2}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/sharedStrings" Target="sharedStrings.xml"/></Relationships>`);
     zip.file('xl/styles.xml', styles);
     zip.file('xl/sharedStrings.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><sst xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" count="${sst.length}" uniqueCount="${sst.length}">${sst.map((x) => `<si>${x}</si>`).join('')}</sst>`);
     SH_.forEach((x, i) => zip.file(`xl/worksheets/sheet${i + 1}.xml`, x[1]));
-    if (picIdx >= 0) {
-      const { cx, cy } = SH_[picIdx][3];
-      zip.file(`xl/worksheets/_rels/sheet${picIdx + 1}.xml.rels`, '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing" Target="../drawings/drawing1.xml"/></Relationships>');
-      zip.file('xl/drawings/_rels/drawing1.xml.rels', '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="../media/image1.png"/></Relationships>');
-      zip.file('xl/drawings/drawing1.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><xdr:wsDr xmlns:xdr="http://schemas.openxmlformats.org/drawingml/2006/spreadsheetDrawing" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><xdr:oneCellAnchor><xdr:from><xdr:col>0</xdr:col><xdr:colOff>0</xdr:colOff><xdr:row>2</xdr:row><xdr:rowOff>0</xdr:rowOff></xdr:from><xdr:ext cx="${cx}" cy="${cy}"/><xdr:pic><xdr:nvPicPr><xdr:cNvPr id="2" name="Struktur Organisasi"/><xdr:cNvPicPr><a:picLocks noChangeAspect="1"/></xdr:cNvPicPr></xdr:nvPicPr><xdr:blipFill><a:blip r:embed="rId1"/><a:stretch><a:fillRect/></a:stretch></xdr:blipFill><xdr:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></xdr:spPr></xdr:pic><xdr:clientData/></xdr:oneCellAnchor></xdr:wsDr>`);
-      zip.file('xl/media/image1.png', pic.bytes);
-    }
+
     return zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', compression: 'DEFLATE' });
   }
   const colL1 = (n) => { let s = ''; while (n > 0) { const m = (n - 1) % 26; s = String.fromCharCode(65 + m) + s; n = Math.floor((n - 1) / 26); } return s; };
@@ -609,27 +673,31 @@
         try { block(L); } finally { saveAt.forEach(([p, at]) => { p.atasan = at; delete p.__root; delete p.__at; }); }
       });
     } else block(P);
-    return { name: rkName(), rows: out };
-  }
-  // gambar bagan SO: buka sebentar halaman Struktur Organisasi (semua section/area), ambil gambarnya, lalu kembali
-  async function orgPicture() {
-    if (typeof orgCanvas !== 'function' || !((DATA && DATA.positions) || []).length) return null;
-    const keep = { page: ui.page, osec: ui.osec, oarea: ui.oarea, y: window.scrollY };
-    try { toast('Menyiapkan gambar struktur organisasi…'); } catch (e) {}
-    ui.page = 'org'; ui.osec = 'semua'; if ('oarea' in ui) ui.oarea = 'semua';
-    try {
-      render();
-      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 120)));
-      const cv = await orgCanvas();
-      const pad = 40, W = cv.width + pad * 2, H = cv.height + pad * 2;
-      const out = document.createElement('canvas'); out.width = W; out.height = H;
-      const g = out.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, W, H); g.drawImage(cv, pad, pad);
-      const blob = await new Promise((r) => out.toBlob(r, 'image/png'));
-      return { bytes: new Uint8Array(await blob.arrayBuffer()), w: W / 2, h: H / 2 };
-    } finally {
-      ui.page = keep.page; ui.osec = keep.osec; if (keep.oarea !== undefined) ui.oarea = keep.oarea;
-      render(); window.scrollTo(0, keep.y);
+    // model bagan (untuk sheet Bagan Struktur Organisasi)
+    const card = (p, depth) => ({ depth, jab: p.jabatan || '', nama: isVac(p) ? 'Vacant' : String(p.nama || '').trim(), vac: isVac(p), repl: isRepl(p), status: isVac(p) ? 'Vacant' : isRepl(p) ? 'Akan diganti' : 'Terisi',
+      ket: (isVac(p) || isRepl(p)) && p.ptk && typeof ketPTK === 'function' ? (() => { try { return String(ketPTK(p) || ''); } catch (e) { return ''; } })() : '' });
+    const walk = (L, at) => { const res = [], seen = new Set(); const go = (p, d) => { if (seen.has(p)) return; seen.add(p); res.push(card(p, d)); L.filter((k) => at(k) === p.uid && k !== p).forEach((k) => go(k, d + 1)); };
+      L.filter((p) => !at(p) || !L.some((q) => q.uid === at(p))).forEach((p) => go(p, 0)); L.forEach((p) => go(p, 0)); return res; };
+    const at0 = (p) => p.atasan;
+    const secModel = (L, at) => secs(L).filter((s) => !isTopS(s.name)).map((s) => ({ name: String(s.name).toUpperCase(), stat: stat(s.list), members: walk(s.list, at) }));
+    let chart;
+    if (both) {
+      const head = P.filter((p) => isTopS(p.section) && !p.atasan && p.orgTop !== false && (p.orgTop === true || (/dep(ar)?t(e)?(ment|men)?\.?\s*head|manager/i.test(p.jabatan || '') && !/supervisor|spv/i.test(p.jabatan || ''))));
+      const hs = new Set(head.map((h) => h.uid)), at = (p) => hs.has(p.atasan) ? null : p.atasan;
+      chart = { name: rkName(), multi: true, tops: head.map((p) => card(p, 0)), areas: ['Hauling', 'Mining'].map((a) => {
+        const L = P.filter((p) => arOf(p) === a && !hs.has(p.uid));
+        const topL = L.filter((p) => isTopS(p.section));
+        return { name: a, stat: stat(P.filter((p) => arOf(p) === a)), tops: walk(topL, at).filter((x) => !x.depth), secs: secModel(L, at), _extraTop: walk(topL, at).filter((x) => x.depth) };
+      }).filter((a) => a.tops.length || a.secs.length) };
+      chart.areas.forEach((a) => { if (a._extraTop.length) a.secs.unshift({ name: 'PENANGGUNG JAWAB OPERASIONAL', stat: '', members: a._extraTop }); delete a._extraTop; });
+    } else {
+      const topL = P.filter((p) => isTopS(p.section));
+      const tw = walk(topL, at0);
+      const secsM = secModel(P, at0);
+      if (tw.some((x) => x.depth)) secsM.unshift({ name: 'PENANGGUNG JAWAB OPERASIONAL', stat: '', members: tw.filter((x) => x.depth) });
+      chart = { name: rkName(), multi: false, tops: tw.filter((x) => !x.depth), areas: [{ name: '', stat: '', tops: [], secs: secsM }] };
     }
+    return { name: rkName(), rows: out, chart };
   }
   function captureOldExport(fn) {
     if (typeof XLSX === 'undefined' || !XLSX.utils) return null;
@@ -693,8 +761,7 @@
       if (pr.length > 1) out.push(['Pelamar', pr, (h, v, i) => /^nama pelamar$/i.test(h) ? (act[i] ? 'bold' : 'cx') : /^status$/i.test(h) ? (act[i] ? 'grn' : 'cx') : /^area$/i.test(h) ? (/hauling/i.test(String(v)) ? 'org' : 'blu') : (act[i] ? null : 'cx')]);
       const sites = await rkSites();
       let org = null; try { org = orgRows(); } catch (e) { console.error(e); }
-      let pic = null; try { pic = await orgPicture(); } catch (e) { console.error(e); }
-      const blob = await buildBook(sites, out, org, pic); if (!blob) return;
+      const blob = await buildBook(sites, out, org); if (!blob) return;
       await saveBlob(`Monitoring_Manpower_${rkName().replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '')}_${new Date().toISOString().slice(0, 10)}.xlsx`, blob);
     };
   }
