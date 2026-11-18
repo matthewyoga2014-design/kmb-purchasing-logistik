@@ -398,6 +398,7 @@
       '<font><b/><sz val="11"/><color rgb="FF1D4ED8"/><name val="Calibri"/><family val="2"/></font>',        // 17 biru 11
       '<font><b/><sz val="11"/><color rgb="FF3B2F7A"/><name val="Calibri"/><family val="2"/></font>',        // 18 ungu 11
     ];
+    const FILLS = [`<fill><patternFill patternType="none"/></fill>`, `<fill><patternFill patternType="gray125"/></fill>`, `<fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/><bgColor indexed="64"/></patternFill></fill>`, `<fill><patternFill patternType="solid"><fgColor rgb="FFFEF3C7"/><bgColor indexed="64"/></patternFill></fill>`, `<fill><patternFill patternType="solid"><fgColor rgb="FFDBEAFE"/><bgColor indexed="64"/></patternFill></fill>`, `<fill><patternFill patternType="solid"><fgColor rgb="FFEDE9FE"/><bgColor indexed="64"/></patternFill></fill>`];
     const DOT = '<color rgb="FF404040"/>';   // garis tegas (thin) agar jelas di Excel maupun pratinjau Google Drive
     const BORDERS = [
       '<border><left/><right/><top/><bottom/><diagonal/></border>',
@@ -428,9 +429,24 @@
       st: xf(2, 0, 2, 'horizontal="center" vertical="center" wrapText="1"'),
       aH: xf(16, 3, 2, 'horizontal="center" vertical="center" wrapText="1"'), aM: xf(17, 4, 2, 'horizontal="center" vertical="center" wrapText="1"'), aS: xf(2, 0, 2, 'horizontal="center" vertical="center" wrapText="1"'),
       sec: xf(18, 2, 2, 'horizontal="center" vertical="center" wrapText="1"'), note: xf(2, 0, 0, 'vertical="center"') };
+    // bagan dari tampilan web: daftarkan warna/huruf/garis yang dipakai sebelum styles.xml dibuat
+    const hex = (c) => { const m = String(c || '').match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s/]+([\d.]+))?/); if (!m) return null; if (m[4] !== undefined && +m[4] < 0.05) return null; const a = m[4] === undefined ? 1 : +m[4]; const mix = (v) => Math.round(+v * a + 255 * (1 - a)); return [mix(m[1]), mix(m[2]), mix(m[3])].map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase(); };
+    const fillIdx = {}, fontIdx = {}, xfIdx = {}, brdIdx = {};
+    const regFill = (h) => { if (!h || h === 'FFFFFF') return 0; if (fillIdx[h] === undefined) { FILLS.push(`<fill><patternFill patternType="solid"><fgColor rgb="FF${h}"/><bgColor indexed="64"/></patternFill></fill>`); fillIdx[h] = FILLS.length - 1; } return fillIdx[h]; };
+    const regFont = (col, b, sz, st) => { const k = [col, b, sz, st].join('|'); if (fontIdx[k] === undefined) { FONTS.push(`<font>${b ? '<b/>' : ''}${st ? '<strike/>' : ''}<sz val="${sz}"/><color rgb="FF${col || '1E1B3A'}"/><name val="Calibri"/><family val="2"/></font>`); fontIdx[k] = FONTS.length - 1; } return fontIdx[k]; };
+    const regBorder = (k, xml) => { if (brdIdx[k] === undefined) { BORDERS.push(xml); brdIdx[k] = BORDERS.length - 1; } return brdIdx[k]; };
+    const DOMS = {};
+    if (org && org.dom) {
+      const bx = regBorder('box', `<border><left style="thin"><color rgb="FFB9B6CC"/></left><right style="thin"><color rgb="FFB9B6CC"/></right><top style="thin"><color rgb="FFB9B6CC"/></top><bottom style="thin"><color rgb="FFB9B6CC"/></bottom><diagonal/></border>`);
+      org.dom.boxes.forEach((b) => { const k = [b.bg, b.color, b.bold, b.size, b.strike, b.align, b.one].join('|'); if (xfIdx[k] === undefined) xfIdx[k] = xf(regFont(b.color, b.bold, b.size, b.strike), regFill(b.bg), bx, `horizontal="${b.align}" vertical="center" ${b.one ? 'shrinkToFit="1"' : 'wrapText="1"'}`); b.s = xfIdx[k]; });
+      ['solid', 'dot'].forEach((ty) => { const st = ty === 'solid' ? 'thin' : 'dotted', c = ty === 'solid' ? 'FF8A87A6' : 'FFB9B6CC';
+        const L = `<left style="${st}"><color rgb="${c}"/></left>`, T = `<top style="${st}"><color rgb="${c}"/></top>`;
+        DOMS[ty] = { L: xf(0, 0, regBorder(ty + 'L', `<border>${L}<right/><top/><bottom/><diagonal/></border>`)), T: xf(0, 0, regBorder(ty + 'T', `<border><left/><right/>${T}<bottom/><diagonal/></border>`)), TL: xf(0, 0, regBorder(ty + 'TL', `<border>${L}<right/>${T}<bottom/><diagonal/></border>`)) };
+      });
+    }
     const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
 <fonts count="${FONTS.length}">${FONTS.join('')}</fonts>
-<fills count="6"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFD9D9D9"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFEF3C7"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFDBEAFE"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFEDE9FE"/><bgColor indexed="64"/></patternFill></fill></fills>
+<fills count="${FILLS.length}">${FILLS.join('')}</fills>
 <borders count="${BORDERS.length}">${BORDERS.join('')}</borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
 <cellXfs count="${XF.length}">${XF.join('')}</cellXfs>
@@ -600,7 +616,46 @@
 <sheetData>${rowsXml}</sheetData>${merges.length ? `<mergeCells count="${merges.length}">${merges.map((x) => `<mergeCell ref="${x}"/>`).join('')}</mergeCells>` : ''}
 <pageMargins left="0.3" right="0.3" top="0.4" bottom="0.4" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>`;
     };
-    if (org && org.chart && org.chart.areas.length) SH_.push(['Bagan Struktur Organisasi', chartSheet(org.chart), '']);
+    // bagan persis seperti tampilan web: posisi kotak & garis diambil dari halaman Struktur Organisasi, 1 sel ≈ 7 px
+    const domSheet = (d) => {
+      const G = 7, R0 = 4, Cc = 2, cells = {}, merges = [], hts = {}, occ = {};
+      const key = (r, c) => r * 100000 + c;
+      const put = (r, c, s, v) => { (cells[r] = cells[r] || {})[c] = { s, v }; };
+      const gx = (x) => Cc + Math.round(x / G), gy = (y) => R0 + Math.round(y / G);
+      // kotak teks
+      d.boxes.slice().sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0).forEach((b) => {
+        let c0 = gx(b.x0), c1 = Math.max(c0, gx(b.x1) - 1), r0 = gy(b.y0), r1 = Math.max(r0, gy(b.y1) - 1);
+        while (r0 <= r1 && [...Array(c1 - c0 + 1)].some((_, k) => occ[key(r0, c0 + k)])) r0++;
+        if (r0 > r1) r1 = r0;
+        for (let r = r0; r <= r1; r++) for (let c = c0; c <= c1; c++) { occ[key(r, c)] = 1; put(r, c, b.s, r === r0 && c === c0 ? b.text : ''); }
+        if (c1 > c0 || r1 > r0) merges.push(`${colL1(c0)}${r0}:${colL1(c1)}${r1}`);
+        const need = b.one ? b.size * 1.35 + 2 : Math.max(1, Math.ceil(String(b.text).length / Math.max(1, ((c1 - c0 + 1) * G) / (b.size * 0.72)))) * b.size * 1.35 + 2;   // tinggi minimal agar teks muat
+        const have = (r1 - r0 + 1) * G * 0.75;
+        if (need > have) { const add = (need - have) / (r1 - r0 + 1); for (let r = r0; r <= r1; r++) hts[r] = Math.max(hts[r] || G * 0.75, G * 0.75 + add); }
+      });
+      // garis
+      const mark = (r, c, ty, dir) => { if (occ[key(r, c)]) return; const x = (cells[r] || {})[c], S = DOMS[ty]; let has = x ? (x.s === S.TL ? 'TL' : x.s === S.L ? 'L' : x.s === S.T ? 'T' : '') : ''; if (x && !has) { const o = DOMS[ty === 'solid' ? 'dot' : 'solid']; has = x.s === o.TL ? 'TL' : x.s === o.L ? 'L' : x.s === o.T ? 'T' : ''; if (ty === 'dot' && has) return; } const n = new Set((has + dir).split('')); put(r, c, n.has('T') && n.has('L') ? S.TL : n.has('L') ? S.L : S.T, ''); };
+      d.lines.forEach((l) => {
+        if (l.v) { const c = gx(l.x0); for (let r = gy(l.y0); r < Math.max(gy(l.y0) + 1, gy(l.y1)); r++) mark(r, c, l.ty, 'L'); }
+        else { const r = gy(l.y0); for (let c = gx(l.x0); c < Math.max(gx(l.x0) + 1, gx(l.x1)); c++) mark(r, c, l.ty, 'T'); }
+      });
+      put(1, 1, ST, 'Bagan Struktur Organisasi ' + org.name); hts[1] = 24;
+      put(2, 1, CH.note, 'Per ' + rkDate() + ' · susunan sama dengan bagan di halaman Struktur Organisasi'); hts[2] = 16;
+      const maxR = Math.max(...Object.keys(cells).map(Number)), maxC = Cc + Math.ceil(d.W / G) + 1;
+      const rowsXml = [];
+      for (let r = 1; r <= maxR; r++) {
+        const row = cells[r]; const ht = hts[r] || (r > 3 ? G * 0.75 : 0);
+        if (!row && !ht) continue;
+        rowsXml.push(`<row r="${r}"${ht ? ` ht="${ht.toFixed(2)}" customHeight="1"` : ''}>${row ? Object.keys(row).map(Number).sort((a, b) => a - b).map((c) => { const x = row[c]; return x.v === '' || x.v == null ? `<c r="${colL1(c)}${r}" s="${x.s}"/>` : `<c r="${colL1(c)}${r}" s="${x.s}" t="s"><v>${sIdx(String(x.v))}</v></c>`; }).join('') : ''}</row>`);
+      }
+      return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr><sheetViews><sheetView workbookViewId="0" showGridLines="0" zoomScale="80" zoomScaleNormal="80"/></sheetViews><sheetFormatPr defaultRowHeight="${(G * 0.75).toFixed(2)}" customHeight="1"/>
+<cols><col min="1" max="1" width="2" customWidth="1"/><col min="2" max="${maxC}" width="0.58" customWidth="1"/></cols>
+<sheetData>${rowsXml.join('')}</sheetData>${merges.length ? `<mergeCells count="${merges.length}">${merges.map((x) => `<mergeCell ref="${x}"/>`).join('')}</mergeCells>` : ''}
+<pageMargins left="0.3" right="0.3" top="0.4" bottom="0.4" header="0.2" footer="0.2"/><pageSetup paperSize="9" orientation="${d.W >= d.H ? 'landscape' : 'portrait'}" fitToWidth="1" fitToHeight="1"/></worksheet>`;
+    };
+    if (org && org.dom && org.dom.boxes.length) SH_.push(['Bagan Struktur Organisasi', domSheet(org.dom), '']);
+    else if (org && org.chart && org.chart.areas.length) SH_.push(['Bagan Struktur Organisasi', chartSheet(org.chart), '']);
     if (org && org.rows.length) SH_.push(['Struktur Organisasi', orgSheet(), '$4:$4']);
     if (sites) SH_.push([dataSheets && dataSheets.length ? 'Rekap Manpower' : 'Rekap MPP', rekapSheet(), '$1:$2']);
     const safeName = (s, i) => (String(s).replace(/[\\/?*[\]:]/g, ' ').slice(0, 31).trim() || 'Sheet' + (i + 1));
@@ -699,6 +754,78 @@
     }
     return { name: rkName(), rows: out, chart };
   }
+  // ambil susunan bagan dari halaman Struktur Organisasi (semua section & area): posisi kotak, warna, dan garis penghubung
+  async function orgDom() {
+    if (!((DATA && DATA.positions) || []).length) return null;
+    const keep = { page: ui.page, osec: ui.osec, oarea: ui.oarea, y: window.scrollY };
+    ui.page = 'org'; ui.osec = 'semua'; if ('oarea' in ui) ui.oarea = 'semua';
+    document.body.classList.add('oexport');
+    try {
+      render();
+      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 150)));
+      const root = document.querySelector('#orgSizer .org'); if (!root) return null;
+      const pz = root.style.zoom, pt = root.style.transform; root.style.zoom = '1'; root.style.transform = 'none';
+      await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 60)));
+      try {
+        const RR = root.getBoundingClientRect();
+        const rel = (r) => ({ x0: r.left - RR.left, y0: r.top - RR.top, x1: r.right - RR.left, y1: r.bottom - RR.top });
+        const hexOf = (c) => c;
+        const boxes = [], lines = [];
+        const bgOf = (el) => { for (let e = el; e && e !== root; e = e.parentElement) { const cs = getComputedStyle(e), b = cs.backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return b; const gi = (cs.backgroundImage || '').match(/rgba?\([^)]*\)/); if (gi) return gi[0]; if (e.classList.contains('ocard') || e.classList.contains('onode')) break; } return 'rgb(255, 255, 255)'; };
+        const part = (el, par) => { const cs = getComputedStyle(el), r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return;
+          const txt = (el.innerText || '').replace(/\s*\n\s*/g, ' · ').trim(); if (!txt) return;
+          const q = rel(r); if (par) { const pr = rel(par.getBoundingClientRect()); q.x0 = pr.x0 + 2; q.x1 = pr.x1 - 2; }
+          const rg = document.createRange(); rg.selectNodeContents(el); const one = new Set([...rg.getClientRects()].filter((x) => x.width > 1).map((x) => Math.round(x.top / 4))).size <= 1;
+          boxes.push({ ...q, text: txt, one, bg: hexOf(bgOf(el)), color: cs.color, bold: (+cs.fontWeight || 400) >= 600, size: Math.max(6.5, Math.round(parseFloat(cs.fontSize) * 0.68 * 2) / 2), strike: /line-through/.test(cs.textDecorationLine || ''), align: /left|start/.test(cs.textAlign) ? 'left' : /right|end/.test(cs.textAlign) ? 'right' : 'center' }); };
+        root.querySelectorAll('.ocard, .onode').forEach((n) => {
+          const kids = [...n.children].filter((c) => !c.classList.contains('oacts') && c.innerText && c.innerText.trim() && getComputedStyle(c).display !== 'none');
+          if (kids.length) kids.forEach((k) => part(k, n)); else part(n);
+        });
+        // teks lain di luar kotak (judul sub-section, catatan) — ambil elemen terdalam yang punya teks langsung
+        root.querySelectorAll('*').forEach((el) => {
+          if (el.closest('.ocard, .onode, .oacts') || getComputedStyle(el).display === 'none') return;
+          const own = [...el.childNodes].some((c) => c.nodeType === 3 && c.textContent.trim());
+          if (!own || el.parentElement && boxes.some((b) => b.el === el.parentElement)) return;
+          const n0 = boxes.length; part(el); if (boxes.length > n0) boxes[boxes.length - 1].el = el;
+        });
+        boxes.forEach((b) => { delete b.el; });
+        // garis: border elemen bukan kotak (bingkai section) + pseudo-element ::before/::after (penghubung)
+        const inBox = (el) => !!el.closest('.ocard, .onode');
+        const edges = (r, cs, ty0) => {
+          const w = (k) => parseFloat(cs['border' + k + 'Width']) || 0, vis = (k) => w(k) > 0 && cs['border' + k + 'Style'] !== 'none' && hexOf(cs['border' + k + 'Color']) && !/rgba\(0, 0, 0, 0\)/.test(cs['border' + k + 'Color']);
+          const ty = (k) => ty0 || (/dot|dash/.test(cs['border' + k + 'Style']) ? 'dot' : 'solid');
+          if (vis('Top')) lines.push({ v: false, x0: r.x0, x1: r.x1, y0: r.y0, ty: ty('Top') });
+          if (vis('Bottom')) lines.push({ v: false, x0: r.x0, x1: r.x1, y0: r.y1, ty: ty('Bottom') });
+          if (vis('Left')) lines.push({ v: true, x0: r.x0, y0: r.y0, y1: r.y1, ty: ty('Left') });
+          if (vis('Right')) lines.push({ v: true, x0: r.x1, y0: r.y0, y1: r.y1, ty: ty('Right') });
+        };
+        [root, ...root.querySelectorAll('*')].forEach((el) => {
+          if (inBox(el) || el.closest('.oacts')) return;
+          const er = el.getBoundingClientRect(), cs = getComputedStyle(el);
+          if (er.width > 1 && er.height > 1 && el !== root) edges(rel(er), cs);
+          ['::before', '::after'].forEach((ps) => {
+            const p = getComputedStyle(el, ps); if (!p || p.content === 'none' || p.display === 'none' || p.content === 'normal') return;
+            const W = parseFloat(p.width), H = parseFloat(p.height); if (!(W >= 0) || !(H >= 0)) return;
+            let x = parseFloat(p.left), y = parseFloat(p.top);
+            if (isNaN(x)) { const rr = parseFloat(p.right); x = isNaN(rr) ? 0 : er.width - rr - W - (parseFloat(p.borderLeftWidth) || 0) - (parseFloat(p.borderRightWidth) || 0); }
+            if (isNaN(y)) { const bb = parseFloat(p.bottom); y = isNaN(bb) ? 0 : er.height - bb - H - (parseFloat(p.borderTopWidth) || 0) - (parseFloat(p.borderBottomWidth) || 0); }
+            if (p.position !== 'absolute' && p.position !== 'fixed') return;
+            const bw = (parseFloat(p.borderLeftWidth) || 0) + (parseFloat(p.borderRightWidth) || 0), bh = (parseFloat(p.borderTopWidth) || 0) + (parseFloat(p.borderBottomWidth) || 0);
+            const r = { x0: er.left - RR.left + x, y0: er.top - RR.top + y }; r.x1 = r.x0 + W + bw; r.y1 = r.y0 + H + bh;
+            edges(r, p);
+            const bgc = p.backgroundColor; if (bgc && !/rgba\(0, 0, 0, 0\)|transparent/.test(bgc)) { if (W + bw <= 4 && H + bh > 4) lines.push({ v: true, x0: (r.x0 + r.x1) / 2, y0: r.y0, y1: r.y1, ty: 'solid' }); else if (H + bh <= 4 && W + bw > 4) lines.push({ v: false, x0: r.x0, x1: r.x1, y0: (r.y0 + r.y1) / 2, ty: 'solid' }); }
+          });
+        });
+        boxes.forEach((b) => { b.bg = hexF(b.bg); b.color = hexF(b.color); });
+        return { W: Math.max(RR.width, ...boxes.map((b) => b.x1), ...lines.map((l) => l.x1 || l.x0)), H: Math.max(RR.height, ...boxes.map((b) => b.y1)), boxes, lines };
+      } finally { root.style.zoom = pz; root.style.transform = pt; }
+    } finally {
+      document.body.classList.remove('oexport');
+      ui.page = keep.page; ui.osec = keep.osec; if (keep.oarea !== undefined) ui.oarea = keep.oarea;
+      render(); window.scrollTo(0, keep.y);
+    }
+  }
+  const hexF = (c) => { const m = String(c || '').match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s/]+([\d.]+))?/); if (!m) return null; const a = m[4] === undefined ? 1 : +m[4]; if (a < 0.05) return null; const mix = (v) => Math.round(+v * a + 255 * (1 - a)); return [mix(m[1]), mix(m[2]), mix(m[3])].map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase(); };
   function captureOldExport(fn) {
     if (typeof XLSX === 'undefined' || !XLSX.utils) return null;
     const U = XLSX.utils, keep = { n: U.book_new, a: U.aoa_to_sheet, b: U.book_append_sheet, w: XLSX.write }, sv = typeof save === 'function' ? save : null;
@@ -761,6 +888,7 @@
       if (pr.length > 1) out.push(['Pelamar', pr, (h, v, i) => /^nama pelamar$/i.test(h) ? (act[i] ? 'bold' : 'cx') : /^status$/i.test(h) ? (act[i] ? 'grn' : 'cx') : /^area$/i.test(h) ? (/hauling/i.test(String(v)) ? 'org' : 'blu') : (act[i] ? null : 'cx')]);
       const sites = await rkSites();
       let org = null; try { org = orgRows(); } catch (e) { console.error(e); }
+      try { const dm = await orgDom(); if (dm && org) org.dom = dm; } catch (e) { console.error(e); }
       const blob = await buildBook(sites, out, org); if (!blob) return;
       await saveBlob(`Monitoring_Manpower_${rkName().replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '')}_${new Date().toISOString().slice(0, 10)}.xlsx`, blob);
     };
