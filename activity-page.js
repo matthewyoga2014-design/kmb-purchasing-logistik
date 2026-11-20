@@ -2,7 +2,8 @@
 (function () {
   if (typeof pageSet !== 'function' || typeof S === 'undefined') return;
   const APPS = { kmb: 'Manpower KMB', mbj: 'Manpower MBJ', 'bupr-ampah': 'Manpower BUPR', 'kta-tra': 'Manpower KTA-TRA', apd: 'APD', notulensi: 'Notulensi', 'unit-monitoring': 'Monitoring Unit' };
-  const A = { rows: null, loading: false, err: null, limit: 300, app: '', who: '', q: '', open: {} };
+  const A = { team: [], rows: null, loading: false, err: null, limit: 300, app: '', who: '', q: '', open: {} };
+  const whoOf = (a) => String(a || '').replace(/ \(link\)$/, '');   // "email (link)" = orang yang sama lewat link tanpa login
   const owner = () => typeof isOwner === 'function' && isOwner();
   const DAY = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
   const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
@@ -19,6 +20,9 @@
       const { data, error } = await q;
       if (error) throw error;
       A.rows = data || [];
+      // semua Editor/Pemilik yang terdaftar ikut muncul di pilihan orang, walau belum ada aktivitas
+      const tm = await S.sb.from('app_access_roles').select('email,role').in('role', ['owner', 'editor']);
+      A.team = tm.error ? [] : [...new Set((tm.data || []).map((x) => String(x.email || '').toLowerCase()).filter(Boolean))];
     } catch (e) { A.err = (e && e.message) || 'gagal memuat'; A.rows = A.rows || []; }
     A.loading = false;
     if (ui.page === 'act') render();
@@ -29,13 +33,14 @@
     if (!owner()) return head + '<div class="scard"><p>Halaman ini khusus Pemilik.</p></div>';
     if (A.rows === null) { load(); return head + '<div class="lock"><p>Memuat aktivitas…</p></div>'; }
     const q = A.q.toLowerCase();
-    const rows = A.rows.filter((r) => (!A.who || r.actor === A.who) && (!q || `${r.action} ${r.detail || ''} ${r.actor} ${r.site || ''}`.toLowerCase().includes(q)));
-    const people = [...new Set(A.rows.map((r) => r.actor))].sort();
+    const rows = A.rows.filter((r) => (!A.who || whoOf(r.actor) === A.who) && (!q || `${r.action} ${r.detail || ''} ${r.actor} ${r.site || ''}`.toLowerCase().includes(q)));
+    const people = [...new Set([...A.rows.map((r) => whoOf(r.actor)), ...A.team])].sort((a, b) => (a === 'link tanpa login') - (b === 'link tanpa login') || a.localeCompare(b));
+    const cnt = {}; A.rows.forEach((r) => { const w = whoOf(r.actor); cnt[w] = (cnt[w] || 0) + 1; });
     const groups = []; rows.forEach((r) => { const k = dkey(r.at); const g = groups[groups.length - 1]; if (g && g.k === k) g.rows.push(r); else groups.push({ k, rows: [r] }); });
     const today = dkey(Date.now()), yest = dkey(Date.now() - 864e5);
     const tools = `<div class="actbar">
       <select id="actApp" aria-label="Web"><option value="">Semua web</option>${Object.entries(APPS).map(([k, l]) => `<option value="${k}" ${A.app === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
-      <select id="actWho" aria-label="Orang"><option value="">Semua orang</option>${people.map((p) => `<option value="${esc(p)}" ${A.who === p ? 'selected' : ''}>${esc(p)}</option>`).join('')}</select>
+      <select id="actWho" aria-label="Orang"><option value="">Semua orang</option>${people.map((p) => `<option value="${esc(p)}" ${A.who === p ? 'selected' : ''}>${esc(p)}${cnt[p] ? '' : ' · belum ada aktivitas'}</option>`).join('')}</select>
       <input type="search" id="actQ" placeholder="Cari aktivitas, nama karyawan…" value="${esc(A.q)}" aria-label="Cari aktivitas">
       <button type="button" class="btn btn-g" id="actRefresh">${A.loading ? 'Memuat…' : 'Muat ulang'}</button>
       ${rows.length ? `<button type="button" class="btn btn-g actdel-all" id="actDelAll">Hapus ${rows.length} yang tampil</button>` : ''}
@@ -92,7 +97,7 @@
     const x = t.closest('[data-actdel]'), all = t.closest('#actDelAll');
     if ((!x && !all) || !owner()) return;
     const q = A.q.toLowerCase();
-    const ids = x ? [Number(x.dataset.actdel)] : A.rows.filter((r) => (!A.who || r.actor === A.who) && (!q || `${r.action} ${r.detail || ''} ${r.actor} ${r.site || ''}`.toLowerCase().includes(q))).map((r) => r.id);
+    const ids = x ? [Number(x.dataset.actdel)] : A.rows.filter((r) => (!A.who || whoOf(r.actor) === A.who) && (!q || `${r.action} ${r.detail || ''} ${r.actor} ${r.site || ''}`.toLowerCase().includes(q))).map((r) => r.id);
     if (!ids.length || !confirm(x ? 'Hapus catatan aktivitas ini?' : `Hapus ${ids.length} catatan aktivitas yang sedang tampil? Data di web monitoring tidak berubah.`)) return;
     for (let i = 0; i < ids.length; i += 200) {
       const { error } = await S.sb.from('kta_activity_log').delete().in('id', ids.slice(i, i + 200));
