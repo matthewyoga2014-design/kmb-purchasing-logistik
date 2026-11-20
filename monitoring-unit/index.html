@@ -5031,70 +5031,80 @@ function muxBrandC(name){ const key=String(name||"").trim().replace(/\s+/g," ").
 function muRekapRows(p){
   return itemsOf(p.id).map(k=>{ const us=slotUnits(k), r=Number(k.rencana)||0, t=Math.min(tibaItem(k),r), j=jalanItem(k), sk=sisaItem(k);
     const tmp=x=>x.kodeSementara||!String(x.kode||"").trim();
-    const units=us.map(u=>({t:tmp(u)?"belum diisi":u.kode, tone:arrived(u)?"ok":u.status==="Dalam perjalanan"?"go":"prep", tmp:tmp(u)}));
-    const ket=[], grp=new Map(); us.filter(u=>!arrived(u)).forEach(u=>{ const st=String(u.status||"").trim()||"Belum dikirim"; const g=grp.get(st)||{n:0,eta:[]}; g.n++; const e=muDetails(u).eta; if(e) g.eta.push(e); grp.set(st,g); });
-    grp.forEach((g,st)=>{ const e=g.eta.sort()[0]; ket.push({k:st==="Dalam perjalanan"?"go":"prep",t:`${st} ${g.n}${e?" · ETA "+fmtD(e):""}`}); });
-    const blm=Math.max(0,r-us.length); if(blm) ket.push({k:"bad",t:`Belum dijadwalkan ${blm}`});
-    if(t>r) ket.push({k:"prep",t:`Lebih ${t-r} unit dari rencana`});
-    const c=String(k.catatan||"").trim(); if(c) ket.push({k:"note",t:c});
-    if(!ket.length) ket.push({k:"ok",t:"Lengkap · semua unit tiba"});
-    return {item:k.tipe,units,r,t,j,sk,ket}; }); }
+    // status & no. lambung per kelompok status (urutan sama dengan Dashboard)
+    const grp=muStatList(k,us).map(g=>({st:g.t,n:g.n,list:g.t==="Belum dijadwalkan"?null:us.filter(u=>(String(u.status||"").trim()||"Persiapan kirim")===g.t).map(u=>tmp(u)?null:String(u.kode))}));
+    const prog=r>0&&tibaItem(k)>=r||(!r&&!us.length)?"Close":!us.length?"Open":"Continue";
+    return {item:k.tipe,r,t,j,sk,grp,prog,cat:String(k.catatan||"").trim()}; }); }
+const MU_PROG={Open:{c:"#DC2626",bg:"#FEE2E2",d:"belum ada unit yang dijadwalkan"},Continue:{c:"#A16207",bg:"#FEF9C3",d:"sedang berjalan, belum semua tiba"},Close:{c:"#15803D",bg:"#DCFCE7",d:"semua unit sudah tiba"}};
+const MU_PROG_ORD=["Open","Continue","Close"];
 function muRekapScope(){ const P=curProj(); return {P,ps:P?[P]:projects()}; }
 function muRekapSheet(B,ps,P){
-  const ACC="#6D28D9", INK="#1C1A33";
-  const sh=B.sheet("Rekap Unit",{cols:[5,26,30,9,9,10,10,44],titles:[0,1]}); const N=8; let r=0;
-  const bd={bd:true,bc:"#404040"}, td={...bd,wrap:true,sz:10}, c={...td,h:"center"};
+  const INK="#1C1A33", MUT="#8C88A8";
+  const sh=B.sheet("Rekap Unit",{cols:[5,28,24,10,10,22,36]}); const N=7; let r=0;
+  const bd={bd:true,bc:"#D9D6E8"}, td={...bd,wrap:true,sz:10,v:"center"}, c={...td,h:"center"};
   sh.merge(r,0,N-1,"Rekap Unit "+(P?P.kode:"Semua Project"),{b:true,sz:14,color:INK}); sh.height(r,22); r++;
-  sh.merge(r,0,N-1,`Per ${new Date().toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"})} · No. lambung hijau = tiba, oranye = dalam perjalanan, ungu = persiapan / belum dikirim · Merah = belum dijadwalkan`,{sz:9,color:"#444444",wrap:true}); sh.height(r,26); r+=2;
-  const G={r:0,t:0,j:0,sk:0};
-  ps.forEach(p=>{ const R=muRekapRows(p);
-    sh.merge(r,0,N-1,`Project ${p.kode}${[p.nama,p.lokasi].filter(Boolean).length?"  ·  "+[p.nama,p.lokasi].filter(Boolean).join(" · "):""}`,{...bd,b:true,sz:11,fill:"#D9D9D9",h:"center"}); sh.height(r,20); r++;
-    ["No","Item unit","No. lambung","Rencana","Tiba","Dlm jalan","Sisa kirim","Keterangan"].forEach((h,i)=>sh.put(r,i,h,{...bd,b:true,sz:10,h:"center",wrap:true})); sh.height(r,20); r++;
-    const a=r;
-    if(!R.length){ sh.merge(r,0,N-1,"Belum ada rencana kirim",{...td,i:true,color:"#777777",h:"center"}); r++; }
-    R.forEach((x,i)=>{ sh.put(r,0,i+1,c); sh.put(r,1,x.item,{...td,b:true});
-      const tiba=x.units.filter(u=>u.tone==="ok"&&!u.tmp).map(u=>u.t), jl=x.units.filter(u=>u.tone==="go"&&!u.tmp).map(u=>u.t), pr=x.units.filter(u=>u.tone==="prep"&&!u.tmp).map(u=>u.t), nt=x.units.filter(u=>u.tmp).length;
-      const lines=[tiba.length?"Tiba: "+tiba.join(", "):"", jl.length?"Dlm perjalanan: "+jl.join(", "):"", pr.length?"Persiapan: "+pr.join(", "):"", nt?`${nt} unit belum diisi nomornya`:""].filter(Boolean);
-      sh.put(r,2,lines.join("\n")||"—",{...td,sz:9.5,color:lines.length?INK:"#999999"});
-      sh.put(r,3,x.r,{...c,b:true}); sh.put(r,4,x.t,{...c,color:x.t?"#15803D":"#999999",b:!!x.t}); sh.put(r,5,x.j,{...c,color:x.j?"#C2410C":"#999999",b:!!x.j}); sh.put(r,6,x.sk,{...c,color:x.sk?"#C00000":"#999999",b:!!x.sk});
-      const bad=x.ket.some(k=>k.k==="bad"), ok=x.ket.length===1&&x.ket[0].k==="ok";
-      sh.put(r,7,x.ket.map(k=>k.t).join("\n"),{...td,sz:9.5,b:bad||ok,color:ok?"#15803D":bad?"#C00000":INK}); r++;
-      G.r+=x.r; G.t+=x.t; G.j+=x.j; G.sk+=x.sk; });
-    const tot={...bd,b:true,fill:"#D9D9D9",h:"center"}, L=MUX.colL, sm=(col,v)=>R.length?{f:`SUM(${L(col)}${a+1}:${L(col)}${r})`,n:v}:0;
-    sh.merge(r,0,2,"Total "+p.kode,{...tot,h:"left",ind:1}); sh.put(r,3,sm(3,R.reduce((s,x)=>s+x.r,0)),tot); sh.put(r,4,sm(4,R.reduce((s,x)=>s+x.t,0)),tot); sh.put(r,5,sm(5,R.reduce((s,x)=>s+x.j,0)),tot); sh.put(r,6,sm(6,R.reduce((s,x)=>s+x.sk,0)),tot); sh.put(r,7,"",tot); r+=2; });
-  if(ps.length>1){ const tot={...bd,b:true,fill:"#EFE8FD",color:ACC,h:"center"};
-    sh.merge(r,0,2,`TOTAL SEMUA PROJECT (${ps.length} project)`,{...tot,h:"left",ind:1}); sh.put(r,3,G.r,tot); sh.put(r,4,G.t,tot); sh.put(r,5,G.j,tot); sh.put(r,6,G.sk,tot); sh.put(r,7,G.r?`${Math.round(G.t/G.r*100)}% tiba`:"",tot); }
+  sh.merge(r,0,N-1,`${P?[P.nama,P.lokasi].filter(Boolean).join(" · ")+" · ":""}per ${new Date().toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"})}`,{sz:9.5,color:"#6B6985"}); sh.height(r,18); r+=2;
+  const all=ps.map(p=>({p,R:muRekapRows(p)})), G=all.reduce((a,{R})=>{ R.forEach(x=>{ a.r+=x.r; a.t+=x.t; a.j+=x.j; a.sk+=x.sk; }); return a; },{r:0,t:0,j:0,sk:0});
+  // ringkasan
+  [["RENCANA",G.r],["SUDAH TIBA",G.t],["DALAM PERJALANAN",G.j],["SISA KIRIM",G.sk]].forEach(([l,v],i)=>{ const c0=[0,2,3,5][i], c1=[1,2,4,6][i];
+    sh.merge(r,c0,c1,l,{bd:true,bc:"#E6E4F2",sz:8.5,b:true,color:"#6B6985",h:"center"}); sh.merge(r+1,c0,c1,v,{bd:true,bc:"#E6E4F2",sz:16,b:true,color:INK,h:"center"}); });
+  sh.height(r,16); sh.height(r+1,26); r+=3;
+  all.forEach(({p,R})=>{
+    if(ps.length>1){ sh.merge(r,0,N-1,`Project ${p.kode}${[p.nama,p.lokasi].filter(Boolean).length?"  ·  "+[p.nama,p.lokasi].filter(Boolean).join(" · "):""}`,{bd:true,bc:"#D9D6E8",b:true,sz:11,fill:"#F4F1FD"}); sh.height(r,20); r++; }
+    ["No","Item unit","No. lambung","Rencana","Sisa kirim","Status unit","Catatan"].forEach((h,i)=>sh.put(r,i,h,{...bd,b:true,sz:9,color:"#4B4868",fill:"#F7F5FD",h:i===0||i===3||i===4?"center":"left"})); sh.height(r,22); r++;
+    const a0=r; let no=0;
+    if(!R.length){ sh.merge(r,0,N-1,"Belum ada rencana kirim",{...td,i:true,color:MUT,h:"center"}); r++; }
+    MU_PROG_ORD.forEach(k=>{ const L=R.filter(x=>x.prog===k); if(!L.length) return; const pc=MU_PROG[k];
+      sh.merge(r,0,N-1,`${k} · ${L.length} item — ${pc.d}`,{bd:true,bc:"#D9D6E8",b:true,sz:10,color:pc.c,fill:pc.bg,ind:1}); sh.height(r,20); r++;
+      L.forEach(x=>{ no++; const gs=x.grp.length?x.grp:[{st:"–",n:0,list:null}], r0=r, r1=r+gs.length-1;
+        gs.forEach((g,gi)=>{ const lst=g.list===null?"belum ada unit":g.list.map(v=>"• "+(v===null?"belum diisi":v)).join("\n");
+          const allTmp=g.list===null||g.list.every(v=>v===null);
+          sh.put(r,2,lst,{...td,sz:9.5,color:allTmp?MUT:INK,i:g.list!==null&&allTmp}); sh.put(r,5,g.n?`${g.n} ${g.st}`:"–",{...td,sz:10});
+          sh.height(r,Math.max(20,15*((g.list&&g.list.length)||1)+5)); r++; });
+        sh.merge(r0,0,0,no,{...c,color:MUT},r1); sh.merge(r0,1,1,x.item,{...td,b:true},r1); sh.merge(r0,3,3,x.r,c,r1); sh.merge(r0,4,4,x.sk||0,{...c,fmt:'0;-0;"–"'},r1); sh.merge(r0,6,6,x.cat||"–",{...td,sz:9.5,color:x.cat?"#4B4868":MUT},r1); }); });
+    const tot={...bd,b:true,h:"center",fill:"#FAF9FE"}, Lc=MUX.colL, sm=(col,v)=>R.length?{f:`SUM(${Lc(col)}${a0+1}:${Lc(col)}${r})`,n:v}:0;
+    sh.put(r,0,"",tot); sh.merge(r,1,2,`Total${ps.length>1?" "+p.kode:""} · ${R.length} item`,{...tot,h:"left"}); sh.put(r,3,sm(3,R.reduce((s,x)=>s+x.r,0)),tot); sh.put(r,4,sm(4,R.reduce((s,x)=>s+x.sk,0)),tot); sh.merge(r,5,6,"",tot); r+=2; });
+  if(ps.length>1){ const tot={bd:true,bc:"#D9D6E8",b:true,fill:"#EFE8FD",color:"#5B21B6",h:"center"};
+    sh.merge(r,0,2,`TOTAL SEMUA PROJECT (${ps.length} project)`,{...tot,h:"left",ind:1}); sh.put(r,3,G.r,tot); sh.put(r,4,G.sk,tot); sh.merge(r,5,6,`${G.t} tiba · ${G.j} dalam perjalanan`,tot); }
   return sh; }
 async function muRekapExcel(){
   const {P,ps}=muRekapScope(); const B=MUX.book(); muRekapSheet(B,ps,P);
   const url=URL.createObjectURL(B.blob()), a=document.createElement("a"); a.href=url; a.download=`Rekap_Unit_${P?P.kode.replace(/[^\w-]+/g,"-"):"All-Project"}_${todayStr()}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(url),4000); toast("Rekap Unit diunduh."); }
 function muRekapPrint(){
-  const {P,ps}=muRekapScope(); const G={r:0,t:0,j:0,sk:0};
-  const tone={ok:"ok",go:"go",prep:"pr"};
-  const tables=ps.map(p=>{ const R=muRekapRows(p); R.forEach(x=>{ G.r+=x.r; G.t+=x.t; G.j+=x.j; G.sk+=x.sk; });
-    const body=R.length?R.map((x,i)=>{ const nts=x.units.filter(u=>u.tmp).length;
-      const pl=x.units.filter(u=>!u.tmp).map(u=>`<span class="${tone[u.tone]}">${esc(u.t)}</span>`).join(", ")+(nts?`${x.units.some(u=>!u.tmp)?"<br>":""}<span class="tmp">${nts} belum diisi</span>`:"");
-      return `<tr><td class="c">${i+1}</td><td><b>${esc(x.item)}</b></td><td class="nm">${pl||'<span class="mut">—</span>'}</td><td class="c"><b>${x.r}</b></td><td class="c ${x.t?"ok":"mut"}">${x.t}</td><td class="c ${x.j?"go":"mut"}">${x.j}</td><td class="c ${x.sk?"op":"mut"}">${x.sk}</td><td class="kt">${x.ket.map(k=>`<div class="k-${k.k}">${esc(k.t)}</div>`).join("")}</td></tr>`; }).join(""):`<tr><td colspan="8" class="c mut">Belum ada rencana kirim</td></tr>`;
+  const {P,ps}=muRekapScope();
+  const all=ps.map(p=>({p,R:muRekapRows(p)})), G=all.reduce((a,{R})=>{ R.forEach(x=>{ a.r+=x.r; a.t+=x.t; a.j+=x.j; a.sk+=x.sk; }); return a; },{r:0,t:0,j:0,sk:0});
+  const lst=g=>{ if(g.list===null) return '<span class="mut">belum ada unit</span>'; const h=g.list.map(v=>v===null?'<div class="lb tmp">belum diisi</div>':`<div class="lb">${esc(v)}</div>`).join(""); return g.list.length>3?`<div class="ls">${h}</div>`:h; };
+  const tables=all.map(({p,R})=>{ let no=0;
+    const body=R.length?MU_PROG_ORD.map(k=>{ const L=R.filter(x=>x.prog===k); if(!L.length) return ""; const pc=MU_PROG[k];
+      return `<tr class="gh"><td colspan="7" style="background:${pc.bg};color:${pc.c};border-left:4px solid ${pc.c}"><b>${k}</b> · ${L.length} item <span>— ${pc.d}</span></td></tr>`+L.map(x=>{ no++; const gs=x.grp.length?x.grp:[{st:"–",n:0,list:null}], n=gs.length;
+        return gs.map((g,gi)=>`<tr class="${gi<n-1?"sr":""}">${gi===0?`<td class="c mu" rowspan="${n}">${no}</td><td class="it" rowspan="${n}">${esc(x.item)}</td>`:""}<td class="nl">${lst(g)}</td>${gi===0?`<td class="c" rowspan="${n}">${x.r}</td><td class="c" rowspan="${n}">${x.sk||"–"}</td>`:""}<td class="st">${g.n?`<b>${g.n}</b> ${esc(g.st)}`:"–"}</td>${gi===0?`<td class="nt" rowspan="${n}">${esc(x.cat)||'<span class="mut">–</span>'}</td>`:""}</tr>`).join(""); }).join(""); }).join("")
+      :`<tr><td colspan="7" class="c mut">Belum ada rencana kirim</td></tr>`;
     const sm=k=>R.reduce((a,x)=>a+x[k],0);
-    return `<table><colgroup><col style="width:4.5%"><col style="width:19%"><col style="width:21%"><col style="width:8.5%"><col style="width:6.5%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:25.5%"></colgroup>
-      <thead><tr><th colspan="8" class="ttl">Project ${esc(p.kode)}${[p.nama,p.lokasi].filter(Boolean).length?" · "+esc([p.nama,p.lokasi].filter(Boolean).join(" · ")):""}</th></tr><tr><th>No</th><th>Item unit</th><th>No. lambung</th><th>Rencana</th><th>Tiba</th><th>Dlm jalan</th><th>Sisa kirim</th><th>Keterangan</th></tr></thead>
-      <tbody>${body}</tbody><tfoot><tr><td colspan="3">Total ${esc(p.kode)}</td><td class="c">${sm("r")}</td><td class="c">${sm("t")}</td><td class="c">${sm("j")}</td><td class="c">${sm("sk")}</td><td></td></tr></tfoot></table>`; }).join("");
-  const grand=ps.length>1?`<table class="gt"><colgroup><col style="width:44.5%"><col style="width:8.5%"><col style="width:6.5%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:25.5%"></colgroup><tr><td>TOTAL SEMUA PROJECT (${ps.length} project)</td><td class="c">${G.r}</td><td class="c">${G.t}</td><td class="c">${G.j}</td><td class="c">${G.sk}</td><td>${G.r?Math.round(G.t/G.r*100)+"% tiba":""}</td></tr></table>`:"";
+    return `${ps.length>1?`<div class="pj"><b>${esc(p.kode)}</b>${[p.nama,p.lokasi].filter(Boolean).map(v=>" · "+esc(v)).join("")}</div>`:""}<table><colgroup><col style="width:5%"><col style="width:18%"><col style="width:20%"><col style="width:8.5%"><col style="width:8.5%"><col style="width:20%"><col style="width:20%"></colgroup>
+      <thead><tr><th class="c">No</th><th>Item unit</th><th>No. lambung</th><th class="c">Rencana</th><th class="c">Sisa kirim</th><th>Status unit</th><th>Catatan</th></tr></thead>
+      <tbody>${body}</tbody><tfoot><tr><td></td><td colspan="2">Total${ps.length>1?" "+esc(p.kode):""} · ${R.length} item</td><td class="c">${sm("r")}</td><td class="c">${sm("sk")}</td><td colspan="2"></td></tr></tfoot></table>`; }).join("");
+  const grand=ps.length>1?`<table class="gt"><colgroup><col style="width:45%"><col style="width:9%"><col style="width:9%"><col style="width:37%"></colgroup><tr><td>TOTAL SEMUA PROJECT (${ps.length} project)</td><td class="c">${G.r}</td><td class="c">${G.sk}</td><td>${G.t} tiba · ${G.j} dalam perjalanan</td></tr></table>`:"";
   const tgl=new Date().toLocaleDateString("id-ID",{day:"numeric",month:"long",year:"numeric"});
-  const html=`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Rekap Unit ${esc(P?P.kode:"Semua Project")} - ${todayStr()}</title><style>
-    @page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{margin:0;font-family:Calibri,"Segoe UI",Arial,sans-serif;font-size:10.5pt;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-    h1{font-size:13pt;margin:0 0 2px}p.s{margin:0 0 10px;font-size:9pt;color:#444}
-    table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 14px}tr{break-inside:avoid}thead{display:table-header-group}tfoot{display:table-row-group}
-    th,td{border:1px dotted #555;padding:2px 5px;height:22px;vertical-align:middle;word-wrap:break-word}
-    th{font-weight:400;text-align:center}th.ttl{background:#D9D9D9;border:1px solid #555;font-weight:700}
-    td.c{text-align:center}td.nm,td.kt{font-size:9.5pt;line-height:1.35;padding-top:3px;padding-bottom:3px}
-    .ok{color:#15803D;font-weight:700}.go{color:#C2410C;font-weight:700}.pr{color:#6D28D9;font-weight:700}.op{color:#C00000;font-weight:700}.tmp{color:#B45309;font-style:italic}.mut{color:#999}
-    .k-bad{color:#C00000;font-weight:700}.k-ok{color:#15803D;font-weight:700}.k-go{color:#C2410C}.k-prep{color:#6D28D9}.k-note{color:#333}
-    tfoot td{background:#D9D9D9;font-weight:700}table.gt td{background:#EFE8FD;color:#5B21B6;font-weight:700;border:1px solid #555}
-  </style></head><body><h1>Rekap Unit ${esc(P?P.kode:"Semua Project")}</h1><p class="s">Per ${tgl} · No. lambung: <span class="ok">hijau = tiba</span>, <span class="go">oranye = dalam perjalanan</span>, <span class="pr">ungu = persiapan / belum dikirim</span> · <span class="op">Merah</span> = belum dijadwalkan / sisa kirim.</p>${tables}${grand}</body></html>`;
+  const sub=(P?[P.nama,P.lokasi].filter(Boolean).join(" · ")+" · ":`${ps.length} project · `)+"per "+tgl;
+  const html=`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Rekap Unit ${esc(P?P.kode:"Semua Project")} - ${todayStr()}</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"><style>
+    @page{size:A4 portrait;margin:10mm}*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{margin:0;font-family:"Plus Jakarta Sans",system-ui,Arial,sans-serif;font-size:8.6pt;color:#1C1A33}
+    h1{font-size:14pt;margin:0}p.s{margin:1px 0 8px;font-size:8.5pt;color:#6B6985}
+    .kpi{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #E6E4F2;border-radius:6px;margin-bottom:8px}.kpi div{text-align:center;padding:5px 8px;border-right:1px solid #E6E4F2}.kpi div:last-child{border:0}.kpi small{display:block;font-size:6.8pt;font-weight:700;color:#6B6985;text-transform:uppercase;letter-spacing:.03em}.kpi b{font-size:14pt}
+    .pj{background:#F4F1FD;border-radius:5px;padding:4px 8px;font-size:9pt;margin:8px 0 4px}
+    table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 12px}thead{display:table-header-group}tr{break-inside:avoid}
+    th{background:#F7F5FD;font-size:7pt;text-transform:uppercase;letter-spacing:.04em;color:#4B4868;padding:5px 6px;border-bottom:1px solid #ECE9F6;text-align:left}th.c{text-align:center}
+    td{padding:4px 6px;vertical-align:middle;border-bottom:1px solid #E9E6F3;word-wrap:break-word;font-size:9pt}td *{font-size:inherit}.st{white-space:nowrap}tr.sr td.st,tr.sr td.nl{border-bottom:1px dashed #E3DFF0}
+    .c{text-align:center}.mu,.mut{color:#8C88A8}.it{font-weight:700}.st b{font-weight:800}.nt{color:#4B4868}
+    .lb{padding:.5px 0 .5px 9px;position:relative;break-inside:avoid}.lb:before{content:"";position:absolute;left:1px;top:6px;width:3.5px;height:3.5px;border-radius:50%;background:#B9B4D0}.tmp{color:#8C88A8;font-style:italic}.ls{column-count:2;column-gap:10px}
+    tr.gh td{padding:5px 8px;font-size:8.6pt;border-bottom:0}tr.gh span{color:#4B4868}
+    tfoot td{font-weight:800;border:0;padding-top:6px}table.gt td{background:#EFE8FD;color:#5B21B6;font-weight:800;padding:6px}
+  </style></head><body><h1>Rekap Unit ${esc(P?P.kode:"Semua Project")}</h1><p class="s">${esc(sub)}</p>
+  <div class="kpi"><div><small>Rencana</small><b>${G.r}</b></div><div><small>Sudah tiba</small><b>${G.t}</b></div><div><small>Dalam perjalanan</small><b>${G.j}</b></div><div><small>Sisa kirim</small><b>${G.sk}</b></div></div>
+  ${tables}${grand}</body></html>`;
   let fr=document.getElementById("rkuFrame"); if(fr) fr.remove();
   fr=document.createElement("iframe"); fr.id="rkuFrame"; fr.setAttribute("aria-hidden","true"); fr.style.cssText="position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden"; document.body.appendChild(fr);
-  const w=fr.contentWindow; w.document.open(); w.document.write(html); w.document.close(); setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){ toast("Gagal membuka jendela print."); } },300); }
+  const w=fr.contentWindow; w.document.open(); w.document.write(html); w.document.close(); setTimeout(()=>{ try{ w.focus(); w.print(); }catch(e){ toast("Gagal membuka jendela print."); } },500); }
 function MU_RK_BTN(){ return `<details class="rkm"><summary class="btn" title="Rekap Rencana / Tiba / Sisa per project">Rekap Unit <span aria-hidden="true">▾</span></summary><div class="rkm-p"><button type="button" data-rku="print">Print / PDF</button>${(role==="owner"||role==="editor")?`<button type="button" data-rku="xlsx">Download Excel</button>`:""}</div></details>`; }
 document.addEventListener("click",e=>{ const b=e.target.closest&&e.target.closest("[data-rku]");
   document.querySelectorAll("details.rkm[open]").forEach(d=>{ if(!d.contains(e.target)) d.open=false; });
