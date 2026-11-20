@@ -922,7 +922,7 @@ body.mu-rsz-on,body.mu-rsz-on *{cursor:col-resize!important;user-select:none!imp
 #tKirim tr.ki-row>td{vertical-align:top;padding-top:10px;padding-bottom:10px;border-top:1px solid var(--line)}
 #tKirim .kl{display:block;font-size:10.5px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
 #tKirim .kv{font-size:18px;line-height:1.2}
-#tKirim .ki-sts{display:flex;flex-wrap:wrap;gap:5px 6px}
+#tKirim .ki-sts{display:flex;flex-wrap:wrap;gap:5px 6px}.mu-sps{display:flex;flex-wrap:wrap;gap:4px 5px}.mu-sp{display:inline-block;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:500;line-height:1.5;white-space:nowrap}.mu-sp b{font-weight:800}
 #tKirim .ki-st{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;color:var(--ink-2);background:color-mix(in srgb,var(--sc) 10%,white);border:1px solid color-mix(in srgb,var(--sc) 28%,white);border-radius:999px;padding:3px 9px;white-space:nowrap}
 #tKirim .ki-st i{width:7px;height:7px;border-radius:50%;background:var(--sc)}
 #tKirim .ki-st b{color:var(--ink)}
@@ -3094,7 +3094,7 @@ function renderProjDash2(P){
   // tabel rencana kirim per unit — kolom mengikuti "Kolom item" di Rencana kirim
   const IC=muItemCols(), mxs={}; IC.forEach(l=>{ if(MU_KNUM[l]) mxs[l]=Math.max(1,...items.map(k=>Number(muItemVal(k,l))||0)); });
   const heat=(l,v)=>MU_KNUM[l]&&Number(v)?`background:rgba(${MU_KNUM[l]},${(0.12+0.55*Number(v)/mxs[l]).toFixed(2)})`:"";
-  const rows=items.map(k=>`<tr><td class="pd-un">${esc(k.tipe)}</td>${IC.map(l=>{ const v=muItemVal(k,l); return MU_KNUM[l]?`<td class="n" style="${heat(l,v)}">${v||"–"}</td>`:`<td class="${l==="Keterangan"?"pd-ket":""}">${esc(String(v))}</td>`; }).join("")}</tr>`).join("");
+  const rows=items.map(k=>`<tr><td class="pd-un">${esc(k.tipe)}</td>${IC.map(l=>{ const v=muItemVal(k,l); return MU_KNUM[l]?`<td class="n" style="${heat(l,v)}">${v||"–"}</td>`:l==="Status unit"?`<td>${muStatPills(k)}</td>`:`<td class="${l==="Keterangan"?"pd-ket":""}">${esc(String(v))}</td>`; }).join("")}</tr>`).join("");
   const foot=IC.map(l=>MU_KNUM[l]?`<td class="n">${items.reduce((a,k)=>a+(Number(muItemVal(k,l))||0),0)}</td>`:"<td></td>").join("");
   const table=`<div class="card pd-c pd-wide"><div class="pd-th"><div><h3>Rencana kirim per unit</h3><small>Kolom mengikuti pengaturan "Kolom item" di Rencana kirim · warna makin pekat = angka makin besar</small></div><button type="button" class="pd-link" data-tn="pengiriman">Edit di Rencana kirim →</button></div>
     <div class="pd-tw"><table class="pd-t"><thead><tr><th>Item unit</th>${IC.map(l=>`<th class="${MU_KNUM[l]?"n":""}">${esc(l)}</th>`).join("")}</tr></thead><tbody>${rows||`<tr><td colspan="${IC.length+1}" class="muted">Belum ada rencana kirim.</td></tr>`}</tbody>
@@ -3395,10 +3395,17 @@ function muItemVal(k,l){ const r=Number(k.rencana)||0, aw=Number(k.rencanaAwal)|
     case "Rencana": return r; case "Rencana awal": return aw; case "Tiba": return Math.min(tibaItem(k),r); case "Dlm perjalanan": return jalanItem(k);
     case "Sisa kirim": { const sk=r-tibaItem(k)-jalanItem(k); return sk>=0?sisaItem(k):"lebih "+(-sk); }
     case "Perubahan": return r!==aw?(r-aw>0?"+":"")+(r-aw):"–";
-    case "Status unit": { const m=new Map(); us.forEach(u=>{ const t=String(u.status||"").trim()||"Status kosong"; m.set(t,(m.get(t)||0)+1); }); const blm=Math.max(0,r-us.length); return [...[...m.entries()].map(([t,n])=>t+" "+n),blm?"Belum dijadwalkan "+blm:""].filter(Boolean).join(", ")||"–"; }
+    case "Status unit": { const L=muStatList(k,us); return L.length?L.map(x=>x.n+" "+x.t).join(" · "):"–"; }
     case "ETA": { const e=us.filter(u=>!arrived(u)).map(u=>muDetails(u).eta).filter(Boolean).sort()[0]||k.eta; return e?fmtD(e):"–"; }
     case "Keterangan": return String(k.catatan||"").trim(); case "Via": return k.moda||"–"; case "Asal": return k.asal||"–";
   } return ""; }
+/* Status unit per item: label berwarna, angka di depan, urut tahap (Tiba → status di lokasi → Dalam perjalanan → Persiapan kirim → status lain → Belum dijadwalkan) */
+const MU_SPC={"Tiba":["#15803D","#DCFCE7"],"Dalam perjalanan":["#C2410C","#FFEDD5"],"Persiapan kirim":["#6D28D9","#EDE9FE"],"Belum dijadwalkan":["#64748B","#F1F5F9"]};
+function muStatList(k,us){ us=us||slotUnits(k); const r=Number(k.rencana)||0, m=new Map(); us.forEach(u=>{ const t=String(u.status||"").trim()||"Persiapan kirim"; m.set(t,(m.get(t)||0)+1); });
+  const rank=t=>t==="Tiba"?0:UNIT_STATUS.some(x=>x.k===t)?1:t==="Dalam perjalanan"?2:t==="Persiapan kirim"?3:4;
+  const L=[...m.entries()].sort((a,b)=>rank(a[0])-rank(b[0])).map(([t,n])=>{ const d=UNIT_STATUS.find(x=>x.k===t); const c=MU_SPC[t]||(d?[d.col,d.soft]:["#B45309","#FEF3C7"]); return {t,n,c:c[0],bg:c[1]}; });
+  const blm=Math.max(0,r-us.length); if(blm) L.push({t:"Belum dijadwalkan",n:blm,c:MU_SPC["Belum dijadwalkan"][0],bg:MU_SPC["Belum dijadwalkan"][1]}); return L; }
+function muStatPills(k,us){ const L=muStatList(k,us); return L.length?`<span class="mu-sps">${L.map(x=>`<span class="mu-sp" style="color:${x.c};background:${x.bg}"><b>${x.n}</b> ${esc(x.t)}</span>`).join("")}</span>`:"–"; }
 function muItemCols(){ try{ return muKCols(); }catch(e){ return ["Rencana","Sisa kirim","Status unit"]; } }
 function muUnitCols(){ try{ return muCfVisibleCols(); }catch(e){ return ["ETD","ETA","No. lambung","Status"]; } }
 function muBelumTiba(pids){ const rows=[]; S.kirim.filter(k=>pids.has(k.projectId)).forEach(k=>slotUnits(k).forEach(u=>{ if(!arrived(u)) rows.push([u,k]); })); return rows; }
@@ -3432,7 +3439,7 @@ function muPrintDash(opt){
     SS.forEach(({p,s})=>{ const us=S.units.filter(u=>u.projectId===p.id), loc=us.filter(arrived), nar=muBelumTiba(new Set([p.id]));
       const mxs={}; IC.forEach(l=>{ if(MU_KNUM[l]) mxs[l]=Math.max(1,...s.items.map(k=>Number(muItemVal(k,l))||0)); });
       const heat=(l,v)=>MU_KNUM[l]&&Number(v)?`background:rgba(${MU_KNUM[l]},${(0.12+0.55*Number(v)/mxs[l]).toFixed(2)})`:"";
-      const it=s.items.map(k=>`<tr><td class="un">${esc(k.tipe)}</td>${IC.map(l=>{ const v=muItemVal(k,l); return MU_KNUM[l]?`<td class="n" style="${heat(l,v)}">${v||"–"}</td>`:`<td class="${l==="Keterangan"?"mut":""}">${esc(String(v))}</td>`; }).join("")}</tr>`).join("");
+      const it=s.items.map(k=>`<tr><td class="un">${esc(k.tipe)}</td>${IC.map(l=>{ const v=muItemVal(k,l); return MU_KNUM[l]?`<td class="n" style="${heat(l,v)}">${v||"–"}</td>`:l==="Status unit"?`<td>${muStatPills(k)}</td>`:`<td class="${l==="Keterangan"?"mut":""}">${esc(String(v))}</td>`; }).join("")}</tr>`).join("");
       const ft=IC.map(l=>MU_KNUM[l]?`<td class="n">${s.items.reduce((a,k)=>a+(Number(muItemVal(k,l))||0),0)}</td>`:"<td></td>").join("");
       const lj=new Map(); loc.forEach(u=>{ const o=lj.get(u.tipe)||{n:0,st:new Map()}; o.n++; const k=String(u.status||"").trim()||"Tiba"; o.st.set(k,(o.st.get(k)||0)+1); lj.set(u.tipe,o); });
       out.push(`<section class="pr-sec pr-proj"><div class="pj"><span><b>${esc(p.kode)}</b>${[p.nama,p.lokasi].filter(Boolean).map(x=>" · "+esc(x)).join("")}</span><span>${s.rencana} rencana · ${s.tiba} tiba · ${s.jalan} dlm perjalanan · <b class="${s.sisa?"rd":""}">${s.sisa} sisa</b></span></div>
@@ -3481,7 +3488,7 @@ function muPrintDash(opt){
   ul{margin:0;padding:0;list-style:none;font-size:9.5px}li{padding:4px 0 4px 12px;border-bottom:1px solid #EEE;position:relative}li b{display:block}li small{color:#6B6985;font-size:8.5px}li i{position:absolute;left:0;top:7px;width:7px;height:7px;border-radius:50%}
   .pj{background:#F4F1FD;border-radius:6px;padding:6px 10px;font-size:10px;margin:0 0 4px;display:flex;justify-content:space-between;gap:10px}.pj b{font-size:12px}.pj .rd{font-size:10px}
   .leg{font-size:8.5px;color:#6B6985;margin-top:4px}.leg i{display:inline-block;width:8px;height:8px;border-radius:2px;margin:0 3px 0 10px;vertical-align:-1px}
-  p.mut{font-size:9.5px;color:#8C88A8;margin:2px 0}
+  p.mut{font-size:9.5px;color:#8C88A8;margin:2px 0}.mu-sps{display:flex;flex-wrap:wrap;gap:2px 3px}.mu-sp{display:inline-block;border-radius:999px;padding:1px 6px;white-space:nowrap;font-size:8.5px}.mu-sp b{font-weight:800}
   </style></head><body>
   <div class="hd"><div><h1>${esc(judul)}</h1><small>${esc(sub)}</small></div><small class="r">Dicetak ${esc(new Date().toLocaleString("id-ID",{dateStyle:"long",timeStyle:"short"}))}${meEmail?"<br>"+esc(meEmail):""}</small></div>
   ${out.join("")}</body></html>`;
@@ -3829,7 +3836,7 @@ function muPrintKirim(items,withB,withRev,judul){
         const blm=Math.max(r,us.length)-us.length;
         const sts=[...cnt.map(o=>`${esc(o.t)} ${o.n}`),blm?`Belum dijadwalkan ${blm}`:""].filter(Boolean).join(" · ");
         const rv=withRev?S.revisi.filter(x=>x.kirimId===k.id):[];
-        return `<div class="pk-it"><div class="pk-ih"><b>${esc(k.tipe)}</b><span>Rencana <b>${r}</b>${sts?" · "+sts:""} · Sisa <b class="${sk?"pk-rd":"pk-ok"}">${sk}</b></span></div>${html}
+        return `<div class="pk-it"><div class="pk-ih"><b>${esc(k.tipe)}</b><span>Rencana <b>${r}</b> · Sisa <b class="${sk?"pk-rd":"pk-ok"}">${sk}</b> ${muStatPills(k,us)}</span></div>${html}
           ${withB?muItemBukti(us):""}
           ${rv.length?`<div class="pk-bk"><span class="pk-bl">Riwayat</span><div>${rv.slice().sort((a,b)=>String(a.waktu||"").localeCompare(String(b.waktu||""))).map(x=>`${esc(fmtD(String(x.waktu||"").slice(0,10)))}: ${x.lama} → ${x.baru} (${x.baru-x.lama>0?"+":""}${x.baru-x.lama}) ${esc(revJenis(x)||"")}${x.alasan?" — "+esc(x.alasan):""}`).join("<br>")}</div></div>`:""}</div>`; }).join("")}</div>`; }).join("");
   const html=`<!doctype html><html lang="id"><head><meta charset="utf-8"><title>${esc(judul)} - ${todayStr()}</title>
@@ -3841,7 +3848,7 @@ function muPrintKirim(items,withB,withRev,judul){
   .pk-grid{margin-bottom:10px}.two .pk-grid{columns:2;column-gap:14px}
   .pk-it{break-inside:avoid;page-break-inside:avoid;border:1px solid #ECE9F6;border-radius:6px;padding:6px;margin:0 0 9px}.two .pk-it{display:inline-block;width:100%}
   .two td{overflow-wrap:break-word}.two th{white-space:normal}
-  .pk-ih{display:flex;flex-direction:column;gap:1px;font-size:9.5px;padding:1px 0 4px 6px;border-left:3px solid #6D28D9;margin-bottom:4px}.pk-ih>b{font-size:11px}.pk-ih span{color:#4B4868}.pk-rd{color:#E11D48}.pk-ok{color:#15803D}
+  .pk-ih{display:flex;flex-direction:column;gap:1px;font-size:9.5px;padding:1px 0 4px 6px;border-left:3px solid #6D28D9;margin-bottom:4px}.pk-ih>b{font-size:11px}.pk-ih span{color:#4B4868}.pk-rd{color:#E11D48}.pk-ok{color:#15803D}.pk-ih .mu-sps{display:inline-flex;flex-wrap:wrap;gap:2px 3px;vertical-align:middle;margin-left:4px}.pk-ih .mu-sp{display:inline-block;border-radius:999px;padding:0 6px;white-space:nowrap;font-size:8.5px}.pk-ih .mu-sp b{font-weight:800}
   table{width:100%;border-collapse:collapse;font-size:9px}
   th{background:#F4F1FD;text-align:left;font-size:7.5px;text-transform:uppercase;letter-spacing:.04em;color:#4B4868;padding:3px 4px;border:1px solid #E6E4F2;white-space:nowrap}
   td{padding:2.5px 4px;border:1px solid #E6E4F2;vertical-align:middle;line-height:1.3}
@@ -4087,7 +4094,7 @@ function renderKirim(){
       const stHtml=ord.map(t=>{ const d=ALL_STATUS.find(x=>x.k===t); return `<span class="ki-st" style="--sc:${d?d.col:"#8A87A6"}"><i></i>${esc(t)} <b>${stc.get(t)}</b></span>`; }).join("")+(blm?`<span class="ki-st" style="--sc:#C9C6DC"><i></i>Belum dijadwalkan <b>${blm}</b></span>`:"");
       const cell={
         "Rencana":`<b class="kv">${r}</b>`,
-        "Status unit":`<div class="ki-sts">${stHtml||'<span class="muted small">Belum ada unit</span>'}</div>`,
+        "Status unit":`<div class="ki-sts">${us.length||r?muStatPills(k,us):'<span class="muted small">Belum ada unit</span>'}</div>`,
         "Sisa kirim":(sisa>=0?`<b class="kv ${sisaItem(k)?"c-red":""}">${sisaItem(k)}</b>`:`<b class="kv c-orange">lebih ${-sisa}</b>`)+(sisa>0?"":'<span class="sub"><span class="chip s-ok">Lengkap</span></span>'),
         "Rencana awal":`<b class="kv">${aw}</b>`,
         "Perubahan":r!==aw?`${deltaChip(r-aw)}${revs?`<span class="sub">${revs}× direvisi</span>`:""}`:'<span class="muted">—</span>',
