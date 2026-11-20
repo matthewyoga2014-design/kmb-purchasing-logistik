@@ -5051,7 +5051,7 @@ function muRekapSheet(B,ps,P){
   sh.height(r,16); sh.height(r+1,26); r+=3;
   all.forEach(({p,R})=>{
     if(ps.length>1){ sh.merge(r,0,N-1,`Project ${p.kode}${[p.nama,p.lokasi].filter(Boolean).length?"  ·  "+[p.nama,p.lokasi].filter(Boolean).join(" · "):""}`,{bd:true,bc:"#D9D6E8",b:true,sz:11,fill:"#F4F1FD"}); sh.height(r,20); r++; }
-    ["No","Item unit","No. lambung","Rencana","Sisa kirim","Status unit","Catatan"].forEach((h,i)=>sh.put(r,i,h,{...bd,b:true,sz:9,color:"#4B4868",fill:"#F7F5FD",h:i===0||i===3||i===4?"center":"left"})); sh.height(r,22); r++;
+    ["No","Item unit","No. lambung","Rencana","Sisa kirim","Status unit","Catatan"].forEach((h,i)=>sh.put(r,i,h,{...bd,b:true,sz:9,color:"#4B4868",fill:"#F7F5FD",h:"center"})); sh.height(r,22); r++;
     const a0=r; let no=0;
     if(!R.length){ sh.merge(r,0,N-1,"Belum ada rencana kirim",{...td,i:true,color:MUT,h:"center"}); r++; }
     MU_PROG_ORD.forEach(k=>{ const L=R.filter(x=>x.prog===k); if(!L.length) return; const pc=MU_PROG[k];
@@ -5080,7 +5080,7 @@ function muRekapPrint(){
         return gs.map((g,gi)=>`<tr class="${gi<n-1?"sr":""}">${gi===0?`<td class="c mu" rowspan="${n}">${no}</td><td class="it" rowspan="${n}">${esc(x.item)}</td>`:""}<td class="nl">${lst(g)}</td>${gi===0?`<td class="c" rowspan="${n}">${x.r}</td><td class="c" rowspan="${n}">${x.sk||"–"}</td>`:""}<td class="st">${g.n?`<b>${g.n}</b> ${esc(g.st)}`:"–"}</td>${gi===0?`<td class="nt" rowspan="${n}">${esc(x.cat)||'<span class="mut">–</span>'}</td>`:""}</tr>`).join(""); }).join(""); }).join("")
       :`<tr><td colspan="7" class="c mut">Belum ada rencana kirim</td></tr>`;
     const sm=k=>R.reduce((a,x)=>a+x[k],0);
-    return `${ps.length>1?`<div class="pj"><b>${esc(p.kode)}</b>${[p.nama,p.lokasi].filter(Boolean).map(v=>" · "+esc(v)).join("")}</div>`:""}<table><colgroup><col style="width:5%"><col style="width:18%"><col style="width:20%"><col style="width:8.5%"><col style="width:8.5%"><col style="width:20%"><col style="width:20%"></colgroup>
+    return `${ps.length>1?`<div class="pj"><b>${esc(p.kode)}</b>${[p.nama,p.lokasi].filter(Boolean).map(v=>" · "+esc(v)).join("")}</div>`:""}<table><colgroup><col style="width:5%"><col style="width:18%"><col style="width:19%"><col style="width:9%"><col style="width:9.5%"><col style="width:19.5%"><col style="width:20%"></colgroup>
       <thead><tr><th class="c">No</th><th>Item unit</th><th>No. lambung</th><th class="c">Rencana</th><th class="c">Sisa kirim</th><th>Status unit</th><th>Catatan</th></tr></thead>
       <tbody>${body}</tbody><tfoot><tr><td></td><td colspan="2">Total${ps.length>1?" "+esc(p.kode):""} · ${R.length} item</td><td class="c">${sm("r")}</td><td class="c">${sm("sk")}</td><td colspan="2"></td></tr></tfoot></table>`; }).join("");
   const grand=ps.length>1?`<table class="gt"><colgroup><col style="width:45%"><col style="width:9%"><col style="width:9%"><col style="width:37%"></colgroup><tr><td>TOTAL SEMUA PROJECT (${ps.length} project)</td><td class="c">${G.r}</td><td class="c">${G.sk}</td><td>${G.t} tiba · ${G.j} dalam perjalanan</td></tr></table>`:"";
@@ -5093,7 +5093,7 @@ function muRekapPrint(){
     .kpi{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #E6E4F2;border-radius:6px;margin-bottom:8px}.kpi div{text-align:center;padding:5px 8px;border-right:1px solid #E6E4F2}.kpi div:last-child{border:0}.kpi small{display:block;font-size:6.8pt;font-weight:700;color:#6B6985;text-transform:uppercase;letter-spacing:.03em}.kpi b{font-size:14pt}
     .pj{background:#F4F1FD;border-radius:5px;padding:4px 8px;font-size:9pt;margin:8px 0 4px}
     table{width:calc(100% - 2px);margin:0 1px 12px;border-collapse:collapse;table-layout:fixed}thead{display:table-header-group}tr{break-inside:avoid}
-    th{background:#F7F5FD;font-size:7pt;text-transform:uppercase;letter-spacing:.04em;color:#4B4868;padding:5px 6px;border:1px solid #DCD8EA;text-align:left}th.c{text-align:center}
+    th{background:#F7F5FD;font-size:7pt;text-transform:uppercase;letter-spacing:.04em;color:#4B4868;padding:5px 6px;border:1px solid #DCD8EA;text-align:center;white-space:nowrap}
     td{padding:4px 6px;vertical-align:middle;border:1px solid #DCD8EA;word-wrap:break-word;font-size:9pt}td *{font-size:inherit}.st{white-space:nowrap}tr.sr td.st,tr.sr td.nl{border-bottom:1px dashed #CFCAE2}
     .c{text-align:center}.mu,.mut{color:#8C88A8}.it{font-weight:700}.st b{font-weight:800}.nt{color:#4B4868}
     .lb{padding:.5px 0 .5px 9px;position:relative;break-inside:avoid}.lb:before{content:"";position:absolute;left:1px;top:6px;width:3.5px;height:3.5px;border-radius:50%;background:#B9B4D0}.tmp{color:#8C88A8;font-style:italic}.ls{column-count:2;column-gap:10px}
