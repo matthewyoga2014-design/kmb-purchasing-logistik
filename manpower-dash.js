@@ -841,6 +841,7 @@
   if (typeof exportXLSX === 'function') {
     const _oldExport = exportXLSX;
     exportXLSX = async function () {
+      if ((typeof XLSX === 'undefined' || !XLSX.write) && typeof loadXLSX === 'function') { try { await loadXLSX(); } catch (e) { toast('Pembuat Excel gagal dimuat. Periksa koneksi internet.', true); return; } }
       const sheets = captureOldExport(_oldExport);
       if (!sheets) return _oldExport.apply(this, arguments);
       if (!sheets.length) return;   // tidak diizinkan / dibatalkan oleh pengecekan di web
