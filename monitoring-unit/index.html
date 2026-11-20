@@ -3399,7 +3399,7 @@ function muItemVal(k,l){ const r=Number(k.rencana)||0, aw=Number(k.rencanaAwal)|
     case "ETA": { const e=us.filter(u=>!arrived(u)).map(u=>muDetails(u).eta).filter(Boolean).sort()[0]||k.eta; return e?fmtD(e):"–"; }
     case "Keterangan": return String(k.catatan||"").trim(); case "Via": return k.moda||"–"; case "Asal": return k.asal||"–";
   } return ""; }
-function muItemCols(){ try{ return muKCols(); }catch(e){ return ["Rencana","Status unit","Sisa kirim"]; } }
+function muItemCols(){ try{ return muKCols(); }catch(e){ return ["Rencana","Sisa kirim","Status unit"]; } }
 function muUnitCols(){ try{ return muCfVisibleCols(); }catch(e){ return ["ETD","ETA","No. lambung","Status"]; } }
 function muBelumTiba(pids){ const rows=[]; S.kirim.filter(k=>pids.has(k.projectId)).forEach(k=>slotUnits(k).forEach(u=>{ if(!arrived(u)) rows.push([u,k]); })); return rows; }
 function muUnitVal(u,k,l){ const v=(MU_CFV[l]||(()=>""))(u,k,muDetails(u)); return v===KONG?"–":v; }
@@ -3430,13 +3430,15 @@ function muPrintDash(opt){
   if(want("progres")){
     const IC=muItemCols(), UC=muUnitCols();
     SS.forEach(({p,s})=>{ const us=S.units.filter(u=>u.projectId===p.id), loc=us.filter(arrived), nar=muBelumTiba(new Set([p.id]));
-      const it=s.items.map(k=>`<tr><td>${esc(k.tipe)}</td>${IC.map(l=>{ const v=muItemVal(k,l); return MU_KNUM[l]?`<td class="n ${l==="Sisa kirim"&&Number(v)?"rd":""}">${v||"–"}</td>`:`<td class="${l==="Keterangan"?"mut":""}">${esc(String(v))}</td>`; }).join("")}</tr>`).join("");
+      const mxs={}; IC.forEach(l=>{ if(MU_KNUM[l]) mxs[l]=Math.max(1,...s.items.map(k=>Number(muItemVal(k,l))||0)); });
+      const heat=(l,v)=>MU_KNUM[l]&&Number(v)?`background:rgba(${MU_KNUM[l]},${(0.12+0.55*Number(v)/mxs[l]).toFixed(2)})`:"";
+      const it=s.items.map(k=>`<tr><td class="un">${esc(k.tipe)}</td>${IC.map(l=>{ const v=muItemVal(k,l); return MU_KNUM[l]?`<td class="n" style="${heat(l,v)}">${v||"–"}</td>`:`<td class="${l==="Keterangan"?"mut":""}">${esc(String(v))}</td>`; }).join("")}</tr>`).join("");
       const ft=IC.map(l=>MU_KNUM[l]?`<td class="n">${s.items.reduce((a,k)=>a+(Number(muItemVal(k,l))||0),0)}</td>`:"<td></td>").join("");
       const lj=new Map(); loc.forEach(u=>{ const o=lj.get(u.tipe)||{n:0,st:new Map()}; o.n++; const k=String(u.status||"").trim()||"Tiba"; o.st.set(k,(o.st.get(k)||0)+1); lj.set(u.tipe,o); });
       out.push(`<section class="pr-sec pr-proj"><div class="pj"><span><b>${esc(p.kode)}</b>${[p.nama,p.lokasi].filter(Boolean).map(x=>" · "+esc(x)).join("")}</span><span>${s.rencana} rencana · ${s.tiba} tiba · ${s.jalan} dlm perjalanan · <b class="${s.sisa?"rd":""}">${s.sisa} sisa</b></span></div>
-        <div class="two"><div><h2>Rencana kirim per item</h2>${it?`<table><thead><tr><th>Item unit</th>${IC.map(l=>`<th class="${MU_KNUM[l]?"n":""}">${esc(l)}</th>`).join("")}</tr></thead><tbody>${it}</tbody><tfoot><tr><td>Total · ${s.items.length} item</td>${ft}</tr></tfoot></table>`:'<p class="mut">Belum ada rencana kirim.</p>'}</div>
-        <div><h2>Populasi di lokasi <small>${loc.length} unit</small></h2>${loc.length?`<table><thead><tr><th>Jenis</th><th class="n">Unit</th><th>Status</th></tr></thead><tbody>${[...lj.entries()].sort((a,b)=>b[1].n-a[1].n).map(([t,o])=>`<tr><td>${esc(t)}</td><td class="n">${o.n}</td><td>${[...o.st.entries()].map(([k,n])=>`${esc(k)} ${n}`).join(", ")}</td></tr>`).join("")}</tbody></table>`:'<p class="mut">Belum ada unit di lokasi.</p>'}</div></div>
-        ${nar.length?`<h2>Unit yang belum tiba <small>${nar.length} unit</small></h2><table><thead><tr><th>Item unit</th>${UC.map(l=>`<th>${esc(l)}</th>`).join("")}</tr></thead><tbody>${nar.map(([u,k])=>`<tr><td>${esc(k.tipe)}</td>${UC.map(l=>{ const v=muUnitVal(u,k,l); return `<td class="${l==="No. lambung"&&v==="belum diisi"?"bd":""}">${esc(v)}</td>`; }).join("")}</tr>`).join("")}</tbody></table>`:""}</section>`); });
+        <div class="two"><div><h2>Rencana kirim per unit</h2>${it?`<table><thead><tr><th>Item unit</th>${IC.map(l=>`<th class="${MU_KNUM[l]?"n":""}">${esc(l)}</th>`).join("")}</tr></thead><tbody>${it}</tbody><tfoot><tr><td>Total · ${s.items.length} item</td>${ft}</tr></tfoot></table>`:'<p class="mut">Belum ada rencana kirim.</p>'}</div>
+        <div><h2>Populasi unit <small>${loc.length} unit</small></h2>${loc.length?`<table><thead><tr><th>Jenis unit</th><th class="n">Unit</th></tr></thead><tbody>${[...lj.entries()].sort((a,b)=>b[1].n-a[1].n).map(([t,o])=>`<tr><td>${esc(t)}</td><td class="n"><b>${o.n}</b></td></tr>`).join("")}</tbody><tfoot><tr><td>Total</td><td class="n">${loc.length}</td></tr></tfoot></table>`:'<p class="mut">Belum ada unit di lokasi.</p>'}</div></div>
+        ${nar.length?`<h2>Unit yang belum tiba <small>${nar.length} unit${(()=>{ const b=s.items.reduce((a,k)=>a+Math.max(0,(Number(k.rencana)||0)-slotUnits(k).length),0); return b?` · ${b} belum dijadwalkan`:""; })()}</small></h2><table><thead><tr><th>Item unit</th>${UC.map(l=>`<th>${esc(l)}</th>`).join("")}</tr></thead><tbody>${nar.map(([u,k])=>`<tr><td>${esc(k.tipe)}</td>${UC.map(l=>{ const v=muUnitVal(u,k,l); return `<td class="${l==="No. lambung"&&v==="belum diisi"?"bd":""}">${esc(v)}</td>`; }).join("")}</tr>`).join("")}</tbody></table>`:""}</section>`); });
   }
   // populasi
   if(want("populasi")){
@@ -3467,7 +3469,7 @@ function muPrintDash(opt){
   html,body{margin:0;background:#fff;font-family:"Plus Jakarta Sans",system-ui,sans-serif;color:#1E1B3A}
   .hd{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;border-bottom:2px solid #6D28D9;padding-bottom:6px;margin-bottom:10px}.hd h1{margin:0;font-size:17px}.hd small{font-size:9.5px;color:#4B4868}.hd .r{text-align:right}
   h2{font-size:12px;margin:10px 0 5px;display:flex;justify-content:space-between;align-items:baseline;break-after:avoid}h2 small{font-weight:500;color:#6B6985;font-size:9px}
-  .pr-sec{margin-bottom:10px}.pr-proj{break-inside:avoid;page-break-inside:avoid;border-top:1px dashed #E6E4F2;padding-top:6px}.pr-proj:first-child{border-top:0}
+  .pr-sec{margin-bottom:10px}.pr-proj{border-top:1px dashed #E6E4F2;padding-top:6px}.pr-proj+.pr-proj{break-before:page}td.un{font-weight:700}.pr-proj:first-child{border-top:0}
   .kpi{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid #E6E4F2;border-radius:6px;overflow:hidden}.kpi div{padding:7px 10px;border-right:1px solid #E6E4F2}.kpi div:last-child{border-right:0}.kpi small{display:block;font-size:8.5px;color:#6B6985;font-weight:600;text-transform:uppercase;letter-spacing:.04em}.kpi b{font-size:18px}.kpi span{font-size:8.5px;color:#6B6985;margin-left:4px}
   table{width:100%;border-collapse:collapse;font-size:9.5px}thead{display:table-header-group}tr{break-inside:avoid}
   th{background:#F4F1FD;text-align:left;font-size:7.8px;text-transform:uppercase;letter-spacing:.04em;color:#4B4868;padding:4px 6px;border:1px solid #E6E4F2;white-space:nowrap}
@@ -4062,11 +4064,11 @@ document.addEventListener("click",e=>{
 },true);
 document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ const pop=$("#muCfPop"); if(pop) pop.hidden=true; } });
 /* Kolom baris item (Rencana kirim): bisa diatur lewat "Atur kolom item" */
-const MU_KCOL={"Rencana":{w:110,c:"n"},"Status unit":{w:340,c:"st"},"Sisa kirim":{w:120,c:"n"},"Rencana awal":{w:120,c:"n"},"Perubahan":{w:120,c:"n"},"Tiba":{w:90,c:"n"},"Dlm perjalanan":{w:130,c:"n"},"ETA":{w:120,c:"d"},"Keterangan":{w:260,c:"t"},"Via":{w:150,c:"t"},"Asal":{w:150,c:"t"}};
+const MU_KCOL={"Rencana":{w:110,c:"n"},"Sisa kirim":{w:120,c:"n"},"Status unit":{w:340,c:"st"},"Rencana awal":{w:120,c:"n"},"Perubahan":{w:120,c:"n"},"Tiba":{w:90,c:"n"},"Dlm perjalanan":{w:130,c:"n"},"ETA":{w:120,c:"d"},"Keterangan":{w:260,c:"t"},"Via":{w:150,c:"t"},"Asal":{w:150,c:"t"}};
 function muColVis(key,labels,fb){ try{ const P=muColPrefs()[key]||{};
   const order=muColDesired(labels,P), hid=muColHidden(key,labels,P); return order.filter(l=>!hid.has(l)); }
   catch(e){ return fb; } }
-const muKCols=()=>muColVis("item",Object.keys(MU_KCOL),["Rencana","Status unit","Sisa kirim"]);
+const muKCols=()=>muColVis("item",Object.keys(MU_KCOL),["Rencana","Sisa kirim","Status unit"]);
 const MU_DICOLS=["Rencana","Tiba","Dlm perjalanan","Sisa kirim","ETA","Rencana awal","Perubahan","Keterangan","Via","Asal"];
 const muKSpan=()=>muKCols().length+3;
 function renderKirim(){
@@ -4770,7 +4772,7 @@ const MU_COLT={
   pop:{sel:"table.mu-mpp-detail-table",name:"Tabel detail Populasi Unit",labels:MU_POPCOLS,defHidden:["Tgl kirim","ETD","ETA","Kepemilikan","Kirim berikutnya","Via","Kategori","PIC","Model / tipe","Tahun","Serial / chassis"]},
   poptbl:{sel:"table.mu-pt-table",name:"Rekap Populasi Unit (dashboard)",sub:"data Populasi Unit",labels:["Jenis unit","Vendor","Merek","Unit","Operasi","Standby","Breakdown","Status lain","Belum diketahui","Kondisi terbanyak","No. lambung belum diisi","Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"],defHidden:["Status lain","Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"]},
   popdash:{sel:"table.mu-pop-table",name:"Rekap Populasi Unit (dashboard)",sub:"data Populasi Unit",labels:["Merek Unit","Total","Status Operasional","Kondisi Unit","Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"],defHidden:["Kepemilikan","Posisi","No. lambung","Model / tipe","Tahun","Kategori","PIC"]},
-  item:{pair:["item","slot"],tab:"Item unit",sel:"table.mu-kcol-none",name:"Baris item unit Rencana kirim",sub:"isian item unit",labels:["Rencana","Status unit","Sisa kirim","Rencana awal","Perubahan","Tiba","Dlm perjalanan","ETA","Keterangan","Via","Asal"],defHidden:["Rencana awal","Perubahan","Tiba","Dlm perjalanan","ETA","Keterangan","Via","Asal"]},
+  item:{pair:["item","slot"],tab:"Item unit",sel:"table.mu-kcol-none",name:"Baris item unit Rencana kirim",sub:"isian item unit",labels:["Rencana","Sisa kirim","Status unit","Rencana awal","Perubahan","Tiba","Dlm perjalanan","ETA","Keterangan","Via","Asal"],defHidden:["Rencana awal","Perubahan","Tiba","Dlm perjalanan","ETA","Keterangan","Via","Asal"]},
   mob:{sel:"#p-mobilisasi .tbl-wrap table",name:"Tabel Mobilisasi"}
 };
 function muColPrefs(){ let p=(SBDATA&&SBDATA.colPrefs)||null;
