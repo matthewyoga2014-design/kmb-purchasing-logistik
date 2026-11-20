@@ -670,7 +670,7 @@ function shareAll() {
     const btn = $('saForm').querySelector('[type=submit]'); btn.disabled = true; btn.textContent = 'Membuat link…';
     const toks = [], fail = [], pendingEditors = [];
     for (const a of apps) {
-      const { data, error } = guest?await S.sb.rpc('monitoring_guest_manage',{p_app:a,p_role:role}):await S.sb.rpc('kta_invite_create', { p_app: a, p_email: em, p_role: role });
+      const { data, error } = guest?await S.sb.rpc('monitoring_guest_manage',guestEmail?{p_app:a,p_role:role,p_holder:guestEmail}:{p_app:a,p_role:role}):await S.sb.rpc('kta_invite_create', { p_app: a, p_email: em, p_role: role });
       if (error || !data) { fail.push(subOf(a).name); continue; }
       toks.push(data);
       if (!guest && role === 'editor') {
