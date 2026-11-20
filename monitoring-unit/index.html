@@ -5076,7 +5076,7 @@ function muRekapPrint(){
   const lst=g=>{ if(g.list===null) return '<span class="mut">belum ada unit</span>'; const h=g.list.map(v=>v===null?'<div class="lb tmp">belum diisi</div>':`<div class="lb">${esc(v)}</div>`).join(""); return g.list.length>3?`<div class="ls">${h}</div>`:h; };
   const tables=all.map(({p,R})=>{ let no=0;
     const body=R.length?MU_PROG_ORD.map(k=>{ const L=R.filter(x=>x.prog===k); if(!L.length) return ""; const pc=MU_PROG[k];
-      return `<tr class="gh"><td colspan="7" style="background:${pc.bg};color:${pc.c};border-left:4px solid ${pc.c}"><b>${k}</b> · ${L.length} item <span>— ${pc.d}</span></td></tr>`+L.map(x=>{ no++; const gs=x.grp.length?x.grp:[{st:"–",n:0,list:null}], n=gs.length;
+      return `<tr class="gh"><td colspan="7" style="background:${pc.bg};color:${pc.c};box-shadow:inset 4px 0 0 ${pc.c}"><b>${k}</b> · ${L.length} item <span>— ${pc.d}</span></td></tr>`+L.map(x=>{ no++; const gs=x.grp.length?x.grp:[{st:"–",n:0,list:null}], n=gs.length;
         return gs.map((g,gi)=>`<tr class="${gi<n-1?"sr":""}">${gi===0?`<td class="c mu" rowspan="${n}">${no}</td><td class="it" rowspan="${n}">${esc(x.item)}</td>`:""}<td class="nl">${lst(g)}</td>${gi===0?`<td class="c" rowspan="${n}">${x.r}</td><td class="c" rowspan="${n}">${x.sk||"–"}</td>`:""}<td class="st">${g.n?`<b>${g.n}</b> ${esc(g.st)}`:"–"}</td>${gi===0?`<td class="nt" rowspan="${n}">${esc(x.cat)||'<span class="mut">–</span>'}</td>`:""}</tr>`).join(""); }).join(""); }).join("")
       :`<tr><td colspan="7" class="c mut">Belum ada rencana kirim</td></tr>`;
     const sm=k=>R.reduce((a,x)=>a+x[k],0);
@@ -5092,13 +5092,13 @@ function muRekapPrint(){
     h1{font-size:14pt;margin:0}p.s{margin:1px 0 8px;font-size:8.5pt;color:#6B6985}
     .kpi{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #E6E4F2;border-radius:6px;margin-bottom:8px}.kpi div{text-align:center;padding:5px 8px;border-right:1px solid #E6E4F2}.kpi div:last-child{border:0}.kpi small{display:block;font-size:6.8pt;font-weight:700;color:#6B6985;text-transform:uppercase;letter-spacing:.03em}.kpi b{font-size:14pt}
     .pj{background:#F4F1FD;border-radius:5px;padding:4px 8px;font-size:9pt;margin:8px 0 4px}
-    table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 12px}thead{display:table-header-group}tr{break-inside:avoid}
-    th{background:#F7F5FD;font-size:7pt;text-transform:uppercase;letter-spacing:.04em;color:#4B4868;padding:5px 6px;border-bottom:1px solid #ECE9F6;text-align:left}th.c{text-align:center}
-    td{padding:4px 6px;vertical-align:middle;border-bottom:1px solid #E9E6F3;word-wrap:break-word;font-size:9pt}td *{font-size:inherit}.st{white-space:nowrap}tr.sr td.st,tr.sr td.nl{border-bottom:1px dashed #E3DFF0}
+    table{width:calc(100% - 2px);margin:0 1px 12px;border-collapse:collapse;table-layout:fixed}thead{display:table-header-group}tr{break-inside:avoid}
+    th{background:#F7F5FD;font-size:7pt;text-transform:uppercase;letter-spacing:.04em;color:#4B4868;padding:5px 6px;border:1px solid #DCD8EA;text-align:left}th.c{text-align:center}
+    td{padding:4px 6px;vertical-align:middle;border:1px solid #DCD8EA;word-wrap:break-word;font-size:9pt}td *{font-size:inherit}.st{white-space:nowrap}tr.sr td.st,tr.sr td.nl{border-bottom:1px dashed #CFCAE2}
     .c{text-align:center}.mu,.mut{color:#8C88A8}.it{font-weight:700}.st b{font-weight:800}.nt{color:#4B4868}
     .lb{padding:.5px 0 .5px 9px;position:relative;break-inside:avoid}.lb:before{content:"";position:absolute;left:1px;top:6px;width:3.5px;height:3.5px;border-radius:50%;background:#B9B4D0}.tmp{color:#8C88A8;font-style:italic}.ls{column-count:2;column-gap:10px}
-    tr.gh td{padding:5px 8px;font-size:8.6pt;border-bottom:0}tr.gh span{color:#4B4868}
-    tfoot td{font-weight:800;border:0;padding-top:6px}table.gt td{background:#EFE8FD;color:#5B21B6;font-weight:800;padding:6px}
+    tr.gh td{padding:5px 8px 5px 12px;font-size:8.6pt}tr.gh span{color:#4B4868}
+    tfoot td{font-weight:800;background:#FAF9FE;padding-top:5px}table.gt td{background:#EFE8FD;color:#5B21B6;font-weight:800;padding:6px}
   </style></head><body><h1>Rekap Unit ${esc(P?P.kode:"Semua Project")}</h1><p class="s">${esc(sub)}</p>
   <div class="kpi"><div><small>Rencana</small><b>${G.r}</b></div><div><small>Sudah tiba</small><b>${G.t}</b></div><div><small>Dalam perjalanan</small><b>${G.j}</b></div><div><small>Sisa kirim</small><b>${G.sk}</b></div></div>
   ${tables}${grand}</body></html>`;
