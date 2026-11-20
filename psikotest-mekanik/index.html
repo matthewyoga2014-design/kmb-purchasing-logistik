@@ -844,11 +844,13 @@ async function importExcel(file){
   if(!file)return;$("bImp").value="";toast("Membaca file…");
   if(/\.json$/i.test(file.name))return importPaket(file);
   try{const buf=await file.arrayBuffer();const wb=XLSX.read(buf);
-    let list=[],fmt="template",title=file.name.replace(/\.[^.]+$/,""),grade="",imgNote="";
+    let list=[],fmt="template",title=file.name.replace(/\.[^.]+$/,"").replace(/^Soal_/i,"").replace(/_/g," ").trim(),grade=((title.match(/(?:^|[^A-Z0-9])(G\s?\d{1,2})(?![0-9])/i)||[])[1]||"").replace(/\s/g,"").toUpperCase(),imgNote="";
     const first=wb.Sheets[wb.SheetNames[0]];const tpl=XLSX.utils.sheet_to_json(first,{defval:""});
     const norm=o=>{const r={};Object.entries(o).forEach(([k,v])=>r[String(k).trim().toLowerCase()]=String(v).trim());return r};
     if(tpl.length&&("soal" in norm(tpl[0]))&&("kunci" in norm(tpl[0]))){
-      list=tpl.map(norm).filter(r=>r.soal).map((r,i)=>{const options={};["a","b","c","d","e"].forEach(l=>{if(r[l])options[l]=r[l]});return {no:+r.no||i+1,text:r.soal,options,answer:(r.kunci||"").toLowerCase().charAt(0),topic:r.topik||guessTopic(r.soal+" "+Object.values(options).join(" ")),time_sec:+r.waktu||null}})}
+      list=tpl.map(norm).map((r,i)=>{const options={};["a","b","c","d","e"].forEach(l=>{if(r[l])options[l]=r[l]});return {no:+r.no||i+1,row:i+1,text:r.soal,options,answer:(r.kunci||"").toLowerCase().charAt(0),topic:r.topik||guessTopic((r.soal||"")+" "+Object.values(options).join(" ")),time_sec:+r.waktu||null}}).filter(r=>r.text);
+      if(/\.xlsx$/i.test(file.name)){try{const imgs=await xlsxImages(buf,wb.SheetNames[0]);const by={};imgs.forEach(o=>{const q=list.find(x=>x.row===o.row);if(q)(by[q.row]=by[q.row]||[]).push(o.blob)});
+        for(const q of list)if(by[q.row])q.image=await stackImages(by[q.row]);if(imgs.length)imgNote=imgs.length+" gambar ikut terimpor."}catch(e){imgNote="Gambar gagal dibaca ("+e.message+")."}}}
     else{fmt="kmb";
       const sn=wb.SheetNames.find(n=>/soal/i.test(n))||wb.SheetNames.map(n=>[n,XLSX.utils.decode_range(wb.Sheets[n]["!ref"]||"A1").e.r]).sort((a,b)=>b[1]-a[1])[0][0];
       list=parseKmbSheet(wb.Sheets[sn],wb);
