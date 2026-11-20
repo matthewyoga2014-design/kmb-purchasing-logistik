@@ -186,7 +186,7 @@ button.pd-k:hover,button.hk-gt:hover{transform:translateY(-2px);box-shadow:0 14p
 .pd-tw{overflow-x:auto}
 .pd-t{width:100%;border-collapse:collapse;font-size:14px}.pd-t th{text-align:left;font-size:13.5px;font-weight:700;color:#1C1A33;padding:10px 12px;border-bottom:1px solid #ECE9F6;white-space:nowrap}
 .pd-t td{padding:10px 12px;border-bottom:1px solid #F1EEF8}.pd-t .n{text-align:right;font-variant-numeric:tabular-nums}.pd-un{font-weight:700}.pd-ket{color:#6B6985;font-size:13px}
-.pd-t tfoot td{font-weight:800;border-bottom:0}
+.pd-t tfoot td{font-weight:800;border-bottom:0}.pd-tc th.n,.pd-tc td.n{text-align:center}
 .pd-t2{font-size:13px}.pd-t2 td{white-space:nowrap}.pd-t2 td:last-child{white-space:normal;min-width:180px}.pd-t2 th{font-size:13px}.pd-t2 td small{display:block;font-size:11px;color:#8C88A8}.pd-rm{color:#BE123C}
 .pd-tmp{color:#B45309;font-weight:700}
 details.rkm{position:relative}details.rkm>summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:6px}details.rkm>summary::-webkit-details-marker{display:none}
@@ -3097,7 +3097,7 @@ function renderProjDash2(P){
   const rows=items.map(k=>`<tr><td class="pd-un">${esc(k.tipe)}</td>${IC.map(l=>{ const v=muItemVal(k,l); return MU_KNUM[l]?`<td class="n" style="${heat(l,v)}">${v||"–"}</td>`:l==="Status unit"?`<td>${muStatPills(k)}</td>`:`<td class="${l==="Keterangan"?"pd-ket":""}">${esc(String(v))}</td>`; }).join("")}</tr>`).join("");
   const foot=IC.map(l=>MU_KNUM[l]?`<td class="n">${items.reduce((a,k)=>a+(Number(muItemVal(k,l))||0),0)}</td>`:"<td></td>").join("");
   const table=`<div class="card pd-c pd-wide"><div class="pd-th"><div><h3>Rencana kirim per unit</h3><small>Kolom mengikuti pengaturan "Kolom item" di Rencana kirim · warna makin pekat = angka makin besar</small></div><button type="button" class="pd-link" data-tn="pengiriman">Edit di Rencana kirim →</button></div>
-    <div class="pd-tw"><table class="pd-t"><thead><tr><th>Item unit</th>${IC.map(l=>`<th class="${MU_KNUM[l]?"n":""}">${esc(l)}</th>`).join("")}</tr></thead><tbody>${rows||`<tr><td colspan="${IC.length+1}" class="muted">Belum ada rencana kirim.</td></tr>`}</tbody>
+    <div class="pd-tw"><table class="pd-t pd-tc"><thead><tr><th>Item unit</th>${IC.map(l=>`<th class="${MU_KNUM[l]?"n":""}">${esc(l)}</th>`).join("")}</tr></thead><tbody>${rows||`<tr><td colspan="${IC.length+1}" class="muted">Belum ada rencana kirim.</td></tr>`}</tbody>
     <tfoot><tr><td>Total · ${items.length} item</td>${foot}</tr></tfoot></table></div></div>`;
   // unit belum tiba — sama dengan unit di Rencana kirim; kolom mengikuti "Kolom unit"
   const UC=muUnitCols(), BT=muBelumTiba(new Set([P.id]));
@@ -3443,7 +3443,7 @@ function muPrintDash(opt){
       const ft=IC.map(l=>MU_KNUM[l]?`<td class="n">${s.items.reduce((a,k)=>a+(Number(muItemVal(k,l))||0),0)}</td>`:"<td></td>").join("");
       const lj=new Map(); loc.forEach(u=>{ const o=lj.get(u.tipe)||{n:0,st:new Map()}; o.n++; const k=String(u.status||"").trim()||"Tiba"; o.st.set(k,(o.st.get(k)||0)+1); lj.set(u.tipe,o); });
       out.push(`<section class="pr-sec pr-proj"><div class="pj"><span><b>${esc(p.kode)}</b>${[p.nama,p.lokasi].filter(Boolean).map(x=>" · "+esc(x)).join("")}</span><span>${s.rencana} rencana · ${s.tiba} tiba · ${s.jalan} dlm perjalanan · <b class="${s.sisa?"rd":""}">${s.sisa} sisa</b></span></div>
-        <div class="two"><div><h2>Rencana kirim per unit</h2>${it?`<table><thead><tr><th>Item unit</th>${IC.map(l=>`<th class="${MU_KNUM[l]?"n":""}">${esc(l)}</th>`).join("")}</tr></thead><tbody>${it}</tbody><tfoot><tr><td>Total · ${s.items.length} item</td>${ft}</tr></tfoot></table>`:'<p class="mut">Belum ada rencana kirim.</p>'}</div>
+        <div class="two"><div><h2>Rencana kirim per unit</h2>${it?`<table class="tc"><thead><tr><th>Item unit</th>${IC.map(l=>`<th class="${MU_KNUM[l]?"n":""}">${esc(l)}</th>`).join("")}</tr></thead><tbody>${it}</tbody><tfoot><tr><td>Total · ${s.items.length} item</td>${ft}</tr></tfoot></table>`:'<p class="mut">Belum ada rencana kirim.</p>'}</div>
         <div><h2>Populasi unit <small>${loc.length} unit</small></h2>${loc.length?`<table><thead><tr><th>Jenis unit</th><th class="n">Unit</th></tr></thead><tbody>${[...lj.entries()].sort((a,b)=>b[1].n-a[1].n).map(([t,o])=>`<tr><td>${esc(t)}</td><td class="n"><b>${o.n}</b></td></tr>`).join("")}</tbody><tfoot><tr><td>Total</td><td class="n">${loc.length}</td></tr></tfoot></table>`:'<p class="mut">Belum ada unit di lokasi.</p>'}</div></div>
         ${nar.length?`<h2>Unit yang belum tiba <small>${nar.length} unit${(()=>{ const b=s.items.reduce((a,k)=>a+Math.max(0,(Number(k.rencana)||0)-slotUnits(k).length),0); return b?` · ${b} belum dijadwalkan`:""; })()}</small></h2><table><thead><tr><th>Item unit</th>${UC.map(l=>`<th>${esc(l)}</th>`).join("")}</tr></thead><tbody>${nar.map(([u,k])=>`<tr><td>${esc(k.tipe)}</td>${UC.map(l=>{ const v=muUnitVal(u,k,l); return `<td class="${l==="No. lambung"&&v==="belum diisi"?"bd":""}">${esc(v)}</td>`; }).join("")}</tr>`).join("")}</tbody></table>`:""}</section>`); });
   }
@@ -3482,7 +3482,7 @@ function muPrintDash(opt){
   th{background:#F4F1FD;text-align:left;font-size:7.8px;text-transform:uppercase;letter-spacing:.04em;color:#4B4868;padding:4px 6px;border:1px solid #E6E4F2;white-space:nowrap}
   td{padding:3.5px 6px;border:1px solid #E6E4F2;vertical-align:middle}td small{display:block;font-size:8px;color:#6B6985}.n{text-align:right;font-variant-numeric:tabular-nums}.rd{color:#E11D48;font-weight:700}.mut{color:#4B4868}.bd{color:#B45309;font-weight:700}
   td *{font-size:inherit}td .chip,td .tag,td .mu-vendor-tag,td .mu-brand-tag{background:none!important;border:0!important;padding:0!important}
-  tfoot td{font-weight:800;background:#FAF9FE}
+  tfoot td{font-weight:800;background:#FAF9FE}.tc .n{text-align:center}
   .bar{display:flex;height:6px;width:110px;border-radius:4px;overflow:hidden;background:#F6D3DB}.bar i{display:block;height:100%}
   .two{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:14px;align-items:start}
   ul{margin:0;padding:0;list-style:none;font-size:9.5px}li{padding:4px 0 4px 12px;border-bottom:1px solid #EEE;position:relative}li b{display:block}li small{color:#6B6985;font-size:8.5px}li i{position:absolute;left:0;top:7px;width:7px;height:7px;border-radius:50%}
