@@ -685,8 +685,8 @@ async function renameSheet(id,m){const x=S.modules.find(y=>y.id===id);const el=d
   inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();done(true)}if(e.key==="Escape")done(false)};inp.onblur=()=>done(true)}
 async function vBank(m){
   if(!BANKSEL||!S.modules.find(x=>x.id===BANKSEL))BANKSEL=S.modules[0]?.id||null;
-  m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><div><h2>Bank Soal</h2><p class="sub">Satu file soal untuk satu grade (mis. Soal G2). Unggah file Excel apa adanya — soal, pilihan, kunci, dan gambar terbaca otomatis.</p></div>
-   <div class="row"><label class="btn pri">⬆ Unggah file soal<input type="file" id="bImp" accept=".xlsx,.xls,.csv" hidden></label><button class="btn sm" id="bTpl" title="Opsional, bila soal belum punya file">Template kosong</button></div></div>
+  m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><div><h2>Bank Soal</h2><p class="sub">Satu file soal untuk satu grade (mis. Soal G2). Unggah file Excel apa adanya (.xlsx/.xls) — soal, pilihan, dan kunci terbaca otomatis. Untuk paket soal lengkap dengan gambar, unggah file <b>Paket_Soal_KMB.json</b>.</p></div>
+   <div class="row"><label class="btn pri">⬆ Unggah file soal<input type="file" id="bImp" accept=".xlsx,.xls,.csv,.json" hidden></label><button class="btn sm" id="bTpl" title="Opsional, bila soal belum punya file">Template kosong</button></div></div>
    <div class="shelf" id="bDD">${bankShelf()}</div>
    <div>
    <div id="bBody" style="min-width:0">${S.modules.length?'<div class="empty">Memuat…</div>':'<div class="empty">Belum ada soal. Klik <b>⬆ Unggah file soal</b>.</div>'}</div></div></div>`;
@@ -766,24 +766,36 @@ const TOPIC_KW=[["Alat Ukur & Tools",/caliper|micrometer|gauge|tester|alat (yang
  ["Engine, Pelumas & Fuel",/engine|oli|oil|fuel|solar|thermostat|radiator|nozzle|injector|valve|liner|piston|viscosity|sulfur|hp\b|idle/i]];
 const guessTopic=t=>{let best="Umum",bs=0;TOPIC_KW.forEach(([n,re])=>{const c=(t.match(new RegExp(re.source,"gi"))||[]).length;if(c>bs){bs=c;best=n}});return best};
 function loadScript(src){return new Promise((res,rej)=>{if(document.querySelector(`script[src="${src}"]`))return res();const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("Gagal memuat "+src));document.head.appendChild(s)})}
-function parseKmbSheet(ws){
-  const rg=XLSX.utils.decode_range(ws["!ref"]);const rows=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null,blankrows:true});
-  const qs=[];let cur=null;const isL=v=>v!=null&&/^[a-eA-E]$/.test(String(v).trim());
-  rows.forEach((row,i)=>{row=row||[];const a=row[0];
-    const textCells=row.map((v,c)=>[c,v]).filter(([c,v])=>v!=null&&String(v).trim()!==""&&!(c>=12&&(isL(v)||typeof v==="number")));
-    if(typeof a==="number"&&Number.isInteger(a)&&a>0&&a<1000&&(cur||row.slice(1).some(v=>typeof v==="string"&&v.trim().length>6)||row.slice(12).some(isL))){
-      const k=row.slice(12).find(isL);cur={no:a,row:rg.s.r+i,text:"",opts:{},last:null,key:k?String(k).trim().toLowerCase():""};qs.push(cur);
-      textCells.shift();}
-    if(!cur)return;
-    if(!cur.key){const k=row.slice(12).find(isL);if(k)cur.key=String(k).trim().toLowerCase()}
-    if(!textCells.length)return;
-    const vals=textCells.map(([,v])=>String(v).replace(/\s+/g," ").trim());
-    let m=vals[0].match(/^([a-eA-E])\s*[.)]?$/);
-    if(m&&vals.length>1){cur.last=m[1].toLowerCase();cur.opts[cur.last]=vals.slice(1).join(" ");return}
-    m=vals[0].match(/^([a-eA-E])[.)]\s+(.+)$/);
-    if(m&&cur.text){cur.last=m[1].toLowerCase();cur.opts[cur.last]=[m[2],...vals.slice(1)].join(" ");return}
-    const t=vals.join(" ");if(cur.last)cur.opts[cur.last]+=" "+t;else cur.text+=(cur.text?" ":"")+t});
-  return qs.map(q=>({no:q.no,row:q.row,text:q.text.replace(/\s+([,.?:])/g,"$1").trim(),options:q.opts,answer:q.key}));
+function parseKmbSheet(ws,wb){
+  const rg=XLSX.utils.decode_range(ws["!ref"]);const R=XLSX.utils.sheet_to_json(ws,{header:1,raw:true,defval:null,blankrows:true}).map(r=>r||[]);
+  const isL=v=>v!=null&&/^\s*[a-eA-E]\s*\.?\s*$/.test(String(v));const isN=v=>(typeof v==="number"&&Number.isInteger(v)&&v>0&&v<300)||(typeof v==="string"&&/^\s*\d{1,3}\s*\.?\s*$/.test(v));
+  const num=v=>parseInt(String(v),10);const blank=v=>v==null||String(v).trim()==="";
+  /* kolom nomor kunci = kolom (>=10) yang angkanya sama dengan nomor soal; kunci ada di kolom sesudahnya */
+  const cnt={};R.forEach(r=>{if(isN(r[0]))for(let i=10;i<r.length;i++)if(isN(r[i])&&num(r[i])===num(r[0]))cnt[i]=(cnt[i]||0)+1});
+  const nc=+(Object.entries(cnt).sort((x,y)=>y[1]-x[1])[0]||[13])[0],kc=nc+1;
+  /* kunci di sheet terpisah (mis. "Kunci Jawaban") */
+  const ext={};(wb?wb.SheetNames:[]).filter(n=>/kunci/i.test(n)).forEach(n=>XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:true,defval:null}).forEach(r=>{const v=(r||[]).filter(x=>!blank(x));for(let i=0;i<v.length-1;i++)if(isN(v[i])&&isL(v[i+1]))ext[num(v[i])]=String(v[i+1]).trim().replace(".","").toLowerCase()}));
+  const starts=[];
+  R.forEach((r,i)=>{if(i<12)return;const fi=r.slice(0,nc).findIndex(v=>!blank(v));const hasNum=isN(r[nc]);
+    const prev=starts.length?starts[starts.length-1].n:0;
+    if(fi>=0&&isN(r[fi])&&(hasNum||r.slice(fi+1,nc).some(v=>!blank(v))||num(r[fi])===prev+1))starts.push({i,fi,n:num(r[fi])});
+    else if(fi<0&&hasNum)starts.push({i,fi:-1,n:num(r[nc])})});
+  const qs=[];
+  starts.forEach((st,k)=>{const end=k+1<starts.length?starts[k+1].i:R.length;let key="",text="",opts=[];
+    for(let r=st.i;r<end;r++){const row=R[r].slice();if(r===st.i&&st.fi>=0)row[st.fi]=null;
+      if(!key&&!blank(row[kc]))key=String(row[kc]).trim();
+      const cells=row.slice(0,nc).filter(v=>!blank(v)).map(v=>String(v).replace(/ /g," ").replace(/\s+/g," ").trim());if(!cells.length)continue;
+      let m=cells[0].match(/^([a-eA-E])\s*[.)]?$/);if(m){opts.push([m[1].toLowerCase(),cells.slice(1).join(" ")]);continue}
+      m=cells[0].match(/^([a-eA-E])[.)]\s+(.+)$/);if(m&&(text||opts.length)){opts.push([m[1].toLowerCase(),[m[2],...cells.slice(1)].join(" ")]);continue}
+      const t=cells.join(" ");if(opts.length)opts[opts.length-1][1]+=" "+t;else text+=(text?" ":"")+t}
+    if(!key&&ext[st.n])key=ext[st.n];
+    const last=qs[qs.length-1];if(last&&last.src===st.n&&!last.text&&!Object.keys(last.options).length){qs.pop();key=key||last.raw}
+    let L=opts.map(o=>o[0]);if(new Set(L).size!==L.length||L.join()!==[...L].sort().join())L="abcde".slice(0,L.length).split("");
+    const options={};L.forEach((l,j)=>options[l]=opts[j][1].replace(/\s+([,.?:])/g,"$1").trim());
+    const kl=key.toLowerCase().replace(/[\s.]/g,"");
+    qs.push({src:st.n,row:rg.s.r+st.i,raw:key,text:text.replace(/\s+([,.?:])/g,"$1").trim(),options,answer:/^[a-e]$/.test(kl)?kl:""})});
+  qs.forEach((q,i)=>{q.no=i+1;if(Object.keys(q.options).length<2&&/gambar/i.test(q.text)){"abcd".split("").forEach(l=>q.options[l]="Gambar "+l.toUpperCase());q.picOpt=1}});
+  return qs;
 }
 async function xlsxImages(buf,sheetName){
   await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
@@ -807,8 +819,30 @@ async function stackImages(blobs,max=900){const ims=[];for(const b of blobs){try
   const W=Math.min(max,Math.max(...ims.map(i=>i.width)));const hs=ims.map(i=>Math.round(i.height*Math.min(1,W/i.width)));
   const c=document.createElement("canvas");c.width=W;c.height=hs.reduce((a,b)=>a+b,0)+8*(ims.length-1);const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);
   let y=0;ims.forEach((im,i)=>{const w=Math.round(im.width*Math.min(1,W/im.width));x.drawImage(im,0,y,w,hs[i]);y+=hs[i]+8});return c.toDataURL("image/jpeg",.8)}
+/* Paket soal siap pakai (.json) — hasil bedah file Excel lengkap dengan gambar */
+async function importPaket(file){
+  let P;try{P=JSON.parse(await file.text())}catch(e){return toast("File paket tidak valid",4000)}
+  const mods=(P&&P.modules)||[];if(!mods.length)return toast("Paket tidak berisi sheet soal",4000);
+  const ex=t=>S.modules.find(x=>x.title.trim().toLowerCase()===t.trim().toLowerCase());
+  openModal(`<div class="head"><h2>Pasang paket soal</h2><button class="btn sm" onclick="closeModal()">Batal</button></div>
+   <div class="notice">${mods.length} sheet · ${mods.reduce((a,m)=>a+m.questions.length,0)} soal · ${mods.reduce((a,m)=>a+m.questions.filter(x=>x.image).length,0)} soal bergambar. Centang sheet yang mau dipasang.</div>
+   <div class="sheet-wrap" style="max-height:none;margin-top:10px"><table class="sheet"><thead><tr><th></th><th>Sheet</th><th>Grade</th><th>Level</th><th>Soal</th><th>Gambar</th><th>Keterangan</th></tr></thead><tbody>
+   ${mods.map((m,i)=>`<tr><td><input type="checkbox" data-pk="${i}" ${ex(m.title)?"":"checked"}></td><td><b>${esc(m.title)}</b></td><td>${esc(m.grade||"")}</td><td>${esc(m.level||"")}</td><td>${m.questions.length}</td><td>${m.questions.filter(x=>x.image).length}</td><td class="small">${ex(m.title)?"⚠️ Sudah ada sheet bernama sama — bila dicentang, sheet lama <b>diganti</b> (nilai peserta di sheet lama ikut terhapus)":"Baru"}</td></tr>`).join("")}</tbody></table></div>
+   <div class="row" style="margin-top:12px"><button class="btn pri" id="pkGo">Pasang sheet terpilih</button><span class="small muted" id="pkSt"></span></div>`);
+  $("pkGo").onclick=async()=>{const sel=[...document.querySelectorAll("[data-pk]:checked")].map(c=>mods[+c.dataset.pk]);if(!sel.length)return toast("Belum ada yang dicentang");
+    const old=sel.filter(m=>ex(m.title));if(old.length&&!confirm(`Ganti ${old.length} sheet lama (${old.map(m=>m.title).join(", ")})? Soal & nilai peserta di sheet lama akan terhapus.`))return;
+    const b=$("pkGo");b.disabled=true;let done=0;
+    try{for(const m of sel){const o=ex(m.title);if(o)await q(SB.from("pk_modules").delete().eq("id",o.id));
+        const mod=await q(SB.from("pk_modules").insert({title:m.title,grade:m.grade||null,level:m.level||"Junior",duration_min:m.duration_min||90,pass_score:m.pass_score||56,sort:S.modules.length+(++done)}).select().single());
+        const L=m.questions.map(x=>({no:x.no,text:x.text,options:x.options,answer:x.answer,image:x.image||null,topic:x.topic||guessTopic(x.text+" "+Object.values(x.options).join(" ")),time_sec:x.time_sec||null}));
+        for(let i=0;i<L.length;i+=8){await q(SB.from("pk_questions").insert(L.slice(i,i+8).map(x=>({...x,module_id:mod.id}))));$("pkSt").textContent=`${m.title}: ${Math.min(L.length,i+8)}/${L.length}`}
+        BANKSEL=mod.id}
+      closeModal();await loadAll();renderTab();toast(sel.length+" sheet soal terpasang",4000)}
+    catch(err){b.disabled=false;b.textContent="Coba lagi";toast("Gagal: "+err.message,6000)}};
+}
 async function importExcel(file){
   if(!file)return;$("bImp").value="";toast("Membaca file…");
+  if(/\.json$/i.test(file.name))return importPaket(file);
   try{const buf=await file.arrayBuffer();const wb=XLSX.read(buf);
     let list=[],fmt="template",title=file.name.replace(/\.[^.]+$/,""),grade="",imgNote="";
     const first=wb.Sheets[wb.SheetNames[0]];const tpl=XLSX.utils.sheet_to_json(first,{defval:""});
@@ -817,13 +851,13 @@ async function importExcel(file){
       list=tpl.map(norm).filter(r=>r.soal).map((r,i)=>{const options={};["a","b","c","d","e"].forEach(l=>{if(r[l])options[l]=r[l]});return {no:+r.no||i+1,text:r.soal,options,answer:(r.kunci||"").toLowerCase().charAt(0),topic:r.topik||guessTopic(r.soal+" "+Object.values(options).join(" ")),time_sec:+r.waktu||null}})}
     else{fmt="kmb";
       const sn=wb.SheetNames.find(n=>/soal/i.test(n))||wb.SheetNames.map(n=>[n,XLSX.utils.decode_range(wb.Sheets[n]["!ref"]||"A1").e.r]).sort((a,b)=>b[1]-a[1])[0][0];
-      list=parseKmbSheet(wb.Sheets[sn]);
+      list=parseKmbSheet(wb.Sheets[sn],wb);
       const cover=wb.SheetNames.map(n=>XLSX.utils.sheet_to_csv(wb.Sheets[n])).join(" ").slice(0,4000);
       const lv=cover.match(/LEVELING\s*UP[^,\n]*/i);if(lv)title="Tes Teori "+lv[0].replace(/\s+/g," ").replace(/LEVELING\s*UP\s*-?\s*/i,"").trim();
       const gm=(cover.match(/MEKANIK\s*(G\s?\d{1,2})/i)||file.name.match(/\b(G\s?\d{1,2})\b/i)||[])[1];if(gm)grade=gm.replace(/\s/g,"").toUpperCase();
       if(/\.xlsx$/i.test(file.name)){try{const imgs=await xlsxImages(buf,sn);const by={};imgs.forEach(o=>{const q=[...list].reverse().find(x=>x.row<=o.row);if(q)(by[q.no]=by[q.no]||[]).push(o.blob)});
           for(const q of list)if(by[q.no])q.image=await stackImages(by[q.no]);imgNote=imgs.length+" gambar ikut terimpor."}catch(e){imgNote="Gambar gagal dibaca ("+e.message+")."}}
-      else imgNote="File .xls lama: gambar tidak bisa ikut. Agar gambar ikut, buka file di Excel → Simpan Sebagai → .xlsx, lalu unggah ulang. Atau tambahkan gambar per soal lewat tombol Ubah.";
+      else imgNote="File .xls lama: teks & kunci terbaca, tetapi gambar tidak bisa dibaca browser. Simpan sebagai .xlsx di Excel agar gambar ikut, atau tambahkan gambar lewat tombol Ubah.";
       list.forEach(q=>q.topic=guessTopic(q.text+" "+Object.values(q.options).join(" ")))}
     list=list.filter(q=>q.text&&Object.keys(q.options).length>=2);
     if(!list.length)return toast("Soal tidak terbaca. Gunakan Template Excel atau format lembar soal KMB.",5000);
