@@ -5,7 +5,7 @@
 (function () {
   if (typeof pageSet !== 'function' || typeof S === 'undefined') return;
   const APPS = { kmb: 'Manpower KMB', mbj: 'Manpower MBJ', 'bupr-ampah': 'Manpower BUPR', 'kta-tra': 'Manpower KTA-TRA', apd: 'APD', notulensi: 'Notulensi', 'unit-monitoring': 'Monitoring Unit', psikotest: 'Psikotest' };
-  const A = { team: [], rows: null, loading: false, err: null, limit: 300, app: '', who: '', q: '', kind: '', merge: true, open: {}, from: '', to: '' };
+  const A = { team: [], rows: null, loading: false, err: null, limit: 300, app: '', who: '', q: '', kind: '', merge: true, open: {}, from: '', to: '', showHidden: false };
 
   // ---------- membaca rincian "Data — kolom: lama → baru; ..." ----------
   const HIDE = /^(updatedAt|updated_at|updatedBy|createdAt|created_at|id|uid|ts|at|by|foto|photo|files?)$/i;
@@ -110,7 +110,7 @@
     const out = [];
     rows.forEach((r) => {
       const g = out[out.length - 1];
-      if (g && g.app === r.app && (g.site || '') === (r.site || '') && g.actor === r.actor && g.action === r.action && dkey(g.first) === dkey(r.at) && Date.parse(g.first) - Date.parse(r.at) <= 15 * 60e3) {
+      if (g && !!g.hidden_at === !!r.hidden_at && g.app === r.app && (g.site || '') === (r.site || '') && g.actor === r.actor && g.action === r.action && dkey(g.first) === dkey(r.at) && Date.parse(g.first) - Date.parse(r.at) <= 15 * 60e3) {
         g.ids.push(r.id); g.n++; g.first = r.at; g.dets.unshift(r.detail || ''); return;
       }
       out.push({ ...r, ids: [r.id], n: 1, first: r.at, dets: [r.detail || ''] });
@@ -122,7 +122,7 @@
     if (A.loading || !S.sb || !owner()) return;
     A.loading = true; A.err = null;
     try {
-      let q = S.sb.from('kta_activity_log').select('id,at,app,site,page,actor,role,action,detail').order('at', { ascending: false }).limit(A.limit);
+      let q = S.sb.from('kta_activity_log').select('id,at,app,site,page,actor,role,action,detail,hidden_at,hidden_by').order('at', { ascending: false }).limit(A.limit);
       if (A.app) q = q.eq('app', A.app);
       if (A.from) q = q.gte('at', wibStart(A.from));
       if (A.to) q = q.lt('at', wibStart(addD(A.to, 1)));
@@ -139,7 +139,7 @@
 
   function filtered() {
     const q = A.q.toLowerCase();
-    return A.rows.filter((r) => (!A.who || whoOf(r.actor) === A.who) && (!A.kind || kindOf(r) === A.kind) && (!q || `${r.action} ${r.detail || ''} ${r.actor} ${r.site || ''} ${APPS[r.app] || ''}`.toLowerCase().includes(q)));
+    return A.rows.filter((r) => (A.showHidden || !r.hidden_at) && (!A.who || whoOf(r.actor) === A.who) && (!A.kind || kindOf(r) === A.kind) && (!q || `${r.action} ${r.detail || ''} ${r.actor} ${r.site || ''} ${APPS[r.app] || ''}`.toLowerCase().includes(q)));
   }
 
   const chip = (c) => `<span class="actpill"><b>${esc(c.k)}</b>: ${c.a ? esc(c.a) : '<i>kosong</i>'} → <b>${c.b ? esc(c.b) : '<i>dikosongkan</i>'}</b></span>`;
@@ -166,6 +166,7 @@
     if (A.rows === null) { load(); return head + '<div class="lock"><p>Memuat aktivitas…</p></div>'; }
     const today = dkey(Date.now());
     const rows = filtered();
+    const nHidden = A.rows.filter((r) => r.hidden_at).length;
     const people = [...new Set([...A.rows.map((r) => whoOf(r.actor)), ...A.team])].sort((a, b) => (a === 'link tanpa login') - (b === 'link tanpa login') || a.localeCompare(b));
     const cnt = {}; A.rows.forEach((r) => { const w = whoOf(r.actor); cnt[w] = (cnt[w] || 0) + 1; });
     const kc = { add: 0, upd: 0, del: 0, apr: 0, acc: 0 }, ac = {};
@@ -188,7 +189,7 @@
       ${[['today', 'Hari ini'], ['7', '7 hari'], ['30', '30 hari'], ['month', 'Bulan ini'], ['lastmonth', 'Bulan lalu'], ['', 'Semua']].map(([k, l]) => `<button type="button" class="actk" data-actrange="${k}" aria-pressed="${rangeKey() === k}">${l}</button>`).join('')}
     </div>
     <div class="actbar2"><span class="actlbl">Jenis:</span>${kchip('', 'Semua')}${kchip('add', 'Tambah')}${kchip('upd', 'Ubah')}${kchip('del', 'Hapus')}${kchip('apr', 'Persetujuan')}${kchip('acc', 'Masuk & akses')}
-      <span style="flex:1"></span><label class="actmerge"><input type="checkbox" id="actMerge" ${A.merge ? 'checked' : ''}> Gabungkan simpan berulang pada data yang sama</label></div>`;
+      <span style="flex:1"></span>${nHidden ? `<label class="actmerge"><input type="checkbox" id="actShowHidden" ${A.showHidden ? 'checked' : ''}> Tampilkan yang disembunyikan (${nHidden})</label>` : ''}<label class="actmerge"><input type="checkbox" id="actMerge" ${A.merge ? 'checked' : ''}> Gabungkan simpan berulang pada data yang sama</label></div>`;
     const kpis = `<div class="actkpis">
       <div><span>Aktivitas${span ? ' (' + span + ')' : ''}</span><b>${A.rows.length}</b></div>
       <div><span>Ubah</span><b style="color:#1D4ED8">${kc.upd}</b></div><div><span>Tambah</span><b style="color:#15803D">${kc.add}</b></div>
@@ -199,7 +200,7 @@
       return `<section class="actday"><div class="actdayh"><b>${lbl}</b><span>${g.rows.length} aktivitas</span></div>${g.rows.map((r) => {
         const k = kindOf(r), K = KIND[k];
         return `<div class="actrow"><div class="acttime"><b>${hm(r.at)}</b>${r.n > 1 ? `<span>mulai ${hm(r.first)}</span>` : ''}</div><div class="actline"><i class="actdot ${K.c}"></i></div><div class="actbody">
-          <div class="acttop"><span class="actkind ${K.c}">${K.t.toUpperCase()}</span><span class="actapp">${esc(APPS[r.app] || r.app || '')}${r.site ? ' · ' + esc(r.site) : ''}</span><b class="acttitle">${esc(titleOf(r))}</b>${r.n > 1 ? `<span class="actn">disimpan ${r.n} kali</span>` : ''}${/^Draf \(belum disetujui\)/.test(r.action || '') ? '<span class="actn" style="background:#FFEDD5;color:#9A3412">draf, belum disetujui</span>' : ''}<button type="button" class="actx" data-actdel="${r.ids.join(',')}" title="Hapus catatan ini" aria-label="Hapus catatan ini">×</button></div>
+          <div class="acttop"><span class="actkind ${K.c}">${K.t.toUpperCase()}</span><span class="actapp">${esc(APPS[r.app] || r.app || '')}${r.site ? ' · ' + esc(r.site) : ''}</span><b class="acttitle">${esc(titleOf(r))}</b>${r.n > 1 ? `<span class="actn">disimpan ${r.n} kali</span>` : ''}${/^Draf \(belum disetujui\)/.test(r.action || '') ? '<span class="actn" style="background:#FFEDD5;color:#9A3412">draf, belum disetujui</span>' : ''}${r.hidden_at ? `<span class="actn" style="background:#FEF3C7;color:#92400E">disembunyikan</span><button type="button" class="actx actunhide" data-actunhide="${r.ids.join(',')}">Tampilkan lagi</button>` : `<button type="button" class="actx" data-actdel="${r.ids.join(',')}" title="Sembunyikan catatan ini" aria-label="Sembunyikan catatan ini">Sembunyikan</button>`}</div>
           <div class="actwho">oleh <b>${esc(roleName(r) || 'tanpa peran')}</b>${r.actor && r.actor !== 'link tanpa login' ? ' · ' + esc(r.actor) : ''}</div>
           ${changesHtml(r, k)}
         </div></div>`;
@@ -207,7 +208,7 @@
     }).join('');
     return head + `<div class="scard actcard">${tools}</div>${kpis}${A.err ? `<div class="nb warn">Aktivitas belum bisa dimuat: ${esc(A.err)}</div>` : ''}
       ${body || '<div class="scard"><p class="small" style="margin:0">Belum ada aktivitas yang cocok dengan pilihan ini. Aktivitas mulai dicatat sejak 24 Okt 2026.</p></div>'}
-      <div class="actfoot">${rows.length ? `<button type="button" class="btn btn-g actdel-all" id="actDelAll">Hapus ${rows.length} catatan yang tampil</button>` : ''}${A.rows.length >= A.limit ? `<button type="button" class="btn btn-g" id="actMore">${A.from || A.to ? 'Tampilkan lebih banyak di rentang ini' : 'Tampilkan hari sebelumnya'}</button>` : ''}</div>`;
+      <div class="actfoot">${rows.length ? `<button type="button" class="btn btn-g actdel-all" id="actDelAll">Sembunyikan ${rows.filter((r) => !r.hidden_at).length} catatan yang tampil</button>` : ''}${A.rows.length >= A.limit ? `<button type="button" class="btn btn-g" id="actMore">${A.from || A.to ? 'Tampilkan lebih banyak di rentang ini' : 'Tampilkan hari sebelumnya'}</button>` : ''}</div>`;
   }
   function rangeKey() {
     const t = dkey(Date.now()), m0 = t.slice(0, 8) + '01';
@@ -281,6 +282,7 @@
     if (e.target.id === 'actApp') { A.app = e.target.value; A.rows = null; render(); }
     if (e.target.id === 'actWho') { A.who = e.target.value; render(); }
     if (e.target.id === 'actMerge') { A.merge = e.target.checked; render(); }
+    if (e.target.id === 'actShowHidden') { A.showHidden = e.target.checked; render(); }
     if (e.target.id === 'actFrom' || e.target.id === 'actTo') {
       A[e.target.id === 'actFrom' ? 'from' : 'to'] = e.target.value || '';
       if (A.from && A.to && A.from > A.to) { if (e.target.id === 'actFrom') A.to = A.from; else A.from = A.to; }
@@ -300,15 +302,17 @@
     if (t.closest('#actXls')) { exportXls().catch((er) => alert('Gagal membuat Excel: ' + (er.message || er))); return; }
     const rb = t.closest('[data-actrange]'); if (rb) { setRange(rb.dataset.actrange); return; }
     const kb = t.closest('[data-actkind]'); if (kb) { A.kind = kb.dataset.actkind; render(); return; }
-    const x = t.closest('[data-actdel]'), all = t.closest('#actDelAll');
-    if ((!x && !all) || !owner()) return;
-    const ids = x ? x.dataset.actdel.split(',').map(Number) : filtered().map((r) => r.id);
-    if (!ids.length || !confirm(x ? (ids.length > 1 ? `Hapus catatan ini (gabungan ${ids.length} simpan)?` : 'Hapus catatan aktivitas ini?') : `Hapus ${ids.length} catatan aktivitas yang sedang tampil? Data di web monitoring tidak berubah.`)) return;
+    const x = t.closest('[data-actdel]'), all = t.closest('#actDelAll'), un = t.closest('[data-actunhide]');
+    if ((!x && !all && !un) || !owner()) return;
+    const ids = (x || un) ? (x || un).dataset[x ? 'actdel' : 'actunhide'].split(',').map(Number) : filtered().filter((r) => !r.hidden_at).map((r) => r.id);
+    if (!ids.length) return;
+    if (!un && !confirm(x ? 'Sembunyikan catatan ini? Catatan tidak dihapus dan bisa ditampilkan lagi.' : `Sembunyikan ${ids.length} catatan yang sedang tampil? Catatan tidak dihapus dan bisa ditampilkan lagi lewat "Tampilkan yang disembunyikan".`)) return;
+    const patch = un ? { hidden_at: null, hidden_by: null } : { hidden_at: new Date().toISOString(), hidden_by: (S.user && S.user.email) || 'Pemilik' };
     for (let i = 0; i < ids.length; i += 200) {
-      const { error } = await S.sb.from('kta_activity_log').delete().in('id', ids.slice(i, i + 200));
-      if (error) { alert('Gagal menghapus: ' + error.message); break; }
+      const { error } = await S.sb.from('kta_activity_log').update(patch).in('id', ids.slice(i, i + 200));
+      if (error) { alert('Gagal: ' + error.message); break; }
     }
-    A.rows = A.rows.filter((r) => !ids.includes(r.id)); render();
+    A.rows.forEach((r) => { if (ids.includes(r.id)) Object.assign(r, patch); }); render();
   });
 
   const css = document.createElement('style');
@@ -347,7 +351,7 @@
   .acttitle{font-size:15.5px;color:var(--ink,#1e1b3a)}
   .actn{font-size:12px;font-weight:600;color:var(--ink-2,#4b4868);background:#F2F1FA;border-radius:99px;padding:3px 10px}
   .actx{margin-left:auto;border:0;background:none;color:var(--muted,#9a96ad);font-size:18px;line-height:1;cursor:pointer;padding:4px 8px;border-radius:6px}
-  .actx:hover{color:var(--crit,#dc2626);background:#fee2e2}
+  .actx{font-size:12px;font-weight:700}.actx:hover{color:#92400E;background:#FEF3C7}.actunhide{color:#5B21B6}
   .actwho{color:var(--ink-2,#4b4868);font-size:13px}.actwho b{color:var(--ink,#1e1b3a)}
   .actpills{display:flex;gap:8px;flex-wrap:wrap}
   .actpill{font-size:13px;background:#F7F6FD;border:1px solid #EFEDF7;border-radius:8px;padding:6px 10px;color:var(--ink-2,#4b4868);max-width:100%;word-break:break-word}
