@@ -687,7 +687,7 @@ function bankGroups(){const groups={};S.modules.forEach(x=>{const k=x.level||"La
   return order.map(k=>[k,groups[k].sort((a,b)=>(a.sort||0)-(b.sort||0))])}
 function bankShelf(){if(!S.modules.length)return "";
   const pill=x=>`<button class="pill ${x.id===BANKSEL?"on":""}${x.active?"":" off"}" data-id="${x.id}" title="${esc(x.title)} — seret untuk memindah"><i class="grip" aria-hidden="true">⠿</i><b>${esc(x.grade||"–")}</b><span>${esc(x.title)}</span><small>${S.qcount?.[x.id]||0} soal</small></button>`;
-  return `<div class="shelf-hint small muted">Klik folder untuk buka/tutup · seret sheet ke folder atau urutan lain · seret nama folder untuk mengubah urutan folder${matchMedia("(pointer:coarse)").matches?" · di HP tahan lalu geser tanda ⠿":""}</div>`+
+  return `<div class="shelf-hint small muted">Klik folder untuk buka/tutup · seret untuk memindah${matchMedia("(pointer:coarse)").matches?" · di HP tahan lalu geser tanda ⠿":""}</div>`+
    bankGroups().map(([k,list])=>{const open=!FOLD[k];return `<div class="shelf-row" data-lv="${esc(k)}"><button class="shelf-lv" type="button" data-fold="${esc(k)}" data-fh="${esc(k)}" title="Klik buka/tutup · seret untuk memindah urutan folder"><i class="grip" aria-hidden="true">⠿</i><span class="caret">${open?"▾":"▸"}</span> 📁 ${esc(k)} <small>(${list.length})</small></button><div class="shelf-items" data-lv="${esc(k)}">${open?list.map(pill).join(""):`<span class="small muted shelf-closed">${list.length} sheet · klik folder untuk membuka</span>`}</div></div>`}).join("")}
 /* seret & lepas sheet / folder di rak Bank Soal (mouse: seret langsung · HP: tahan lalu geser ⠿) */
 function shelfDnD(box,m){let st=null,ghost=null,timer=null;
@@ -735,7 +735,7 @@ async function renameSheet(id,m){const x=S.modules.find(y=>y.id===id);const el=d
   inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();done(true)}if(e.key==="Escape")done(false)};inp.onblur=()=>done(true)}
 async function vBank(m){
   if(!BANKSEL||!S.modules.find(x=>x.id===BANKSEL))BANKSEL=S.modules[0]?.id||null;
-  m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><div><h2>Bank Soal</h2><p class="sub">Satu file soal untuk satu grade (mis. Soal G2). Unggah file Excel apa adanya (.xlsx/.xls) — soal, pilihan, dan kunci terbaca otomatis. Untuk paket soal lengkap dengan gambar, unggah file <b>Paket_Soal_KMB.json</b>.</p></div>
+  m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><div><h2>Bank Soal</h2><p class="sub">Impor soal dari file Excel (.xlsx) — soal, pilihan, kunci, dan gambar terbaca otomatis.</p></div>
    <div class="row"><button class="btn pri" id="bUp">⬆ Unggah file soal</button><input type="file" id="bImp" accept=".xlsx,.xls,.csv,.json" hidden><button class="btn sm" id="bTpl" title="Opsional, bila soal belum punya file">Template kosong</button></div></div>
    <div class="shelf" id="bDD">${bankShelf()}</div>
    <div>
