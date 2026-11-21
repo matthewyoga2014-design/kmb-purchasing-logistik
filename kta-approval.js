@@ -23,12 +23,9 @@
   };
   const token = () => (typeof SHARE_KEY !== 'undefined' && SHARE_KEY && typeof GUEST_ROLE !== 'undefined' && GUEST_ROLE === 'editor') ? SHARE_KEY : null;
   const sb = () => WEB.sb;
-  A.mode = function () {
-    if (!CAN_EDIT || !WEB.sb) return 'none';
-    if (!A.info.enabled) return 'direct';
-    if (A.info.approver) return 'direct';
-    return 'draft';
-  };
+  // model "langsung tampil, ditinjau": semua penyimpanan langsung; simpanan Editor ditandai belum ditinjau
+  A.mode = function () { return (!CAN_EDIT || !WEB.sb) ? 'none' : 'direct'; };
+  A.marks = [];
   A.isApprover = () => !!A.info.approver;
 
   async function loadInfo() {
@@ -36,11 +33,21 @@
     const r = await sb().rpc('kta_approval_info', { p_state: WEB_ID, p_token: token() });
     if (!r.error && r.data) A.info = r.data;
   }
+  const myEmail = () => String((WEB.user && WEB.user.email) || '').toLowerCase();
   async function loadMine() {
-    if (!WEB.sb || !CAN_EDIT || A.info.approver) { A.mine = []; return; }
-    const r = await sb().rpc('kta_cr_mine', { p_state: WEB_ID, p_token: token() });
+    A.mine = [];
+    if (!WEB.sb || !CAN_EDIT || token() || !myEmail()) return;
+    const since = new Date(Date.now() - 30 * 864e5).toISOString();
+    const r = await sb().from('kta_change_history').select('*').eq('state_id', WEB_ID).eq('actor', myEmail()).gte('at', since).order('at', { ascending: false }).limit(100);
     A.mine = r.error ? [] : (r.data || []);
   }
+  async function loadMarks() {
+    if (!WEB.sb) { A.marks = []; return; }
+    const r = await sb().rpc('kta_pending_marks', { p_state: WEB_ID, p_token: (typeof SHARE_KEY !== 'undefined' && SHARE_KEY) || null });
+    A.marks = r.error || !Array.isArray(r.data) ? [] : r.data;
+  }
+  let marksT = null;
+  const refreshMarks = () => { clearTimeout(marksT); marksT = setTimeout(async () => { try { await loadInfo(); await loadMarks(); } catch (e) {} ui(); }, 700); };
   async function loadDraft() {
     A.ops = []; A.savedAt = null;
     if (A.mode() !== 'draft') return;
@@ -51,7 +58,7 @@
     }
   }
   A.refresh = async function () {
-    try { await loadInfo(); await loadMine(); await loadDraft(); } catch (e) { /* tidak boleh mengganggu web */ }
+    try { await loadInfo(); await loadMarks(); await loadDraft(); } catch (e) { /* tidak boleh mengganggu web */ }
     if (A.base) viewFromBase(); else if (typeof STATE !== 'undefined') { A.base = clone(STATE); A.baseVer = WEB.ver; }
     ui();
   };
@@ -70,6 +77,7 @@
   setState = function (d) {
     if (bypass) return _setState(d);
     A.base = clone(d); A.baseVer = WEB.ver;
+    if (A.info.enabled) refreshMarks();
     if (A.mode() === 'draft' && A.ops.length) return viewFromBase();
     return _setState(d);
   };
@@ -126,7 +134,7 @@
     const ops = diffDoc(prev, next);
     if (!ops.length) return;
     const action = A._action || 'simpan', note = A._note || null;
-    sb().rpc('kta_hist_add', { p_state: WEB_ID, p_action: action, p_ops: ops, p_note: note, p_token: token() }).then(() => {}, () => {});
+    sb().rpc('kta_hist_add', { p_state: WEB_ID, p_action: action, p_ops: ops, p_note: note, p_token: token() }).then(() => { if (A.info.enabled) refreshMarks(); }, () => {});
   };
 
   // ---------------- tampilan: tombol Simpan di header ----------------
@@ -153,6 +161,8 @@
   .kta-banner.or{background:#FFF7ED;border-color:#FED7AA;color:#9A3412}
   .kta-banner b{font-weight:800}.kta-banner span{flex:1;min-width:220px}
   .kta-banner button{all:unset;cursor:pointer;font-weight:800;color:inherit;text-decoration:underline}
+  tr.kta-rev>td{background:#FEFCE8 !important;box-shadow:inset 0 1px 0 #FDE047,inset 0 -1px 0 #FDE047}
+  tr.kta-rev>td:first-child{box-shadow:inset 3px 0 0 #CA8A04,inset 0 1px 0 #FDE047,inset 0 -1px 0 #FDE047}
   tr.kta-chg>td{background:#FFF7ED !important;box-shadow:inset 0 1px 0 #FDBA74,inset 0 -1px 0 #FDBA74}
   tr.kta-chg>td:first-child{box-shadow:inset 3px 0 0 #EA580C,inset 0 1px 0 #FDBA74,inset 0 -1px 0 #FDBA74}
   #ktaP{position:fixed;inset:0;z-index:90;background:rgba(30,27,58,.5);display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto}
@@ -224,28 +234,40 @@
     } else {
       mt.textContent = 'Simpan';
       sp.classList.add('quiet');
-      const p = A.info.pending || 0;
-      if (A.info.approver && A.info.enabled && p) { st.className = 'kta-st wait'; st.innerHTML = `<i></i>${p} usulan menunggu persetujuan`; }
-      else { st.className = 'kta-st ok'; st.innerHTML = '<i></i>Tersimpan' + (WEB.ver ? ' · ' + jam(WEB.ver) : ''); }
+      const p = A.info.pending || 0, mp = A.info.mine_pending || 0;
+      if (A.info.approver && A.info.enabled && p) { st.className = 'kta-st wait'; st.innerHTML = `<i></i>${p} perubahan perlu ditinjau`; }
+      else { st.className = 'kta-st ok'; st.innerHTML = '<i></i>Tersimpan' + (WEB.ver ? ' · ' + jam(WEB.ver) : '') + (A.info.enabled && mp && !A.info.approver ? ` · ${mp} menunggu ditinjau` : ''); }
     }
     banner(); decorate();
   }
   A.ui = ui;
 
+  const seenKey = () => 'kta-rej-seen:' + WEB_ID;
+  const seenRej = () => { try { return JSON.parse(localStorage.getItem(seenKey()) || '[]'); } catch (e) { return []; } };
   function banner() {
     const v = document.getElementById('view'); if (!v) return;
     let b = document.getElementById('ktaBanner');
-    const m = A.mode(), pend = A.mine.filter((r) => r.status === 'pending').length;
+    const seen = seenRej(), rej = (A.info.mine_rejected || []).filter((x) => !seen.includes(x.id));
     let html = '';
-    if (m === 'draft' && A.ops.length) html = `<div class="kta-banner or" id="ktaBanner"><span><b>${A.ops.length} perubahan Anda belum diajukan.</b> Baris berwarna oranye adalah yang Anda ubah. Draf tersimpan otomatis; kalau tidak diajukan dalam ${A.info.auto_minutes} menit setelah aktivitas terakhir, draf dikirim otomatis ke Pemilik sebagai laporan.</span><button type="button" data-kta="submit">Ajukan simpan</button></div>`;
-    else if (m === 'draft' && pend) html = `<div class="kta-banner" id="ktaBanner"><span><b>${pend} usulan Anda masih menunggu persetujuan.</b> Data yang tampil adalah versi terakhir yang sudah disetujui.</span><button type="button" data-kta="mine">Lihat usulan saya</button></div>`;
-    else if (A.info.approver && A.info.enabled && A.info.pending) html = `<div class="kta-banner" id="ktaBanner"><span><b>${A.info.pending} usulan perubahan menunggu persetujuan Anda.</b></span><button type="button" data-kta="approve">Buka persetujuan</button></div>`;
+    if (rej.length) {
+      const x = rej[0], n = rej.reduce((t, r) => t + ((r.ops || []).length), 0);
+      html = `<div class="kta-banner or" id="ktaBanner"><span><b>${n} perubahan Anda ditolak</b> oleh ${h(x.by || 'Pemilik')}${x.note ? ': “' + h(x.note) + '”' : ''}. Datanya sudah dikembalikan ke nilai sebelumnya.</span><button type="button" data-kta="mine">Lihat rincian</button><button type="button" data-kta="rejok">Tutup</button></div>`;
+    } else if (A.info.approver && A.info.enabled && A.info.pending) html = `<div class="kta-banner" id="ktaBanner"><span><b>${A.info.pending} perubahan dari Editor perlu ditinjau.</b> Sudah tampil untuk semua orang dan ditandai kuning sampai Anda setujui atau tolak.</span><button type="button" data-kta="approve">Buka tinjauan</button></div>`;
     if (!html) { if (b) b.remove(); return; }
     if (b) b.outerHTML = html; else v.insertAdjacentHTML('afterbegin', html);
   }
   // baris yang diubah editor diberi warna oranye
   function decorate() {
     document.querySelectorAll('tr.kta-chg').forEach((t) => t.classList.remove('kta-chg'));
+    document.querySelectorAll('tr.kta-rev').forEach((t) => { t.classList.remove('kta-rev'); t.removeAttribute('title'); });
+    if (A.info.enabled && A.marks.length && typeof DATA !== 'undefined' && DATA && DATA.positions) {
+      const by = {}; A.marks.filter((m) => m.c === 'positions').forEach((m) => { (by[m.k] = by[m.k] || []).push(m); });
+      keyed(DATA.positions, 'positions').forEach(([k], i) => {
+        const ms = by[k]; if (!ms) return;
+        const tip = 'Belum ditinjau: ' + [...new Set(ms.map((m) => m.op === 'add' ? 'baris baru' : fieldLabel(m.f || '')))].join(', ') + ' · oleh ' + [...new Set(ms.map((m) => m.who))].join(', ');
+        document.querySelectorAll(`[data-epos="${i}"]`).forEach((b) => { const tr = b.closest('tr'); if (tr) { tr.classList.add('kta-rev'); tr.title = tip; } });
+      });
+    }
     if (A.mode() !== 'draft' || !A.ops.length || typeof DATA === 'undefined') return;
     const ks = new Set(A.ops.filter((o) => o.c === 'positions').map((o) => o.k));
     keyed(DATA.positions, 'positions').forEach(([k], i) => {
@@ -267,6 +289,7 @@
     if (!k) return;
     e.preventDefault(); closeMenu();
     const a = k.getAttribute('data-kta');
+    if (a === 'rejok') { try { localStorage.setItem(seenKey(), JSON.stringify(seenRej().concat((A.info.mine_rejected || []).map((x) => x.id)).slice(-200))); } catch (er) {} banner(); return; }
     if (a === 'submit') openLeave(false);
     else if (a === 'discard') { if (confirm('Buang semua perubahan yang belum diajukan?')) A.discard(); }
     else if (a === 'mine') openPanel('mine');
@@ -283,8 +306,9 @@
       items.push(`<button type="button" data-kta="mine">Usulan saya${A.mine.filter((r) => r.status === 'pending').length ? ` <span class="ct" style="background:#DBEAFE;color:#1E40AF">${A.mine.filter((r) => r.status === 'pending').length}</span>` : ''}</button>`);
       if (A.ops.length) items.push('<button type="button" data-kta="discard" class="danger">Batalkan semua perubahan</button>');
     } else {
-      if (A.info.approver) items.push(`<button type="button" data-kta="approve">Menunggu persetujuan${A.info.pending ? ` <span class="ct">${A.info.pending}</span>` : ''}</button>`);
+      if (A.info.approver) items.push(`<button type="button" data-kta="approve">Perlu ditinjau${A.info.pending ? ` <span class="ct">${A.info.pending}</span>` : ''}</button>`);
       if (A.info.approver) items.push('<button type="button" data-kta="history">Riwayat perubahan harian</button>');
+      if (!A.info.approver && !token()) items.push(`<button type="button" data-kta="mine">Perubahan saya${A.info.mine_pending ? ` <span class="ct" style="background:#FEF9C3;color:#854D0E">${A.info.mine_pending}</span>` : ''}</button>`);
     }
     items.push('<button type="button" data-kta="xlsx">Unduh Excel (format web)</button>');
     if (typeof IS_OWNER !== 'undefined' && IS_OWNER) items.push('<button type="button" data-kta="settings">Pengaturan simpan & persetujuan</button>');
@@ -350,8 +374,8 @@
   A.openPanel = openPanel;
   function tabs() {
     const t = [];
-    if (A.info.approver) { t.push(['approve', 'Menunggu persetujuan' + (A.info.pending ? ` (${A.info.pending})` : '')]); t.push(['history', 'Riwayat harian']); }
-    if (A.mode() === 'draft') t.push(['mine', 'Usulan saya']);
+    if (A.info.approver) { t.push(['approve', 'Perlu ditinjau' + (A.info.pending ? ` (${A.info.pending})` : '')]); t.push(['history', 'Riwayat harian']); }
+    if (!A.info.approver && CAN_EDIT && !token()) t.push(['mine', 'Perubahan saya']);
     if (typeof IS_OWNER !== 'undefined' && IS_OWNER) t.push(['settings', 'Pengaturan']);
     if (!t.some((x) => x[0] === P.tab)) P.tab = t.length ? t[0][0] : 'mine';
     document.getElementById('ktaTabs').innerHTML = t.map(([k, l]) => `<button type="button" data-ktab="${k}" aria-pressed="${P.tab === k}">${h(l)}</button>`).join('');
@@ -369,7 +393,7 @@
   }
   function opRows(ops, opt) {
     opt = opt || {};
-    return `<div class="wrap"><table><thead><tr>${opt.check ? '<th></th>' : ''}${opt.time ? '<th>Jam</th><th>Siapa</th>' : ''}<th>Data</th><th>Kolom</th><th>Lama</th><th>Baru</th>${opt.status ? '<th>Status</th>' : ''}${opt.act ? '<th></th>' : ''}</tr></thead><tbody>${ops.map((o, i) => `<tr>${opt.check ? `<td><input type="checkbox" checked data-op="${i}" aria-label="Setujui perubahan ini"></td>` : ''}${opt.time ? `<td class="nw">${h(o._t || '')}</td><td>${h(o._who || '')}</td>` : ''}<td><b>${h(o.l)}</b><br><small style="color:var(--muted,#8A87A6)">${h(COLL[o.c] ? COLL[o.c].name : o.c)}</small>${o._conf ? `<div class="warn">Sudah berubah sejak diajukan (sekarang: ${h(o._conf)})</div>` : ''}</td><td>${h(opText(o))}</td><td><s>${h(opOld(o))}</s></td><td><b>${h(opNew(o))}</b></td>${opt.status ? `<td>${o._st || ''}</td>` : ''}${opt.act ? `<td class="nw">${o._act || ''}</td>` : ''}</tr>`).join('') || `<tr><td colspan="9" class="empty">Tidak ada perubahan.</td></tr>`}</tbody></table></div>`;
+    return `<div class="wrap"><table><thead><tr>${opt.check ? '<th></th>' : ''}${opt.time ? '<th>Jam</th><th>Siapa</th>' : ''}<th>Data</th><th>Kolom</th><th>Lama</th><th>Baru</th>${opt.status ? '<th>Status</th>' : ''}${opt.act ? '<th></th>' : ''}</tr></thead><tbody>${ops.map((o, i) => `<tr>${opt.check ? `<td><input type="checkbox" checked data-op="${i}" aria-label="Setujui perubahan ini"></td>` : ''}${opt.time ? `<td class="nw">${h(o._t || '')}</td><td>${h(o._who || '')}</td>` : ''}<td><b>${h(o.l)}</b><br><small style="color:var(--muted,#8A87A6)">${h(COLL[o.c] ? COLL[o.c].name : o.c)}</small>${o._conf ? `<div class="warn">${h(o._conf)}</div>` : ''}</td><td>${h(opText(o))}</td><td><s>${h(opOld(o))}</s></td><td><b>${h(opNew(o))}</b></td>${opt.status ? `<td>${o._st || ''}</td>` : ''}${opt.act ? `<td class="nw">${o._act || ''}</td>` : ''}</tr>`).join('') || `<tr><td colspan="9" class="empty">Tidak ada perubahan.</td></tr>`}</tbody></table></div>`;
   }
   function conflictsOf(ops) {
     return ops.map((o) => {
@@ -377,8 +401,8 @@
       if (!o.op && typeof DATA !== 'undefined') {
         const i = findIdx(A.base || DATA, o.c, o.k);
         const cur = i >= 0 ? getF((A.base || DATA)[o.c][i], o.f) : undefined;
-        if (i < 0) x._conf = 'data sudah tidak ada';
-        else if (!same(cur, o.o) && !same(cur, o.n)) x._conf = showVal(cur, o.f);
+        if (i < 0) x._conf = 'Data sudah tidak ada';
+        else if (!same(cur, o.o) && !same(cur, o.n)) x._conf = 'Sudah berubah sejak diajukan (sekarang: ' + showVal(cur, o.f) + ')';
       }
       return x;
     });
@@ -387,48 +411,60 @@
   const stTag = (s) => ({ pending: '<span class="tag t-blue">Menunggu</span>', approved: '<span class="tag t-green">Disetujui</span>', partial: '<span class="tag t-green">Disetujui sebagian</span>', rejected: '<span class="tag t-red">Ditolak</span>', cancelled: '<span class="tag t-gray">Dibatalkan</span>' }[s] || s);
   const tglJam = (t) => { const d = dayOf(t); return (d === todayWib() ? 'Hari ini' : d === addDays(todayWib(), -1) ? 'Kemarin' : fmtD(d)) + ' ' + jam(t); };
 
+  const revTag = (x) => ({ pending: '<span class="tag" style="background:#FEF9C3;color:#854D0E">Belum ditinjau</span>', approved: '<span class="tag t-green">Disetujui</span>', partial: '<span class="tag t-green">Disetujui sebagian</span>', rejected: '<span class="tag t-red">Ditolak · dikembalikan</span>' }[x.review_status] || '<span class="tag t-gray">Tersimpan</span>');
+  function laterOf(ops) {
+    const D = A.base || DATA;
+    return ops.map((o) => {
+      const x = Object.assign({}, o);
+      if (!o.op && D) { const i = findIdx(D, o.c, o.k); const cur = i >= 0 ? getF(D[o.c][i], o.f) : undefined; if (i < 0) x._conf = 'Data sudah tidak ada'; else if (!same(cur, o.n)) x._conf = 'Sudah diubah lagi setelahnya (sekarang: ' + showVal(cur, o.f) + ')'; }
+      return x;
+    });
+  }
   async function viewApprove() {
-    const r = await sb().from('kta_change_requests').select('*').eq('state_id', WEB_ID).eq('status', 'pending').order('created_at', { ascending: true });
+    const r = await sb().from('kta_change_history').select('*').eq('state_id', WEB_ID).eq('review_status', 'pending').order('at', { ascending: true }).limit(200);
     if (r.error) throw r.error;
     P.reqs = r.data || [];
     A.info.pending = P.reqs.length; ui();
-    const off = !A.info.enabled ? `<div class="kta-banner or" style="margin:0"><span><b>Persetujuan sedang MATI.</b> Editor masih menyimpan langsung. Nyalakan di tab Pengaturan bila sudah siap.</span></div>` : '';
-    if (!P.reqs.length) return off + '<div class="cd"><div class="empty">Tidak ada usulan yang menunggu persetujuan.</div></div>';
-    return off + `<div class="row"><span style="flex:1;font-size:13px;color:var(--ink-2,#4B4868)">Data utama baru berubah setelah Anda klik Setujui. Perubahan yang bertanda kuning sudah diubah orang lain sejak diajukan.</span></div>` +
-      P.reqs.map((q, qi) => `<div class="cd ${q.kind === 'otomatis' ? 'or' : ''}" data-req="${qi}">
-        <div class="row"><div class="who"><b>${h(q.actor_label || q.actor)}</b><small>${q.kind === 'otomatis' ? `Terakhir mengubah ${tglJam(q.last_activity || q.created_at)} · dilaporkan otomatis ${tglJam(q.created_at)}` : `Diajukan ${tglJam(q.created_at)}`} · ${q.ops.length} perubahan</small></div>${kindTag(q)}</div>
-        ${q.note ? `<div style="font-size:13px;background:#F7F6FD;border-radius:10px;padding:8px 12px">Catatan: “${h(q.note)}”</div>` : ''}
-        ${opRows(conflictsOf(q.ops), { check: true })}
-        <div class="row" style="justify-content:flex-end"><input type="text" placeholder="Catatan keputusan (opsional)" data-rnote="${qi}" style="flex:1;min-width:200px;font:inherit;border:1px solid var(--line,#E8E6F3);border-radius:10px;padding:8px 12px"><button type="button" class="btn btn-g" data-rej="${qi}" style="color:#B91C1C;border-color:#FECACA">Tolak semua</button><button type="button" class="btn btn-p" data-acc="${qi}" style="background:#15803D;border-color:#15803D">Setujui yang dicentang</button></div>
+    const off = !A.info.enabled ? `<div class="kta-banner or" style="margin:0"><span><b>Tinjauan sedang MATI.</b> Simpanan Editor tidak ditandai untuk ditinjau. Nyalakan di tab Pengaturan.</span></div>` : '';
+    if (!P.reqs.length) return off + '<div class="cd"><div class="empty">Tidak ada perubahan yang perlu ditinjau.</div></div>';
+    return off + `<div class="row"><span style="flex:1;font-size:13px;color:var(--ink-2,#4B4868)">Perubahan di bawah <b>sudah tampil</b> untuk semua orang. Centang yang benar lalu klik Setujui; yang tidak dicentang akan <b>dikembalikan</b> ke nilai lama. Tanda kuning = sudah diubah lagi setelahnya.</span><button type="button" class="btn btn-p" data-accall="1" style="background:#15803D;border-color:#15803D">Setujui semua (${P.reqs.length})</button></div>` +
+      P.reqs.map((q, qi) => `<div class="cd" data-req="${qi}">
+        <div class="row"><div class="who"><b>${h(q.actor || 'Editor')}</b><small>Disimpan ${tglJam(q.at)} · ${q.ops.length} perubahan</small></div>${revTag(q)}</div>
+        ${opRows(laterOf(q.ops), { check: true })}
+        <div class="row" style="justify-content:flex-end"><input type="text" placeholder="Catatan untuk editor (opsional, mis. alasan ditolak)" data-rnote="${qi}" style="flex:1;min-width:220px;font:inherit;border:1px solid var(--line,#E8E6F3);border-radius:10px;padding:8px 12px"><button type="button" class="btn btn-g" data-rej="${qi}" style="color:#B91C1C;border-color:#FECACA">Tolak semua</button><button type="button" class="btn btn-p" data-acc="${qi}" style="background:#15803D;border-color:#15803D">Setujui yang dicentang</button></div>
       </div>`).join('');
   }
-  async function decide(qi, approve) {
-    const q = P.reqs[qi]; if (!q) return;
+  async function decide(qi, approve, quiet) {
+    const q = P.reqs[qi]; if (!q) return false;
     const card = document.querySelector(`[data-req="${qi}"]`);
-    const note = (card.querySelector(`[data-rnote="${qi}"]`) || {}).value || null;
-    const picked = new Set([...card.querySelectorAll('[data-op]')].filter((x) => x.checked).map((x) => +x.getAttribute('data-op')));
-    const sel = approve ? q.ops.filter((_, i) => picked.has(i)) : [];
-    const rej = q.ops.filter((o) => !sel.includes(o));
-    if (approve && !sel.length) { say('Centang dulu perubahan yang mau disetujui.'); return; }
-    if (!approve && !confirm(`Tolak semua ${q.ops.length} perubahan dari ${q.actor_label || q.actor}?`)) return;
-    card.querySelectorAll('button').forEach((b) => { b.disabled = true; });
-    if (sel.length) {
-      A._suppress = true;
+    const note = card ? ((card.querySelector(`[data-rnote="${qi}"]`) || {}).value || null) : null;
+    const picked = card ? new Set([...card.querySelectorAll('[data-op]')].filter((x) => x.checked).map((x) => +x.getAttribute('data-op'))) : new Set(q.ops.map((_, i) => i));
+    const keep = approve ? q.ops.filter((_, i) => picked.has(i)) : [];
+    const rej = q.ops.filter((o) => !keep.includes(o));
+    if (!quiet && rej.length && !confirm(`${approve ? 'Setujui ' + keep.length + ' dan tolak' : 'Tolak'} ${rej.length} perubahan dari ${q.actor || 'Editor'}?\nYang ditolak dikembalikan ke nilai lamanya.`)) return false;
+    if (card) card.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+    if (rej.length) {
+      A._action = 'kembalikan'; A._note = `Tolak #${q.id} dari ${q.actor || 'Editor'}` + (note ? ' · ' + note : '');
       let ok = false;
-      try { ok = await commit((next) => { applyOps(next, sel); }, `Usulan ${q.actor_label || ''} disetujui.`); } finally { A._suppress = false; }
-      if (!ok) { card.querySelectorAll('button').forEach((b) => { b.disabled = false; }); return; }
+      try { ok = await commit((next) => { applyOps(next, inverse(rej)); }, `${rej.length} perubahan ditolak dan dikembalikan.`); } finally { A._action = null; A._note = null; }
+      if (!ok) { if (card) card.querySelectorAll('button').forEach((b) => { b.disabled = false; }); return false; }
     }
-    const r = await sb().rpc('kta_cr_decide', { p_id: q.id, p_status: !sel.length ? 'rejected' : rej.length ? 'partial' : 'approved', p_applied: sel, p_rejected: rej, p_note: note });
-    if (r.error) say('Data tersimpan, tetapi status usulan gagal diperbarui: ' + r.error.message, true);
-    else if (!sel.length) say('Usulan ditolak. Data tidak berubah.');
-    await loadInfo(); ui(); drawPanel();
+    const r = await sb().rpc('kta_review', { p_id: q.id, p_status: !keep.length ? 'rejected' : rej.length ? 'partial' : 'approved', p_rejected: rej.length ? rej : null, p_note: note });
+    if (r.error) { say('Status tinjauan gagal diperbarui: ' + r.error.message, true); return false; }
+    if (!quiet && !rej.length) say('Perubahan disetujui.');
+    return true;
+  }
+  async function decideAll() {
+    if (!confirm(`Setujui semua ${P.reqs.length} perubahan yang menunggu?`)) return;
+    let n = 0; for (let i = 0; i < P.reqs.length; i++) { const r = await sb().rpc('kta_review', { p_id: P.reqs[i].id, p_status: 'approved', p_rejected: null, p_note: null }); if (!r.error) n++; }
+    say(`${n} perubahan disetujui.`); await loadInfo(); await loadMarks(); ui(); drawPanel();
   }
 
   async function viewMine() {
     await loadMine();
-    if (!A.mine.length && !A.ops.length) return '<div class="cd"><div class="empty">Belum ada usulan dalam 30 hari terakhir.</div></div>';
-    const draft = A.ops.length ? `<div class="cd or"><div class="row"><div class="who"><b>Draf (belum diajukan)</b><small>${A.ops.length} perubahan${A.savedAt ? ' · tersimpan ' + tglJam(A.savedAt) : ''}</small></div><button type="button" class="btn btn-p" data-kta="submit">Ajukan simpan</button></div>${opRows(A.ops)}</div>` : '';
-    return draft + A.mine.map((q) => `<div class="cd"><div class="row"><div class="who"><b>${q.kind === 'otomatis' ? 'Laporan otomatis (lupa simpan)' : 'Diajukan'} ${tglJam(q.created_at)}</b><small>${q.ops.length} perubahan${q.decided_at && q.status !== 'pending' ? ` · diputuskan ${tglJam(q.decided_at)}${q.decided_note ? ' · “' + h(q.decided_note) + '”' : ''}` : ''}</small></div>${stTag(q.status)}${q.status === 'pending' ? `<button type="button" class="btn btn-g" data-cancel="${h(q.id)}">Batalkan</button>` : ''}</div>${opRows(q.ops)}</div>`).join('');
+    if (!A.mine.length) return '<div class="cd"><div class="empty">Belum ada perubahan Anda dalam 30 hari terakhir.</div></div>';
+    return `<div class="row"><span style="flex:1;font-size:13px;color:var(--ink-2,#4B4868)">Semua yang Anda simpan langsung tampil untuk semua orang. ${A.info.enabled ? 'Pemilik/PIC meninjaunya; yang ditolak dikembalikan ke nilai lama.' : ''}</span></div>` +
+      A.mine.map((q) => `<div class="cd"><div class="row"><div class="who"><b>Disimpan ${tglJam(q.at)}</b><small>${q.ops.length} perubahan${q.reviewed_at ? ` · ditinjau ${tglJam(q.reviewed_at)} oleh ${h(q.reviewed_by || '')}${q.review_note ? ' · “' + h(q.review_note) + '”' : ''}` : ''}</small></div>${revTag(q)}</div>${opRows(q.ops)}${q.reviewed_ops && q.reviewed_ops.length && q.review_status === 'partial' ? `<div class="warn">Ditolak dan dikembalikan: ${q.reviewed_ops.map((o) => h(o.l + ' · ' + opText(o))).join(', ')}</div>` : ''}</div>`).join('');
   }
 
   // riwayat harian
@@ -459,7 +495,8 @@
     (rq.data || []).forEach((q) => q.ops.forEach((o) => lines.push({ ...o, _at: q.created_at, _t: jam(q.created_at), _who: (q.actor_label || q.actor) + ' · Editor', _st: q.kind === 'otomatis' ? '<span class="tag t-or">Laporan otomatis</span>' : '<span class="tag t-blue">Menunggu</span>', _status: q.kind === 'otomatis' ? 'Laporan otomatis (menunggu)' : 'Menunggu persetujuan', _by: q.actor_label, _kind: q.kind })));
     (hq.data || []).forEach((x) => {
       const roleName = { owner: 'Pemilik', pic: 'PIC', editor: 'Editor' }[x.role] || x.role || '';
-      const st = { simpan: ['Disimpan', 't-green'], setujui: ['Disetujui', 't-green'], tolak: ['Ditolak', 't-red'], kembalikan: ['Dikembalikan', 't-gray'], pulihkan: ['Dipulihkan dari salinan', 't-gray'] }[x.action] || [x.action, 't-gray'];
+      let st = { simpan: ['Disimpan', 't-green'], setujui: ['Disetujui', 't-green'], tolak: ['Ditolak', 't-red'], kembalikan: ['Dikembalikan', 't-gray'], pulihkan: ['Dipulihkan dari salinan', 't-gray'] }[x.action] || [x.action, 't-gray'];
+      if (x.review_status === 'pending') st = ['Belum ditinjau', 't-blue']; else if (x.review_status === 'rejected') st = ['Ditolak · dikembalikan', 't-red']; else if (x.review_status === 'partial') st = ['Disetujui sebagian', 't-green']; else if (x.review_status === 'approved') st = ['Disetujui', 't-green'];
       (x.ops || []).forEach((o, i) => lines.push({ ...o, _at: x.at, _t: jam(x.at), _who: (x.action === 'setujui' || x.action === 'tolak') ? `${x.request_actor || 'Editor'} → ${roleName} ${x.actor}` : `${x.actor} · ${roleName}`, _st: `<span class="tag ${st[1]}">${st[0]}${x.request_kind === 'otomatis' ? ' (laporan otomatis)' : ''}</span>`, _status: st[0], _by: x.request_actor || x.actor, _kind: x.request_kind || '', _note: x.note || '', _act: (x.action !== 'tolak') ? `<button type="button" class="btn btn-g" style="padding:4px 10px;font-size:12px" data-undo="${x.id}:${i}">Kembalikan</button>` : '' }));
     });
     lines.sort((a, b) => (b._at > a._at ? 1 : -1));
@@ -473,7 +510,7 @@
     const cnt = (f) => lines.filter(f).length;
     const strip = Object.keys(P.days).map((d) => { const wd = HARI[new Date(Date.parse(d + 'T00:00:00Z')).getUTCDay()]; return `<button type="button" data-day="${d}" aria-pressed="${P.day === d}"><small>${d === todayWib() ? 'Hari ini' : wd} · ${fmtD(d).replace(/ \d{4}$/, '')}</small><b>${P.days[d] ? P.days[d] + ' perubahan' : 'Tidak ada'}</b></button>`; }).join('');
     return `<div class="row"><div class="days" style="flex:1">${strip}</div><label class="fld" style="flex-direction:row;align-items:center"><span>Tanggal lain</span><input type="date" id="ktaDayPick" value="${P.day}" max="${todayWib()}"></label></div>
-      <div class="kpis"><div class="kpi"><span>Total perubahan</span><b>${lines.length}</b></div><div class="kpi"><span>Disetujui / disimpan</span><b style="color:#15803D">${cnt((l) => /Disimpan|Disetujui/.test(l._status))}</b></div><div class="kpi"><span>Menunggu</span><b style="color:#1D4ED8">${cnt((l) => /Menunggu|menunggu/.test(l._status))}</b></div><div class="kpi"><span>Ditolak</span><b style="color:#B91C1C">${cnt((l) => l._status === 'Ditolak')}</b></div><div class="kpi" style="background:#FFF7ED;border-color:#FED7AA"><span style="color:#9A3412">Laporan otomatis</span><b style="color:#C2410C">${cnt((l) => l._kind === 'otomatis')}</b></div></div>
+      <div class="kpis"><div class="kpi"><span>Total perubahan</span><b>${lines.length}</b></div><div class="kpi"><span>Disetujui / disimpan</span><b style="color:#15803D">${cnt((l) => /Disimpan|Disetujui/.test(l._status))}</b></div><div class="kpi"><span>Belum ditinjau</span><b style="color:#1D4ED8">${cnt((l) => /Belum ditinjau|Menunggu/.test(l._status))}</b></div><div class="kpi"><span>Ditolak</span><b style="color:#B91C1C">${cnt((l) => /^Ditolak/.test(l._status))}</b></div><div class="kpi"><span>Dikembalikan / dipulihkan</span><b>${cnt((l) => /Dikembalikan|Dipulihkan/.test(l._status))}</b></div></div>
       <div class="row"><b style="flex:1">${P.day === todayWib() ? 'Hari ini' : fmtD(P.day)}</b><button type="button" class="btn btn-g" data-snap="${P.day}">Data persis per ${fmtD(P.day)} 00:00 (Excel)</button><button type="button" class="btn btn-g" data-restore="${P.day}">Pulihkan ke salinan ini…</button><button type="button" class="btn btn-p" data-hxls="day">Unduh riwayat hari ini (Excel)</button><button type="button" class="btn btn-g" data-hxls="month">Unduh riwayat 1 bulan (Excel)</button></div>
       ${opRows(lines, { time: true, status: true, act: true })}`;
   }
@@ -521,14 +558,13 @@
     const opt = (v, cur, l) => `<option value="${v}" ${String(cur) === String(v) ? 'selected' : ''}>${l}</option>`;
     return `<div class="grid2">
       <div class="cd"><b style="font-size:15px">Simpan & persetujuan</b>
-        <label class="row" style="font-size:14px;font-weight:700"><input type="checkbox" id="ktaEn" ${S.enabled ? 'checked' : ''}> Perubahan dari Editor harus disetujui Pemilik/PIC</label>
-        <p style="margin:0;font-size:12.5px;color:var(--ink-2,#4B4868)">${S.enabled ? '<b style="color:#15803D">NYALA.</b> Editor hanya bisa membuat draf dan mengajukan; data utama berubah setelah disetujui.' : '<b style="color:#B45309">MATI.</b> Editor masih menyimpan langsung (riwayat tetap tercatat). Nyalakan setelah Anda mencoba alurnya.'} Link Editor tanpa login ikut aturan ini.</p>
-        <label class="fld">Kalau editor lupa simpan, kirim laporan otomatis setelah<select id="ktaAuto">${[5, 10, 15, 30, 60, 120, 240].map((m) => opt(m, S.auto_minutes, m < 60 ? m + ' menit tidak ada aktivitas' : (m / 60) + ' jam tidak ada aktivitas')).join('')}</select></label>
+        <label class="row" style="font-size:14px;font-weight:700"><input type="checkbox" id="ktaEn" ${S.enabled ? 'checked' : ''}> Simpanan Editor ditinjau Pemilik/PIC</label>
+        <p style="margin:0;font-size:12.5px;color:var(--ink-2,#4B4868)">${S.enabled ? '<b style="color:#15803D">NYALA.</b> Simpanan Editor langsung tampil untuk semua orang, ditandai kuning “belum ditinjau” sampai Anda/PIC setujui. Kalau ditolak, data otomatis kembali ke nilai lama.' : '<b style="color:#B45309">MATI.</b> Simpanan Editor tidak ditandai untuk ditinjau (riwayat tetap tercatat dan bisa dikembalikan).'} Berlaku juga untuk link Editor tanpa login dan Editor yang baru ditambahkan.</p>
         <label class="fld">Nomor WhatsApp Pemilik (untuk notifikasi tahap berikutnya)<input type="tel" id="ktaWa" value="${h(S.owner_wa || '')}" placeholder="08xxxxxxxxxx"></label>
         <div class="row" style="justify-content:flex-end"><button type="button" class="btn btn-p" id="ktaSaveSet">Simpan pengaturan</button></div>
       </div>
-      <div class="cd"><b style="font-size:15px">PIC (boleh menyetujui usulan)</b>
-        <p style="margin:0;font-size:12.5px;color:var(--ink-2,#4B4868)">Pilih Editor yang juga boleh menyetujui. Kalau tidak ada PIC, semua usulan masuk ke Pemilik. Tambah Editor baru lewat menu Akses seperti biasa.</p>
+      <div class="cd"><b style="font-size:15px">PIC (boleh meninjau perubahan)</b>
+        <p style="margin:0;font-size:12.5px;color:var(--ink-2,#4B4868)">Pilih Editor yang juga boleh meninjau. Simpanan PIC sendiri tidak perlu ditinjau. Kalau tidak ada PIC, semua masuk ke Pemilik. Tambah Editor baru lewat menu Akses seperti biasa.</p>
         <div class="wrap"><table><thead><tr><th>Editor</th><th>PIC?</th><th>Bagian yang dipegang (catatan)</th></tr></thead><tbody>${P.editors.map((e) => { const a = apMap.get(e.email.toLowerCase()); return `<tr><td>${h(e.email)}</td><td><input type="checkbox" data-pic="${h(e.email)}" ${a ? 'checked' : ''} aria-label="Jadikan PIC"></td><td><input type="text" data-scope="${h(e.email)}" value="${h(a && a.scope || '')}" placeholder="mis. Maintenance Section" ${a ? '' : 'disabled'} style="width:100%;font:inherit;border:1px solid var(--line,#E8E6F3);border-radius:8px;padding:6px 8px"></td></tr>`; }).join('') || '<tr><td colspan="3" class="empty">Belum ada Editor.</td></tr>'}</tbody></table></div>
       </div>
       <div class="cd"><b style="font-size:15px">Arsip & unduhan</b>
@@ -541,8 +577,8 @@
       </div></div>`;
   }
   async function saveSettings() {
-    const patch = { enabled: document.getElementById('ktaEn').checked, auto_minutes: +document.getElementById('ktaAuto').value, owner_wa: document.getElementById('ktaWa').value.trim() || null, updated_at: new Date().toISOString(), updated_by: WEB.user && WEB.user.email };
-    if (patch.enabled && !P.settings.enabled && !confirm('Nyalakan persetujuan? Mulai sekarang perubahan dari Editor harus Anda (atau PIC) setujui dulu.')) return;
+    const patch = { enabled: document.getElementById('ktaEn').checked, owner_wa: document.getElementById('ktaWa').value.trim() || null, updated_at: new Date().toISOString(), updated_by: WEB.user && WEB.user.email };
+    if (patch.enabled && !P.settings.enabled && !confirm('Nyalakan tinjauan? Mulai sekarang simpanan Editor ditandai “belum ditinjau” sampai Anda atau PIC menyetujuinya.')) return;
     const r = await sb().from('kta_approval_settings').update(patch).eq('app_id', WEB_ROLE_APP).select('*');
     if (r.error || !r.data || !r.data.length) { say('Gagal menyimpan pengaturan' + (r.error ? ': ' + r.error.message : '.'), true); return; }
     const want = [...document.querySelectorAll('[data-pic]')].filter((x) => x.checked).map((x) => x.getAttribute('data-pic'));
@@ -563,8 +599,8 @@
   async function onPanelClick(e) {
     const t = e.target, g = (s) => t.closest(s);
     if (g('[data-ktab]')) { P.tab = g('[data-ktab]').getAttribute('data-ktab'); drawPanel(); return; }
-    if (g('[data-acc]')) return decide(+g('[data-acc]').getAttribute('data-acc'), true);
-    if (g('[data-rej]')) return decide(+g('[data-rej]').getAttribute('data-rej'), false);
+    if (g('[data-accall]')) return decideAll();
+    if (g('[data-acc]') || g('[data-rej]')) { const acc = !!g('[data-acc]'); const ok = await decide(+(g('[data-acc]') || g('[data-rej]')).getAttribute(acc ? 'data-acc' : 'data-rej'), acc); if (ok) { await loadInfo(); await loadMarks(); ui(); drawPanel(); } return; }
     if (g('[data-cancel]')) { if (!confirm('Batalkan usulan ini?')) return; const r = await sb().rpc('kta_cr_cancel', { p_id: g('[data-cancel]').getAttribute('data-cancel'), p_token: token() }); if (r.error) say(r.error.message, true); await loadMine(); ui(); drawPanel(); return; }
     if (g('[data-day]')) { P.day = g('[data-day]').getAttribute('data-day'); drawPanel(); return; }
     if (g('[data-undo]')) { const [id, i] = g('[data-undo]').getAttribute('data-undo').split(':'); return undo(id, +i); }
@@ -770,8 +806,8 @@
   const _webLoad = typeof webLoad === 'function' ? webLoad : null;
   if (_webLoad) webLoad = async function () { const r = await _webLoad.apply(this, arguments); try { ui(); } catch (e) {} return r; };
   // pemberitahuan usulan baru untuk Pemilik/PIC
-  setInterval(async () => { if (document.hidden || !WEB.sb || !A.info.approver || !A.info.enabled) return; const p = A.info.pending; await loadInfo(); if ((A.info.pending || 0) > (p || 0)) say(`Ada usulan perubahan baru (${A.info.pending} menunggu persetujuan).`); ui(); }, 60000);
+  setInterval(async () => { if (document.hidden || !WEB.sb || !A.info.enabled || A.mode() === 'none') return; const p = A.info.pending, rj = (A.info.mine_rejected || []).length; await loadInfo(); await loadMarks(); if (A.info.approver && (A.info.pending || 0) > (p || 0)) say(`Ada perubahan baru dari Editor (${A.info.pending} perlu ditinjau).`); if ((A.info.mine_rejected || []).length > rj) say('Ada perubahan Anda yang ditolak Pemilik. Lihat pemberitahuan di atas.', true); ui(); }, 60000);
   // editor: perbarui status usulan sesekali
-  setInterval(async () => { if (document.hidden || A.mode() !== 'draft') return; await loadMine(); ui(); }, 90000);
+
   if (WEB.sb && WEB.ready) A.refresh();
 })();
