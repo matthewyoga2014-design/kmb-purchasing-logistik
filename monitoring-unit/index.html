@@ -2509,6 +2509,18 @@ $("#dlgForm").addEventListener("submit",async e=>{
   finally{DIALOG_BUSY=false;btn.disabled=false;}
 });
 $("#dlgCancel").addEventListener("click",()=>$("#dlg").close());
+/* Pengaman layar "nge-blank": latar gelap jendela (dialog) tampil tapi kotaknya tidak terlihat.
+   - Klik area gelap = tutup, HANYA bila kotak jendelanya tidak terlihat (isian jendela normal aman).
+   - Pemeriksa otomatis: jendela terbuka yang kotaknya kosong / di luar layar langsung ditutup. */
+document.addEventListener("click",e=>{ const d=e.target; if(!(d instanceof HTMLDialogElement)||!d.open||d.id==="upPickHost") return;
+  const r=d.getBoundingClientRect(), vis=r.width>40&&r.height>40&&r.right>20&&r.bottom>20&&r.left<innerWidth-20&&r.top<innerHeight-20;
+  if(vis) return; /* jendela normal: klik di luar TIDAK menutup (isian tidak hilang) */ if(d.id==="dlg"&&DIALOG_BUSY) return; if(d.id==="muPhotoDlg"&&MU_PHOTO.busy) return; d.close(); });
+setInterval(()=>{ document.querySelectorAll("dialog").forEach(d=>{ if(!d.open) return;
+  if(d.id==="upPickHost"){ const pk=document.getElementById("upPick"); if(!pk||pk.hidden||!d.contains(pk)){ d.close(); console.warn("[MU] jendela upload kosong ditutup"); } return; }
+  const r=d.getBoundingClientRect(), vw=innerWidth, vh=innerHeight, cs=getComputedStyle(d);
+  const empty=r.width<40||r.height<40||!d.firstElementChild||cs.display==="none"||cs.visibility==="hidden"||Number(cs.opacity)<0.05;
+  const off=r.right<20||r.bottom<20||r.left>vw-20||r.top>vh-20;
+  if(empty||off){ if(d.id==="dlg"&&DIALOG_BUSY) return; console.warn("[MU] jendela tak terlihat ditutup:",d.id,Math.round(r.width)+"x"+Math.round(r.height),Math.round(r.left)+","+Math.round(r.top)); d.close(); } }); },1500);
 $("#btnTrash").addEventListener("click",()=>{if($("#muTrashPanel").hidden)muTrashOpen();else $("#muTrashPanel").hidden=true;});
 
 /* ---------- form ---------- */
