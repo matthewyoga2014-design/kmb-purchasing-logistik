@@ -864,7 +864,7 @@ async function importExcel(file){
     list=list.filter(q=>q.text&&Object.keys(q.options).length>=2);
     if(!list.length)return toast("Soal tidak terbaca. Gunakan Template Excel atau format lembar soal KMB.",5000);
     const noKey=list.filter(q=>!q.options[q.answer]),needImg=list.filter(q=>!q.image&&/\b(gambar|gbr|lihat)\b/i.test(q.text));
-    const seen={},dups=[];list.forEach(q=>{const k=q.text.toLowerCase()+"|"+Object.values(q.options).join("|").toLowerCase();if(seen[k])dups.push(`${q.no} = ${seen[k]}`);else seen[k]=q.no});
+    const seen={},dups=[];list.forEach(q=>{const k=q.text.toLowerCase()+"|"+Object.values(q.options).join("|").toLowerCase()+"|"+(q.image?q.image.length+q.image.slice(-60):"");if(seen[k])dups.push(`${q.no} = ${seen[k]}`);else seen[k]=q.no});
     openModal(`<div class="head"><h2>Unggah soal: ${esc(file.name)}</h2><button class="btn sm" onclick="closeModal()">Batal</button></div>
      <div class="notice"><b>${list.length} soal terbaca</b> (${fmt==="kmb"?"format lembar soal KMB":"format template"}). ${esc(imgNote)}</div>
      ${noKey.length?`<div class="notice warn" style="margin-top:8px"><b>${noKey.length} soal tanpa kunci jawaban</b>: no. ${noKey.map(q=>q.no).join(", ")}. Soal ini tetap diimpor; isi kuncinya lewat Ubah sebelum dipakai.</div>`:""}
@@ -879,7 +879,7 @@ async function importExcel(file){
       <div style="grid-column:1/-1"><button class="btn pri" id="iGo">Impor ${list.length} soal</button></div></form>`);
     $("iG").onchange=()=>{const l=levelOfGrade($("iG").value);if(l)setCombo("iL",l)};
     $("iF").onsubmit=async e=>{e.preventDefault();const fd=new FormData(e.target);let L=list;
-      if($("iDup")&&$("iDup").checked){const s2={};L=list.filter(q=>{const k=q.text.toLowerCase()+"|"+Object.values(q.options).join("|").toLowerCase();if(s2[k])return false;s2[k]=1;return true})}
+      if($("iDup")&&$("iDup").checked){const s2={};L=list.filter(q=>{const k=q.text.toLowerCase()+"|"+Object.values(q.options).join("|").toLowerCase()+"|"+(q.image?q.image.length+q.image.slice(-60):"");if(s2[k])return false;s2[k]=1;return true})}
       const b=$("iGo");b.disabled=true;
       try{const mod=await q(SB.from("pk_modules").insert({title:fd.get("title").trim(),grade:(fd.get("grade")||"").trim().toUpperCase()||null,level:(fd.get("level")||"").trim()||"Junior",duration_min:+fd.get("dur")||60,pass_score:+fd.get("pass")||56,sort:S.modules.length+1}).select().single());
         await insertQuestions(mod.id,L.map(q=>({no:q.no,text:q.text,options:q.options,answer:q.options[q.answer]?q.answer:Object.keys(q.options)[0],topic:q.topic,image:q.image||null,time_sec:q.time_sec||null})),n=>b.textContent=`Mengimpor ${n}/${L.length}…`);
