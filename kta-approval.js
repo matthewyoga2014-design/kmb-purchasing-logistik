@@ -704,6 +704,66 @@
   }
   A.exportHistory = exportHistory;
 
+  // ---------------- pengaman form: isian tersimpan otomatis & tanya sebelum ditutup ----------------
+  const FG = { key: null, init: null, submitting: false, t: null };
+  const frm = () => document.getElementById('frm');
+  const fkey = () => { const t = document.getElementById('mTitle'); return 'kta-form:' + WEB_ID + ':' + (t ? t.textContent.trim() : ''); };
+  const fvals = (f) => { const o = {}; [...f.elements].forEach((el) => { if (!el.id || el.type === 'submit' || el.type === 'button' || el.type === 'file') return; o[el.id] = el.type === 'checkbox' ? el.checked : el.value; }); return o; };
+  const fdirty = () => { const f = frm(); return !!(f && FG.init && !same(fvals(f), FG.init)); };
+  const lsGet = (k) => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { return null; } };
+  const lsSet = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} };
+  function formOpened() {
+    const f = frm(); if (!f || f.dataset.ktaGuard) return;
+    f.dataset.ktaGuard = '1'; FG.key = fkey(); FG.init = fvals(f); FG.submitting = false;
+    const saved = lsGet(FG.key);
+    if (saved && saved.vals && !same(saved.vals, FG.init) && Date.now() - saved.at < 14 * 864e5) {
+      f.insertAdjacentHTML('afterbegin', `<div class="kta-restore" id="ktaRestore"><span><b>Ada isian yang belum disimpan</b> dari ${tglJam(saved.at)}.</span><button type="button" class="btn btn-p" id="ktaRestoreGo">Pulihkan isian</button><button type="button" class="btn btn-g" id="ktaRestoreNo">Abaikan</button></div>`);
+      document.getElementById('ktaRestoreGo').onclick = () => {
+        Object.entries(saved.vals).forEach(([id, v]) => { const el = document.getElementById(id); if (!el || !f.contains(el)) return; if (el.type === 'checkbox') el.checked = !!v; else el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); });
+        document.getElementById('ktaRestore').remove(); say('Isian dipulihkan. Klik Simpan untuk menyimpannya.');
+      };
+      document.getElementById('ktaRestoreNo').onclick = () => { lsSet(FG.key, null); document.getElementById('ktaRestore').remove(); };
+    }
+  }
+  function formTouched() {
+    if (!frm() || !FG.key) return;
+    clearTimeout(FG.t);
+    FG.t = setTimeout(() => { const f = frm(); if (!f) return; lsSet(FG.key, fdirty() ? { vals: fvals(f), at: Date.now() } : null); }, 800);
+  }
+  function askClose(e) {
+    const f = frm(); if (!f || !fdirty() || FG.submitting) return false;
+    e.preventDefault(); e.stopImmediatePropagation();
+    if (document.getElementById('ktaAsk')) return true;
+    const fa = f.querySelector('.factions') || f;
+    fa.insertAdjacentHTML('beforebegin', `<div class="kta-ask" id="ktaAsk" role="alert"><b>Isian ini belum disimpan.</b><span>Isian tetap tersimpan sementara di perangkat ini, tapi belum masuk ke data.</span><div class="row"><button type="button" class="btn btn-p" id="ktaAskSave">Simpan</button><button type="button" class="btn btn-g" id="ktaAskDrop" style="color:#B91C1C;border-color:#FECACA">Buang perubahan</button><button type="button" class="btn btn-g" id="ktaAskStay">Lanjut mengisi</button></div></div>`);
+    document.getElementById('ktaAskSave').onclick = () => { document.getElementById('ktaAsk').remove(); if (f.requestSubmit) f.requestSubmit(); else f.querySelector('[type=submit]').click(); };
+    document.getElementById('ktaAskDrop').onclick = () => { lsSet(FG.key, null); FG.init = null; if (typeof closeModal === 'function') closeModal(); else document.getElementById('modal').hidden = true; };
+    document.getElementById('ktaAskStay').onclick = () => document.getElementById('ktaAsk').remove();
+    document.getElementById('ktaAsk').scrollIntoView({ block: 'nearest' });
+    return true;
+  }
+  document.addEventListener('click', (e) => { const t = e.target; if (t.closest('#fCancel') || t.id === 'mClose' || t.id === 'modal') askClose(e); }, true);
+  window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && frm()) askClose(e); }, true);
+  document.addEventListener('input', (e) => { if (e.target.closest && e.target.closest('#frm')) formTouched(); }, true);
+  document.addEventListener('change', (e) => { if (e.target.closest && e.target.closest('#frm')) formTouched(); }, true);
+  document.addEventListener('submit', (e) => { if (e.target.id === 'frm') { FG.submitting = true; setTimeout(() => { FG.submitting = false; }, 4000); } }, true);
+  window.addEventListener('beforeunload', (e) => { if (fdirty()) { const f = frm(); lsSet(FG.key, { vals: fvals(f), at: Date.now() }); e.preventDefault(); e.returnValue = ''; } });
+  const mEl = document.getElementById('modal'), dEl = document.getElementById('dialog');
+  if (mEl && dEl) {
+    new MutationObserver(() => { if (frm()) formOpened(); }).observe(dEl, { childList: true });
+    new MutationObserver(() => {
+      if (!mEl.hidden) return;
+      if (FG.key && (FG.submitting || !FG.init)) lsSet(FG.key, null);   // tersimpan atau sengaja dibuang
+      FG.key = null; FG.init = null; FG.submitting = false;
+    }).observe(mEl, { attributes: true, attributeFilter: ['hidden'] });
+  }
+  document.head.insertAdjacentHTML('beforeend', `<style>
+  .kta-restore{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A;border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:13px}
+  .kta-restore span{flex:1;min-width:200px}
+  .kta-ask{display:flex;flex-direction:column;gap:6px;background:#FFF7ED;border:1px solid #FED7AA;color:#9A3412;border-radius:12px;padding:12px 14px;margin:12px 0 0;font-size:13px}
+  .kta-ask span{color:#7C2D12}.kta-ask .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+  </style>`);
+
   // ---------------- sambungkan ke halaman ----------------
   const _applyRole = typeof applyRole === 'function' ? applyRole : null;
   if (_applyRole) applyRole = async function () { const r = await _applyRole.apply(this, arguments); await A.refresh(); return r; };
