@@ -5,7 +5,8 @@
 (function () {
   if (typeof pageSet !== 'function' || typeof S === 'undefined') return;
   const APPS = { kmb: 'Manpower KMB', mbj: 'Manpower MBJ', 'bupr-ampah': 'Manpower BUPR', 'kta-tra': 'Manpower KTA-TRA', apd: 'APD', notulensi: 'Notulensi', 'unit-monitoring': 'Monitoring Unit', psikotest: 'Psikotest' };
-  const A = { team: [], rows: null, loading: false, err: null, limit: 300, app: '', who: '', q: '', kind: '', merge: true, open: {}, from: '', to: '', showHidden: false };
+  const A = { team: [], rows: null, loading: false, err: null, limit: 300, app: '', who: '', q: '', kind: '', merge: true, open: {}, from: '', to: '', showHidden: false, hist: [] };
+  const MP_APPS = ['kta-tra', 'mbj', 'bupr-ampah', 'kmb'];
 
   // ---------- membaca rincian "Data — kolom: lama → baru; ..." ----------
   const HIDE = /^(updatedAt|updated_at|updatedBy|createdAt|created_at|id|uid|ts|at|by|foto|photo|files?)$/i;
@@ -106,16 +107,65 @@
 
   // simpan berulang (orang, web, judul sama, ≤ 15 menit) → satu catatan
   function mergeRows(rows) {
-    if (!A.merge) return rows.map((r) => ({ ...r, ids: [r.id], n: 1, first: r.at, dets: [r.detail || ''] }));
+    if (!A.merge) return rows.map((r) => ({ ...r, ids: [r.id], n: 1, first: r.at, dets: [r.detail || ''], parts: [r] }));
     const out = [];
     rows.forEach((r) => {
       const g = out[out.length - 1];
       if (g && !!g.hidden_at === !!r.hidden_at && g.app === r.app && (g.site || '') === (r.site || '') && g.actor === r.actor && g.action === r.action && dkey(g.first) === dkey(r.at) && Date.parse(g.first) - Date.parse(r.at) <= 15 * 60e3) {
-        g.ids.push(r.id); g.n++; g.first = r.at; g.dets.unshift(r.detail || ''); return;
+        g.ids.push(r.id); g.n++; g.first = r.at; g.dets.unshift(r.detail || ''); g.parts.push(r); return;
       }
-      out.push({ ...r, ids: [r.id], n: 1, first: r.at, dets: [r.detail || ''] });
+      out.push({ ...r, ids: [r.id], n: 1, first: r.at, dets: [r.detail || ''], parts: [r] });
     });
     return out;
+  }
+
+  // catatan aktivitas ↔ baris riwayat (dicatat bersamaan saat menyimpan)
+  const lc = (x) => String(x || '').toLowerCase();
+  function histOf(r) {
+    if (!MP_APPS.includes(r.app) || !A.hist.length) return [];
+    const out = [];
+    (r.parts || [r]).forEach((p) => {
+      const t = Date.parse(p.at), who = lc(whoOf(p.actor));
+      let best = null, bd = 20e3;
+      A.hist.forEach((h) => {
+        if (h.app_id !== p.app || !['simpan', 'setujui', 'kembalikan', 'pulihkan'].includes(h.action) || !(h.ops || []).length) return;
+        const d = Math.abs(Date.parse(h.at) - t); if (d > bd) return;
+        const ha = lc(h.actor);
+        if (ha !== who && !(ha === 'editor link' && (p.actor === 'link tanpa login' || / \(link\)$/.test(p.actor || ''))) && !(h.action === 'setujui')) return;
+        best = h; bd = d;
+      });
+      if (best && !out.includes(best)) out.push(best);
+    });
+    return out;
+  }
+  const revertedIds = () => { const s = new Set(); A.hist.forEach((h) => { if (h.action === 'kembalikan') String(h.note || '').replace(/#(\d+)/g, (m, id) => { s.add(+id); return m; }); }); return s; };
+  async function revertRow(r) {
+    const K = window.KTAOps, hs = histOf(r).sort((a, b) => (a.at < b.at ? 1 : -1));
+    if (!K || !hs.length) return;
+    const ops = [].concat(...hs.map((h) => h.ops));
+    const preview = ops.slice(0, 12).map((o) => `• ${o.l} · ${K.opText(o)}: ${K.opNew(o)} → kembali ke ${K.opOld(o)}`).join('\n') + (ops.length > 12 ? `\n… dan ${ops.length - 12} lainnya` : '');
+    if (!confirm(`Kembalikan perubahan ini ke nilai sebelumnya?\n\n${preview}\n\nLangkah ini tercatat dan bisa dikembalikan lagi.`)) return;
+    const byState = {}; hs.forEach((h) => { (byState[h.state_id] = byState[h.state_id] || []).push(h); });
+    for (const [sid, list] of Object.entries(byState)) {
+      const inv = K.inverse([].concat(...list.map((h) => h.ops)));
+      let done = false;
+      for (let tries = 0; tries < 2 && !done; tries++) {
+        const cur = await S.sb.from('kta_web_state').select('data,updated_at').eq('id', sid).single();
+        if (cur.error) { alert('Gagal membaca data: ' + cur.error.message); return; }
+        const next = K.clone(cur.data.data); const res = K.applyOps(next, inv);
+        const up = await S.sb.from('kta_web_state').update({ data: next, updated_at: new Date().toISOString(), updated_by: (S.user && S.user.email) || 'Pemilik' }).eq('id', sid).eq('updated_at', cur.data.updated_at).select('id');
+        if (up.error) { alert('Gagal mengembalikan: ' + up.error.message); return; }
+        if (!up.data || !up.data.length) continue;   // ada yang menyimpan bersamaan → coba sekali lagi dengan data terbaru
+        done = true;
+        const note = 'Kembalikan ' + list.map((h) => '#' + h.id).join(' ') + (res.conflicts.length ? ` · ${res.conflicts.length} kolom sudah diubah lagi setelahnya` : '');
+        const hr = await S.sb.rpc('kta_hist_add', { p_state: sid, p_action: 'kembalikan', p_ops: inv, p_note: note, p_token: null });
+        if (!hr.error) A.hist.unshift({ id: hr.data, app_id: r.app, state_id: sid, at: new Date().toISOString(), actor: S.user && S.user.email, action: 'kembalikan', ops: inv, note });
+        const lines = inv.map((o) => o.op === 'add' ? `${K.COLL[o.c] ? K.COLL[o.c].name : o.c}: tambah ${o.l}` : o.op === 'del' ? `${K.COLL[o.c] ? K.COLL[o.c].name : o.c}: hapus ${o.l}` : `${o.l} — ${K.fieldLabel(o.f)}: ${K.opOld(o)} → ${K.opNew(o)}`);
+        try { await S.sb.rpc('kta_log_activity', { p_app: r.app, p_site: r.site || null, p_action: 'Kembalikan perubahan: ' + titleOf(r), p_detail: lines.slice(0, 40).join('\n'), p_token: null, p_page: 'Aktivitas' }); } catch (e) {}
+      }
+      if (!done) { alert('Data sedang diubah orang lain. Coba lagi sebentar lagi.'); return; }
+    }
+    A.rows = null; render();
   }
 
   async function load() {
@@ -129,6 +179,15 @@
       const { data, error } = await q;
       if (error) throw error;
       A.rows = data || [];
+      // riwayat perubahan (nilai lama/baru) untuk tombol Kembalikan di web Manpower
+      A.hist = [];
+      const mp = A.rows.filter((r) => MP_APPS.includes(r.app));
+      if (mp.length && window.KTAOps) {
+        const lo = new Date(Date.parse(mp[mp.length - 1].at) - 60e3).toISOString(), hi = new Date(Date.parse(mp[0].at) + 60e3).toISOString();
+        const h = await S.sb.from('kta_change_history').select('id,app_id,state_id,at,actor,role,action,ops,note,request_actor').gte('at', lo).lte('at', new Date(Date.now() + 60e3).toISOString()).order('at', { ascending: false }).limit(5000);
+        if (!h.error) A.hist = h.data || [];
+        void hi;
+      }
       // semua Editor/Pemilik yang terdaftar ikut muncul di pilihan orang, walau belum ada aktivitas
       const tm = await S.sb.from('app_access_roles').select('email,role').in('role', ['owner', 'editor']);
       A.team = tm.error ? [] : [...new Set((tm.data || []).map((x) => String(x.email || '').toLowerCase()).filter(Boolean))];
@@ -203,6 +262,7 @@
           <div class="acttop"><span class="actkind ${K.c}">${K.t.toUpperCase()}</span><span class="actapp">${esc(APPS[r.app] || r.app || '')}${r.site ? ' · ' + esc(r.site) : ''}</span><b class="acttitle">${esc(titleOf(r))}</b>${r.n > 1 ? `<span class="actn">disimpan ${r.n} kali</span>` : ''}${/^Draf \(belum disetujui\)/.test(r.action || '') ? '<span class="actn" style="background:#FFEDD5;color:#9A3412">draf, belum disetujui</span>' : ''}${r.hidden_at ? `<span class="actn" style="background:#FEF3C7;color:#92400E">disembunyikan</span><button type="button" class="actx actunhide" data-actunhide="${r.ids.join(',')}">Tampilkan lagi</button>` : `<button type="button" class="actx" data-actdel="${r.ids.join(',')}" title="Sembunyikan catatan ini" aria-label="Sembunyikan catatan ini">Sembunyikan</button>`}</div>
           <div class="actwho">oleh <b>${esc(roleName(r) || 'tanpa peran')}</b>${r.actor && r.actor !== 'link tanpa login' ? ' · ' + esc(r.actor) : ''}</div>
           ${changesHtml(r, k)}
+          ${(() => { const hs = histOf(r); if (!hs.length || k === 'apr' && !/^Menyetujui/.test(r.action || '')) return ''; const rv = revertedIds(); return hs.every((h) => rv.has(h.id)) ? '<div class="actnochg">Perubahan ini sudah dikembalikan.</div>' : `<div><button type="button" class="btn btn-g actrev" data-actrev="${r.id}">Kembalikan perubahan ini</button></div>`; })()}
         </div></div>`;
       }).join('')}</section>`;
     }).join('');
@@ -300,6 +360,7 @@
     if (t.closest('#actRefresh')) { A.rows = null; render(); return; }
     if (t.closest('#actMore')) { A.limit += 300; A.rows = null; render(); return; }
     if (t.closest('#actXls')) { exportXls().catch((er) => alert('Gagal membuat Excel: ' + (er.message || er))); return; }
+    const rv = t.closest('[data-actrev]'); if (rv) { const it = mergeRows(filtered()).find((x) => String(x.id) === rv.dataset.actrev); if (it) { rv.disabled = true; rv.textContent = 'Mengembalikan…'; try { await revertRow(it); } finally { rv.disabled = false; rv.textContent = 'Kembalikan perubahan ini'; } } return; }
     const rb = t.closest('[data-actrange]'); if (rb) { setRange(rb.dataset.actrange); return; }
     const kb = t.closest('[data-actkind]'); if (kb) { A.kind = kb.dataset.actkind; render(); return; }
     const x = t.closest('[data-actdel]'), all = t.closest('#actDelAll'), un = t.closest('[data-actunhide]');
@@ -352,6 +413,7 @@
   .actn{font-size:12px;font-weight:600;color:var(--ink-2,#4b4868);background:#F2F1FA;border-radius:99px;padding:3px 10px}
   .actx{margin-left:auto;border:0;background:none;color:var(--muted,#9a96ad);font-size:18px;line-height:1;cursor:pointer;padding:4px 8px;border-radius:6px}
   .actx{font-size:12px;font-weight:700}.actx:hover{color:#92400E;background:#FEF3C7}.actunhide{color:#5B21B6}
+  .actrev{font-size:13px;padding:7px 14px;margin-top:2px}
   .actwho{color:var(--ink-2,#4b4868);font-size:13px}.actwho b{color:var(--ink,#1e1b3a)}
   .actpills{display:flex;gap:8px;flex-wrap:wrap}
   .actpill{font-size:13px;background:#F7F6FD;border:1px solid #EFEDF7;border-radius:8px;padding:6px 10px;color:var(--ink-2,#4b4868);max-width:100%;word-break:break-word}
