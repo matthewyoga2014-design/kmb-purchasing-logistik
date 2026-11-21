@@ -5,7 +5,7 @@
 (function () {
   if (typeof pageSet !== 'function' || typeof S === 'undefined') return;
   const APPS = { kmb: 'Manpower KMB', mbj: 'Manpower MBJ', 'bupr-ampah': 'Manpower BUPR', 'kta-tra': 'Manpower KTA-TRA', apd: 'APD', notulensi: 'Notulensi', 'unit-monitoring': 'Monitoring Unit', psikotest: 'Psikotest' };
-  const A = { team: [], rows: null, loading: false, err: null, limit: 300, app: '', who: '', q: '', kind: '', merge: true, open: {} };
+  const A = { team: [], rows: null, loading: false, err: null, limit: 300, app: '', who: '', q: '', kind: '', merge: true, open: {}, from: '', to: '' };
 
   // ---------- membaca rincian "Data — kolom: lama → baru; ..." ----------
   const HIDE = /^(updatedAt|updated_at|updatedBy|createdAt|created_at|id|uid|ts|at|by|foto|photo|files?)$/i;
@@ -98,6 +98,8 @@
   const whoOf = (a) => String(a || '').replace(/ \(link\)$/, '');   // "email (link)" = orang yang sama lewat link tanpa login
   const roleName = (r) => r.role === 'owner' ? 'Pemilik' : r.role === 'pic' ? 'PIC' : r.role === 'editor' ? 'Editor' : r.actor === 'link tanpa login' ? 'Link tanpa login' : (r.role || '');
   const owner = () => typeof isOwner === 'function' && isOwner();
+  const wibStart = (iso) => new Date(Date.parse(iso + 'T00:00:00Z') - 7 * 3600e3).toISOString();
+  const addD = (iso, n) => new Date(Date.parse(iso + 'T00:00:00Z') + n * 864e5).toISOString().slice(0, 10);
   const jkt = (t) => new Date(new Date(t).getTime() + 7 * 3600e3); // tampil dalam WIB
   const dkey = (t) => jkt(t).toISOString().slice(0, 10);
   const hm = (t) => jkt(t).toISOString().slice(11, 16);
@@ -122,6 +124,8 @@
     try {
       let q = S.sb.from('kta_activity_log').select('id,at,app,site,page,actor,role,action,detail').order('at', { ascending: false }).limit(A.limit);
       if (A.app) q = q.eq('app', A.app);
+      if (A.from) q = q.gte('at', wibStart(A.from));
+      if (A.to) q = q.lt('at', wibStart(addD(A.to, 1)));
       const { data, error } = await q;
       if (error) throw error;
       A.rows = data || [];
@@ -160,22 +164,28 @@
     const head = `<div class="sethead"><div><div class="eb">Khusus Pemilik</div><h1 class="h1s">Aktivitas</h1><p class="sub">Siapa mengubah apa dan kapan, di semua web monitoring. Hanya Pemilik yang bisa melihat halaman ini.</p></div><div style="display:flex;gap:8px;flex-wrap:wrap">${exportBtn}<button type="button" class="btn btn-g" data-page="home">← Kembali</button></div></div>`;
     if (!owner()) return head + '<div class="scard"><p>Halaman ini khusus Pemilik.</p></div>';
     if (A.rows === null) { load(); return head + '<div class="lock"><p>Memuat aktivitas…</p></div>'; }
+    const today = dkey(Date.now());
     const rows = filtered();
     const people = [...new Set([...A.rows.map((r) => whoOf(r.actor)), ...A.team])].sort((a, b) => (a === 'link tanpa login') - (b === 'link tanpa login') || a.localeCompare(b));
     const cnt = {}; A.rows.forEach((r) => { const w = whoOf(r.actor); cnt[w] = (cnt[w] || 0) + 1; });
     const kc = { add: 0, upd: 0, del: 0, apr: 0, acc: 0 }, ac = {};
     A.rows.filter((r) => (!A.who || whoOf(r.actor) === A.who)).forEach((r) => { kc[kindOf(r)]++; ac[r.app] = (ac[r.app] || 0) + 1; });
     const top = Object.entries(ac).sort((a, b) => b[1] - a[1])[0];
-    const span = A.rows.length ? `${dkey(A.rows[A.rows.length - 1].at) === dkey(A.rows[0].at) ? 'hari ini' : 'sejak ' + niceD(dkey(A.rows[A.rows.length - 1].at))}` : '';
+    const span = A.from || A.to ? (A.from === A.to ? niceD(A.from) : `${A.from ? niceD(A.from) : 'awal'} – ${A.to ? niceD(A.to) : 'hari ini'}`) : A.rows.length ? `${dkey(A.rows[A.rows.length - 1].at) === dkey(A.rows[0].at) ? 'hari ini' : 'sejak ' + niceD(dkey(A.rows[A.rows.length - 1].at))}` : '';
     const items = mergeRows(rows);
     const groups = []; items.forEach((r) => { const k = dkey(r.at); const g = groups[groups.length - 1]; if (g && g.k === k) g.rows.push(r); else groups.push({ k, rows: [r] }); });
-    const today = dkey(Date.now()), yest = dkey(Date.now() - 864e5);
+    const yest = dkey(Date.now() - 864e5);
     const kchip = (k, l) => `<button type="button" class="actk ${k ? KIND[k].c : ''}" data-actkind="${k}" aria-pressed="${A.kind === k}">${k ? '<i></i>' : ''}${l}</button>`;
     const tools = `<div class="actbar">
       <input type="search" id="actQ" placeholder="Cari nama unit, karyawan, atau orang yang mengubah" value="${esc(A.q)}" aria-label="Cari aktivitas">
       <select id="actApp" aria-label="Web"><option value="">Semua web</option>${Object.entries(APPS).map(([k, l]) => `<option value="${k}" ${A.app === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
       <select id="actWho" aria-label="Orang"><option value="">Semua orang</option>${people.map((p) => `<option value="${esc(p)}" ${A.who === p ? 'selected' : ''}>${esc(p)}${cnt[p] ? '' : ' · belum ada aktivitas'}</option>`).join('')}</select>
       <button type="button" class="btn btn-g" id="actRefresh">${A.loading ? 'Memuat…' : 'Muat ulang'}</button>
+    </div>
+    <div class="actbar2 actdates"><span class="actlbl">Tanggal:</span>
+      <label class="actd">Dari <input type="date" id="actFrom" value="${A.from}" max="${A.to || today}"></label>
+      <label class="actd">Sampai <input type="date" id="actTo" value="${A.to}" min="${A.from}" max="${today}"></label>
+      ${[['today', 'Hari ini'], ['7', '7 hari'], ['30', '30 hari'], ['month', 'Bulan ini'], ['lastmonth', 'Bulan lalu'], ['', 'Semua']].map(([k, l]) => `<button type="button" class="actk" data-actrange="${k}" aria-pressed="${rangeKey() === k}">${l}</button>`).join('')}
     </div>
     <div class="actbar2"><span class="actlbl">Jenis:</span>${kchip('', 'Semua')}${kchip('add', 'Tambah')}${kchip('upd', 'Ubah')}${kchip('del', 'Hapus')}${kchip('apr', 'Persetujuan')}${kchip('acc', 'Masuk & akses')}
       <span style="flex:1"></span><label class="actmerge"><input type="checkbox" id="actMerge" ${A.merge ? 'checked' : ''}> Gabungkan simpan berulang pada data yang sama</label></div>`;
@@ -197,7 +207,28 @@
     }).join('');
     return head + `<div class="scard actcard">${tools}</div>${kpis}${A.err ? `<div class="nb warn">Aktivitas belum bisa dimuat: ${esc(A.err)}</div>` : ''}
       ${body || '<div class="scard"><p class="small" style="margin:0">Belum ada aktivitas yang cocok dengan pilihan ini. Aktivitas mulai dicatat sejak 24 Okt 2026.</p></div>'}
-      <div class="actfoot">${rows.length ? `<button type="button" class="btn btn-g actdel-all" id="actDelAll">Hapus ${rows.length} catatan yang tampil</button>` : ''}${A.rows.length >= A.limit ? '<button type="button" class="btn btn-g" id="actMore">Tampilkan hari sebelumnya</button>' : ''}</div>`;
+      <div class="actfoot">${rows.length ? `<button type="button" class="btn btn-g actdel-all" id="actDelAll">Hapus ${rows.length} catatan yang tampil</button>` : ''}${A.rows.length >= A.limit ? `<button type="button" class="btn btn-g" id="actMore">${A.from || A.to ? 'Tampilkan lebih banyak di rentang ini' : 'Tampilkan hari sebelumnya'}</button>` : ''}</div>`;
+  }
+  function rangeKey() {
+    const t = dkey(Date.now()), m0 = t.slice(0, 8) + '01';
+    const lm0 = addD(m0, -1).slice(0, 8) + '01', lm1 = addD(m0, -1);
+    if (!A.from && !A.to) return '';
+    if (A.from === t && A.to === t) return 'today';
+    if (A.to === t && A.from === addD(t, -6)) return '7';
+    if (A.to === t && A.from === addD(t, -29)) return '30';
+    if (A.to === t && A.from === m0) return 'month';
+    if (A.from === lm0 && A.to === lm1) return 'lastmonth';
+    return 'custom';
+  }
+  function setRange(k) {
+    const t = dkey(Date.now()), m0 = t.slice(0, 8) + '01';
+    if (k === '') { A.from = ''; A.to = ''; }
+    else if (k === 'today') { A.from = t; A.to = t; }
+    else if (k === '7') { A.from = addD(t, -6); A.to = t; }
+    else if (k === '30') { A.from = addD(t, -29); A.to = t; }
+    else if (k === 'month') { A.from = m0; A.to = t; }
+    else if (k === 'lastmonth') { A.to = addD(m0, -1); A.from = A.to.slice(0, 8) + '01'; }
+    A.limit = A.from || A.to ? 2000 : 300; A.rows = null; render();
   }
   const niceD = (iso) => { const [y, m, d] = iso.split('-'); return `${+d} ${MONS[+m - 1]} ${y}`; };
 
@@ -209,7 +240,7 @@
     const wb = new X.Workbook(), ws = wb.addWorksheet('Aktivitas');
     const H = ['Tanggal', 'Jam (WIB)', 'Web', 'Siapa', 'Peran', 'Jenis', 'Aktivitas', 'Data', 'Kolom', 'Sebelum', 'Sesudah'];
     ws.addRow(['Aktivitas semua web monitoring']).font = { name: 'Arial', size: 14, bold: true };
-    ws.addRow([`Diunduh ${niceD(dkey(Date.now()))} ${hm(Date.now())} WIB${A.app ? ' · ' + (APPS[A.app] || A.app) : ''}${A.who ? ' · ' + A.who : ''}${A.kind ? ' · ' + KIND[A.kind].t : ''}${A.q ? ' · cari "' + A.q + '"' : ''}`]).font = { name: 'Arial', size: 9, color: { argb: 'FF4B4868' } };
+    ws.addRow([`Diunduh ${niceD(dkey(Date.now()))} ${hm(Date.now())} WIB${A.from || A.to ? ' · tanggal ' + (A.from ? niceD(A.from) : 'awal') + ' – ' + (A.to ? niceD(A.to) : 'hari ini') : ''}${A.app ? ' · ' + (APPS[A.app] || A.app) : ''}${A.who ? ' · ' + A.who : ''}${A.kind ? ' · ' + KIND[A.kind].t : ''}${A.q ? ' · cari "' + A.q + '"' : ''}`]).font = { name: 'Arial', size: 9, color: { argb: 'FF4B4868' } };
     ws.addRow([]);
     const hr = ws.addRow(H); hr.height = 24;
     hr.eachCell((c) => { c.font = { name: 'Arial', bold: true, color: { argb: 'FFFFFFFF' } }; c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF6D28D9' } }; c.alignment = { vertical: 'middle', horizontal: 'center', wrapText: true }; });
@@ -226,7 +257,7 @@
     ws.autoFilter = { from: { row: 4, column: 1 }, to: { row: Math.max(5, ws.rowCount), column: H.length } };
     const buf = await wb.xlsx.writeBuffer();
     const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
-    a.download = `Aktivitas_${dkey(Date.now())}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    a.download = `Aktivitas_${A.from || A.to ? (A.from || 'awal') + '_sd_' + (A.to || dkey(Date.now())) : dkey(Date.now())}.xlsx`; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000);
   }
 
   const _pageSet = pageSet;
@@ -250,6 +281,11 @@
     if (e.target.id === 'actApp') { A.app = e.target.value; A.rows = null; render(); }
     if (e.target.id === 'actWho') { A.who = e.target.value; render(); }
     if (e.target.id === 'actMerge') { A.merge = e.target.checked; render(); }
+    if (e.target.id === 'actFrom' || e.target.id === 'actTo') {
+      A[e.target.id === 'actFrom' ? 'from' : 'to'] = e.target.value || '';
+      if (A.from && A.to && A.from > A.to) { if (e.target.id === 'actFrom') A.to = A.from; else A.from = A.to; }
+      A.limit = A.from || A.to ? 2000 : 300; A.rows = null; render();
+    }
   });
   document.addEventListener('input', (e) => {
     if (e.target.id !== 'actQ') return;
@@ -262,6 +298,7 @@
     if (t.closest('#actRefresh')) { A.rows = null; render(); return; }
     if (t.closest('#actMore')) { A.limit += 300; A.rows = null; render(); return; }
     if (t.closest('#actXls')) { exportXls().catch((er) => alert('Gagal membuat Excel: ' + (er.message || er))); return; }
+    const rb = t.closest('[data-actrange]'); if (rb) { setRange(rb.dataset.actrange); return; }
     const kb = t.closest('[data-actkind]'); if (kb) { A.kind = kb.dataset.actkind; render(); return; }
     const x = t.closest('[data-actdel]'), all = t.closest('#actDelAll');
     if ((!x && !all) || !owner()) return;
@@ -287,6 +324,8 @@
   .actk[aria-pressed=true]{background:#EFE9FE;border-color:#DDD0FA;color:#5B21B6;font-weight:700}
   .actk i{width:8px;height:8px;border-radius:99px;background:currentColor}
   .actk.k-add i{background:#15803D}.actk.k-upd i{background:#2563EB}.actk.k-del i{background:#DC2626}.actk.k-apr i{background:#7C3AED}.actk.k-acc i{background:#8A87A6}
+  .actd{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:var(--ink-2,#4b4868)}
+  .actd input{height:36px;border:1px solid var(--line,#e8e6f3);border-radius:10px;padding:0 10px;font:inherit;background:#fff;color:var(--ink,#1e1b3a)}
   .actmerge{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--ink-2,#4b4868)}
   .actkpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:16px 0}
   .actkpis>div{background:#fff;border:1px solid var(--line,#e8e6f3);border-radius:14px;padding:12px 16px;display:flex;flex-direction:column}
