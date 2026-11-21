@@ -24,7 +24,8 @@
   const token = () => (typeof SHARE_KEY !== 'undefined' && SHARE_KEY && typeof GUEST_ROLE !== 'undefined' && GUEST_ROLE === 'editor') ? SHARE_KEY : null;
   const sb = () => WEB.sb;
   // model "langsung tampil, ditinjau": semua penyimpanan langsung; simpanan Editor ditandai belum ditinjau
-  A.mode = function () { return (!CAN_EDIT || !WEB.sb) ? 'none' : 'direct'; };
+  // 'stage': semua perubahan ditampung dulu di perangkat, baru masuk server (terlihat orang lain) setelah klik Simpan
+  A.mode = function () { return (!CAN_EDIT || !WEB.sb) ? 'none' : 'stage'; };
   A.marks = [];
   A.isApprover = () => !!A.info.approver;
 
@@ -59,7 +60,9 @@
   }
   A.refresh = async function () {
     try { await loadInfo(); await loadMarks(); await loadDraft(); } catch (e) { /* tidak boleh mengganggu web */ }
-    if (A.base) viewFromBase(); else if (typeof STATE !== 'undefined') { A.base = clone(STATE); A.baseVer = WEB.ver; }
+    if (!A.base && typeof STATE !== 'undefined') { A.base = clone(STATE); A.baseVer = WEB.ver; }
+    try { loadStage(); } catch (e) {}
+    if (A.base && (A.stage || (A.mode() === 'draft' && A.ops.length))) viewFromBase();
     ui();
   };
 
@@ -67,6 +70,7 @@
   const _setState = setState;
   let bypass = false;
   function viewFromBase() {
+    if (A.stage) { bypass = true; try { _setState(clone(A.stage)); } finally { bypass = false; } return; }
     const v = clone(A.base);
     if (A.mode() === 'draft' && A.ops.length) {
       const r = applyOps(v, A.ops);
@@ -76,8 +80,11 @@
   }
   setState = function (d) {
     if (bypass) return _setState(d);
+    const oldBase = A.base;
     A.base = clone(d); A.baseVer = WEB.ver;
     if (A.info.enabled) refreshMarks();
+    if (A._flushing) return _setState(d);
+    if (A.stage && oldBase) { A.stage = rebase(oldBase, A.stage, A.base); if (!stageCount()) clearStage(); else storeStage(); ui(); if (A.stage) return viewFromBase(); }
     if (A.mode() === 'draft' && A.ops.length) return viewFromBase();
     return _setState(d);
   };
@@ -126,6 +133,93 @@
     say('Perubahan diajukan. Data berubah setelah disetujui Pemilik/PIC.');
     return true;
   };
+
+  // ---------------- simpan manual: tampung perubahan, simpan ke server saat klik Simpan ----------------
+  A.stage = null; A.stageAt = null;
+  const TOPSKIP = { meta: 1, positions: 1, aktif: 1, keluar: 1, units: 1 };
+  const topKeys = (a, b) => [...new Set(Object.keys(a || {}).concat(Object.keys(b || {})))].filter((k) => !TOPSKIP[k] && k[0] !== '_' && !same((a || {})[k], (b || {})[k]));
+  function rebase(base0, mine, base1) {
+    if (same(stripMeta(base0), stripMeta(base1))) return clone(mine);
+    const v = clone(base1);
+    applyOps(v, diffDoc(base0, mine));
+    topKeys(base0, mine).forEach((k) => { v[k] = clone(mine[k]); });
+    (v.positions || []).forEach((p, i) => { p.no = i + 1; });
+    return v;
+  }
+  function stripMeta(d) { const x = Object.assign({}, d || {}); delete x.meta; return x; }
+  A.stageOps = () => (A.stage && A.base) ? diffDoc(A.base, A.stage) : [];
+  function stageCount() { if (!A.stage || !A.base) return 0; const n = diffDoc(A.base, A.stage).length + topKeys(A.base, A.stage).length; return n || (same(stripMeta(A.base), stripMeta(A.stage)) ? 0 : 1); }
+  A.stageCount = stageCount;
+  const who = () => token() ? 'link:' + token().slice(0, 12) : myEmail();
+  const stKey = () => 'kta-stage:' + WEB_ID;
+  function storeStage() { try { if (!A.stage) localStorage.removeItem(stKey()); else localStorage.setItem(stKey(), JSON.stringify({ who: who(), at: A.stageAt || Date.now(), ver: A.baseVer, base: A.base, stage: A.stage })); } catch (e) {} }
+  function clearStage() { A.stage = null; A.stageAt = null; try { localStorage.removeItem(stKey()); } catch (e) {} }
+  A._restored = false;
+  function loadStage() {
+    if (A.mode() !== 'stage' || A.stage || !A.base) return;
+    let v = null; try { v = JSON.parse(localStorage.getItem(stKey()) || 'null'); } catch (e) {}
+    if (!v || !v.stage || v.who !== who()) return;
+    A.stage = v.ver === A.baseVer ? v.stage : rebase(v.base, v.stage, A.base); A.stageAt = v.at;
+    if (!stageCount()) { clearStage(); return; }
+    A._restored = true; storeStage();
+    say(`Ada ${stageCount()} perubahan yang belum disimpan dari kunjungan sebelumnya. Klik Simpan agar tersimpan, atau Batalkan.`, true);
+  }
+  const _commit = commit;
+  commit = async function (mutate, okMsg) {
+    if (A.mode() !== 'stage' || A._flushing || WEB.empty || typeof STATE === 'undefined' || !STATE || !Array.isArray(STATE.positions)) return _commit.apply(this, arguments);
+    if (A._action) { if (A.stage) { say('Simpan atau batalkan dulu perubahan yang belum disimpan.', true); return false; } return _commit.apply(this, arguments); }
+    if (SAVING) return false;
+    if (!A.base) { A.base = clone(STATE); A.baseVer = WEB.ver; }
+    const next = clone(STATE);
+    mutate(next);
+    (next.positions || []).forEach((p, i) => { p.no = i + 1; });
+    let reopen = null; try { reopen = sessionStorage.getItem('mp5-cands'); sessionStorage.removeItem('mp5-cands'); } catch (e) {}
+    A.stage = next; if (!A.stageAt) A.stageAt = Date.now();
+    if (!stageCount()) clearStage(); else storeStage();
+    bypass = true; try { _setState(next); } finally { bypass = false; }
+    const n = stageCount();
+    say(n ? (okMsg ? okMsg.replace(/\.$/, '') + ', ' : '') + `belum disimpan (${n} perubahan). Klik Simpan di kanan atas.` : 'Tidak ada perubahan.');
+    if (reopen !== null && DATA.positions[+reopen] && typeof openCands === 'function') setTimeout(() => openCands(+reopen), 60);
+    ui();
+    return true;
+  };
+  A.flush = async function () {
+    if (!A.stage) { say('Semua perubahan sudah tersimpan.'); return true; }
+    if (SAVING || A._flushing) return false;
+    const n = stageCount();
+    const _toast = typeof toast === 'function' ? toast : null;
+    A._flushing = true;
+    let ok = false;
+    try {
+      for (let i = 0; i < 3 && !ok; i++) {
+        const base0 = clone(A.base), mine = clone(A.stage), v0 = WEB.ver;
+        STATE = clone(A.base); DATA = STATE;
+        if (_toast) toast = function (m, e) { if (/baru saja diubah/i.test(String(m))) return; return _toast.apply(this, arguments); };
+        try { ok = await _commit((S) => { Object.keys(S).forEach((k) => { if (k !== 'meta') delete S[k]; }); Object.keys(mine).forEach((k) => { if (k !== 'meta') S[k] = clone(mine[k]); }); }, `${n} perubahan disimpan.`); }
+        finally { if (_toast) toast = _toast; }
+        if (ok) break;
+        if (WEB.ver === v0) { A.stage = mine; break; }       // gagal bukan karena bentrok (mis. koneksi)
+        A.stage = rebase(base0, mine, A.base);                // data server berubah: gabungkan lalu coba lagi
+      }
+    } finally { A._flushing = false; }
+    if (ok) { clearStage(); A._restored = false; }
+    else { storeStage(); viewFromBase(); }
+    ui();
+    return ok;
+  };
+  A.dropStage = function () {
+    if (!A.stage) return;
+    clearStage(); A._restored = false;
+    bypass = true; try { _setState(clone(A.base)); } finally { bypass = false; }
+    ui(); say('Perubahan dibatalkan. Data kembali seperti yang tersimpan.');
+  };
+  if (typeof switchSite === 'function') {
+    const _sw = switchSite;
+    switchSite = function (id) {
+      if (A.stage && id !== WEB_ID) { const el = document.getElementById('siteSel'); if (el) el.value = WEB_ID; leaveTo = () => _sw(id); openLeave(true, true); return; }
+      return _sw.apply(this, arguments);
+    };
+  }
 
   // ---------------- pemilik/PIC: catat riwayat setiap simpan langsung ----------------
   A.afterDirect = function (prev, next) {
@@ -231,6 +325,14 @@
       if (n) { st.className = 'kta-st dirty'; st.innerHTML = `<i></i>${n} perubahan belum disimpan${A.putting ? ' · menyimpan draf…' : A.savedAt ? ' · draf ' + jam(A.savedAt) : ''}`; }
       else if (pend) { st.className = 'kta-st wait'; st.innerHTML = `<i></i>${pend} usulan menunggu persetujuan`; }
       else { st.className = 'kta-st ok'; st.innerHTML = '<i></i>Tidak ada perubahan'; }
+    } else if (m === 'stage') {
+      mt.textContent = 'Simpan';
+      const sn = stageCount(), fd = formDirtyNow();
+      sp.classList.toggle('quiet', !sn && !fd);
+      if (A._flushing) { st.className = 'kta-st wait'; st.innerHTML = '<i></i>Menyimpan…'; }
+      else if (sn) { st.className = 'kta-st dirty'; st.innerHTML = `<i></i>${sn} perubahan belum disimpan`; }
+      else if (fd) { st.className = 'kta-st dirty'; st.innerHTML = '<i></i>Ada isian yang belum disimpan'; }
+      else { st.className = 'kta-st ok'; st.innerHTML = '<i></i>Tersimpan' + (WEB.ver ? ' · ' + jam(WEB.ver) : ''); }
     } else {
       mt.textContent = 'Simpan';
       const fd = formDirtyNow();
@@ -251,7 +353,10 @@
     let b = document.getElementById('ktaBanner');
     const seen = seenRej(), rej = (A.info.mine_rejected || []).filter((x) => !seen.includes(x.id));
     let html = '';
-    if (rej.length) {
+    const sn = A.mode() === 'stage' ? stageCount() : 0;
+    if (sn) {
+      html = `<div class="kta-banner or" id="ktaBanner"><span><b>${sn} perubahan belum disimpan</b>${A._restored && A.stageAt ? ' dari kunjungan sebelumnya (' + h(tglJam(A.stageAt)) + ')' : ''}. Perubahan ini belum masuk server dan belum terlihat oleh orang lain.</span><button type="button" data-kta="flush">Simpan sekarang</button><button type="button" data-kta="review">Lihat perubahan</button><button type="button" data-kta="discard">Batalkan</button></div>`;
+    } else if (rej.length) {
       const x = rej[0], n = rej.reduce((t, r) => t + ((r.ops || []).length), 0);
       html = `<div class="kta-banner or" id="ktaBanner"><span><b>${n} perubahan Anda ditolak</b> oleh ${h(x.by || 'Pemilik')}${x.note ? ': “' + h(x.note) + '”' : ''}. Datanya sudah dikembalikan ke nilai sebelumnya.</span><button type="button" data-kta="mine">Lihat rincian</button><button type="button" data-kta="rejok">Tutup</button></div>`;
     } else if (A.info.approver && A.info.enabled && A.info.pending) html = `<div class="kta-banner" id="ktaBanner"><span><b>${A.info.pending} perubahan dari Editor perlu ditinjau.</b> Sudah tampil untuk semua orang dan ditandai kuning sampai Anda setujui atau tolak.</span><button type="button" data-kta="approve">Buka tinjauan</button></div>`;
@@ -270,11 +375,12 @@
         document.querySelectorAll(`[data-epos="${i}"]`).forEach((b) => { const tr = b.closest('tr'); if (tr) { tr.classList.add('kta-rev'); tr.title = tip; } });
       });
     }
-    if (A.mode() !== 'draft' || !A.ops.length || typeof DATA === 'undefined') return;
-    const ks = new Set(A.ops.filter((o) => o.c === 'positions').map((o) => o.k));
+    const dops = A.mode() === 'stage' ? A.stageOps() : (A.mode() === 'draft' ? A.ops : []);
+    if (!dops.length || typeof DATA === 'undefined') return;
+    const ks = new Set(dops.filter((o) => o.c === 'positions').map((o) => o.k));
     keyed(DATA.positions, 'positions').forEach(([k], i) => {
       if (!ks.has(k)) return;
-      document.querySelectorAll(`[data-epos="${i}"]`).forEach((b) => { const tr = b.closest('tr'); if (tr) { tr.classList.add('kta-chg'); tr.title = 'Diubah, belum diajukan'; } });
+      document.querySelectorAll(`[data-epos="${i}"]`).forEach((b) => { const tr = b.closest('tr'); if (tr) { tr.classList.add('kta-chg'); tr.title = 'Diubah, belum disimpan'; } });
     });
   }
   const _render = typeof render === 'function' ? render : null;
@@ -285,7 +391,7 @@
     const t = e.target;
     const menu = document.getElementById('ktaMenu');
     if (menu && !t.closest('#ktaMenu') && !t.closest('#ktaCaret')) closeMenu();
-    if (t.closest('#ktaMain')) { e.preventDefault(); if (A.mode() === 'draft') openLeave(false); else if (!submitOpenForm()) say('Semua perubahan Anda sudah tersimpan.'); return; }
+    if (t.closest('#ktaMain')) { e.preventDefault(); A.saveNow(); return; }
     if (t.closest('#ktaCaret')) { e.preventDefault(); menu ? closeMenu() : openMenu(); return; }
     const k = t.closest('[data-kta]');
     if (!k) return;
@@ -293,6 +399,9 @@
     const a = k.getAttribute('data-kta');
     if (a === 'rejok') { try { localStorage.setItem(seenKey(), JSON.stringify(seenRej().concat((A.info.mine_rejected || []).map((x) => x.id)).slice(-200))); } catch (er) {} banner(); return; }
     if (a === 'submit') openLeave(false);
+    else if (a === 'flush') A.flush();
+    else if (a === 'review') openLeave(false, true);
+    else if (a === 'discard' && A.mode() === 'stage') { if (confirm('Batalkan semua perubahan yang belum disimpan? Data kembali seperti yang tersimpan di server.')) A.dropStage(); }
     else if (a === 'discard') { if (confirm('Buang semua perubahan yang belum diajukan?')) A.discard(); }
     else if (a === 'mine') openPanel('mine');
     else if (a === 'approve') openPanel('approve');
@@ -300,6 +409,13 @@
     else if (a === 'settings') openPanel('settings');
     else if (a === 'xlsx') { if (typeof exportXLSX === 'function') exportXLSX(); else A.exportExcel(DATA); }   // sama dengan tombol Download Excel (format Rekap)
   });
+  A.saveNow = function () {
+    const m = A.mode();
+    if (m === 'draft') return openLeave(false);
+    if (submitOpenForm()) { if (m === 'stage') setTimeout(() => { if (A.stage && document.getElementById('modal') && document.getElementById('modal').hidden) A.flush(); }, 350); return; }
+    if (m === 'stage' && A.stage) return A.flush();
+    say('Semua perubahan Anda sudah tersimpan.');
+  };
   function openMenu() {
     const sp = document.getElementById('ktaSplit'); if (!sp) return;
     const m = A.mode(), items = [];
@@ -308,6 +424,12 @@
       items.push(`<button type="button" data-kta="mine">Usulan saya${A.mine.filter((r) => r.status === 'pending').length ? ` <span class="ct" style="background:#DBEAFE;color:#1E40AF">${A.mine.filter((r) => r.status === 'pending').length}</span>` : ''}</button>`);
       if (A.ops.length) items.push('<button type="button" data-kta="discard" class="danger">Batalkan semua perubahan</button>');
     } else {
+      if (m === 'stage' && A.stage) {
+        const sn = stageCount();
+        items.push(`<button type="button" data-kta="flush">Simpan semua perubahan <span class="ct" style="background:#FFEDD5;color:#9A3412">${sn}</span></button>`);
+        items.push('<button type="button" data-kta="review">Lihat perubahan yang belum disimpan</button>');
+        items.push('<button type="button" data-kta="discard" class="danger">Batalkan semua perubahan</button>');
+      }
       if (A.info.approver && A.info.enabled) items.push(`<button type="button" data-kta="approve">Perlu ditinjau${A.info.pending ? ` <span class="ct">${A.info.pending}</span>` : ''}</button>`);
       if (A.info.approver) items.push('<button type="button" data-kta="history">Riwayat perubahan harian</button>');
       if (!A.info.approver && !token() && A.info.enabled) items.push(`<button type="button" data-kta="mine">Perubahan saya${A.info.mine_pending ? ` <span class="ct" style="background:#FEF9C3;color:#854D0E">${A.info.mine_pending}</span>` : ''}</button>`);
@@ -319,22 +441,24 @@
   }
   function closeMenu() { const m = document.getElementById('ktaMenu'); if (m) m.remove(); const c = document.getElementById('ktaCaret'); if (c) c.setAttribute('aria-expanded', 'false'); }
   document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S') && A.mode() !== 'none') { e.preventDefault(); if (A.mode() === 'draft') openLeave(false); else if (!submitOpenForm()) say('Semua perubahan Anda sudah tersimpan.'); }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S') && A.mode() !== 'none') { e.preventDefault(); A.saveNow(); }
     if (e.key === 'Escape') { closeMenu(); const l = document.getElementById('ktaLeave'); if (l && !l.hidden) l.hidden = true; }
   });
 
   // ---------------- keluar sebelum diajukan ----------------
-  window.addEventListener('beforeunload', (e) => { if (A.mode() === 'draft' && A.ops.length && !A._leaving) { e.preventDefault(); e.returnValue = ''; } });
+  const pendingN = () => A.mode() === 'stage' ? stageCount() : (A.mode() === 'draft' ? A.ops.length : 0);
+  window.addEventListener('beforeunload', (e) => { if (pendingN() && !A._leaving) { e.preventDefault(); e.returnValue = ''; } });
   let leaveTo = null;
   document.addEventListener('click', (e) => {
-    if (A.mode() !== 'draft' || !A.ops.length) return;
-    const a = e.target.closest('a.backbtn, #toPortal, #authBtn');
-    if (!a) return;
+    if (!pendingN() || A._leaving) return;
+    const a = e.target.closest('a[href]:not([href^="#"]):not([href^="javascript"]):not([download]):not([target="_blank"]), #toPortal, #authBtn');
+    if (!a || a.closest('#ktaLeave,#ktaP')) return;
     e.preventDefault(); e.stopImmediatePropagation();
-    leaveTo = a.tagName === 'A' ? () => { A._leaving = true; location.href = a.href; } : () => { A._leaving = true; a.click(); };
+    leaveTo = a.tagName === 'A' ? () => { A._leaving = true; location.href = a.href; } : () => { A._leaving = true; a.click(); setTimeout(() => { A._leaving = false; }, 500); };
     openLeave(true);
   }, true);
-  function openLeave(leaving) {
+  function openLeave(leaving, keepTo) {
+    if (A.mode() === 'stage') return openLeaveStage(leaving, keepTo);
     if (!leaving) leaveTo = null;
     if (!A.ops.length) { say('Belum ada perubahan untuk diajukan.'); return; }
     let el = document.getElementById('ktaLeave');
@@ -352,6 +476,30 @@
     setTimeout(() => { const n = document.getElementById('ktaNote'); if (n) n.focus(); }, 30);
     document.getElementById('ktaGo').onclick = async () => { const ok = await A.submit(document.getElementById('ktaNote').value); if (ok) { el.hidden = true; if (leaveTo) leaveTo(); } };
     document.getElementById('ktaDrop').onclick = async () => { if (!confirm('Buang semua perubahan yang belum diajukan?')) return; await A.discard(); el.hidden = true; if (leaveTo) leaveTo(); };
+    document.getElementById('ktaStay').onclick = () => { el.hidden = true; leaveTo = null; };
+  }
+
+  function openLeaveStage(leaving, keepTo) {
+    if (!leaving && !keepTo) leaveTo = null;
+    const n = stageCount();
+    if (!n) { say('Semua perubahan sudah tersimpan.'); if (leaving && leaveTo) leaveTo(); return; }
+    let el = document.getElementById('ktaLeave');
+    if (!el) { document.body.insertAdjacentHTML('beforeend', '<div id="ktaLeave" hidden role="dialog" aria-modal="true" aria-labelledby="ktaLT"><div class="bx"></div></div>'); el = document.getElementById('ktaLeave'); }
+    const ops = A.stageOps(), tk = topKeys(A.base, A.stage);
+    const rows = ops.slice(0, 60).map((o) => `<div><span><b>${h(o.l)}</b> · ${h(opText(o))}</span><span><s>${h(opOld(o))}</s> → <b style="color:#9A3412">${h(opNew(o))}</b></span></div>`).join('')
+      + (ops.length > 60 ? `<div><span>… dan ${ops.length - 60} perubahan lain</span><span></span></div>` : '')
+      + (tk.length ? `<div><span><b>Susunan / pengaturan tampilan</b> · diubah</span><span></span></div>` : '')
+      + (!ops.length && !tk.length ? '<div><span>Urutan data diubah</span><span></span></div>' : '');
+    el.querySelector('.bx').innerHTML = `
+      <h2 id="ktaLT">${leaving ? `Simpan dulu? Ada ${n} perubahan yang belum disimpan` : `${n} perubahan belum disimpan`}</h2>
+      <p style="margin:-6px 0 0;color:var(--ink-2,#4B4868);font-size:14px">${leaving ? 'Kalau keluar tanpa menyimpan, perubahan ini tidak masuk ke web dan tidak terlihat oleh orang lain.' : 'Perubahan ini belum masuk server. Klik Simpan agar tersimpan dan terlihat oleh semua orang.'}</p>
+      <div class="ls">${rows}</div>
+      <button type="button" class="btn btn-p bigb" id="ktaGo">${ICON_SAVE} ${leaving ? 'Simpan, lalu keluar' : 'Simpan sekarang'}</button>
+      <div class="b3"><button type="button" class="btn btn-g" id="ktaDrop" style="color:#B91C1C;border-color:#FECACA">${leaving ? 'Keluar tanpa menyimpan' : 'Batalkan semua perubahan'}</button><button type="button" class="btn btn-g" id="ktaStay">${leaving ? 'Batal, tetap di sini' : 'Tutup'}</button></div>`;
+    el.hidden = false;
+    setTimeout(() => { const g = document.getElementById('ktaGo'); if (g) g.focus(); }, 30);
+    document.getElementById('ktaGo').onclick = async () => { const g = document.getElementById('ktaGo'); g.disabled = true; g.textContent = 'Menyimpan…'; const ok = await A.flush(); if (ok) { el.hidden = true; if (leaving && leaveTo) leaveTo(); leaveTo = null; } else { g.disabled = false; g.innerHTML = ICON_SAVE + ' Coba simpan lagi'; } };
+    document.getElementById('ktaDrop').onclick = () => { if (!confirm(leaving ? 'Keluar tanpa menyimpan? Semua perubahan ini dibuang.' : 'Batalkan semua perubahan yang belum disimpan?')) return; A.dropStage(); el.hidden = true; if (leaving && leaveTo) leaveTo(); leaveTo = null; };
     document.getElementById('ktaStay').onclick = () => { el.hidden = true; leaveTo = null; };
   }
 
@@ -764,6 +912,7 @@
   function formOpened() {
     const f = frm(); if (!f || f.dataset.ktaGuard) return;
     f.dataset.ktaGuard = '1'; FG.key = fkey(); FG.init = fvals(f); FG.submitting = false;
+    if (A.mode() === 'stage' && f.id === 'frm') { const sb0 = f.querySelector('button[type="submit"]'); if (sb0 && /^\s*Simpan( Perubahan)?\s*$/i.test(sb0.textContent)) { sb0.textContent = 'Terapkan'; sb0.title = 'Masukkan ke web, lalu klik Simpan di kanan atas untuk menyimpan'; } }
     const saved = lsGet(FG.key);
     if (saved && saved.vals && !same(saved.vals, FG.init) && Date.now() - saved.at < 14 * 864e5) {
       f.insertAdjacentHTML('afterbegin', `<div class="kta-restore" id="ktaRestore"><span><b>Ada isian yang belum disimpan</b> dari ${tglJam(saved.at)}.</span><button type="button" class="btn btn-p" id="ktaRestoreGo">Pulihkan isian</button><button type="button" class="btn btn-g" id="ktaRestoreNo">Abaikan</button></div>`);
