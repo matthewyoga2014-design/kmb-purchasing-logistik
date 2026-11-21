@@ -141,7 +141,7 @@ table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 .shelf .pill{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .grip{font-style:normal;color:#B4AECB;font-size:13px;cursor:grab;touch-action:none;padding:0 2px;margin-left:-4px}.pill.on .grip{color:#E9DDFF}
 .shelf-row.drop{background:#F1ECFE;border-radius:10px}.shelf.dnd{cursor:grabbing}.shelf.dnd *{cursor:grabbing!important}
-.pill.dragging,.shelf-row.dragging{opacity:.35}.ghost{position:fixed!important;z-index:3000;pointer-events:none;box-shadow:0 10px 28px rgba(30,20,70,.28);transform:rotate(-2deg);opacity:.95;background:#fff;margin:0}
+.pill.dragging,.shelf-row.dragging{opacity:.35}.dnd-ghost{position:fixed!important;z-index:3000;pointer-events:none;box-shadow:0 10px 28px rgba(30,20,70,.28);transform:rotate(-2deg);opacity:.95;background:#fff;margin:0}
 .shelf .shelf-row{display:block;padding:4px 0}
 .shelf .shelf-items{flex-direction:column;flex-wrap:nowrap;gap:4px;padding:2px 0 6px 26px;border-left:2px solid #EAE4FA;margin-left:14px}
 .shelf .pill{display:flex;width:100%;box-sizing:border-box;border-radius:10px;padding:8px 12px;gap:8px}
@@ -697,7 +697,7 @@ function bankShelf(){if(!S.modules.length)return "";
 /* seret & lepas sheet / folder di rak Bank Soal (mouse: seret langsung · HP: tahan lalu geser ⠿) */
 function shelfDnD(box,m){let st=null,ghost=null,timer=null;
   const clean=()=>{clearTimeout(timer);if(ghost)ghost.remove();ghost=null;if(st&&st.el)st.el.classList.remove("dragging");box.classList.remove("dnd");document.querySelectorAll(".shelf-row.drop").forEach(r=>r.classList.remove("drop"));st=null};
-  const begin=e=>{st.on=true;box.classList.add("dnd");const r=st.el.getBoundingClientRect();ghost=st.el.cloneNode(true);ghost.className+=" ghost";Object.assign(ghost.style,{width:r.width+"px",left:r.left+"px",top:r.top+"px"});st.dx=st.x-r.left;st.dy=st.y-r.top;document.body.appendChild(ghost);st.el.classList.add("dragging");if(navigator.vibrate)try{navigator.vibrate(15)}catch(_){}};
+  const begin=e=>{st.on=true;box.classList.add("dnd");const r=st.el.getBoundingClientRect();ghost=st.el.cloneNode(true);ghost.className+=" dnd-ghost";Object.assign(ghost.style,{width:r.width+"px",left:r.left+"px",top:r.top+"px"});st.dx=st.x-r.left;st.dy=st.y-r.top;document.body.appendChild(ghost);st.el.classList.add("dragging");if(navigator.vibrate)try{navigator.vibrate(15)}catch(_){}};
   box.addEventListener("pointerdown",e=>{if(e.button>0)return;const pill=e.target.closest(".pill[data-id]"),fh=e.target.closest("[data-fh]"),el=pill||(fh&&fh.closest(".shelf-row"));if(!el)return;
     st={el,kind:pill?"sheet":"folder",x:e.clientX,y:e.clientY,on:false,touch:e.pointerType!=="mouse"};
     if(st.touch){if(!e.target.closest(".grip")){timer=setTimeout(()=>{if(st&&!st.on)begin(e)},380)}else{e.preventDefault();begin(e)}}});
