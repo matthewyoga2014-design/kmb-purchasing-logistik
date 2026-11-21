@@ -306,9 +306,9 @@
       items.push(`<button type="button" data-kta="mine">Usulan saya${A.mine.filter((r) => r.status === 'pending').length ? ` <span class="ct" style="background:#DBEAFE;color:#1E40AF">${A.mine.filter((r) => r.status === 'pending').length}</span>` : ''}</button>`);
       if (A.ops.length) items.push('<button type="button" data-kta="discard" class="danger">Batalkan semua perubahan</button>');
     } else {
-      if (A.info.approver) items.push(`<button type="button" data-kta="approve">Perlu ditinjau${A.info.pending ? ` <span class="ct">${A.info.pending}</span>` : ''}</button>`);
+      if (A.info.approver && A.info.enabled) items.push(`<button type="button" data-kta="approve">Perlu ditinjau${A.info.pending ? ` <span class="ct">${A.info.pending}</span>` : ''}</button>`);
       if (A.info.approver) items.push('<button type="button" data-kta="history">Riwayat perubahan harian</button>');
-      if (!A.info.approver && !token()) items.push(`<button type="button" data-kta="mine">Perubahan saya${A.info.mine_pending ? ` <span class="ct" style="background:#FEF9C3;color:#854D0E">${A.info.mine_pending}</span>` : ''}</button>`);
+      if (!A.info.approver && !token() && A.info.enabled) items.push(`<button type="button" data-kta="mine">Perubahan saya${A.info.mine_pending ? ` <span class="ct" style="background:#FEF9C3;color:#854D0E">${A.info.mine_pending}</span>` : ''}</button>`);
     }
     items.push('<button type="button" data-kta="xlsx">Unduh Excel (format web)</button>');
     if (typeof IS_OWNER !== 'undefined' && IS_OWNER) items.push('<button type="button" data-kta="settings">Pengaturan simpan & persetujuan</button>');
@@ -374,8 +374,9 @@
   A.openPanel = openPanel;
   function tabs() {
     const t = [];
-    if (A.info.approver) { t.push(['approve', 'Perlu ditinjau' + (A.info.pending ? ` (${A.info.pending})` : '')]); t.push(['history', 'Riwayat harian']); }
-    if (!A.info.approver && CAN_EDIT && !token()) t.push(['mine', 'Perubahan saya']);
+    if (A.info.approver && A.info.enabled) t.push(['approve', 'Perlu ditinjau' + (A.info.pending ? ` (${A.info.pending})` : '')]);
+    if (A.info.approver) t.push(['history', 'Riwayat harian']);
+    if (!A.info.approver && CAN_EDIT && !token() && A.info.enabled) t.push(['mine', 'Perubahan saya']);
     if (typeof IS_OWNER !== 'undefined' && IS_OWNER) t.push(['settings', 'Pengaturan']);
     if (!t.some((x) => x[0] === P.tab)) P.tab = t.length ? t[0][0] : 'mine';
     document.getElementById('ktaTabs').innerHTML = t.map(([k, l]) => `<button type="button" data-ktab="${k}" aria-pressed="${P.tab === k}">${h(l)}</button>`).join('');
@@ -558,7 +559,8 @@
     const opt = (v, cur, l) => `<option value="${v}" ${String(cur) === String(v) ? 'selected' : ''}>${l}</option>`;
     return `<div class="grid2">
       <div class="cd"><b style="font-size:15px">Simpan & persetujuan</b>
-        <label class="row" style="font-size:14px;font-weight:700"><input type="checkbox" id="ktaEn" ${S.enabled ? 'checked' : ''}> Simpanan Editor ditinjau Pemilik/PIC</label>
+        <p style="margin:0;font-size:13px;color:var(--ink-2,#4B4868)">Semua perubahan tersimpan langsung dan tercatat di <b>Riwayat harian</b>; setiap perubahan bisa <b>Dikembalikan</b> ke nilai semula.</p>
+        <label class="row" style="font-size:14px;font-weight:700"><input type="checkbox" id="ktaEn" ${S.enabled ? 'checked' : ''}> (Opsional) Tandai simpanan Editor untuk ditinjau Pemilik/PIC</label>
         <p style="margin:0;font-size:12.5px;color:var(--ink-2,#4B4868)">${S.enabled ? '<b style="color:#15803D">NYALA.</b> Simpanan Editor langsung tampil untuk semua orang, ditandai kuning “belum ditinjau” sampai Anda/PIC setujui. Kalau ditolak, data otomatis kembali ke nilai lama.' : '<b style="color:#B45309">MATI.</b> Simpanan Editor tidak ditandai untuk ditinjau (riwayat tetap tercatat dan bisa dikembalikan).'} Berlaku juga untuk link Editor tanpa login dan Editor yang baru ditambahkan.</p>
         <label class="fld">Nomor WhatsApp Pemilik (untuk notifikasi tahap berikutnya)<input type="tel" id="ktaWa" value="${h(S.owner_wa || '')}" placeholder="08xxxxxxxxxx"></label>
         <div class="row" style="justify-content:flex-end"><button type="button" class="btn btn-p" id="ktaSaveSet">Simpan pengaturan</button></div>
