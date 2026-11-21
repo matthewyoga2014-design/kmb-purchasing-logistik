@@ -327,3 +327,6 @@ begin
     'pending', case when appr then (select count(*) from public.kta_change_requests r where r.state_id = p_state and r.status = 'pending') else null end);
 end $$;
 grant execute on function public.kta_approval_info(text, text) to anon, authenticated;
+
+-- Portal Manpower lain ikut punya pengaturan (default MATI)
+insert into public.kta_approval_settings(app_id) values ('kta-tra'),('bupr-ampah'),('kmb') on conflict do nothing;

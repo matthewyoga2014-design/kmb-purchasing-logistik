@@ -4069,6 +4069,8 @@ function authBtn() {
 
 async function commit(mutate, okMsg) {
   if (!CAN_EDIT || SAVING || !WEB.sb) return false;
+  if (window.KTAApproval && KTAApproval.mode() === 'draft') return KTAApproval.commitDraft(mutate, okMsg);
+  const prev = STATE;
   const next = JSON.parse(JSON.stringify(STATE));
   mutate(next);
   renumberPos(next.positions);
@@ -4083,6 +4085,7 @@ async function commit(mutate, okMsg) {
     if (r.error) throw r.error;
     WEB.ver = SHARE_KEY ? r.data : r.data.updated_at;
     setState(next);
+    if (window.KTAApproval) KTAApproval.afterDirect(prev, next);
     toast(okMsg || 'Perubahan tersimpan.');
     if (reopen !== null && DATA.positions[+reopen]) setTimeout(() => openCands(+reopen), 60);
     return true;
@@ -4928,4 +4931,7 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
   apply();
 })();
 </script>
+<script>window.KTA_SYSTEM_LINKS = { repo: 'matthewyoga2014-design/kmb-purchasing-logistik', path: 'manpower-kta-tra/index.html', supabase: 'https://supabase.com/dashboard/project/yoviojbfyvgpllxisjvy', script: 'https://script.google.com/d/1Wvtoe-H4gmyVkA-UDI2g0A19dLa1EjKvMjLmtTl7ktsGJ-zDGymcb-Fx/edit', drive: 'https://drive.google.com/drive/folders/11RTwJfP21J8Yna8_jQg_CeqCATwi5UcG' };</script>
+<script src="../kta-ops.js?v=20261121"></script>
+<script src="../kta-approval.js?v=20261121"></script>
 </body></html>
