@@ -606,6 +606,21 @@ nav.tabs button[aria-selected="true"] .count{background:var(--accent);color:#fff
 .acc b{display:block} .acc small{color:var(--muted)}
 .acc .grow{flex:1;min-width:0;overflow-wrap:anywhere}
 .linkish{background:none;border:0;padding:0;color:var(--accent);font-weight:700;cursor:pointer;font-size:13px;text-align:left}
+body.mu-settab #fbar,body.mu-settab #banner{display:none!important}
+.mu-set{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;align-items:start}
+@media(max-width:900px){.mu-set{grid-template-columns:1fr}}
+.mu-sc{padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.mu-sc-h{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.mu-sc-h small{font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--pri-2,#6D28D9)}
+.mu-sc-h h3{margin:2px 0 0;font-size:17px}.mu-sc-h p{margin:4px 0 0;font-size:12.5px;color:var(--muted)}
+.mu-sc-chip{flex:none;border-radius:999px;padding:3px 10px;font-size:11.5px;font-weight:800;white-space:nowrap}.mu-sc-chip.ok{background:#DCFCE7;color:#15803D}.mu-sc-chip.warn{background:#FEF3C7;color:#B45309}
+.mu-sc-row{display:flex;justify-content:space-between;gap:14px;font-size:13px;padding:7px 0;border-bottom:1px dashed var(--line)}.mu-sc-row>span{color:var(--muted);flex:none}.mu-sc-row b,.mu-sc-row code,.mu-sc-row a{text-align:right;overflow-wrap:anywhere;min-width:0}
+.mu-sc-row code{font-size:11.5px;color:var(--ink-2,#4B4868)}.mu-sc-link{color:var(--pri-2,#6D28D9);font-weight:600;font-size:12.5px}.mu-sc-err{color:#E11D48}
+.mu-sc-act{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}.mu-sc-act .btn{text-decoration:none}
+.mu-sc-more{border:1px solid var(--line);border-radius:10px;padding:8px 12px}.mu-sc-more summary{cursor:pointer;font-weight:700;font-size:13px}
+.mu-sc-more label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 4px}.mu-sc-more input{width:100%;border:1px solid var(--line-2);border-radius:9px;padding:8px 10px;font:inherit;font-size:13px}
+.mu-sc-steps{margin:2px 0 0;padding-left:20px;font-size:12.5px;line-height:1.6;color:var(--ink-2,#4B4868);background:#FFFBEB;border-radius:10px;padding:8px 12px 8px 30px}
+.mu-sc-me{font-size:12.5px;color:var(--muted)}.mu-sc-roles .rolelist{grid-column:auto}
+.sd-warn{background:#F59E0B!important;color:#fff!important}
 .rolelist{grid-column:1/-1;display:flex;flex-direction:column;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .rolelist .rr{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);font-size:13px}
 .rolelist .rr:last-child{border-bottom:0}
@@ -1805,6 +1820,7 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
   <symbol id="i-history" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v4h4"/><path d="M12 8v4l3 2"/></symbol>
   <symbol id="i-pie" viewBox="0 0 24 24"><path d="M12 3v9h9a9 9 0 1 1-9-9z"/><path d="M15 2.5A9 9 0 0 1 21.5 9H15z"/></symbol>
   <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M7 10.5l5 5 5-5"/><path d="M4.5 19.5h15"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"/></symbol>
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V8a4 4 0 0 1 8 0v2.5"/></symbol>
   <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="3"/></symbol>
   <symbol id="i-cam" viewBox="0 0 24 24"><path d="M4 8h3l1.6-2.5h6.8L17 8h3a1 1 0 0 1 1 1v9.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.3" r="3.6"/></symbol>
@@ -1949,6 +1965,12 @@ input[data-combo]{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://
       <div><h2>Dokumentasi pengiriman &amp; mobilisasi</h2><p>Bukti foto dan dokumen untuk setiap tahap, dari unit dimuat di asal sampai tiba di area kerja. Klik salah satu tahap untuk melihat atau menambah bukti.</p></div>
     </div>
     <div class="dlist" id="dokBody"></div>
+  </section>
+
+  <!-- PENGATURAN -->
+  <section class="panel" id="p-pengaturan" role="tabpanel" hidden>
+    <div class="sec-head"><div><h2>Pengaturan</h2><p>Sumber data Google Sheets, kode Apps Script, akses Pemilik &amp; Editor, status penyimpanan, serta download Excel dan backup.</p></div></div>
+    <div class="mu-set" id="setBody"></div>
   </section>
   </div>
 </div>
@@ -2197,6 +2219,7 @@ async function fetchSheet(api){
   const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),30000);
   const r=await fetch((api||SHEET_API)+((api||SHEET_API).includes("?")?"&":"?")+"t="+Date.now()+"&token="+encodeURIComponent(tk||"")+(GUEST_SHARE?"&share="+encodeURIComponent(GUEST_SHARE):""),{cache:"no-store",signal:ctl.signal}).finally(()=>clearTimeout(to));
   const j=await r.json(); if(j&&(j.error==="forbidden"||j.error==="not_signed_in")){ lockUnit(); throw new Error(j.error); } if(!j||!j.ok||!j.state) throw new Error((j&&j.message)||"sheet");
+  MU_SRV.ver=j.ver||"lama"; MU_SRV.at=Date.now();
   return ensureCols(j.state); }
 // Cache Apps Script on doGet is 6 hours. For owner/editor, an empty POST safely
 // triggers bumpRev_ (cache invalidation) without adding, editing or deleting rows.
@@ -2231,6 +2254,7 @@ function applyOpsLocal(st,ops){ ops.forEach(o=>{ if(!st[o.col]) st[o.col]=[];
    - Gagal karena server sibuk / koneksi putus / batas waktu → dicoba ulang otomatis (maks. 4x).
    - Sebelum mencoba ulang, data server dicek: "tambah" yang ternyata sudah masuk tidak dikirim dua kali. */
 const MU_Q=[]; let MU_QRUN=false;
+const MU_CODE_VER="2026.11.21", MU_SRV={ver:"",at:0,ok:0,fail:0,lastErr:""};
 const muSleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function muPostOps(ops){
   const {data}=await sb.auth.getSession(); const token=data&&data.session&&data.session.access_token;
@@ -2240,6 +2264,7 @@ async function muPostOps(ops){
   finally{ clearTimeout(to); }
   const j=await r.json().catch(()=>null);
   if(!j) throw {code:"network",retry:true,message:"Respons server tidak lengkap."};
+  MU_SRV.ver=j.ver||"lama"; MU_SRV.at=Date.now();
   if(!j.ok||!j.state){ const e=j.error; throw {code:(e==="forbidden"||e==="not_signed_in")?"forbidden":e==="busy"?"conflict":"failed",retry:e==="busy",busy:e==="busy",message:j.message}; }
   return j.state; }
 function muVerifyOps(ops,st){
@@ -2272,11 +2297,11 @@ async function muQueueRun(){
           setSync("busy"); await muSleep([1500,4000,9000][attempt]); } }
       if(!err){ try{ muVerifyOps(batch.flatMap(x=>x.ops),st); }catch(v){ err=v; } }
       batch.forEach(x=>{ const i=PENDING.indexOf(x.ops); if(i>=0) PENDING.splice(i,1); });
-      if(err){
+      if(err){ MU_SRV.fail++; MU_SRV.lastErr=(err&&err.message)||(err&&err.code)||"Gagal";
         if(batch.some(x=>x.local)){ try{ const fresh=await fetchState(); if(!PENDING.length) applyState(fresh); }catch(e){} }
         setSync("err"); batch.forEach(x=>x.reject(err)); continue; }
       let cur=st; if(PENDING.length){ cur=JSON.parse(JSON.stringify(st)); PENDING.forEach(p=>applyOpsLocal(cur,p)); }
-      applyState(cur); if(!PENDING.length&&!MU_Q.length) setSync("ok");
+      MU_SRV.ok++; MU_SRV.saveAt=Date.now(); applyState(cur); if(!PENDING.length&&!MU_Q.length) setSync("ok"); if(S.tab==="pengaturan") renderSet();
       batch.forEach(x=>x.resolve()); }
   } finally { MU_QRUN=false; } }
 function sheetOp(op){
@@ -3645,7 +3670,8 @@ function renderSide(){
     <div class="sd-lab">Project</div>
     ${grp("proj","pin","Project",ps.map(p=>`<button type="button" data-sd="proj" data-k="${p.id}" class="${P&&P.id===p.id?"on":""}" title="${P&&P.id===p.id?"Klik lagi untuk kembali ke semua project":"Filter project "+esc(p.kode)}">${esc(p.kode)}${P&&P.id===p.id?' <span class="sd-x">✕</span>':""}</button>`).join("")||'<span class="sd-none">Belum ada project</span>',ps.length)}
     <div class="sd-lab">Monitoring</div>
-    ${item("ship","Rencana kirim","pengiriman",$("#cRev").textContent)}${item("pin","Populasi Unit","unit",$("#cUnit").textContent)}${item("route","Mobilisasi","mobilisasi",$("#cMob").textContent)}${item("cam","Dokumentasi","dokumentasi",$("#cDok").textContent)}`;
+    ${item("ship","Rencana kirim","pengiriman",$("#cRev").textContent)}${item("pin","Populasi Unit","unit",$("#cUnit").textContent)}${item("route","Mobilisasi","mobilisasi",$("#cMob").textContent)}${item("cam","Dokumentasi","dokumentasi",$("#cDok").textContent)}
+    ${role==="owner"||role==="editor"?`<div class="sd-lab">Sistem</div><button type="button" class="sd-h sd-it${S.tab==="pengaturan"?" on":""}" data-sd="tab" data-k="pengaturan">${SV("gear")}<span>Pengaturan</span>${SRC==="sheet"?"":'<em class="sd-warn">!</em>'}</button>`:""}`;
   if(q) muSideFilter(q);
   document.body.classList.toggle("mu-home",home);
   document.body.classList.toggle("mu-projdash",!!P&&S.tab==="ringkasan");
@@ -4396,7 +4422,7 @@ function muSearchSync(t){ const g=$("#gSearch"); if(!g) return;
   const ph={pengiriman:"Cari di Rencana kirim: item, no. lambung, merek, posisi…",mobilisasi:"Cari di Mobilisasi: unit, rute, PIC…"}[t]||"Cari no. lambung, unit, project…";
   g.placeholder=ph; g.value=t==="pengiriman"?(S.qKirim||""):t==="mobilisasi"?(S.qMob||""):(S.q||""); }
 function setTab(t){ S.tab=t; try{ muSearchSync(t); }catch(e){} document.querySelectorAll("#tabs button").forEach(b=>b.setAttribute("aria-selected",String(b.dataset.tab===t)));
-  ["ringkasan","unit","mobilisasi","pengiriman","dokumentasi"].forEach(x=>$("#p-"+x).hidden=x!==t); renderPFilter();
+  ["ringkasan","unit","mobilisasi","pengiriman","dokumentasi","pengaturan"].forEach(x=>$("#p-"+x).hidden=x!==t); document.body.classList.toggle("mu-settab",t==="pengaturan"); if(t==="pengaturan") renderSet(); renderPFilter();
   try{ localStorage.setItem("mu_tab",t); }catch(e){} const ts=$("#fTabSel"); if(ts) ts.value=t; try{ if(typeof renderSide==="function"&&$("#muSide")&&$("#muSide").innerHTML) renderSide(); }catch(e){}
   const was=document.body.classList.contains("tabview"); document.body.classList.toggle("tabview",t!=="ringkasan");
   if(window.__muReady && (was||t!=="ringkasan")) try{ window.scrollTo({top:0,behavior:"smooth"}); }catch(e){ window.scrollTo(0,0); } }
@@ -4610,10 +4636,11 @@ function showAccount(){
     ${r("owner","lock","purple","Pemilik","Mengubah semua data, menambah project, mengatur siapa yang menjadi Editor, mengunduh Excel, dan print.")}
     ${r("editor","check","blue","Editor","Didaftarkan oleh Pemilik. Bisa mengubah data, mengunduh Excel, dan print.")}
     ${r("viewer","eye","orange","Hanya lihat","Pelihat yang membuka link khusus dapat melihat dashboard dan mencetak, tetapi tidak bisa mengubah data.")}
-    </div>${role==="owner"?srcBox():""}${role==="owner"?`<button class="btn" type="button" id="btnRoles" style="grid-column:1/-1">${ic("users")}Kelola Editor</button>`:""}`;
+    </div>${role==="owner"?srcBox():""}${role==="owner"?`<button class="btn" type="button" id="btnRoles" style="grid-column:1/-1">${ic("users")}Kelola Editor</button>`:""}${role==="owner"||role==="editor"?`<button class="btn" type="button" id="btnGoSet" style="grid-column:1/-1">Buka Pengaturan</button>`:""}`;
   wireSrcBox();
   $("#btnLogout").onclick=async()=>{ if(GUEST_SHARE){$("#dlg").close();toast("Akses link masih aktif selama link berlaku. Hubungi Pemilik untuk mencabut link.");return;} await sb.auth.signOut(); $("#dlg").close(); toast("Anda sudah keluar."); };
   const br=$("#btnRoles"); if(br) br.onclick=()=>{ $("#dlg").close(); showRoles(); };
+  const bs=$("#btnGoSet"); if(bs) bs.onclick=()=>{ $("#dlg").close(); setTab("pengaturan"); };
 }
 function srcBox(){
   const on=SRC==="sheet";
@@ -4642,6 +4669,70 @@ async function connectSheet(api){
   if(await saveSrc(api,SHEET_URL)){ SRC="sheet"; applyState(st); toast(`Google Sheets tersambung: ${st.projects.length} project, ${st.units.length} unit.`); $("#dlg").close(); }
   else btn.disabled=false;
 }
+/* ---------- Pengaturan (seperti web Monitoring Manpower) ---------- */
+const MU_CODE_RAW="https://raw.githubusercontent.com/matthewyoga2014-design/kmb-purchasing-logistik/main/monitoring-unit/apps-script/Code.gs";
+function muAgo(t){ if(!t) return "–"; const m=Math.round((Date.now()-t)/60000); return m<1?"baru saja":m<60?m+" menit lalu":Math.round(m/60)+" jam lalu"; }
+function renderSet(){
+  const box=$("#setBody"); if(!box) return; const own=role==="owner", on=SRC==="sheet";
+  if(!(own||role==="editor")){ box.innerHTML=`<div class="card">${emptyState("Khusus Pemilik / Editor","Masuk sebagai Pemilik atau Editor untuk membuka Pengaturan.")}</div>`; return; }
+  if(on&&!MU_SRV.ver&&!MU_SRV.checking){ MU_SRV.checking=true; fetchSheet().then(()=>{ MU_SRV.checking=false; if(S.tab==="pengaturan") renderSet(); },()=>{ MU_SRV.checking=false; }); }
+  const vOk=MU_SRV.ver===MU_CODE_VER, vTxt=!on?"–":!MU_SRV.ver?"belum dicek":MU_SRV.ver==="lama"?"versi lama":MU_SRV.ver;
+  const card=(eb,title,desc,body,chip)=>`<div class="card mu-sc"><div class="mu-sc-h"><div><small>${eb}</small><h3>${title}</h3>${desc?`<p>${desc}</p>`:""}</div>${chip||""}</div>${body}</div>`;
+  const chip=(ok,t)=>`<span class="mu-sc-chip ${ok?"ok":"warn"}">${t}</span>`;
+  box.innerHTML=
+  card("Sumber data","Google Sheets","Semua data web tersimpan di Google Sheet ini. Edit di web dan di sheet saling tersinkron.",
+    `<div class="mu-sc-row"><span>Link Google Sheet</span><a href="${esc(SHEET_URL)}" target="_blank" rel="noopener" class="mu-sc-link">${esc(SHEET_URL)}</a></div>
+     <div class="mu-sc-row"><span>URL Apps Script</span><code>${on?esc(SHEET_API):"Belum disambungkan"}</code></div>
+     <div class="mu-sc-act"><a class="btn primary" href="${esc(SHEET_URL)}" target="_blank" rel="noopener">Buka Google Sheet</a>${on?`<button class="btn" type="button" data-set="reload">Muat ulang data dari Sheet</button>`:""}</div>
+     ${own?`<details class="mu-sc-more"${on?"":" open"}><summary>Ubah sambungan</summary>
+       <label>Link Google Sheet</label><input id="setUrl" type="url" value="${esc(SHEET_URL)}" placeholder="https://docs.google.com/spreadsheets/d/…/edit">
+       <label>URL aplikasi web Apps Script (berakhiran /exec)</label><input id="setApi" type="url" value="${esc(SHEET_API)}" placeholder="https://script.google.com/macros/s/…/exec">
+       <div class="mu-sc-act"><button class="btn primary" type="button" data-set="save">Uji &amp; simpan</button>${on?`<button class="btn" type="button" data-set="off">Putuskan Google Sheets</button>`:""}</div></details>`:""}`,
+    chip(on,on?"Tersambung":"Belum tersambung"))+
+  card("Server","Kode Apps Script (Code.gs)","Penghubung web dengan Google Sheet. Perbarui bila versinya tertinggal supaya simpan cepat dan tidak gagal.",
+    `<div class="mu-sc-row"><span>Versi terpasang</span><b>${esc(vTxt)}</b></div><div class="mu-sc-row"><span>Versi terbaru</span><b>${MU_CODE_VER}</b></div>
+     ${on&&!vOk?`<ol class="mu-sc-steps"><li>Klik <b>Download Code.gs terbaru</b>.</li><li>Buka Google Sheet → <b>Ekstensi → Apps Script</b>, ganti seluruh isi Code.gs, Simpan.</li><li><b>Terapkan → Kelola penerapan → ikon pensil → Versi baru → Terapkan</b>. URL tetap sama.</li></ol>`:""}
+     <div class="mu-sc-act"><button class="btn${on&&!vOk?" primary":""}" type="button" data-set="code">Download Code.gs terbaru</button></div>`,
+    on?chip(vOk,vOk?"Terbaru":MU_SRV.ver?"Perlu diperbarui":"Belum dicek"):"")+
+  card("Penyimpanan","Status sinkron","Perubahan disimpan di belakang layar; yang gagal dicoba ulang otomatis.",
+    `<div class="mu-sc-row"><span>Terakhir tersimpan</span><b>${muAgo(MU_SRV.saveAt)}</b></div>
+     <div class="mu-sc-row"><span>Data terakhir dimuat</span><b>${muAgo(MU_SRV.at)}</b></div>
+     <div class="mu-sc-row"><span>Sedang menunggu</span><b>${PENDING.length+MU_Q.length} perubahan</b></div>
+     <div class="mu-sc-row"><span>Berhasil / gagal (sesi ini)</span><b>${MU_SRV.ok} / ${MU_SRV.fail}</b></div>
+     ${MU_SRV.lastErr?`<div class="mu-sc-row"><span>Gagal terakhir</span><b class="mu-sc-err">${esc(MU_SRV.lastErr)}</b></div>`:""}`,
+    chip(!(PENDING.length+MU_Q.length)&&!MU_SRV.lastErr,PENDING.length+MU_Q.length?"Menyimpan…":MU_SRV.lastErr?"Ada yang gagal":"Aman"))+
+  card("Akses","Pemilik &amp; Editor",own?"Tambah email yang boleh mengubah data, ubah perannya, atau cabut aksesnya.":"Daftar orang yang punya akses. Hanya Pemilik yang bisa mengubah.",
+    `<div class="mu-sc-me">Masuk sebagai <b>${esc(meEmail)}</b> · ${ROLE_TXT[role]||""}</div><div id="setRoles" class="mu-sc-roles"><div class="note">Memuat daftar…</div></div>`)+
+  card("Download","Excel &amp; Backup","Unduh seluruh data ke Excel, atau simpan cadangan data (.json).",
+    `<div class="mu-sc-act"><button class="btn primary" type="button" data-set="xlsx">Download Excel</button><button class="btn" type="button" data-set="backup">Download Backup (.json)</button></div>`);
+  muSetRoles(); }
+async function muSetRoles(){
+  const el=$("#setRoles"); if(!el) return; const own=role==="owner";
+  const {data,error}=await sb.from("app_access_roles").select("email,role").eq("app_id",APP).order("role").order("email");
+  if(!$("#setRoles")) return;
+  if(error){ el.innerHTML=`<div class="note">Gagal memuat: ${esc(error.message)}</div>`; return; }
+  const RL={owner:"Pemilik",editor:"Editor",viewer:"Hanya lihat"};
+  el.innerHTML=`<div class="rolelist">${(data||[]).map(x=>`<div class="rr"><span class="em">${esc(x.email)}</span>${own&&x.role!=="owner"?`<select data-sem="${esc(x.email)}" aria-label="Peran ${esc(x.email)}"><option value="editor" ${x.role==="editor"?"selected":""}>Editor</option><option value="viewer" ${x.role==="viewer"?"selected":""}>Hanya lihat</option></select><button class="linkish" type="button" data-srm="${esc(x.email)}">Hapus</button>`:`<span class="chip ${x.role==="owner"?"s-accent":"s-idle"}">${RL[x.role]||x.role}</span>`}</div>`).join("")||'<div class="rr"><span class="em muted">Belum ada Editor.</span></div>'}</div>
+    ${own?`<div class="addrow" style="margin-top:10px"><input id="setEm" type="email" placeholder="email@perusahaan.com" aria-label="Email baru"><select id="setRole" aria-label="Peran"><option value="editor">Editor</option><option value="viewer">Hanya lihat</option></select><button class="btn primary" type="button" data-set="addrole">+ Tambah</button></div>`:""}`;
+  el.querySelectorAll("select[data-sem]").forEach(sel=>sel.onchange=async()=>{ const {error}=await sb.from("app_access_roles").update({role:sel.value,updated_at:new Date().toISOString()}).eq("app_id",APP).eq("email",sel.dataset.sem); toast(error?"Gagal mengubah peran.":"Peran diperbarui."); });
+  el.querySelectorAll("[data-srm]").forEach(b=>b.onclick=()=>confirmBox(`Hapus akses ${b.dataset.srm}?`,"Orang ini tidak bisa membuka atau mengubah data lagi.","Hapus",async()=>{ const {error}=await sb.from("app_access_roles").delete().eq("app_id",APP).eq("email",b.dataset.srm); toast(error?"Gagal menghapus.":"Akses dihapus."); muSetRoles(); })); }
+document.addEventListener("click",async e=>{
+  const b=e.target.closest("[data-set]"); if(!b) return; const a=b.dataset.set;
+  if(a==="reload"){ b.disabled=true; try{ LAST_SHEET_INVALIDATION=0; const st=await fetchState(); applyState(st); toast("Data dimuat ulang dari Google Sheet."); }catch(x){ toast("Gagal memuat dari Google Sheet."); } renderSet(); }
+  else if(a==="code"){ try{ const r=await fetch(MU_CODE_RAW,{cache:"no-store"}); if(!r.ok) throw 0; const t=await r.text(); const u=URL.createObjectURL(new Blob([t],{type:"text/plain"})); const l=document.createElement("a"); l.href=u; l.download="Code.gs"; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000); }catch(x){ window.open(MU_CODE_RAW,"_blank","noopener"); } }
+  else if(a==="xlsx"){ const d=$("#btnDownload"); if(d) d.click(); }
+  else if(a==="backup"){ const t=JSON.stringify(STATE||{},null,1), u=URL.createObjectURL(new Blob([t],{type:"application/json"})), l=document.createElement("a"); l.href=u; l.download=`Backup-Monitoring-Unit_${todayStr()}.json`; document.body.appendChild(l); l.click(); l.remove(); setTimeout(()=>URL.revokeObjectURL(u),2000); toast("Backup diunduh."); }
+  else if(a==="addrole"){ const em=($("#setEm").value||"").trim().toLowerCase(); if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em)){ toast("Email belum benar."); return; }
+    const {error}=await sb.from("app_access_roles").upsert({app_id:APP,email:em,role:$("#setRole").value,updated_at:new Date().toISOString()}); toast(error?"Gagal menambah: "+error.message:em+" ditambahkan."); muSetRoles(); }
+  else if(a==="off"){ confirmBox("Putuskan Google Sheets?","Web kembali memakai database portal. Data di Google Sheet tetap aman, tidak terhapus.","Putuskan",async()=>{ if(await saveSrc("",SHEET_URL)){ SRC="supabase"; applyState(SBDATA); toast("Google Sheets diputuskan."); renderSet(); renderSide(); } }); }
+  else if(a==="save"){ const url=($("#setUrl").value||"").trim(), api=($("#setApi").value||"").trim();
+    if(!/^https:\/\/docs\.google\.com\/spreadsheets\//.test(url)){ toast("Link Google Sheet harus diawali https://docs.google.com/spreadsheets/"); return; }
+    if(api && !/^https:\/\/script\.google(usercontent)?\.com\/.+\/exec(\?.*)?$/.test(api)){ toast("URL Apps Script harus berakhiran /exec."); return; }
+    b.disabled=true; let st=null;
+    if(api){ toast("Menguji sambungan ke Google Sheets…"); try{ st=await fetchSheet(api); }catch(x){ b.disabled=false; toast("URL Apps Script belum bisa dibuka. Pastikan deployment memakai akses \"Siapa saja\"."); return; } }
+    if(await saveSrc(api,url)){ if(st){ SRC="sheet"; applyState(st); } toast(st?`Tersimpan. Google Sheets tersambung: ${st.projects.length} project, ${st.units.length} unit.`:"Link Google Sheet disimpan."); renderSet(); renderSide(); }
+    else b.disabled=false; }
+});
 async function showRoles(){
   if(role!=="owner") return;
   openForm({title:"Kelola Editor",desc:"Daftarkan email yang boleh mengubah data, mengunduh Excel, dan print. Orang tersebut masuk dengan email itu.",fields:[],ok:"Selesai",onSubmit:()=>{}});
