@@ -794,7 +794,7 @@ function parseKmbSheet(ws,wb){
     const options={};L.forEach((l,j)=>options[l]=opts[j][1].replace(/\s+([,.?:])/g,"$1").trim());
     const kl=key.toLowerCase().replace(/[\s.]/g,"");
     qs.push({src:st.n,row:rg.s.r+st.i,raw:key,text:text.replace(/\s+([,.?:])/g,"$1").trim(),options,answer:/^[a-e]$/.test(kl)?kl:""})});
-  qs.forEach((q,i)=>{q.no=i+1;if(Object.keys(q.options).length<2&&/gambar/i.test(q.text)){"abcd".split("").forEach(l=>q.options[l]="Gambar "+l.toUpperCase());q.picOpt=1}});
+  qs.forEach((q,i)=>{q.no=i+1;if(Object.keys(q.options).length<2&&q.text){"abcd".split("").forEach(l=>q.options[l]="Gambar "+l.toUpperCase());q.picOpt=1}});
   return qs;
 }
 async function xlsxImages(buf,sheetName){
