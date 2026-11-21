@@ -472,7 +472,7 @@ async function showAnswers(attId,sid,focusNo){
     $("ansOnly").onchange=e=>{only=e.target.checked;draw()};$("ansBack").onclick=()=>showResume(sid);draw();
     if(focusNo){const t=[...$("ansL").querySelectorAll(".qitem")].find(d=>d.querySelector(".n").textContent==String(focusNo));if(t){t.scrollIntoView({block:"center"});t.style.outline="3px solid var(--p)"}}
   }catch(e){$("mbox").innerHTML='<div class="notice warn">Gagal memuat: '+esc(e.message)+'</div>'}}
-function signBox(){const c=[["Karyawan","Karyawan"],["Dibuat oleh","Atasan Langsung"],["Diketahui oleh","HR Site"],["Disetujui oleh","PJO / Manager"]];
+function signBox(){const c=[["Karyawan","Karyawan"],["Dibuat oleh","Atasan Langsung"],["Diketahui oleh","HRGA Dept."],["Disetujui oleh","PJO / Manager"]];
   return `<table class="signbox"><tr>${c.map(x=>`<th>${x[0]}</th>`).join("")}</tr><tr>${c.map(x=>`<td><div class="sb-space"></div><div class="sb-name">(<span class="sb-dots"></span>)</div><div class="sb-role">${x[1]}</div><div class="sb-tgl">Tgl:</div></td>`).join("")}</tr></table>`}
 /* ====================== RESUME PESERTA ====================== */
 async function loadPhotos(sid){try{return await q(SB.from("pk_photos").select("id,kind,taken_at,thumb,url").eq("session_id",sid).order("taken_at"))}catch(e){return []}}
