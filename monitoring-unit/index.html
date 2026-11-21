@@ -4600,10 +4600,13 @@ async function onSession(s){
     canWrite = role==="owner"||role==="editor";
   }
   if(role==="guest"||role==="none"){ lockUnit(); renderWho(); return; }
-  unlockUnit(); renderWho(); render();
+  unlockUnit(); renderWho(); if(!muDlgOpen()) render(); else MU_REFRESH_LATER=MU_REFRESH_LATER||(()=>render());
   if(!UNLOCKED_ONCE){ UNLOCKED_ONCE=true; startData(); }
 }
 let UNLOCKED_ONCE=false;
+let MU_REFRESH_LATER=null;
+function muDlgOpen(){ return [...document.querySelectorAll("dialog")].some(d=>d.open&&d.id!=="upPickHost"); }
+document.addEventListener("close",e=>{ if(!(e.target instanceof HTMLDialogElement)) return; setTimeout(()=>{ if(MU_REFRESH_LATER&&!muDlgOpen()){ const f=MU_REFRESH_LATER; MU_REFRESH_LATER=null; f(); } },300); },true);
 function lockUnit(){
   try{ localStorage.removeItem("mu_state_v1"); }catch(e){}
   STATE=null; S.ready=false;
@@ -5699,8 +5702,12 @@ async function startData(){
   setSync("busy");
   try{ await fetchSb(); const st=SRC==="sheet"?await fetchSheetWithRefresh():SBDATA; mode="ok"; if(JSON.stringify(ensureCols(st))!==lastJson) applyState(st); else render(); setSync("ok"); }
   catch(e){ setSync("err"); if(!cached){ mode="error"; S.ready=true; render(); } }
-  const refresh=async()=>{ if(document.hidden||PENDING.length) return; const rev=WRITE_REV;
+  const refresh=async()=>{ if(document.hidden||PENDING.length) return;
+    // jangan menggambar ulang halaman saat jendela isian sedang dibuka — ditunda sampai jendela ditutup
+    if(muDlgOpen()){ MU_REFRESH_LATER=refresh; return; }
+    const rev=WRITE_REV;
     try{ const st=await fetchState(); if(rev!==WRITE_REV||PENDING.length)return;
+      if(muDlgOpen()){ MU_REFRESH_LATER=refresh; return; }
       if(JSON.stringify(st)!==lastJson) applyState(st);
       if(mode==="error"){ mode="ok"; render(); } setSync("ok");
     }catch(e){ if(rev===WRITE_REV&&!PENDING.length)setSync("err"); } };
