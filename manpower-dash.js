@@ -1001,5 +1001,74 @@
     };
   }
 
+  // ===== Status PTK "Hold": posisi dikunci (tidak bisa diedit) + diberi tanda kuning =====
+  const isHold = (p) => !!p && /^hold$/i.test(String(p.status || '').trim());
+  const holdMsg = (p) => `Posisi No. ${p.no} (${p.jabatan}) sedang HOLD. Ubah Status PTK ke Open / Continue dulu untuk mengedit.`;
+  if (!document.getElementById('holdCss')) {
+    const st = document.createElement('style'); st.id = 'holdCss';
+    st.textContent = `tr.ptk-hold>td{background:repeating-linear-gradient(135deg,#FFFBEB 0 12px,#FEF3C7 12px 24px)!important}
+tr.ptk-hold>td:first-child{box-shadow:inset 4px 0 0 #D97706}
+tr.ptk-hold [data-cands],tr.ptk-hold [data-delpos]{opacity:.45;cursor:not-allowed}
+.stt.hold{background:#FEF3C7!important;color:#92400E!important;border:1px solid #F59E0B!important;font-weight:800}
+.holdtag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#D97706;color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em;vertical-align:middle}
+.ocard.ptk-hold{outline:2px dashed #D97706;outline-offset:2px;background:#FFFBEB}
+.holdnote{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;font-size:13px;font-weight:600}
+@media print{tr.ptk-hold>td{background:#FEF3C7!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
+    document.head.appendChild(st);
+  }
+  // tandai baris / kartu bagan setelah setiap render
+  const markHold = () => {
+    const P = (typeof DATA !== 'undefined' && DATA.positions) || [];
+    document.querySelectorAll('[data-epos]').forEach((el) => {
+      const p = P[+el.dataset.epos]; const h = isHold(p);
+      const box = el.closest('tr') || (el.classList.contains('ocard') ? el : el.closest('.ocard'));
+      if (box) box.classList.toggle('ptk-hold', h);
+    });
+    document.querySelectorAll('tr.ptk-hold .stt').forEach((s) => { if (/^hold$/i.test(s.textContent.trim())) { s.classList.add('hold'); if (!s.nextElementSibling || !s.nextElementSibling.classList.contains('holdtag')) s.insertAdjacentHTML('afterend', '<span class="holdtag" title="Data posisi dikunci">TERKUNCI</span>'); } });
+  };
+  if (typeof render === 'function') { const _rH = render; render = function () { const r = _rH.apply(this, arguments); try { markHold(); } catch (e) {} return r; }; }
+  // tombol Pelamar / Hapus pada posisi Hold ditolak; Edit tetap bisa dibuka untuk mengubah Status saja
+  window.addEventListener('click', (e) => {   // window (capture) jalan sebelum handler halaman di document
+    const P = (typeof DATA !== 'undefined' && DATA.positions) || [];
+    const b = e.target.closest && e.target.closest('[data-cands],[data-delpos]'); if (!b) return;
+    const p = P[+(b.dataset.cands ?? b.dataset.delpos)]; if (!isHold(p)) return;
+    e.preventDefault(); e.stopImmediatePropagation(); try { toast(holdMsg(p), true); } catch (er) {}
+  }, true);
+  document.addEventListener('click', (e) => {
+    const b = e.target.closest && e.target.closest('[data-epos]'); if (!b) return;
+    const p = ((typeof DATA !== 'undefined' && DATA.positions) || [])[+b.dataset.epos]; if (!isHold(p)) return;
+    setTimeout(() => {
+      const sel = [...document.querySelectorAll('select[name="status"]')].pop(); if (!sel) return;
+      const form = sel.closest('form') || sel.closest('.modal,.sheet,.dlg') || sel.parentElement.parentElement.parentElement;
+      const lock = () => { const on = /^hold$/i.test(sel.value); form.querySelectorAll('input,select,textarea').forEach((x) => { if (x !== sel && x.type !== 'hidden') x.disabled = on; }); };
+      if (!form.querySelector('.holdnote')) sel.closest('.fld') ? form.insertAdjacentHTML('afterbegin', '<div class="holdnote">⏸ Posisi ini sedang HOLD, semua data dikunci. Ubah <b>Status</b> ke Open / Continue untuk membuka kunci.</div>') : 0;
+      sel.addEventListener('change', lock); lock();
+    }, 30);
+  }, false);
+  // pengaman di penyimpanan: perubahan apa pun pada posisi Hold dibatalkan (kecuali mengubah Status-nya)
+  if (typeof commit === 'function') {
+    const _cH = commit;
+    const SKIP = new Set(['status', 'close', 'no', 'hist']);
+    const sig = (p) => JSON.stringify(Object.keys(p).filter((k) => !SKIP.has(k)).sort().map((k) => [k, p[k]]));
+    commit = function (mutate, ...rest) {
+      return _cH.call(this, (S) => {
+        const held = (S.positions || []).map((p, i) => [p, i]).filter(([p]) => isHold(p)).map(([p, i]) => ({ uid: p.uid, i, old: JSON.parse(JSON.stringify(p)), s: sig(p) }));
+        const r = mutate(S);
+        if (held.length) {
+          const back = [];
+          held.forEach((h) => {
+            const j = S.positions.findIndex((x) => x && h.uid && x.uid === h.uid);
+            if (j < 0) { S.positions.splice(Math.min(h.i, S.positions.length), 0, h.old); back.push(h.old.no); return; }
+            const cur = S.positions[j];
+            if (sig(cur) !== h.s) { S.positions[j] = { ...h.old, status: cur.status, close: cur.close, no: cur.no }; back.push(h.old.no); }
+          });
+          if (back.length) setTimeout(() => { try { toast(`Posisi HOLD tidak diubah (No. ${back.join(', ')}). Ubah Status ke Open / Continue dulu.`, true); } catch (e) {} }, 400);
+        }
+        return r;
+      }, ...rest);
+    };
+  }
+  try { markHold(); } catch (e) {}
+
   try { if (ui.page === 'dashboard') render(); else navSubs(); } catch (e) {}
 })();
