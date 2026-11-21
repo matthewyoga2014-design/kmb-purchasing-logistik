@@ -233,9 +233,11 @@
       else { st.className = 'kta-st ok'; st.innerHTML = '<i></i>Tidak ada perubahan'; }
     } else {
       mt.textContent = 'Simpan';
-      sp.classList.add('quiet');
+      const fd = formDirtyNow();
+      sp.classList.toggle('quiet', !fd);
       const p = A.info.pending || 0, mp = A.info.mine_pending || 0;
-      if (A.info.approver && A.info.enabled && p) { st.className = 'kta-st wait'; st.innerHTML = `<i></i>${p} perubahan perlu ditinjau`; }
+      if (fd) { st.className = 'kta-st dirty'; st.innerHTML = '<i></i>Ada isian yang belum disimpan'; }
+      else if (A.info.approver && A.info.enabled && p) { st.className = 'kta-st wait'; st.innerHTML = `<i></i>${p} perubahan perlu ditinjau`; }
       else { st.className = 'kta-st ok'; st.innerHTML = '<i></i>Tersimpan' + (WEB.ver ? ' · ' + jam(WEB.ver) : '') + (A.info.enabled && mp && !A.info.approver ? ` · ${mp} menunggu ditinjau` : ''); }
     }
     banner(); decorate();
@@ -283,7 +285,7 @@
     const t = e.target;
     const menu = document.getElementById('ktaMenu');
     if (menu && !t.closest('#ktaMenu') && !t.closest('#ktaCaret')) closeMenu();
-    if (t.closest('#ktaMain')) { e.preventDefault(); if (A.mode() === 'draft') openLeave(false); else say('Semua perubahan Anda sudah tersimpan.'); return; }
+    if (t.closest('#ktaMain')) { e.preventDefault(); if (A.mode() === 'draft') openLeave(false); else if (!submitOpenForm()) say('Semua perubahan Anda sudah tersimpan.'); return; }
     if (t.closest('#ktaCaret')) { e.preventDefault(); menu ? closeMenu() : openMenu(); return; }
     const k = t.closest('[data-kta]');
     if (!k) return;
@@ -317,7 +319,7 @@
   }
   function closeMenu() { const m = document.getElementById('ktaMenu'); if (m) m.remove(); const c = document.getElementById('ktaCaret'); if (c) c.setAttribute('aria-expanded', 'false'); }
   document.addEventListener('keydown', (e) => {
-    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S') && A.mode() !== 'none') { e.preventDefault(); if (A.mode() === 'draft') openLeave(false); else say('Semua perubahan Anda sudah tersimpan.'); }
+    if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S') && A.mode() !== 'none') { e.preventDefault(); if (A.mode() === 'draft') openLeave(false); else if (!submitOpenForm()) say('Semua perubahan Anda sudah tersimpan.'); }
     if (e.key === 'Escape') { closeMenu(); const l = document.getElementById('ktaLeave'); if (l && !l.hidden) l.hidden = true; }
   });
 
@@ -742,6 +744,14 @@
   }
   A.exportHistory = exportHistory;
 
+  function formDirtyNow() { try { return fdirty(); } catch (e) { return false; } }
+  // tombol Simpan di pojok kanan atas: kalau ada form terbuka, sama dengan klik Simpan di form itu
+  function submitOpenForm() {
+    const f = document.getElementById('frm'); const m = document.getElementById('modal');
+    if (!f || (m && m.hidden)) return false;
+    if (f.requestSubmit) f.requestSubmit(); else { const b = f.querySelector('[type=submit]'); if (b) b.click(); }
+    return true;
+  }
   // ---------------- pengaman form: isian tersimpan otomatis & tanya sebelum ditutup ----------------
   const FG = { key: null, init: null, submitting: false, t: null };
   const frm = () => document.getElementById('frm');
@@ -766,7 +776,7 @@
   function formTouched() {
     if (!frm() || !FG.key) return;
     clearTimeout(FG.t);
-    FG.t = setTimeout(() => { const f = frm(); if (!f) return; lsSet(FG.key, fdirty() ? { vals: fvals(f), at: Date.now() } : null); }, 800);
+    FG.t = setTimeout(() => { const f = frm(); if (!f) return; lsSet(FG.key, fdirty() ? { vals: fvals(f), at: Date.now() } : null); ui(); }, 500);
   }
   function askClose(e) {
     const f = frm(); if (!f || !fdirty() || FG.submitting) return false;
@@ -792,7 +802,7 @@
     new MutationObserver(() => {
       if (!mEl.hidden) return;
       if (FG.key && (FG.submitting || !FG.init)) lsSet(FG.key, null);   // tersimpan atau sengaja dibuang
-      FG.key = null; FG.init = null; FG.submitting = false;
+      FG.key = null; FG.init = null; FG.submitting = false; setTimeout(ui, 0);
     }).observe(mEl, { attributes: true, attributeFilter: ['hidden'] });
   }
   document.head.insertAdjacentHTML('beforeend', `<style>
