@@ -124,6 +124,18 @@ table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 .signbox td{vertical-align:bottom;padding:0}.sb-space{height:70px}.sb-name{font-size:13px;padding:0 6px}.sb-dots{display:inline-block;width:70%;border-bottom:1px dotted #555;height:12px;vertical-align:baseline}
 .sb-role{font-weight:700;padding:4px 6px 8px}.sb-tgl{text-align:left;font-size:12px;padding:2px 6px 4px;border-top:0}
 .sign{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px;text-align:center;font-size:12px}.sign div{border-top:1px solid #999;padding-top:6px;margin-top:56px}
+#upPick[hidden]{display:none!important}#upPick{position:fixed;inset:0;z-index:2000;background:rgba(18,16,40,.45);display:grid;place-items:center;padding:16px}
+#upPick .upk{background:#EEF2FB;border-radius:18px;width:min(560px,100%);box-shadow:0 24px 60px rgba(18,16,40,.3);overflow:hidden;font-family:inherit}
+#upPick .upk-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;padding:18px 20px 12px;background:#fff;border-bottom:1px solid #E3E6F0}
+#upPick .upk-h small{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6D28D9}#upPick .upk-h h3{margin:2px 0 0;font-size:20px;color:#1E1B3A}
+#upPick .upk-x{border:0;background:#F3F2FA;width:38px;height:38px;border-radius:50%;font-size:22px;cursor:pointer;color:#4B4868}
+#upPick .upk-i{display:flex;gap:10px;align-items:flex-start;margin:14px 16px 0;background:#fff;border-radius:14px;padding:12px 14px;font-size:13.5px;color:#3F3D56}
+#upPick .upk-z{margin:14px 16px 18px;border:2.5px dashed #9AA3B8;border-radius:18px;padding:26px 16px 22px;display:grid;justify-items:center;gap:12px;text-align:center;cursor:pointer;transition:background .15s,border-color .15s}
+#upPick .upk-z.on{background:#E6F7EC;border-color:#16A34A}
+#upPick .upk-z p{margin:0;font-size:14px;color:#1E1B3A}
+#upPick .upk-b{border:0;background:#1A56DB;color:#fff;border-radius:999px;padding:12px 34px;font:700 15px/1 inherit;font-family:inherit;cursor:pointer;box-shadow:0 6px 16px rgba(26,86,219,.3)}
+#upPick .upk-b:focus-visible,#upPick .upk-x:focus-visible{outline:3px solid #6D28D9;outline-offset:2px}
+@media (max-width:560px){#upPick{place-items:end center;padding:0}#upPick .upk{border-radius:20px 20px 0 0}}
 </style>
 </head>
 <body>
@@ -686,7 +698,7 @@ async function renameSheet(id,m){const x=S.modules.find(y=>y.id===id);const el=d
 async function vBank(m){
   if(!BANKSEL||!S.modules.find(x=>x.id===BANKSEL))BANKSEL=S.modules[0]?.id||null;
   m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><div><h2>Bank Soal</h2><p class="sub">Satu file soal untuk satu grade (mis. Soal G2). Unggah file Excel apa adanya (.xlsx/.xls) — soal, pilihan, dan kunci terbaca otomatis. Untuk paket soal lengkap dengan gambar, unggah file <b>Paket_Soal_KMB.json</b>.</p></div>
-   <div class="row"><label class="btn pri">⬆ Unggah file soal<input type="file" id="bImp" accept=".xlsx,.xls,.csv,.json" hidden></label><button class="btn sm" id="bTpl" title="Opsional, bila soal belum punya file">Template kosong</button></div></div>
+   <div class="row"><button class="btn pri" id="bUp">⬆ Unggah file soal</button><input type="file" id="bImp" accept=".xlsx,.xls,.csv,.json" hidden><button class="btn sm" id="bTpl" title="Opsional, bila soal belum punya file">Template kosong</button></div></div>
    <div class="shelf" id="bDD">${bankShelf()}</div>
    <div>
    <div id="bBody" style="min-width:0">${S.modules.length?'<div class="empty">Memuat…</div>':'<div class="empty">Belum ada soal. Klik <b>⬆ Unggah file soal</b>.</div>'}</div></div></div>`;
@@ -694,7 +706,7 @@ async function vBank(m){
   if(!window.__ddL){window.__ddL=1;document.addEventListener("click",e=>{const dd=$("bDD");if(dd&&!dd.contains(e.target))dd.classList.remove("open")})}
   if($("bRn"))$("bRn").onclick=async()=>{const x=S.modules.find(y=>y.id===BANKSEL);const v=prompt("Nama sheet baru:",x.title);if(v&&v.trim()&&v.trim()!==x.title){try{await q(SB.from("pk_modules").update({title:v.trim(),updated_at:new Date().toISOString()}).eq("id",x.id));x.title=v.trim();toast("Nama sheet diubah");vBank(m)}catch(e){toast("Gagal: "+e.message)}}};
   $("bTpl").onclick=()=>{const ws=XLSX.utils.aoa_to_sheet([["No","Soal","A","B","C","D","Kunci","Topik"],[1,"Alat untuk mengukur diameter luar shaft secara akurat adalah…","Ruler","Micrometer","Depth Gauge","Feeler Gauge","B","Alat Ukur & Tools"]]);ws["!cols"]=[{wch:5},{wch:60},{wch:25},{wch:25},{wch:25},{wch:25},{wch:7},{wch:24}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Soal");XLSX.writeFile(wb,"Template_Bank_Soal.xlsx")};
-  $("bImp").onchange=e=>importExcel(e.target.files[0]);
+  $("bImp").onchange=e=>{pickClose();importExcel(e.target.files[0])};$("bUp").onclick=pickOpen;
   if(!BANKSEL)return;
   const mod=S.modules.find(x=>x.id===BANKSEL);let qs=[];try{qs=await loadQuestions(BANKSEL)}catch(e){$("bBody").innerHTML='<div class="notice warn">Gagal memuat soal: '+esc(e.message)+'</div>';return}
   $("bBody").innerHTML=`<div class="notice" style="margin-bottom:12px"><div class="row" style="justify-content:space-between"><div><b>${esc(mod.title)}</b> ${mod.active?'<span class="chip st-Selesai">Aktif</span>':'<span class="chip st-Kedaluwarsa">Nonaktif</span>'}<br><span class="small">${mod.grade?"Grade "+esc(mod.grade)+" · ":""}Level ${esc(mod.level)} · ${mod.duration_min} menit · ${qs.length} soal · nilai lulus ${mod.pass_score}${mod.shuffle?" · urutan diacak":""}${mod.code?" · kode "+esc(mod.code):""}</span>${mod.description?`<br><span class="small muted">${esc(mod.description)}</span>`:""}</div>
@@ -819,6 +831,23 @@ async function stackImages(blobs,max=900){const ims=[];for(const b of blobs){try
   const W=Math.min(max,Math.max(...ims.map(i=>i.width)));const hs=ims.map(i=>Math.round(i.height*Math.min(1,W/i.width)));
   const c=document.createElement("canvas");c.width=W;c.height=hs.reduce((a,b)=>a+b,0)+8*(ims.length-1);const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,c.width,c.height);
   let y=0;ims.forEach((im,i)=>{const w=Math.round(im.width*Math.min(1,W/im.width));x.drawImage(im,0,y,w,hs[i]);y+=hs[i]+8});return c.toDataURL("image/jpeg",.8)}
+/* Panel "Sisipkan file" (sama seperti web MPP) */
+function pickOpen(){let pk=$("upPick");
+  if(!pk){document.body.insertAdjacentHTML("beforeend",`<div id="upPick" role="dialog" aria-modal="true" aria-labelledby="upPkT" hidden><div class="upk">
+    <div class="upk-h"><div><small>Sisipkan file</small><h3 id="upPkT">Unggah file soal</h3></div><button type="button" class="upk-x" data-pkclose aria-label="Tutup">×</button></div>
+    <div class="upk-i"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Upload 1 file: Excel soal (.xlsx / .xls) atau <b>Paket_Soal_KMB.json</b>. Agar gambar ikut terbaca, gunakan .xlsx.</span></div>
+    <div class="upk-z" id="upPkZ"><svg class="cloud" width="150" height="104" viewBox="0 0 150 104" aria-hidden="true"><defs><linearGradient id="upkg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#4ADE80"/><stop offset="1" stop-color="#BAE6FD"/></linearGradient></defs><path d="M38 98h80a28 28 0 0 0 3-56 34 34 0 0 0-66-8 28 28 0 0 0-17 64z" fill="url(#upkg)" stroke="#1E1B3A" stroke-width="1.6"/><path d="M75 82V44M61 57l14-14 14 14" fill="none" stroke="#1E1B3A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <button type="button" class="upk-b" id="upPkB">Jelajah</button><p>atau tarik file ke sini</p></div></div></div>`);
+    pk=$("upPick");
+    pk.addEventListener("click",e=>{if(e.target===pk||e.target.closest("[data-pkclose]"))pickClose();else if(e.target.closest("#upPkB")||e.target.closest("#upPkZ")){const i=$("bImp");if(i)i.click()}});
+    const z=$("upPkZ");["dragenter","dragover"].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();z.classList.add("on")}));
+    z.addEventListener("dragleave",e=>{if(!z.contains(e.relatedTarget))z.classList.remove("on")});
+    z.addEventListener("drop",e=>{e.preventDefault();e.stopPropagation();z.classList.remove("on");const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];if(!f)return;
+      if(!/\.(xlsx|xls|csv|json)$/i.test(f.name))return toast("Format belum didukung. Gunakan file Excel (.xlsx/.xls) atau Paket_Soal_KMB.json.",4000);
+      if(e.dataTransfer.files.length>1)toast("Satu kali unggah satu file. Yang dipakai file pertama.");pickClose();importExcel(f)});
+    document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!pk.hidden){e.stopPropagation();pickClose()}},true)}
+  pk.hidden=false;setTimeout(()=>$("upPkB").focus(),30)}
+function pickClose(){const pk=$("upPick");if(pk)pk.hidden=true}
 /* Paket soal siap pakai (.json) — hasil bedah file Excel lengkap dengan gambar */
 async function importPaket(file){
   let P;try{P=JSON.parse(await file.text())}catch(e){return toast("File paket tidak valid",4000)}
