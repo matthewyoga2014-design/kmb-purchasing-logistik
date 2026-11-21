@@ -330,3 +330,17 @@ grant execute on function public.kta_approval_info(text, text) to anon, authenti
 
 -- Portal Manpower lain ikut punya pengaturan (default MATI)
 insert into public.kta_approval_settings(app_id) values ('kta-tra'),('bupr-ampah'),('kmb') on conflict do nothing;
+
+-- =====================================================================
+-- 21 Nov 2026: ganti ke model "langsung tampil, ditinjau"
+-- (draf/pengajuan tidak dipakai lagi; tabel kta_drafts & kta_change_requests dibiarkan untuk arsip)
+-- Lihat migration kta_review_after_save & kta_pending_marks di Supabase:
+--  * kta_change_history: review_status pending|approved|rejected|partial, reviewed_by/at, review_note, reviewed_ops
+--  * editor kembali menulis langsung (policy "kta web write" = owner/editor), guard di monitoring_guest_write dihapus
+--  * kta_hist_add: simpanan editor saat tinjauan NYALA → review_status = 'pending'
+--  * kta_review(id, status, rejected_ops, note): Pemilik/PIC menyetujui/menolak (yang ditolak dikembalikan oleh browser penyetuju)
+--  * kta_pending_marks(state, token): daftar sel "belum ditinjau" untuk tanda kuning
+--  * kta_approval_info: + mine_pending, mine_rejected (3 hari)
+--  * kta_app_of: apd, unit-monitoring, notulensi, psikotest memakai id sendiri
+--  * cron kta-drafts-autoreport dihentikan
+-- =====================================================================
