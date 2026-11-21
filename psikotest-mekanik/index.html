@@ -142,6 +142,11 @@ table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 .grip{font-style:normal;color:#B4AECB;font-size:13px;cursor:grab;touch-action:none;padding:0 2px;margin-left:-4px}.pill.on .grip{color:#E9DDFF}
 .shelf-row.drop{background:#F1ECFE;border-radius:10px}.shelf.dnd{cursor:grabbing}.shelf.dnd *{cursor:grabbing!important}
 .pill.dragging,.shelf-row.dragging{opacity:.35}.ghost{position:fixed!important;z-index:3000;pointer-events:none;box-shadow:0 10px 28px rgba(30,20,70,.28);transform:rotate(-2deg);opacity:.95;background:#fff;margin:0}
+.shelf .shelf-row{display:block;padding:4px 0}
+.shelf .shelf-items{flex-direction:column;flex-wrap:nowrap;gap:4px;padding:2px 0 6px 26px;border-left:2px solid #EAE4FA;margin-left:14px}
+.shelf .pill{display:flex;width:100%;box-sizing:border-box;border-radius:10px;padding:8px 12px;gap:8px}
+.shelf .pill b{min-width:64px}.shelf .pill span{max-width:none;flex:1;text-align:left}.shelf .pill small{margin-left:auto;white-space:nowrap}
+.shelf .shelf-closed{display:block;height:6px}.shelf .shelf-items:has(.shelf-closed){border-left-color:transparent;padding:0}.shelf .shelf-items:empty{display:none}
 </style>
 </head>
 <body>
@@ -688,7 +693,7 @@ function bankGroups(){const groups={};S.modules.forEach(x=>{const k=x.level||"La
 function bankShelf(){if(!S.modules.length)return "";
   const pill=x=>`<button class="pill ${x.id===BANKSEL?"on":""}${x.active?"":" off"}" data-id="${x.id}" title="${esc(x.title)} — seret untuk memindah"><i class="grip" aria-hidden="true">⠿</i><b>${esc(x.grade||"–")}</b><span>${esc(x.title)}</span><small>${S.qcount?.[x.id]||0} soal</small></button>`;
   return `<div class="shelf-hint small muted">Klik folder untuk buka/tutup · seret untuk memindah${matchMedia("(pointer:coarse)").matches?" · di HP tahan lalu geser tanda ⠿":""}</div>`+
-   bankGroups().map(([k,list])=>{const open=!FOLD[k];return `<div class="shelf-row" data-lv="${esc(k)}"><button class="shelf-lv" type="button" data-fold="${esc(k)}" data-fh="${esc(k)}" title="Klik buka/tutup · seret untuk memindah urutan folder"><i class="grip" aria-hidden="true">⠿</i><span class="caret">${open?"▾":"▸"}</span> 📁 ${esc(k)} <small>(${list.length})</small></button><div class="shelf-items" data-lv="${esc(k)}">${open?list.map(pill).join(""):`<span class="small muted shelf-closed">${list.length} sheet · klik folder untuk membuka</span>`}</div></div>`}).join("")}
+   bankGroups().map(([k,list])=>{const open=!FOLD[k];return `<div class="shelf-row" data-lv="${esc(k)}"><button class="shelf-lv" type="button" data-fold="${esc(k)}" data-fh="${esc(k)}" title="Klik buka/tutup · seret untuk memindah urutan folder"><i class="grip" aria-hidden="true">⠿</i><span class="caret">${open?"▾":"▸"}</span> 📁 ${esc(k)} <small>(${list.length})</small></button><div class="shelf-items" data-lv="${esc(k)}">${open?list.map(pill).join(""):`<span class="shelf-closed"></span>`}</div></div>`}).join("")}
 /* seret & lepas sheet / folder di rak Bank Soal (mouse: seret langsung · HP: tahan lalu geser ⠿) */
 function shelfDnD(box,m){let st=null,ghost=null,timer=null;
   const clean=()=>{clearTimeout(timer);if(ghost)ghost.remove();ghost=null;if(st&&st.el)st.el.classList.remove("dragging");box.classList.remove("dnd");document.querySelectorAll(".shelf-row.drop").forEach(r=>r.classList.remove("drop"));st=null};
@@ -704,7 +709,7 @@ function shelfDnD(box,m){let st=null,ghost=null,timer=null;
     document.querySelectorAll(".shelf-row.drop").forEach(r=>{if(r!==row)r.classList.remove("drop")});
     if(st.kind==="folder"){if(row===st.el)return;const rr=row.getBoundingClientRect();box.insertBefore(st.el,e.clientY<rr.top+rr.height/2?row:row.nextSibling);return}
     row.classList.add("drop");const items=row.querySelector(".shelf-items");const ps=[...items.querySelectorAll(".pill[data-id]")].filter(p=>p!==st.el);
-    const nx=ps.find(p=>{const r=p.getBoundingClientRect();return e.clientY<r.top||(e.clientY<=r.bottom&&e.clientX<r.left+r.width/2)});
+    const nx=ps.find(p=>{const r=p.getBoundingClientRect();return e.clientY<r.top+r.height/2});
     const cl=items.querySelector(".shelf-closed");if(cl)cl.remove();
     if(nx)items.insertBefore(st.el,nx);else items.appendChild(st.el)},{passive:false});
   const finish=async()=>{if(!st)return;clearTimeout(timer);if(!st.on){st=null;return}const kind=st.kind;clean();box._drag=Date.now();
