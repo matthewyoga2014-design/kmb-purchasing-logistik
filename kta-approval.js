@@ -298,7 +298,7 @@
     else if (a === 'approve') openPanel('approve');
     else if (a === 'history') openPanel('history');
     else if (a === 'settings') openPanel('settings');
-    else if (a === 'xlsx') A.exportExcel(DATA);
+    else if (a === 'xlsx') { if (typeof exportXLSX === 'function') exportXLSX(); else A.exportExcel(DATA); }   // sama dengan tombol Download Excel (format Rekap)
   });
   function openMenu() {
     const sp = document.getElementById('ktaSplit'); if (!sp) return;
@@ -720,7 +720,8 @@
   };
   // tombol "Download Excel" lama memakai format baru
   const _oldXLSX = typeof exportXLSX === 'function' ? exportXLSX : null;
-  if (_oldXLSX) exportXLSX = function () { A.exportExcel(DATA); };
+  // Download Excel tetap memakai format lengkap (MPP + Pelamar + Bagan + Rekap Manpower, sama dengan Print Rekap MPP).
+  // A.exportExcel hanya dipakai untuk mengunduh versi lama (snapshot) dari riwayat.
 
   async function exportHistory(kind) {
     let X; try { X = await loadExcelJS(); } catch (e) { say(e.message, true); return; }

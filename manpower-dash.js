@@ -266,10 +266,11 @@
       const r = m.get(j) || { j, plan: 0, act: 0, filled: [], repl: [], ket: [], nOpen: 0 }; m.set(j, r);
       r.plan++;
       const nm = String(p.nama || '').trim() || '-', vac = /^vacant$/i.test(nm);
-      const open = vac || (!!p.ptk && /open|continue/i.test(String(p.status || '')));   // vacant, atau masih terisi tapi PTK open (mau diganti)
+      const hold = /^hold$/i.test(String(p.status || '').trim());
+      const open = vac || (!!p.ptk && /open|continue|hold/i.test(String(p.status || '')));   // vacant, atau masih terisi tapi PTK open/hold (mau diganti)
       if (!vac) r.act++;
       if (!vac) (open ? r.repl : r.filled).push(nm);
-      if (open) { r.nOpen++; r.ket.push({ lbl: vac ? 'Vacant' : nm + ' (diganti)', ptk: p.ptk ? (/^ptk/i.test(p.ptk) ? '' : 'PTK ') + p.ptk : '', lines: rkKet(p) }); }
+      if (open) { r.nOpen++; r.ket.push({ lbl: vac ? 'Vacant' : nm + ' (diganti)', hold, ptk: p.ptk ? (/^ptk/i.test(p.ptk) ? '' : 'PTK ') + p.ptk : '', lines: (hold ? [{ k: 'hold', t: 'HOLD · rekrutmen ditunda' }] : []).concat(rkKet(p)) }); }
     });
     return [...m.values()].map((r, i) => ({ r, i, k: rkRank(r.j) })).sort((a, b) => a.k - b.k || a.i - b.i).map(({ r }) => {
       const vac = r.plan - r.act;
@@ -279,12 +280,13 @@
       const blocks = [];
       if (vac && r.filled.length) blocks.push([{ k: 'terisi', t: r.filled.join(', ') }]);
       const showLbl = r.nOpen > 1 || blocks.length;
-      r.ket.forEach((k) => blocks.push((showLbl || k.lbl !== 'Vacant' ? [{ k: 'lbl', t: k.lbl, ptk: k.ptk }] : []).concat(k.lines)));
+      r.ket.forEach((k) => blocks.push((showLbl || k.lbl !== 'Vacant' || k.hold ? [{ k: 'lbl', t: k.lbl, ptk: k.ptk }] : []).concat(k.lines)));
       return { j: r.j, plan: r.plan, act: r.act, vac, names, ket: blocks.length ? blocks : [[{ k: 'ok', t: 'Terpenuhi' }]] };
     });
   }
   function rkHtmlLine(x) {
     if (x.k === 'ok') return `<span class="ok">${E(x.t)}</span>`;
+    if (x.k === 'hold') return `<div class="hl">${E(x.t)}</div>`;
     if (x.k === 'terisi') return `<div><span class="ok">Terisi:</span> ${E(x.t)}</div>`;
     if (x.k === 'lbl') return `<div class="kl"><span class="op">${E(x.t)}</span>${x.ptk ? ' · ' + E(x.ptk) : ''}</div>`;
     return `<div class="${x.k === 'act' ? 'ca' : x.k === 'cx' ? 'cx' : ''}">${E(x.t)}</div>`;
@@ -337,7 +339,7 @@
     out.split = split;
     return out;
   }
-  const RK_NOTE = 'Merah = posisi open · Terisi = karyawan yang sudah ada · Terpenuhi = tidak ada posisi open · Pelamar: Nama - Tahap - Keterangan (aktif tebal, tidak aktif dicoret).';
+  const RK_NOTE = 'Merah = posisi open · HOLD (oranye) = rekrutmen ditunda · Terisi = karyawan yang sudah ada · Terpenuhi = tidak ada posisi open · Pelamar: Nama - Tahap - Keterangan (aktif tebal, tidak aktif dicoret).';
   async function rekapPrint() {
     if (!rkAllowed()) return;
     const sites = await rkSites();
@@ -347,9 +349,9 @@
       table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 16px}tr{break-inside:avoid}thead{display:table-header-group}tfoot{display:table-row-group}
       th,td{border:1px dotted #555;padding:2px 5px;height:22px;vertical-align:middle;overflow:hidden;word-wrap:break-word}
       th{font-weight:400;text-align:center;white-space:nowrap}th.ttl{background:#D9D9D9;border:1px solid #555}
-      td.c{text-align:center}td.nm{font-size:10pt;line-height:1.35;padding-top:3px;padding-bottom:3px}.op{color:#C00000;font-weight:700}.ok{color:#15803D;font-weight:700}.ca{font-weight:700;color:#000}.cx{text-decoration:line-through;color:#555}.kp+.kp{margin-top:4px;padding-top:4px;border-top:1px dotted #999}.kl{font-size:9pt}td.kt{font-size:9.5pt;line-height:1.35;padding-top:3px;padding-bottom:3px}td.r{text-align:right;padding-right:8px}
+      td.c{text-align:center}td.nm{font-size:10pt;line-height:1.35;padding-top:3px;padding-bottom:3px}.op{color:#C00000;font-weight:700}.ok{color:#15803D;font-weight:700}.ca{font-weight:700;color:#000}.cx{text-decoration:line-through;color:#555}.hl{color:#B45309;font-weight:800}.kp+.kp{margin-top:4px;padding-top:4px;border-top:1px dotted #999}.kl{font-size:9pt}td.kt{font-size:9.5pt;line-height:1.35;padding-top:3px;padding-bottom:3px}td.r{text-align:right;padding-right:8px}
       tfoot td{background:#D9D9D9;border-left:0;border-right:0}tfoot td:first-child{border-left:1px dotted #555}tfoot td:last-child{border-right:1px dotted #555}
-    </style></head><body><h1>Rekap Manpower Planning ${E(rkName())}</h1><p class="s">Per ${rkDate()} · <span class="op">Merah</span> = posisi open · <span class="ok">Terisi</span> = karyawan yang sudah ada · <span class="ok">Terpenuhi</span> = tidak ada posisi open · Pelamar: Nama - Tahap - Keterangan (aktif <b>tebal</b>, tidak aktif <span class="cx">dicoret</span>).</p>
+    </style></head><body><h1>Rekap Manpower Planning ${E(rkName())}</h1><p class="s">Per ${rkDate()} · <span class="op">Merah</span> = posisi open · <span class="hl">HOLD</span> = rekrutmen ditunda · <span class="ok">Terisi</span> = karyawan yang sudah ada · <span class="ok">Terpenuhi</span> = tidak ada posisi open · Pelamar: Nama - Tahap - Keterangan (aktif <b>tebal</b>, tidak aktif <span class="cx">dicoret</span>).</p>
       ${sites.map(([n, d]) => rkTable(n, d)).join('')}${sites.split ? (() => { const g = rkGrand(sites); return `<table style="margin-top:-4px"><colgroup><col style="width:45%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:32.5%"></colgroup><tr><td style="background:#6D28D9;color:#fff;font-weight:700;border:1px solid #555">TOTAL ${E(rkName())} (${sites.map(([n]) => E(n.replace(rkName(), '').trim() || n)).join(' + ')})</td><td class="r" style="background:#6D28D9;color:#fff;font-weight:700;border:1px solid #555">${g.pl}</td><td class="r" style="background:#6D28D9;color:#fff;font-weight:700;border:1px solid #555">${g.ac}</td><td class="r" style="background:#6D28D9;color:#fff;font-weight:700;border:1px solid #555">${g.vc}</td><td style="background:#6D28D9;border:1px solid #555"></td></tr></table>`; })() : ''}</body></html>`;
     let fr = document.getElementById('rkFrame'); if (fr) fr.remove();
     fr = document.createElement('iframe'); fr.id = 'rkFrame'; fr.setAttribute('aria-hidden', 'true');
@@ -415,7 +417,7 @@
       SH = xf(0, 0, 1, 'horizontal="center" vertical="center"'), SC = xf(0, 0, 1, 'horizontal="center" vertical="center" wrapText="1"'), SL = xf(0, 0, 1, 'horizontal="left" vertical="center" wrapText="1"'),
       STL = xf(0, 2, 1, 'horizontal="left" vertical="center"'), STR = xf(0, 2, 1, 'horizontal="right" vertical="center"'), STE = xf(0, 2, 1),
       SNM = xf(3, 0, 1, 'horizontal="left" vertical="center" wrapText="1"'), SNMR = xf(4, 0, 1, 'horizontal="left" vertical="center" wrapText="1"');
-    const KF = { plain: 5, act: 6, cx: 7, ok: 8, terisi: 8, lbl: 9 }, KS = {};
+    const KF = { plain: 5, act: 6, cx: 7, ok: 8, terisi: 8, lbl: 9, hold: 16 }, KS = {};
     Object.keys(KF).forEach((k) => { KS[k] = [xf(KF[k], 0, 4, 'horizontal="left" vertical="center" wrapText="1"'), xf(KF[k], 0, 3, 'horizontal="left" vertical="center" wrapText="1"')]; });
     const KEMPTY = xf(5, 0, 1, 'horizontal="left" vertical="center" wrapText="1"');
     void S0;
@@ -873,7 +875,7 @@
           const s = String(v == null ? '' : v);
           if (/^nama$/i.test(h) && /^vacant$/i.test(s.trim())) return 'red';
           if (/^ket\.? ?ptk$|keterangan ptk/i.test(h)) return /^jatuh tempo$/i.test(s) ? 'red' : /hampir/i.test(s) ? 'org' : /on track|selesai/i.test(s) ? 'grn' : null;
-          if (/^status$/i.test(h) && isMpp) return /^open$/i.test(s) ? 'red' : /continue/i.test(s) ? 'org' : /close/i.test(s) ? 'grn' : null;
+          if (/^status$/i.test(h) && isMpp) return /^open$/i.test(s) ? 'red' : /continue|hold/i.test(s) ? 'org' : /close/i.test(s) ? 'grn' : null;
           if (/^area$/i.test(h)) return /hauling/i.test(s) ? 'org' : 'blu';
           return null;
         };

@@ -1071,7 +1071,7 @@ function summaryTable(D, rows) {
 }
 function statusBoxes(D) {
   return `<div class="grid"><div class="card s6"><div class="ch"><div><div class="eyebrow">Status</div><h2>Status PTK</h2></div></div>
-    <div class="sbx"><div class="r"><b>${D.open.length - D.cont.length}</b><span>Open</span></div><div class="a"><b>${D.cont.length}</b><span>Continue</span></div><div class="g"><b>${D.closed.length}</b><span>Close</span></div></div></div>
+    <div class="sbx"><div class="r"><b>${D.open.length - D.cont.length - D.open.filter((p) => /^hold$/i.test(String(p.status || '').trim())).length}</b><span>Open</span></div><div class="a"><b>${D.cont.length}</b><span>Continue</span></div><div class="a"><b>${D.open.filter((p) => /^hold$/i.test(String(p.status || '').trim())).length}</b><span>Hold</span></div><div class="g"><b>${D.closed.length}</b><span>Close</span></div></div></div>
     <div class="card s6"><div class="ch"><div><div class="eyebrow">Due Date</div><h2>Due Date PTK</h2></div></div>
     <div class="sbx"><div class="a"><b>${D.ket['HAMPIR JATUH TEMPO'] || 0}</b><span>Hampir jatuh tempo</span></div><div class="r"><b>${D.ket['JATUH TEMPO'] || 0}</b><span>Jatuh tempo</span></div><div class="g"><b>${D.ket['SELESAI'] || 0}</b><span>Selesai</span></div></div></div></div>`;
 }
@@ -1127,7 +1127,7 @@ function pageMPP(D) {
   return `${header('Monitoring', esc(MPP_SHEET_TITLE), 'Planning manpower dan monitoring PTK/rekrutmen.')}<button type="button" class="btn btn-g" id="mppRenameBtn" style="margin-bottom:10px" ${IS_OWNER?'':'hidden'}>✎ Edit Nama Sheet</button>
   <div class="card" style="margin-bottom:18px">
     <div class="toolbar">
-      <div class="seg" role="group" aria-label="Filter status">${[['semua', 'Semua Status'], ['open', `Open (${cnt('open')})`], ['continue', `Continue (${cnt('continue')})`], ['close', `Close (${cnt('close')})`]].map(([k, l]) => `<button type="button" data-mf="${k}" aria-pressed="${ui.mf === k}">${l}</button>`).join('')}</div>
+      <div class="seg" role="group" aria-label="Filter status">${[['semua', 'Semua Status'], ['open', `Open (${cnt('open')})`], ['continue', `Continue (${cnt('continue')})`], ['hold', `Hold (${cnt('hold')})`], ['close', `Close (${cnt('close')})`]].map(([k, l]) => `<button type="button" data-mf="${k}" aria-pressed="${ui.mf === k}">${l}</button>`).join('')}</div>
       <input type="search" id="mq" placeholder="Cari nama, jabatan, PTK, atau kandidat" value="${esc(ui.mq)}" aria-label="Cari di MPP">
       <span class="small">${rows.length} dari ${D.P.length} posisi</span>
     </div>
@@ -1570,7 +1570,7 @@ function pageMPP(D) {
   return `${header('Monitoring', 'MPP KTA - TRA', 'Planning manpower dan monitoring PTK/rekrutmen.')}
   <div class="card" style="margin-bottom:18px">
     <div class="toolbar">
-      <div class="seg" role="group" aria-label="Filter status">${[['semua', 'Semua Status'], ['open', `Open (${cnt('open')})`], ['continue', `Continue (${cnt('continue')})`], ['close', `Close (${cnt('close')})`]].map(([k, l]) => `<button type="button" data-mf="${k}" aria-pressed="${ui.mf === k}">${l}</button>`).join('')}</div>
+      <div class="seg" role="group" aria-label="Filter status">${[['semua', 'Semua Status'], ['open', `Open (${cnt('open')})`], ['continue', `Continue (${cnt('continue')})`], ['hold', `Hold (${cnt('hold')})`], ['close', `Close (${cnt('close')})`]].map(([k, l]) => `<button type="button" data-mf="${k}" aria-pressed="${ui.mf === k}">${l}</button>`).join('')}</div>
       <input type="search" id="mq" placeholder="Cari nama, jabatan, PTK, atau kandidat" value="${esc(ui.mq)}" aria-label="Cari di MPP">
       ${CAN_EDIT ? '<button type="button" class="btn btn-p" id="addPos">+ Tambah Data</button>' : ''}
       ${DL ? '<button type="button" class="btn btn-g" data-csv="mpp">Export CSV</button>' : ''}
@@ -2007,12 +2007,12 @@ function pageMPP(D) {
     <div class="mtools">
       ${multiArea || CAN_EDIT ? `<div class="seg aseg" role="group" aria-label="Area">${[['semua', 'Semua'], ['Hauling', 'Hauling'], ['Mining', 'Mining']].map(([k, l]) => `<button type="button" data-area="${k}" aria-pressed="${ui.area === k}">${l}</button>`).join('')}</div>` : ''}
       <input type="search" id="mq" placeholder="Cari nama / jabatan / kandidat" value="${esc(ui.mq)}" aria-label="Cari di MPP">
-      <select id="mfSel" aria-label="Filter status">${[['semua', 'Semua Status'], ['open', `Open (${cnt('open')})`], ['continue', `Continue (${cnt('continue')})`], ['close', `Close (${cnt('close')})`]].map(([k, l]) => `<option value="${k}" ${ui.mf === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <select id="mfSel" aria-label="Filter status">${[['semua', 'Semua Status'], ['open', `Open (${cnt('open')})`], ['continue', `Continue (${cnt('continue')})`], ['hold', `Hold (${cnt('hold')})`], ['close', `Close (${cnt('close')})`]].map(([k, l]) => `<option value="${k}" ${ui.mf === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
       ${CAN_EDIT ? '<button type="button" class="btn btn-y" id="addPos">+ Tambah Data</button>' : ''}
       ${DL ? '<button type="button" class="btn btn-g" data-csv="mpp">Export CSV</button>' : ''}
       ${(DL || IS_TOP) ? '<button type="button" class="btn btn-g" id="printBtn">Print</button>' : ''}
     </div></div>
-  <div class="mstats"><div><b>${AP.length}</b><span>Planning</span>${aSplit(() => true)}</div><div><b>${AP.length - AP.filter(isVacant).length}</b><span>Actual</span>${aSplit((p) => !isVacant(p))}</div><div><b>${AP.filter(isVacant).length}</b><span>Vacant</span>${aSplit(isVacant)}</div><div><b>${cnt('open') + cnt('continue')}</b><span>Open</span>${aSplit((p) => hasPTK(p) && /^(open|continue)$/i.test(p.status || ''))}</div><div><b>${cnt('close')}</b><span>Close</span>${aSplit((p) => hasPTK(p) && /^close$/i.test(p.status || ''))}</div></div>
+  <div class="mstats"><div><b>${AP.length}</b><span>Planning</span>${aSplit(() => true)}</div><div><b>${AP.length - AP.filter(isVacant).length}</b><span>Actual</span>${aSplit((p) => !isVacant(p))}</div><div><b>${AP.filter(isVacant).length}</b><span>Vacant</span>${aSplit(isVacant)}</div><div><b>${cnt('open') + cnt('continue')}</b><span>Open</span>${aSplit((p) => hasPTK(p) && /^(open|continue)$/i.test(p.status || ''))}</div><div><b>${cnt('hold')}</b><span>Hold</span>${aSplit((p) => hasPTK(p) && /^hold$/i.test(p.status || ''))}</div><div><b>${cnt('close')}</b><span>Close</span>${aSplit((p) => hasPTK(p) && /^close$/i.test(p.status || ''))}</div></div>
   ${pstBar(D)}<div class="card" style="padding:6px 0;margin-bottom:18px"><div class="tw"><table class="t mt">
     <thead><tr><th>No</th>${multiArea ? '<th>Area</th>' : ''}<th>Nama</th><th>Jabatan</th><th>Pelamar${pstSelect()}</th><th>Keterangan</th><th>PTK</th><th>Status</th><th>Progress</th><th>Due Date</th><th>Ket. PTK</th><th>Aksi</th></tr></thead>
     <tbody>${rows.map(([p, i], ri) => {
@@ -2472,7 +2472,7 @@ function jabChip(j) { const f = roleFamily(j); const c = FAM_COLOR[f] || '#6D28D
 function statusBoxes(D) {
   const tile = (cls, n, lb, ic) => `<div class="stile ${cls}"><span class="sic">${ic}</span><div><b>${n}</b><span>${lb}</span></div></div>`;
   return `<div class="grid"><div class="card s6"><div class="ch"><div><div class="eyebrow">Status</div><h2>Status PTK</h2></div></div>
-    <div class="stiles">${tile('t-open', D.open.length - D.cont.length, 'Open', '●')}${tile('t-cont', D.cont.length, 'Continue', '↻')}${tile('t-close', D.closed.length, 'Close', '✓')}</div></div>
+    <div class="stiles">${tile('t-open', D.open.length - D.cont.length - D.open.filter((p) => /^hold$/i.test(String(p.status || '').trim())).length, 'Open', '●')}${tile('t-cont', D.cont.length, 'Continue', '↻')}${tile('t-cont', D.open.filter((p) => /^hold$/i.test(String(p.status || '').trim())).length, 'Hold', '⏸')}${tile('t-close', D.closed.length, 'Close', '✓')}</div></div>
     <div class="card s6"><div class="ch"><div><div class="eyebrow">Due Date</div><h2>Due Date PTK</h2></div></div>
     <div class="stiles">${tile('t-soon', D.ket['HAMPIR JATUH TEMPO'] || 0, 'Hampir jatuh tempo', '⏳')}${tile('t-late', D.ket['JATUH TEMPO'] || 0, 'Jatuh tempo', '!')}${tile('t-done', D.ket['SELESAI'] || 0, 'Selesai', '✓')}</div></div></div>`;
 }
@@ -4886,7 +4886,7 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
   }, true);
   try { after(); } catch (e) {}
 })();
-</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script><script src="../unit-population-detail.js?v=20261117-area"></script><script src="../mp-private.js?v=20261108c"></script><script src="../activity-log.js?v=20261024" data-kind="manpower"></script><script src="../otp-login.js?v=20261025"></script><script src="../form-data-karyawan.js?v=20261108"></script><script src="../candidate-resume.js?v=20261114"></script><script src="../manpower-dash.js?v=20261121a"></script><script id="portal-name-sync">
+</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261020"></script><script src="../unit-population-detail.js?v=20261117-area"></script><script src="../mp-private.js?v=20261108c"></script><script src="../activity-log.js?v=20261024" data-kind="manpower"></script><script src="../otp-login.js?v=20261025"></script><script src="../form-data-karyawan.js?v=20261108"></script><script src="../candidate-resume.js?v=20261114"></script><script src="../manpower-dash.js?v=20261121b"></script><script id="portal-name-sync">
 // Nama portal mengikuti "Edit nama portal" di Monitoring MPP Achievement (tabel portal_display_settings).
 (function () {
   var KEY = 'portal-name:' + 'kta';
@@ -4933,5 +4933,5 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
 </script>
 <script>window.KTA_SYSTEM_LINKS = { repo: 'matthewyoga2014-design/kmb-purchasing-logistik', path: 'manpower-kta-tra/index.html', supabase: 'https://supabase.com/dashboard/project/yoviojbfyvgpllxisjvy', script: 'https://script.google.com/d/1Wvtoe-H4gmyVkA-UDI2g0A19dLa1EjKvMjLmtTl7ktsGJ-zDGymcb-Fx/edit', drive: 'https://drive.google.com/drive/folders/11RTwJfP21J8Yna8_jQg_CeqCATwi5UcG' };</script>
 <script src="../kta-ops.js?v=20261121"></script>
-<script src="../kta-approval.js?v=20261121e"></script>
+<script src="../kta-approval.js?v=20261121h1"></script>
 </body></html>
