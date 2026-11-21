@@ -740,8 +740,8 @@ async function renameSheet(id,m){const x=S.modules.find(y=>y.id===id);const el=d
   inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();done(true)}if(e.key==="Escape")done(false)};inp.onblur=()=>done(true)}
 async function vBank(m){
   if(!BANKSEL||!S.modules.find(x=>x.id===BANKSEL))BANKSEL=S.modules[0]?.id||null;
-  m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><div><h2>Bank Soal</h2><p class="sub">Impor soal dari file Excel (.xlsx) — soal, pilihan, kunci, dan gambar terbaca otomatis.</p></div>
-   <div class="row"><button class="btn pri" id="bUp">⬆ Unggah file soal</button><input type="file" id="bImp" accept=".xlsx,.xls,.csv,.json" hidden><button class="btn sm" id="bTpl" title="Opsional, bila soal belum punya file">Template kosong</button></div></div>
+  m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><div><h2>Bank Soal</h2><p class="sub">Impor soal dari file Excel (.xlsx) atau Word (.docx) — soal, pilihan, kunci, dan gambar terbaca otomatis.</p></div>
+   <div class="row"><button class="btn pri" id="bUp">⬆ Unggah file soal</button><input type="file" id="bImp" accept=".xlsx,.xls,.csv,.json,.docx,.doc" hidden><button class="btn sm" id="bTpl" title="Opsional, bila soal belum punya file">Template kosong</button></div></div>
    <div class="shelf" id="bDD">${bankShelf()}</div>
    <div>
    <div id="bBody" style="min-width:0">${S.modules.length?'<div class="empty">Memuat…</div>':'<div class="empty">Belum ada soal. Klik <b>⬆ Unggah file soal</b>.</div>'}</div></div></div>`;
@@ -880,7 +880,7 @@ async function stackImages(blobs,max=900){const ims=[];for(const b of blobs){try
 function pickOpen(){let pk=$("upPick");
   if(!pk){document.body.insertAdjacentHTML("beforeend",`<div id="upPick" role="dialog" aria-modal="true" aria-labelledby="upPkT" hidden><div class="upk">
     <div class="upk-h"><div><small>Sisipkan file</small><h3 id="upPkT">Unggah file soal</h3></div><button type="button" class="upk-x" data-pkclose aria-label="Tutup">×</button></div>
-    <div class="upk-i"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Upload 1 file: Excel soal (.xlsx / .xls) atau <b>Paket_Soal_KMB.json</b>. Agar gambar ikut terbaca, gunakan .xlsx.</span></div>
+    <div class="upk-i"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.8"/><path d="M12 11v6M12 7.5v.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>Upload 1 file soal: <b>Excel (.xlsx)</b>, <b>Word (.docx)</b>, atau <b>Paket_Soal_KMB.json</b>. Gambar di dalam file ikut terbaca.</span></div>
     <div class="upk-z" id="upPkZ"><svg class="cloud" width="150" height="104" viewBox="0 0 150 104" aria-hidden="true"><defs><linearGradient id="upkg" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stop-color="#4ADE80"/><stop offset="1" stop-color="#BAE6FD"/></linearGradient></defs><path d="M38 98h80a28 28 0 0 0 3-56 34 34 0 0 0-66-8 28 28 0 0 0-17 64z" fill="url(#upkg)" stroke="#1E1B3A" stroke-width="1.6"/><path d="M75 82V44M61 57l14-14 14 14" fill="none" stroke="#1E1B3A" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <button type="button" class="upk-b" id="upPkB">Jelajah</button><p>atau tarik file ke sini</p></div></div></div>`);
     pk=$("upPick");
@@ -888,7 +888,7 @@ function pickOpen(){let pk=$("upPick");
     const z=$("upPkZ");["dragenter","dragover"].forEach(ev=>z.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();z.classList.add("on")}));
     z.addEventListener("dragleave",e=>{if(!z.contains(e.relatedTarget))z.classList.remove("on")});
     z.addEventListener("drop",e=>{e.preventDefault();e.stopPropagation();z.classList.remove("on");const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];if(!f)return;
-      if(!/\.(xlsx|xls|csv|json)$/i.test(f.name))return toast("Format belum didukung. Gunakan file Excel (.xlsx/.xls) atau Paket_Soal_KMB.json.",4000);
+      if(!/\.(xlsx|xls|csv|json|docx|doc)$/i.test(f.name))return toast("Format belum didukung. Gunakan file Excel (.xlsx), Word (.docx), atau Paket_Soal_KMB.json.",4000);
       if(e.dataTransfer.files.length>1)toast("Satu kali unggah satu file. Yang dipakai file pertama.");pickClose();importExcel(f)});
     document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!pk.hidden){e.stopPropagation();pickClose()}},true)}
   pk.hidden=false;setTimeout(()=>$("upPkB").focus(),30)}
@@ -914,14 +914,78 @@ async function importPaket(file){
       closeModal();await loadAll();renderTab();toast(sel.length+" sheet soal terpasang",4000)}
     catch(err){b.disabled=false;b.textContent="Coba lagi";toast("Gagal: "+err.message,6000)}};
 }
+/* Pembaca soal dari Word (.docx): nomor soal "1." / penomoran otomatis, pilihan "a." / huruf otomatis,
+   kunci dari "Kunci: B", jawaban yang ditebalkan/distabilo/diberi tanda *, atau daftar kunci di akhir dokumen */
+async function parseDocx(buf){
+  await loadScript("https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js");
+  const zip=await JSZip.loadAsync(buf);const rd=async p=>{const f=zip.file(p);return f?f.async("string"):null};
+  const P=x=>new DOMParser().parseFromString(x,"application/xml");const W="http://schemas.openxmlformats.org/wordprocessingml/2006/main";
+  const doc=P(await rd("word/document.xml")||"<x/>");const rels={};const rx=await rd("word/_rels/document.xml.rels");
+  if(rx)[...P(rx).getElementsByTagName("Relationship")].forEach(r=>rels[r.getAttribute("Id")]=r.getAttribute("Target"));
+  const fmts={};const nx=await rd("word/numbering.xml");
+  if(nx){const N=P(nx);const abs={};[...N.getElementsByTagNameNS(W,"abstractNum")].forEach(a=>{const id=a.getAttributeNS(W,"abstractNumId");abs[id]={};[...a.getElementsByTagNameNS(W,"lvl")].forEach(l=>{const f=l.getElementsByTagNameNS(W,"numFmt")[0];abs[id][l.getAttributeNS(W,"ilvl")]=f?f.getAttributeNS(W,"val"):"decimal"})});
+    [...N.getElementsByTagNameNS(W,"num")].forEach(n=>{const a=n.getElementsByTagNameNS(W,"abstractNumId")[0];if(a)fmts[n.getAttributeNS(W,"numId")]=abs[a.getAttributeNS(W,"val")]||{}})}
+  const att=(el,n)=>el.getAttributeNS(W,n)||el.getAttribute("w:"+n);
+  const stNum={};const sx=await rd("word/styles.xml");
+  if(sx){const st={};[...P(sx).getElementsByTagNameNS(W,"style")].forEach(y=>{const id=att(y,"styleId");const np=y.getElementsByTagNameNS(W,"numPr")[0];const bo=y.getElementsByTagNameNS(W,"basedOn")[0];
+      st[id]={np:np?{id:(np.getElementsByTagNameNS(W,"numId")[0]&&att(np.getElementsByTagNameNS(W,"numId")[0],"val")),il:(np.getElementsByTagNameNS(W,"ilvl")[0]?att(np.getElementsByTagNameNS(W,"ilvl")[0],"val"):"0")}:null,bo:bo?att(bo,"val"):null}});
+    Object.keys(st).forEach(id=>{let k=id,g=0;while(k&&st[k]&&!st[k].np&&g++<10)k=st[k].bo;if(k&&st[k]&&st[k].np)stNum[id]=st[k].np})}
+  let skipped=0;const paras=[];
+  const walk=node=>{for(const el of node.children){if(el.localName==="p")paras.push(el);else if(el.localName==="tbl"){[...el.getElementsByTagNameNS(W,"tr")].forEach(tr=>[...tr.children].filter(c=>c.localName==="tc").forEach(tc=>walk(tc)))}else if(el.localName==="sdt"||el.localName==="sdtContent"||el.localName==="body")walk(el)}};
+  walk(doc.getElementsByTagNameNS(W,"body")[0]||doc.documentElement);
+  const items=[];const cnt={};
+  for(const p of paras){let text="",strong=0,total=0;const imgs=[];
+    for(const r of p.getElementsByTagNameNS(W,"r")){const t=[...r.getElementsByTagNameNS(W,"t")].map(x=>x.textContent).join("")+([...r.getElementsByTagNameNS(W,"tab")].length?" ":"");
+      const rp=r.getElementsByTagNameNS(W,"rPr")[0];const hl=rp&&(rp.getElementsByTagNameNS(W,"highlight")[0]||[...rp.getElementsByTagNameNS(W,"shd")].find(x=>!/^(auto|FFFFFF)$/i.test(att(x,"fill")||"auto")));
+      const b=rp&&rp.getElementsByTagNameNS(W,"b")[0]&&!/^(0|false)$/.test(att(rp.getElementsByTagNameNS(W,"b")[0],"val")||"");
+      const n=t.trim().length;total+=n;if(hl||b)strong+=n;text+=t;
+      for(const bl of r.getElementsByTagNameNS("http://schemas.openxmlformats.org/drawingml/2006/main","blip")){const id=bl.getAttributeNS("http://schemas.openxmlformats.org/officeDocument/2006/relationships","embed");const tg=rels[id];if(!tg)continue;
+        const path="word/"+tg.replace(/^\/?word\//,"").replace(/^\.\//,"");const f=zip.file(path);if(f&&/\.(png|jpe?g|gif|bmp|webp)$/i.test(path))imgs.push(new Blob([await f.async("uint8array")],{type:/png$/i.test(path)?"image/png":"image/jpeg"}));else skipped++}
+      if(r.getElementsByTagNameNS("urn:schemas-microsoft-com:vml","imagedata").length)skipped++}
+    const np=p.getElementsByTagNameNS(W,"numPr")[0];let fmt=null;const ps=p.getElementsByTagNameNS(W,"pStyle")[0];const sn=ps&&stNum[att(ps,"val")];
+    if(np||sn){const id=np&&np.getElementsByTagNameNS(W,"numId")[0],lv=np&&np.getElementsByTagNameNS(W,"ilvl")[0];const nid=(id&&att(id,"val"))||(sn&&sn.id),il=lv?att(lv,"val"):(sn?sn.il:"0");
+      if(nid&&nid!=="0"){fmt=(fmts[nid]||{})[il]||"decimal";const k=nid+":"+il;cnt[k]=(cnt[k]||0)+1;if(/letter/i.test(fmt)){/* huruf otomatis direset tiap soal */}fmt={f:fmt,k,il:+il}}}
+    text=text.replace(/\s+/g," ").trim();if(!text&&!imgs.length)continue;
+    items.push({text,imgs,fmt,strong:total>0&&strong>=total*.6})}
+  const list=[];let cur=null,pend=[],keyMode=false,loneNo=0;const keys={};
+  const addOpt=(l,t,strong)=>{if(!cur)return;let txt=t.trim(),mark=false;if(/^\*|\*$|\(benar\)|✓|✔/i.test(txt)){mark=true;txt=txt.replace(/^\*\s*|\s*\*$|\s*\(benar\)|\s*[✓✔]/gi,"").trim()}
+    cur.options[l]=txt;cur._last=l;if(mark)cur._mark=l;if(strong)cur._strong.push(l)};
+  const newQ=t=>{cur={no:list.length+1,text:t,options:{},answer:"",_strong:[],_imgs:pend};pend=[];list.push(cur)};
+  for(const it of items){let t=it.text;
+    if(/^(kunci\s*jawaban|kunci|jawaban)\s*:?\s*$/i.test(t)){keyMode=true;continue}
+    if(keyMode){const ms=[...t.matchAll(/(\d{1,3})\s*[.)\-:=]?\s*([a-eA-E])\b/g)];if(ms.length){ms.forEach(m=>keys[+m[1]]=m[2].toLowerCase());continue}}
+    const km=t.match(/^(kunci(\s*jawaban)?|jawaban|jawab|answer|ans)\s*[:=]\s*\(?([a-eA-E])\)?\b/i);if(km&&cur){cur.answer=km[3].toLowerCase();continue}
+    if(/^\d{1,3}\s*[.)]?$/.test(t)){loneNo=parseInt(t);continue}
+    if(loneNo){newQ(t);cur.src=loneNo;loneNo=0;if(it.imgs.length)cur._imgs.push(...it.imgs);continue}
+    let m=t.match(/^(\d{1,3})\s*[.)]\s*(.+)$/);
+    const auto=it.fmt&&!/letter|bullet/i.test(it.fmt.f)&&it.fmt.il===0;const autoL=it.fmt&&/letter/i.test(it.fmt.f);
+    if(m&&!(cur&&cur._last&&!/[?:.]$/.test(cur.options[cur._last]||"")&&false)){newQ(m[2]);cur.src=+m[1];if(it.imgs.length)cur._imgs.push(...it.imgs);continue}
+    if(auto&&!autoL){const nid=it.fmt.k.split(":")[0];
+      if(cur&&(cur._nid?cur._nid!==nid:true)&&Object.keys(cur.options).length<5){const l="abcde"[Object.keys(cur.options).length];addOpt(l,t,it.strong);if(it.imgs.length)cur._imgs.push(...it.imgs);continue}
+      newQ(t);cur._nid=nid;if(it.imgs.length)cur._imgs.push(...it.imgs);continue}
+    if(cur){const inl=[...t.matchAll(/(?:^|\s)([a-eA-E])\s*[.)]\s+/g)];
+      if(inl.length>=2&&inl[0].index===0){inl.forEach((x,i)=>{const st=x.index+x[0].length,en=i+1<inl.length?inl[i+1].index:t.length;addOpt(x[1].toLowerCase(),t.slice(st,en),false)});continue}
+      m=t.match(/^([a-eA-E])\s*[.)]\s*(.*)$/);
+      if(m){addOpt(m[1].toLowerCase(),m[2],it.strong);if(it.imgs.length)cur._imgs.push(...it.imgs);continue}
+      if(autoL||(it.fmt&&it.fmt.il>0)){const l="abcde"[Object.keys(cur.options).length]||"e";addOpt(l,t,it.strong);if(it.imgs.length)cur._imgs.push(...it.imgs);continue}
+      if(cur._last)cur.options[cur._last]+=" "+t;else cur.text+=(cur.text?" ":"")+t;if(it.imgs.length)cur._imgs.push(...it.imgs)}
+    else if(it.imgs.length)pend.push(...it.imgs)}
+  for(const q of list){if(!q.answer&&keys[q.src||q.no])q.answer=keys[q.src||q.no];if(!q.answer&&q._mark)q.answer=q._mark;
+    if(!q.answer&&q._strong.length===1)q.answer=q._strong[0];
+    if(Object.keys(q.options).length<2&&q.text&&q._imgs.length)"abcd".split("").forEach(l=>q.options[l]="Gambar "+l.toUpperCase());
+    q.image=q._imgs.length?await stackImages(q._imgs):null;delete q._imgs;delete q._strong;delete q._mark;delete q._last;delete q._nid}
+  const n=list.filter(q=>q.image).length;
+  return {list,note:(n?n+" soal bergambar terbaca.":"")+(skipped?" "+skipped+" gambar (format lama/gambar bentuk) tidak bisa dibaca — tambahkan lewat tombol Ubah.":"")}}
 async function importExcel(file){
   if(!file)return;$("bImp").value="";toast("Membaca file…");
   if(/\.json$/i.test(file.name))return importPaket(file);
-  try{const buf=await file.arrayBuffer();const wb=XLSX.read(buf);
+  if(/\.doc$/i.test(file.name))return toast("File Word lama (.doc) belum bisa dibaca. Buka di Word → Simpan Sebagai → .docx, lalu unggah lagi.",6000);
+  try{const buf=await file.arrayBuffer();const isDoc=/\.docx$/i.test(file.name);const wb=isDoc?{SheetNames:["x"],Sheets:{x:{}}}:XLSX.read(buf);
     let list=[],fmt="template",title=file.name.replace(/\.[^.]+$/,"").replace(/^Soal_/i,"").replace(/_/g," ").trim(),grade=((title.match(/(?:^|[^A-Z0-9])(G\s?\d{1,2})(?![0-9])/i)||[])[1]||"").replace(/\s/g,"").toUpperCase(),imgNote="";
-    const first=wb.Sheets[wb.SheetNames[0]];const tpl=XLSX.utils.sheet_to_json(first,{defval:""});
+    const first=wb.Sheets[wb.SheetNames[0]];const tpl=isDoc?[]:XLSX.utils.sheet_to_json(first,{defval:""});
     const norm=o=>{const r={};Object.entries(o).forEach(([k,v])=>r[String(k).trim().toLowerCase()]=String(v).trim());return r};
-    if(tpl.length&&("soal" in norm(tpl[0]))&&("kunci" in norm(tpl[0]))){
+    if(isDoc){fmt="Word";const r=await parseDocx(buf);list=r.list;imgNote=r.note;list.forEach(q=>q.topic=guessTopic(q.text+" "+Object.values(q.options).join(" ")))}
+    else if(tpl.length&&("soal" in norm(tpl[0]))&&("kunci" in norm(tpl[0]))){
       list=tpl.map(norm).map((r,i)=>{const options={};["a","b","c","d","e"].forEach(l=>{if(r[l])options[l]=r[l]});return {no:+r.no||i+1,row:i+1,text:r.soal,options,answer:(r.kunci||"").toLowerCase().charAt(0),topic:r.topik||guessTopic((r.soal||"")+" "+Object.values(options).join(" ")),time_sec:+r.waktu||null}}).filter(r=>r.text);
       if(/\.xlsx$/i.test(file.name)){try{const imgs=await xlsxImages(buf,wb.SheetNames[0]);const by={};imgs.forEach(o=>{const q=list.find(x=>x.row===o.row);if(q)(by[q.row]=by[q.row]||[]).push(o.blob)});
         for(const q of list)if(by[q.row])q.image=await stackImages(by[q.row]);if(imgs.length)imgNote=imgs.length+" gambar ikut terimpor."}catch(e){imgNote="Gambar gagal dibaca ("+e.message+")."}}}
@@ -940,7 +1004,7 @@ async function importExcel(file){
     const noKey=list.filter(q=>!q.options[q.answer]),needImg=list.filter(q=>!q.image&&/\b(gambar|gbr|lihat)\b/i.test(q.text));
     const seen={},dups=[];list.forEach(q=>{const k=q.text.toLowerCase()+"|"+Object.values(q.options).join("|").toLowerCase()+"|"+(q.image?q.image.length+q.image.slice(-60):"");if(seen[k])dups.push(`${q.no} = ${seen[k]}`);else seen[k]=q.no});
     openModal(`<div class="head"><h2>Unggah soal: ${esc(file.name)}</h2><button class="btn sm" onclick="closeModal()">Batal</button></div>
-     <div class="notice"><b>${list.length} soal terbaca</b> (${fmt==="kmb"?"format lembar soal KMB":"format template"}). ${esc(imgNote)}</div>
+     <div class="notice"><b>${list.length} soal terbaca</b> (${fmt==="kmb"?"format lembar soal KMB":fmt==="Word"?"dari file Word":"format template"}). ${esc(imgNote)}</div>
      ${noKey.length?`<div class="notice warn" style="margin-top:8px"><b>${noKey.length} soal tanpa kunci jawaban</b>: no. ${noKey.map(q=>q.no).join(", ")}. Soal ini tetap diimpor; isi kuncinya lewat Ubah sebelum dipakai.</div>`:""}
      ${needImg.length?`<div class="notice warn" style="margin-top:8px"><b>${needImg.length} soal menyebut gambar tapi belum ada gambarnya</b>: no. ${needImg.map(q=>q.no).join(", ")}.</div>`:""}
      ${dups.length?`<div class="notice warn" style="margin-top:8px"><b>Soal kembar</b>: no. ${esc(dups.join("; "))}. <label class="row" style="margin-top:4px"><input type="checkbox" id="iDup"> Buang soal kembar</label></div>`:""}
