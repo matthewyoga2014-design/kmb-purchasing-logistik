@@ -804,11 +804,7 @@
   setInterval(() => {
     const dirty = formDirtyNow();
     document.title = dirty ? '● Belum disimpan · ' + TITLE0 : TITLE0;
-    if (!dirty || FG.submitting) return;
-    const idle = Date.now() - (FG.last || Date.now());
-    if (idle > 90e3 && Date.now() - FG.reminded > 180e3) { FG.reminded = Date.now(); remindInForm(`Isian ini belum tersimpan sejak ${Math.round(idle / 60e3)} menit lalu.`); say('Ada isian yang belum disimpan. Klik Simpan Perubahan di form.', true); }
   }, 15000);
-  document.addEventListener('visibilitychange', () => { if (!document.hidden && formDirtyNow()) { remindInForm('Anda meninggalkan form ini sebelum menyimpannya.'); say('Isian di form belum disimpan.', true); } });
   // saat web dibuka: isian yang tertinggal dari kunjungan sebelumnya
   function leftovers() {
     const pre = 'kta-form:' + WEB_ID + ':', out = [];
