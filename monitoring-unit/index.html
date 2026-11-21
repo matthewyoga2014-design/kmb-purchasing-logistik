@@ -2225,33 +2225,68 @@ function applyOpsLocal(st,ops){ ops.forEach(o=>{ if(!st[o.col]) st[o.col]=[];
   if(o.action==="add") { if(!st[o.col].some(x=>x.id===o.id)) st[o.col].push({...o.data,id:o.id}); }
   else if(o.action==="update"){ const r=st[o.col].find(x=>x.id===o.id); if(r) Object.assign(r,o.data); }
   else if(o.action==="remove") st[o.col]=st[o.col].filter(x=>x.id!==o.id); }); return st; }
-async function sheetOp(op){
-  if(!canWrite) throw {code:"forbidden"};
+/* Simpan ke Google Sheets lewat Apps Script.
+   - Tampilan langsung berubah (optimistis), penyimpanan berjalan di belakang.
+   - Perubahan yang menumpuk saat menunggu dikirim sekaligus dalam satu permintaan (lebih cepat).
+   - Gagal karena server sibuk / koneksi putus / batas waktu → dicoba ulang otomatis (maks. 4x).
+   - Sebelum mencoba ulang, data server dicek: "tambah" yang ternyata sudah masuk tidak dikirim dua kali. */
+const MU_Q=[]; let MU_QRUN=false;
+const muSleep=ms=>new Promise(r=>setTimeout(r,ms));
+async function muPostOps(ops){
+  const {data}=await sb.auth.getSession(); const token=data&&data.session&&data.session.access_token;
+  const ctl=new AbortController(), to=setTimeout(()=>ctl.abort(),90000);
+  let r; try{ r=await fetch(SHEET_API,{method:"POST",body:JSON.stringify({token,share:GUEST_SHARE,ops}),signal:ctl.signal}); }
+  catch(e){ throw {code:"network",retry:true,message:e&&e.name==="AbortError"?"Server terlalu lama merespons.":"Koneksi terputus."}; }
+  finally{ clearTimeout(to); }
+  const j=await r.json().catch(()=>null);
+  if(!j) throw {code:"network",retry:true,message:"Respons server tidak lengkap."};
+  if(!j.ok||!j.state){ const e=j.error; throw {code:(e==="forbidden"||e==="not_signed_in")?"forbidden":e==="busy"?"conflict":"failed",retry:e==="busy",busy:e==="busy",message:j.message}; }
+  return j.state; }
+function muVerifyOps(ops,st){
+  for(const o of ops){
+    if(o.col!=="units" || !["update","add"].includes(o.action))continue;
+    const rec=(st.units||[]).find(x=>x.id===o.id);
+    if(!rec)throw {code:"verify_failed",message:"Unit tidak ditemukan setelah Simpan."};
+    const actual=muDetails(rec);
+    if(o.data&&o.data.kondisi&&actual.kondisi.trim().toLowerCase()!==String(o.data.kondisi).trim().toLowerCase())
+      throw {code:"verify_failed",message:"Kondisi unit belum cocok dengan data tersimpan."};
+    if(o.data&&o.data.status&&rec.status!==o.data.status)
+      throw {code:"verify_failed",message:"Status operasional belum cocok dengan data tersimpan."};
+    if(o.data&&o.data.kode&&rec.kode!==o.data.kode)
+      throw {code:"verify_failed",message:"Nomor lambung belum cocok dengan data tersimpan."};
+  } }
+async function muQueueRun(){
+  if(MU_QRUN) return; MU_QRUN=true;
+  try{
+    await muSleep(40); // tunggu sebentar supaya perubahan beruntun ikut satu kiriman
+    while(MU_Q.length){
+      // gabungkan semua perubahan yang sedang menunggu (upload file tetap dikirim sendiri)
+      const batch=[]; if(MU_Q[0].upload) batch.push(MU_Q.shift()); else while(MU_Q.length&&!MU_Q[0].upload) batch.push(MU_Q.shift());
+      let ops=batch.flatMap(x=>x.ops), st=null, err=null;
+      for(let attempt=0;attempt<4;attempt++){
+        try{ st=await muPostOps(ops); err=null; break; }
+        catch(e){ err=e; if(!e.retry||attempt===3) break;
+          if(!e.busy && !batch[0].upload){ // koneksi putus: mungkin sudah tersimpan → cek dulu
+            try{ const fresh=await fetchSheet(); ops=ops.filter(o=>!(o.action==="add"&&(fresh[o.col]||[]).some(x=>x.id===o.id))); if(!ops.length){ st=fresh; err=null; break; } }catch(x){} }
+          else if(batch[0].upload && !e.busy) break; // upload file tidak diulang otomatis (cegah file ganda)
+          setSync("busy"); await muSleep([1500,4000,9000][attempt]); } }
+      if(!err){ try{ muVerifyOps(batch.flatMap(x=>x.ops),st); }catch(v){ err=v; } }
+      batch.forEach(x=>{ const i=PENDING.indexOf(x.ops); if(i>=0) PENDING.splice(i,1); });
+      if(err){
+        if(batch.some(x=>x.local)){ try{ const fresh=await fetchState(); if(!PENDING.length) applyState(fresh); }catch(e){} }
+        setSync("err"); batch.forEach(x=>x.reject(err)); continue; }
+      let cur=st; if(PENDING.length){ cur=JSON.parse(JSON.stringify(st)); PENDING.forEach(p=>applyOpsLocal(cur,p)); }
+      applyState(cur); if(!PENDING.length&&!MU_Q.length) setSync("ok");
+      batch.forEach(x=>x.resolve()); }
+  } finally { MU_QRUN=false; } }
+function sheetOp(op){
+  if(!canWrite) return Promise.reject({code:"forbidden"});
   ++WRITE_REV;
   const ops=Array.isArray(op)?op:[op], local=ops.every(o=>o.action!=="upload");
-  if(local && STATE){ PENDING.push(ops); try{ applyState(applyOpsLocal(JSON.parse(JSON.stringify(STATE)),ops)); }catch(e){} setSync("busy"); }
-  const done=()=>{ const i=PENDING.indexOf(ops); if(i>=0) PENDING.splice(i,1); };
-  const job=saving.then(async()=>{
-    const {data}=await sb.auth.getSession(); const token=data&&data.session&&data.session.access_token;
-    const r=await fetch(SHEET_API,{method:"POST",body:JSON.stringify({token,share:GUEST_SHARE,ops:Array.isArray(op)?op:[op]})});
-    const j=await r.json().catch(()=>null);
-    if(!j||!j.ok||!j.state){ const e=j&&j.error; throw {code:(e==="forbidden"||e==="not_signed_in")?"forbidden":e==="busy"?"conflict":"failed",message:j&&j.message}; }
-    // Jangan mengaku tersimpan jika Apps Script mengembalikan nilai berbeda.
-    for(const o of ops){
-      if(o.col!=="units" || !["update","add"].includes(o.action))continue;
-      const rec=(j.state.units||[]).find(x=>x.id===o.id);
-      if(!rec)throw {code:"verify_failed",message:"Unit tidak ditemukan setelah Simpan."};
-      const expected=muDetails(o.data||{}),actual=muDetails(rec);
-      if(o.data&&o.data.kondisi&&actual.kondisi.trim().toLowerCase()!==String(o.data.kondisi).trim().toLowerCase())
-        throw {code:"verify_failed",message:"Kondisi unit belum cocok dengan data tersimpan."};
-      if(o.data&&o.data.status&&rec.status!==o.data.status)
-        throw {code:"verify_failed",message:"Status operasional belum cocok dengan data tersimpan."};
-      if(o.data&&o.data.kode&&rec.kode!==o.data.kode)
-        throw {code:"verify_failed",message:"Nomor lambung belum cocok dengan data tersimpan."};
-    }
-    done(); let st=j.state; if(PENDING.length){ st=JSON.parse(JSON.stringify(st)); PENDING.forEach(p=>applyOpsLocal(st,p)); }
-    applyState(st); if(!PENDING.length) setSync("ok"); });
-  job.catch(async()=>{ done(); if(local){ try{ const st=await fetchState(); if(!PENDING.length) applyState(st); }catch(e){} } setSync("err"); });
+  if(local && STATE){ PENDING.push(ops); try{ applyState(applyOpsLocal(JSON.parse(JSON.stringify(STATE)),ops)); }catch(e){} }
+  setSync("busy");
+  const job=new Promise((resolve,reject)=>{ MU_Q.push({ops,local,upload:!local,resolve,reject}); });
+  muQueueRun();
   saving=job.catch(()=>{}); return job; }
 function mutate(fn){ const job=saving.then(()=>doMutate(fn)); saving=job.catch(()=>{}); return job; }
 async function doMutate(fn){

@@ -32,7 +32,12 @@ const OWNER_EMAIL = 'matthewyoga2014@gmail.com';
 // Spreadsheet sumber yang sudah tercatat di Monitoring Unit KMB.
 // Mendukung proyek Apps Script mandiri (Project tak berjudul) maupun yang terikat ke Sheets.
 const SPREADSHEET_ID = '1XH5dtCDQFDJZK7npxxh-b6MZEt3ZTJFaAfmCvWdsRI4';
-function book_() { return SpreadsheetApp.openById(SPREADSHEET_ID); }
+// Cache per eksekusi: spreadsheet, zona waktu, tab, header dan isi tab hanya dibaca sekali
+// per permintaan (sebelumnya dibuka ulang untuk setiap sel → simpan terasa lambat).
+let BOOK_ = null, TZ_ = null;
+const SH_ = {}, HI_ = {}, RAW_ = {};
+function book_() { return BOOK_ || (BOOK_ = SpreadsheetApp.openById(SPREADSHEET_ID)); }
+function dirty_(col) { delete RAW_[col]; }
 // Pilih testConnection di menu fungsi dan klik Jalankan sebelum Deploy.
 function testConnection() {
   const ss = book_();
@@ -75,12 +80,14 @@ function doPost(e) {
   if (!who) return json_({ ok: false, error: 'not_signed_in' });
   if (who.role !== 'owner' && who.role !== 'editor') return json_({ ok: false, error: 'forbidden', email: who.email });
   const lock = LockService.getScriptLock();
-  if (!lock.tryLock(25000)) return json_({ ok: false, error: 'busy' });
+  if (!lock.tryLock(28000)) return json_({ ok: false, error: 'busy' });
   try {
     const st = buildState_();   // dibaca sekali per permintaan, lalu diperbarui di memori
     (body.ops || []).forEach(function (op) { applyOp_(op, who.email, st); });
-    bumpRev_();
-    return json_({ ok: true, state: buildState_() });
+    if (body.ops && body.ops.length) bumpRev_();
+    const txt = JSON.stringify(buildState_());   // tab yang tidak berubah diambil dari cache permintaan ini
+    try { if (txt.length < 95000) CacheService.getScriptCache().put('state2', txt, 21600); } catch (err) {}
+    return ContentService.createTextOutput('{"ok":true,"state":' + txt + '}').setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return json_({ ok: false, error: 'failed', message: String(err && err.message || err) });
   } finally {
@@ -130,9 +137,10 @@ function sharedWho_(token) {
 }
 
 /* ---------------- baca sheet ---------------- */
-function tz_() { return book_().getSpreadsheetTimeZone(); }
+function tz_() { return TZ_ || (TZ_ = book_().getSpreadsheetTimeZone()); }
 
 function sheet_(col) {
+  if (SH_[col]) return SH_[col];
   const def = SHEETS[col], ss = book_();
   let sh = ss.getSheetByName(def.name);
   if (!sh && col === 'dokumentasi') {
@@ -143,6 +151,7 @@ function sheet_(col) {
   }
   if (!sh) throw new Error('Tab "' + def.name + '" tidak ditemukan');
   ensureHeaders_(sh, def);
+  SH_[col] = sh;
   return sh;
 }
 
@@ -161,10 +170,12 @@ function ensureHeaders_(sh, def) {
 }
 
 function headerIndex_(sh) {
+  const key = sh.getSheetId();
+  if (HI_[key]) return HI_[key];
   const head = sh.getRange(1, 1, 1, Math.max(1, sh.getLastColumn())).getValues()[0];
   const idx = {};
   head.forEach(function (h, i) { idx[String(h).trim()] = i; });
-  return { idx: idx, width: head.length };
+  return (HI_[key] = { idx: idx, width: head.length });
 }
 
 function norm_(key, v) {
@@ -179,6 +190,7 @@ function norm_(key, v) {
 }
 
 function readRaw_(col) {
+  if (RAW_[col]) return RAW_[col];
   const def = SHEETS[col], sh = sheet_(col), h = headerIndex_(sh);
   const last = sh.getLastRow();
   const out = [];
@@ -198,7 +210,7 @@ function readRaw_(col) {
     }
     out.push(rec);
   });
-  return { rows: out, sh: sh, h: h };
+  return (RAW_[col] = { rows: out, sh: sh, h: h });
 }
 
 function buildState_() {
@@ -253,6 +265,7 @@ function writeRow_(col, rowNum, srec) {
   });
   const target = rowNum || Math.max(2, sh.getLastRow() + 1);
   sh.getRange(target, 1, 1, h.width).setValues([existing]);
+  dirty_(col);
 }
 
 function replaceInColumn_(col, key, from, to, extraMatch) {
@@ -262,6 +275,7 @@ function replaceInColumn_(col, key, from, to, extraMatch) {
   raw.rows.forEach(function (r) {
     if (r[key] === from && (!extraMatch || extraMatch(r))) raw.sh.getRange(r._row, c + 1).setValue(to);
   });
+  dirty_(col);
 }
 
 function applyOp_(op, email, st) {
@@ -285,6 +299,10 @@ function applyOp_(op, email, st) {
   }
   if (op.action === 'add') {
     const rec = Object.assign({}, op.data || {}, { id: op.id || (SHEETS[col].prefix + '-' + Utilities.getUuid().slice(0, 8)) });
+    // Kirim ulang (mis. koneksi putus setelah tersimpan) tidak membuat baris ganda: id sama = perbarui.
+    if (op.id && readRaw_(col).rows.some(function (r) { return r.id === op.id; })) {
+      return applyOp_({ col: col, action: 'update', id: op.id, data: op.data }, email, st);
+    }
     if (col === 'revisi' && !rec.oleh) rec.oleh = email;
     writeRow_(col, 0, toSheetRec_(col, rec, st));
     st[col].push(rec);
@@ -296,6 +314,7 @@ function applyOp_(op, email, st) {
   if (op.action === 'remove') {
     if (col === 'dokumentasi' && row.fileId) { try { DriveApp.getFileById(row.fileId).setTrashed(true); } catch (err) {} }
     raw.sh.deleteRow(row._row);
+    dirty_(col);
     st[col] = st[col].filter(function (r) { return r.id !== op.id; });
     return;
   }
