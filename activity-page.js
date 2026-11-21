@@ -3,6 +3,36 @@
   if (typeof pageSet !== 'function' || typeof S === 'undefined') return;
   const APPS = { kmb: 'Manpower KMB', mbj: 'Manpower MBJ', 'bupr-ampah': 'Manpower BUPR', 'kta-tra': 'Manpower KTA-TRA', apd: 'APD', notulensi: 'Notulensi', 'unit-monitoring': 'Monitoring Unit' };
   const A = { team: [], rows: null, loading: false, err: null, limit: 300, app: '', who: '', q: '', open: {} };
+  // Rincian "kolom: lama → baru; ..." ditampilkan sebagai tabel Sebelum / Sesudah yang mudah dibaca
+  const HIDE = /^(updatedAt|updated_at|createdAt|kodeSementara|foto|photo|id|uid)$/i;
+  const LBL = { kode: 'Kode unit', catatan: 'Catatan', tgltiba: 'Tanggal tiba', kepemilikan: 'Kepemilikan', vendor: 'Vendor', merk: 'Merk', model: 'Model', tahun: 'Tahun', serial: 'No. seri / rangka', kondisi: 'Kondisi', etd: 'Tgl berangkat (ETD)', eta: 'Perkiraan tiba (ETA)', keterangan: 'Jenis / keterangan', lokasi: 'Lokasi', status: 'Status', pic: 'PIC' };
+  const MONS = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const nice = (v) => { v = String(v == null ? '' : v).replace(/\s+/g, ' ').trim(); if (!v || v === '—' || v === '-' || v === 'null' || v === 'undefined') return ''; const m = v.match(/^(\d{4})-(\d{2})-(\d{2})(T[\d:.]+Z?)?$/); if (m) return `${+m[3]} ${MONS[+m[2] - 1]} ${m[1]}`; if (v === 'true') return 'Ya'; if (v === 'false') return 'Tidak'; return v; };
+  const same = (a, b) => a === b;
+  function parseChanges(line) {
+    const i = line.indexOf(' — '); if (i < 0 || !line.includes('→')) return null;
+    const parts = line.slice(i + 3).split(/;\s+(?=[A-Za-z][\w .\/()-]{0,30}:\s)/);
+    const out = [];
+    for (const p of parts) {
+      const m = p.match(/^([A-Za-z][\w .\/()-]{0,30}):\s*([\s\S]*)$/); if (!m || !m[2].includes('→')) return null;
+      const k = m[1].trim(); if (HIDE.test(k)) continue;
+      const j = m[2].lastIndexOf('→') === m[2].indexOf('→') ? m[2].indexOf('→') : m[2].search(/\s→\s/);
+      const a = nice(m[2].slice(0, j)), b = nice(m[2].slice(j + 1));
+      if (same(a, b)) continue;
+      out.push({ k: LBL[k.toLowerCase().replace(/\s+/g, '')] || (k.charAt(0).toUpperCase() + k.slice(1)), a, b });
+    }
+    return out;
+  }
+  function detHtml(r, det) {
+    if (!det.length) return '';
+    const tabs = det.map(parseChanges);
+    if (tabs.every(Boolean)) {
+      const all = [].concat(...tabs);
+      if (!all.length) return '<div class="actnochg">Disimpan tanpa perubahan isi.</div>';
+      return `<details ${A.open[r.id] ? 'open' : ''} data-actopen="${r.id}"><summary>Lihat ${all.length} perubahan</summary><table class="actchg"><thead><tr><th>Bagian</th><th>Sebelum</th><th>Sesudah</th></tr></thead><tbody>${all.map((c) => `<tr><td>${esc(c.k)}</td><td>${c.a ? esc(c.a) : '<i>kosong</i>'}</td><td>${c.b ? `<b>${esc(c.b)}</b>` : '<i>dikosongkan</i>'}</td></tr>`).join('')}</tbody></table></details>`;
+    }
+    return `<details ${A.open[r.id] ? 'open' : ''} data-actopen="${r.id}"><summary>Rincian (${det.length})</summary><ul>${det.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></details>`;
+  }
   const whoOf = (a) => String(a || '').replace(/ \(link\)$/, '');   // "email (link)" = orang yang sama lewat link tanpa login
   const owner = () => typeof isOwner === 'function' && isOwner();
   const DAY = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
@@ -54,7 +84,7 @@
           <div class="acttop"><b>${hm(r.at)}</b><span class="actapp">${esc(APPS[r.app] || r.app)}${r.site ? ' · ' + esc(r.site) : ''}</span><button type="button" class="actx" data-actdel="${r.id}" title="Hapus catatan ini" aria-label="Hapus catatan ini">×</button></div>
           <div class="actmsg">${esc(r.action)}</div>
           <div class="actwho">${esc(r.actor)}${r.role ? ` <span class="actrole">${r.role === 'owner' ? 'Pemilik' : r.role === 'editor' ? 'Editor' : esc(r.role)}</span>` : ''}</div>
-          ${det.length ? `<details ${A.open[r.id] ? 'open' : ''} data-actopen="${r.id}"><summary>Rincian (${det.length})</summary><ul>${det.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></details>` : ''}
+          ${detHtml(r, det)}
         </div></li>`;
       }).join('')}</ol></div>`;
     }).join('');
@@ -132,6 +162,13 @@
   .actbody summary{cursor:pointer;color:var(--p-ink,#5b21b6);font-weight:600}
   .actbody details ul{margin:6px 0 0;padding-left:18px;max-height:260px;overflow:auto}
   .actbody details li{margin:2px 0;word-break:break-word}
+  .actchg{border-collapse:collapse;margin-top:8px;width:100%;max-width:760px;font-size:12.5px}
+  .actchg th{text-align:left;font-weight:700;color:var(--ink-3,#6e6a8c);font-size:11px;letter-spacing:.03em;text-transform:uppercase;padding:5px 10px;border-bottom:1px solid var(--line,#e8e6f3)}
+  .actchg td{padding:6px 10px;border-bottom:1px solid var(--line,#efedf7);vertical-align:top;word-break:break-word}
+  .actchg td:first-child{white-space:nowrap;color:var(--ink-2,#3b3852);font-weight:600;width:1%}
+  .actchg td:nth-child(2){color:var(--ink-3,#8a87a6)}
+  .actchg i{color:var(--ink-3,#a3a0bd);font-style:normal}
+  .actnochg{margin-top:4px;font-size:12px;color:var(--ink-3,#8a87a6)}
   @media (max-width:560px){.actday{grid-template-columns:1fr}.actdate{flex-direction:row;gap:6px;position:static;justify-content:flex-start}.actdate b{font-size:20px;margin:0}}`;
   document.head.appendChild(css);
 })();
