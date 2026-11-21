@@ -754,7 +754,7 @@
     return true;
   }
   // ---------------- pengaman form: isian tersimpan otomatis & tanya sebelum ditutup ----------------
-  const FG = { key: null, init: null, submitting: false, t: null };
+  const FG = { key: null, init: null, submitting: false, t: null, last: 0, reminded: 0 };
   const frm = () => document.getElementById('frm');
   const fkey = () => { const t = document.getElementById('mTitle'); return 'kta-form:' + WEB_ID + ':' + (t ? t.textContent.trim() : ''); };
   const fvals = (f) => { const o = {}; [...f.elements].forEach((el) => { if (!el.id || el.type === 'submit' || el.type === 'button' || el.type === 'file') return; o[el.id] = el.type === 'checkbox' ? el.checked : el.value; }); return o; };
@@ -776,6 +776,8 @@
   }
   function formTouched() {
     if (!frm() || !FG.key) return;
+    FG.last = Date.now();
+    const rm = document.getElementById('ktaRemind'); if (rm) rm.remove();
     clearTimeout(FG.t);
     FG.t = setTimeout(() => { const f = frm(); if (!f) return; lsSet(FG.key, fdirty() ? { vals: fvals(f), at: Date.now() } : null); ui(); }, 500);
   }
@@ -791,6 +793,40 @@
     document.getElementById('ktaAsk').scrollIntoView({ block: 'nearest' });
     return true;
   }
+  // ---------- pengingat lupa simpan ----------
+  const TITLE0 = document.title;
+  function remindInForm(msg) {
+    const f = frm(); if (!f || document.getElementById('ktaRemind') || document.getElementById('ktaAsk')) return;
+    f.insertAdjacentHTML('afterbegin', `<div class="kta-remind" id="ktaRemind" role="alert"><span><b>Jangan lupa klik Simpan.</b> ${msg}</span><button type="button" class="btn btn-p" id="ktaRemindGo">Simpan sekarang</button></div>`);
+    document.getElementById('ktaRemindGo').onclick = () => { document.getElementById('ktaRemind').remove(); if (f.requestSubmit) f.requestSubmit(); else f.querySelector('[type=submit]').click(); };
+    f.scrollTop = 0; const d = document.getElementById('dialog'); if (d) d.scrollTop = 0;
+  }
+  setInterval(() => {
+    const dirty = formDirtyNow();
+    document.title = dirty ? '● Belum disimpan · ' + TITLE0 : TITLE0;
+    if (!dirty || FG.submitting) return;
+    const idle = Date.now() - (FG.last || Date.now());
+    if (idle > 90e3 && Date.now() - FG.reminded > 180e3) { FG.reminded = Date.now(); remindInForm(`Isian ini belum tersimpan sejak ${Math.round(idle / 60e3)} menit lalu.`); say('Ada isian yang belum disimpan. Klik Simpan Perubahan di form.', true); }
+  }, 15000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && formDirtyNow()) { remindInForm('Anda meninggalkan form ini sebelum menyimpannya.'); say('Isian di form belum disimpan.', true); } });
+  // saat web dibuka: isian yang tertinggal dari kunjungan sebelumnya
+  function leftovers() {
+    const pre = 'kta-form:' + WEB_ID + ':', out = [];
+    try { for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (!k || !k.startsWith(pre)) continue; const v = lsGet(k); if (v && v.at && Date.now() - v.at < 14 * 864e5) out.push({ k, t: k.slice(pre.length) || 'Form', at: v.at }); else localStorage.removeItem(k); } } catch (e) {}
+    return out.sort((a, b) => b.at - a.at);
+  }
+  function formBanner() {
+    const v = document.getElementById('view'); if (!v || !CAN_EDIT) return;
+    let b = document.getElementById('ktaFormBanner');
+    const L = (frm() ? leftovers().filter((x) => x.k !== FG.key) : leftovers());
+    if (!L.length) { if (b) b.remove(); return; }
+    const html = `<div class="kta-banner or" id="ktaFormBanner"><span><b>${L.length} isian tertinggal, belum disimpan</b>: ${L.slice(0, 4).map((x) => `“${h(x.t)}” (${tglJam(x.at)})`).join(', ')}${L.length > 4 ? ' …' : ''}. Buka form yang sama, klik <b>Pulihkan isian</b>, lalu Simpan.</span><button type="button" data-kta="leftdrop">Abaikan</button></div>`;
+    if (b) b.outerHTML = html; else v.insertAdjacentHTML('afterbegin', html);
+  }
+  document.addEventListener('click', (e) => { if (!e.target.closest('[data-kta="leftdrop"]')) return; e.preventDefault(); e.stopPropagation(); if (!confirm('Abaikan semua isian yang belum disimpan? Isian itu akan dihapus dari perangkat ini.')) return; leftovers().forEach((x) => lsSet(x.k, null)); formBanner(); }, true);
+  const _r2 = render; render = function () { const r = _r2.apply(this, arguments); try { formBanner(); } catch (e) {} return r; };
+  setTimeout(() => { try { formBanner(); } catch (e) {} }, 1500);
+
   document.addEventListener('click', (e) => { const t = e.target; if (t.closest('#fCancel') || t.id === 'mClose' || t.id === 'modal') askClose(e); }, true);
   window.addEventListener('keydown', (e) => { if (e.key === 'Escape' && frm()) askClose(e); }, true);
   document.addEventListener('input', (e) => { if (e.target.closest && e.target.closest('#frm')) formTouched(); }, true);
@@ -803,12 +839,14 @@
     new MutationObserver(() => {
       if (!mEl.hidden) return;
       if (FG.key && (FG.submitting || !FG.init)) lsSet(FG.key, null);   // tersimpan atau sengaja dibuang
-      FG.key = null; FG.init = null; FG.submitting = false; setTimeout(ui, 0);
+      FG.key = null; FG.init = null; FG.submitting = false; FG.last = 0; document.title = TITLE0; setTimeout(() => { ui(); formBanner(); }, 0);
     }).observe(mEl, { attributes: true, attributeFilter: ['hidden'] });
   }
   document.head.insertAdjacentHTML('beforeend', `<style>
   .kta-restore{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#EFF6FF;border:1px solid #BFDBFE;color:#1E3A8A;border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:13px}
   .kta-restore span{flex:1;min-width:200px}
+  .kta-remind{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#FFF7ED;border:2px solid #FB923C;color:#9A3412;border-radius:12px;padding:10px 12px;margin:0 0 12px;font-size:13.5px}
+  .kta-remind span{flex:1;min-width:200px}
   .kta-ask{display:flex;flex-direction:column;gap:6px;background:#FFF7ED;border:1px solid #FED7AA;color:#9A3412;border-radius:12px;padding:12px 14px;margin:12px 0 0;font-size:13px}
   .kta-ask span{color:#7C2D12}.kta-ask .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
   </style>`);
