@@ -28,6 +28,7 @@
 const SB_URL = 'https://yoviojbfyvgpllxisjvy.supabase.co';
 const SB_KEY = 'sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9';
 const APP = 'unit-monitoring';
+const CODE_VER = '2026.11.21';   // ditampilkan di web: Pengaturan → Kode Apps Script
 const OWNER_EMAIL = 'matthewyoga2014@gmail.com';
 // Spreadsheet sumber yang sudah tercatat di Monitoring Unit KMB.
 // Mendukung proyek Apps Script mandiri (Project tak berjudul) maupun yang terikat ke Sheets.
@@ -67,10 +68,10 @@ function doGet(e) {
   if (!who.role) return json_({ ok: false, error: 'forbidden', email: who.email });
   const cache = CacheService.getScriptCache();
   const hit = cache.get('state2');
-  if (hit) return ContentService.createTextOutput('{"ok":true,"state":' + hit + '}').setMimeType(ContentService.MimeType.JSON);
+  if (hit) return ContentService.createTextOutput('{"ok":true,"ver":"' + CODE_VER + '","state":' + hit + '}').setMimeType(ContentService.MimeType.JSON);
   const txt = JSON.stringify(buildState_());
   try { if (txt.length < 95000) cache.put('state2', txt, 21600); } catch (err) {}
-  return ContentService.createTextOutput('{"ok":true,"state":' + txt + '}').setMimeType(ContentService.MimeType.JSON);
+  return ContentService.createTextOutput('{"ok":true,"ver":"' + CODE_VER + '","state":' + txt + '}').setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
@@ -87,7 +88,7 @@ function doPost(e) {
     if (body.ops && body.ops.length) bumpRev_();
     const txt = JSON.stringify(buildState_());   // tab yang tidak berubah diambil dari cache permintaan ini
     try { if (txt.length < 95000) CacheService.getScriptCache().put('state2', txt, 21600); } catch (err) {}
-    return ContentService.createTextOutput('{"ok":true,"state":' + txt + '}').setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput('{"ok":true,"ver":"' + CODE_VER + '","state":' + txt + '}').setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return json_({ ok: false, error: 'failed', message: String(err && err.message || err) });
   } finally {
@@ -96,6 +97,7 @@ function doPost(e) {
 }
 
 function json_(o) {
+  o.ver = CODE_VER;
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
 }
 
