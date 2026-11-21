@@ -54,8 +54,8 @@ table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 .notice.warn{background:var(--warns);border-color:#FCD34D;color:#78350F}
 .muted{color:var(--mut)}.small{font-size:12px}.right{text-align:right}
 .shelf{border:1px solid var(--line);border-radius:12px;padding:6px 10px;margin-bottom:12px;background:#FBFAFE}
-.shelf-row{display:grid;grid-template-columns:150px 1fr;gap:10px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line)}.shelf-row:last-child{border-bottom:0}
-.shelf-lv{font-size:13px;font-weight:700;color:var(--mut)}.shelf-items{display:flex;flex-wrap:wrap;gap:6px}
+.shelf-row{display:grid;grid-template-columns:190px 1fr;gap:10px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line)}.shelf-row:last-child{border-bottom:0}
+.shelf-items{display:flex;flex-wrap:wrap;gap:6px}
 .pill{display:inline-flex;gap:6px;align-items:center;border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;cursor:pointer;font:inherit;font-size:13px;max-width:100%}
 .pill span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px}.pill small{color:var(--mut)}.pill:hover{border-color:var(--p)}
 .pill.on{background:var(--p);border-color:var(--p);color:#fff}.pill.on small{color:#E9DDFF}.pill.off{opacity:.55}
@@ -136,6 +136,12 @@ table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 #upPick .upk-b{border:0;background:#1A56DB;color:#fff;border-radius:999px;padding:12px 34px;font:700 15px/1 inherit;font-family:inherit;cursor:pointer;box-shadow:0 6px 16px rgba(26,86,219,.3)}
 #upPick .upk-b:focus-visible,#upPick .upk-x:focus-visible{outline:3px solid #6D28D9;outline-offset:2px}
 @media (max-width:560px){#upPick{place-items:end center;padding:0}#upPick .upk{border-radius:20px 20px 0 0}}
+.shelf-hint{padding:4px 0 6px;border-bottom:1px dashed var(--line)}
+.shelf-lv{all:unset;box-sizing:border-box;display:flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:var(--mut);cursor:pointer;padding:6px 8px;border-radius:8px;white-space:nowrap;user-select:none;-webkit-user-select:none}.shelf-lv:hover{background:#F1ECFE;color:var(--p)}.shelf-lv small{font-weight:500}
+.shelf .pill{user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+.grip{font-style:normal;color:#B4AECB;font-size:13px;cursor:grab;touch-action:none;padding:0 2px;margin-left:-4px}.pill.on .grip{color:#E9DDFF}
+.shelf-row.drop{background:#F1ECFE;border-radius:10px}.shelf.dnd{cursor:grabbing}.shelf.dnd *{cursor:grabbing!important}
+.pill.dragging,.shelf-row.dragging{opacity:.35}.ghost{position:fixed!important;z-index:3000;pointer-events:none;box-shadow:0 10px 28px rgba(30,20,70,.28);transform:rotate(-2deg);opacity:.95;background:#fff;margin:0}
 </style>
 </head>
 <body>
@@ -674,12 +680,44 @@ function viewKinerja(id){const k=S.kinerja.find(x=>x.id===id);if(!k)return;const
 
 /* ====================== BANK SOAL ====================== */
 async function loadQuestions(mid,force){if(!S.questions[mid]||force)S.questions[mid]=await q(SB.from("pk_questions").select("*").eq("module_id",mid).order("no"));return S.questions[mid]}
-const FOLD={};
+const FOLD={};try{Object.assign(FOLD,JSON.parse(localStorage.getItem("pk-fold")||"{}"))}catch(_){}
 function bankGroups(){const groups={};S.modules.forEach(x=>{const k=x.level||"Lainnya";(groups[k]=groups[k]||[]).push(x)});
-  const order=Object.keys(groups).sort((a,b)=>{const ia=LEVELS.findIndex(l=>a.startsWith(l)),ib=LEVELS.findIndex(l=>b.startsWith(l));return (ia<0?99:ia)-(ib<0?99:ib)||a.localeCompare(b)});
+  const fo=(S.settings&&S.settings.folderOrder)||[];const rk=k=>{const i=fo.indexOf(k);if(i>=0)return i;const j=LEVELS.findIndex(l=>k.startsWith(l));return 100+(j<0?99:j)};
+  const order=Object.keys(groups).sort((a,b)=>rk(a)-rk(b)||a.localeCompare(b));
   return order.map(k=>[k,groups[k].sort((a,b)=>(a.sort||0)-(b.sort||0))])}
 function bankShelf(){if(!S.modules.length)return "";
-  return bankGroups().map(([k,list])=>`<div class="shelf-row"><div class="shelf-lv">📁 ${esc(k)}</div><div class="shelf-items">${list.map(x=>`<button class="pill ${x.id===BANKSEL?"on":""}${x.active?"":" off"}" data-id="${x.id}" title="${esc(x.title)}"><b>${esc(x.grade||"–")}</b><span>${esc(x.title)}</span><small>${S.qcount?.[x.id]||0} soal</small></button>`).join("")}</div></div>`).join("")}
+  const pill=x=>`<button class="pill ${x.id===BANKSEL?"on":""}${x.active?"":" off"}" data-id="${x.id}" title="${esc(x.title)} — seret untuk memindah"><i class="grip" aria-hidden="true">⠿</i><b>${esc(x.grade||"–")}</b><span>${esc(x.title)}</span><small>${S.qcount?.[x.id]||0} soal</small></button>`;
+  return `<div class="shelf-hint small muted">Klik folder untuk buka/tutup · seret sheet ke folder atau urutan lain · seret nama folder untuk mengubah urutan folder${matchMedia("(pointer:coarse)").matches?" · di HP tahan lalu geser tanda ⠿":""}</div>`+
+   bankGroups().map(([k,list])=>{const open=!FOLD[k];return `<div class="shelf-row" data-lv="${esc(k)}"><button class="shelf-lv" type="button" data-fold="${esc(k)}" data-fh="${esc(k)}" title="Klik buka/tutup · seret untuk memindah urutan folder"><i class="grip" aria-hidden="true">⠿</i><span class="caret">${open?"▾":"▸"}</span> 📁 ${esc(k)} <small>(${list.length})</small></button><div class="shelf-items" data-lv="${esc(k)}">${open?list.map(pill).join(""):`<span class="small muted shelf-closed">${list.length} sheet · klik folder untuk membuka</span>`}</div></div>`}).join("")}
+/* seret & lepas sheet / folder di rak Bank Soal (mouse: seret langsung · HP: tahan lalu geser ⠿) */
+function shelfDnD(box,m){let st=null,ghost=null,timer=null;
+  const clean=()=>{clearTimeout(timer);if(ghost)ghost.remove();ghost=null;if(st&&st.el)st.el.classList.remove("dragging");box.classList.remove("dnd");document.querySelectorAll(".shelf-row.drop").forEach(r=>r.classList.remove("drop"));st=null};
+  const begin=e=>{st.on=true;box.classList.add("dnd");const r=st.el.getBoundingClientRect();ghost=st.el.cloneNode(true);ghost.className+=" ghost";Object.assign(ghost.style,{width:r.width+"px",left:r.left+"px",top:r.top+"px"});st.dx=st.x-r.left;st.dy=st.y-r.top;document.body.appendChild(ghost);st.el.classList.add("dragging");if(navigator.vibrate)try{navigator.vibrate(15)}catch(_){}};
+  box.addEventListener("pointerdown",e=>{if(e.button>0)return;const pill=e.target.closest(".pill[data-id]"),fh=e.target.closest("[data-fh]"),el=pill||(fh&&fh.closest(".shelf-row"));if(!el)return;
+    st={el,kind:pill?"sheet":"folder",x:e.clientX,y:e.clientY,on:false,touch:e.pointerType!=="mouse"};
+    if(st.touch){if(!e.target.closest(".grip")){timer=setTimeout(()=>{if(st&&!st.on)begin(e)},380)}else{e.preventDefault();begin(e)}}});
+  window.addEventListener("pointermove",e=>{if(!st)return;
+    if(!st.on){if(st.touch){if(Math.hypot(e.clientX-st.x,e.clientY-st.y)>8){clearTimeout(timer);st=null}return}if(Math.hypot(e.clientX-st.x,e.clientY-st.y)<6)return;begin(e)}
+    e.preventDefault();ghost.style.left=(e.clientX-st.dx)+"px";ghost.style.top=(e.clientY-st.dy)+"px";
+    if(e.clientY<70)scrollBy(0,-14);else if(e.clientY>innerHeight-70)scrollBy(0,14);
+    const under=document.elementFromPoint(e.clientX,e.clientY);const row=under&&under.closest(".shelf-row");if(!row||!box.contains(row))return;
+    document.querySelectorAll(".shelf-row.drop").forEach(r=>{if(r!==row)r.classList.remove("drop")});
+    if(st.kind==="folder"){if(row===st.el)return;const rr=row.getBoundingClientRect();box.insertBefore(st.el,e.clientY<rr.top+rr.height/2?row:row.nextSibling);return}
+    row.classList.add("drop");const items=row.querySelector(".shelf-items");const ps=[...items.querySelectorAll(".pill[data-id]")].filter(p=>p!==st.el);
+    const nx=ps.find(p=>{const r=p.getBoundingClientRect();return e.clientY<r.top||(e.clientY<=r.bottom&&e.clientX<r.left+r.width/2)});
+    const cl=items.querySelector(".shelf-closed");if(cl)cl.remove();
+    if(nx)items.insertBefore(st.el,nx);else items.appendChild(st.el)},{passive:false});
+  const finish=async()=>{if(!st)return;clearTimeout(timer);if(!st.on){st=null;return}const kind=st.kind;clean();box._drag=Date.now();
+    try{if(kind==="folder"){const order=[...box.querySelectorAll(".shelf-row")].map(r=>r.dataset.lv);const n={...S.settings,folderOrder:order};await q(SB.from("pk_settings").update({data:n,updated_at:new Date().toISOString()}).eq("id",1));S.settings=n;toast("Urutan folder disimpan")}
+      else{const G=Object.fromEntries(bankGroups());const seq=[];[...box.querySelectorAll(".shelf-row")].forEach(r=>{const lv=r.dataset.lv;const ids=[...r.querySelectorAll(".pill[data-id]")].map(p=>p.dataset.id);
+          const rest=(G[lv]||[]).map(x=>x.id).filter(id=>!ids.includes(id)&&!seq.some(z=>z.id===id)&&!box.querySelector(`.pill[data-id="${id}"]`));[...ids,...rest].forEach(id=>seq.push({id,lv}))});
+        const ch=[];seq.forEach((z,i)=>{const x=S.modules.find(y=>y.id===z.id);if(x&&(x.level!==z.lv||(x.sort||0)!==i+1)){ch.push(q(SB.from("pk_modules").update({level:z.lv,sort:i+1}).eq("id",x.id)));x.level=z.lv;x.sort=i+1}});
+        if(ch.length){await Promise.all(ch);toast("Posisi sheet disimpan")}}}
+    catch(err){toast("Gagal menyimpan: "+err.message,5000);await loadAll()}
+    vBank(m)};
+  window.addEventListener("pointerup",finish);window.addEventListener("pointercancel",()=>{if(st&&!st.on){clearTimeout(timer);st=null}else finish()});
+  box.addEventListener("contextmenu",e=>{if(e.target.closest(".pill,.shelf-lv"))e.preventDefault()});
+}
 function bankDD(){if(!S.modules.length)return '<div class="small muted">Belum ada sheet soal.</div>';const cur=S.modules.find(x=>x.id===BANKSEL);
   return `<button class="dd-btn" type="button"><span class="dd-cur">${cur?`<span class="muted small">📁 ${esc(cur.level||"Lainnya")} ›</span> 📄 ${cur.grade?`<b>${esc(cur.grade)}</b> · `:""}${esc(cur.title)} <span class="chip">${S.qcount?.[cur.id]||0} soal</span>`:"Pilih sheet soal"}</span><span class="dd-car">▾</span></button>
    <div class="dd-menu">${bankGroups().map(([k,list])=>{const open=!FOLD[k];return `<div class="dd-fold" data-fold="${esc(k)}"><span class="caret">${open?"▾":"▸"}</span> 📁 <b>${esc(k)}</b> <span class="muted small">${list.length} sheet</span></div>
@@ -702,7 +740,9 @@ async function vBank(m){
    <div class="shelf" id="bDD">${bankShelf()}</div>
    <div>
    <div id="bBody" style="min-width:0">${S.modules.length?'<div class="empty">Memuat…</div>':'<div class="empty">Belum ada soal. Klik <b>⬆ Unggah file soal</b>.</div>'}</div></div></div>`;
-  $("bDD").onclick=e=>{const it=e.target.closest("[data-id]");if(it&&it.dataset.id!==BANKSEL){BANKSEL=it.dataset.id;vBank(m)}};
+  $("bDD").onclick=e=>{const box=$("bDD");if(box._drag&&Date.now()-box._drag<400)return;const f=e.target.closest("[data-fold]");if(f){const k=f.dataset.fold;FOLD[k]=!FOLD[k];try{localStorage.setItem("pk-fold",JSON.stringify(FOLD))}catch(_){}box.innerHTML=bankShelf();return}
+    const it=e.target.closest("[data-id]");if(it&&it.dataset.id!==BANKSEL){BANKSEL=it.dataset.id;vBank(m)}};
+  shelfDnD($("bDD"),m);
   if(!window.__ddL){window.__ddL=1;document.addEventListener("click",e=>{const dd=$("bDD");if(dd&&!dd.contains(e.target))dd.classList.remove("open")})}
   if($("bRn"))$("bRn").onclick=async()=>{const x=S.modules.find(y=>y.id===BANKSEL);const v=prompt("Nama sheet baru:",x.title);if(v&&v.trim()&&v.trim()!==x.title){try{await q(SB.from("pk_modules").update({title:v.trim(),updated_at:new Date().toISOString()}).eq("id",x.id));x.title=v.trim();toast("Nama sheet diubah");vBank(m)}catch(e){toast("Gagal: "+e.message)}}};
   $("bTpl").onclick=()=>{const ws=XLSX.utils.aoa_to_sheet([["No","Soal","A","B","C","D","Kunci","Topik"],[1,"Alat untuk mengukur diameter luar shaft secara akurat adalah…","Ruler","Micrometer","Depth Gauge","Feeler Gauge","B","Alat Ukur & Tools"]]);ws["!cols"]=[{wch:5},{wch:60},{wch:25},{wch:25},{wch:25},{wch:25},{wch:7},{wch:24}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Soal");XLSX.writeFile(wb,"Template_Bank_Soal.xlsx")};
@@ -713,10 +753,10 @@ async function vBank(m){
    <div class="row"><button class="btn sm" id="bRn">✏️ Ganti nama</button><button class="btn sm" id="mEdit">Pengaturan sheet</button><button class="btn sm" id="qAdd">+ Soal</button><button class="btn sm" id="qTime">Atur waktu semua soal</button><button class="btn sm" id="mXls">Unduh soal + kunci</button><button class="btn sm dan" id="mDel">Hapus sheet</button></div></div></div>
    <input id="qS" placeholder="Cari soal / topik…" style="width:100%;margin-bottom:6px"><p class="small muted" id="qInfo" style="margin:0 0 10px"></p><div id="qList"></div>`;
   const stat={};
-  const draw=()=>{const k=$("qS").value.toLowerCase();$("qList").innerHTML=qs.filter(x=>(x.text+" "+(x.topic||"")).toLowerCase().includes(k)).map(x=>`<div class="qitem"><div class="n">${x.no}</div><div><div>${esc(x.text)}</div>${x.image?`<img src="${x.image}" alt="">`:""}<ol>${Object.entries(x.options).map(([l,t])=>`<li class="${l===x.answer?"key":""}">${l.toUpperCase()}. ${esc(t)}${l===x.answer?" ✓":""}</li>`).join("")}</ol><span class="row" style="margin-top:6px;gap:6px"><span class="chip">${esc(x.topic||"Umum")}</span>${x.time_sec?`<span class="chip">⏱ ${x.time_sec} dtk</span>`:""}${stat[x.id]?`<span class="chip ${stat[x.id].p>=80?"cat-B":stat[x.id].p>=40?"cat-C":"cat-E"}" title="Dari ${stat[x.id].n} peserta">${Math.round(stat[x.id].p)}% benar${stat[x.id].p>=90?" · terlalu mudah":stat[x.id].p<30?" · sulit / cek kunci":""}</span>`:""}</span></div><div><button class="btn sm" data-e="${x.id}">Ubah</button></div></div>`).join("")||'<div class="empty">Belum ada soal.</div>';
+  const draw=()=>{const k=$("qS").value.toLowerCase();$("qList").innerHTML=qs.filter(x=>(x.text+" "+(x.topic||"")).toLowerCase().includes(k)).map(x=>`<div class="qitem"><div class="n">${x.no}</div><div><div>${esc(x.text)}</div>${x.image?`<img src="${x.image}" alt="">`:""}<ol>${Object.entries(x.options).map(([l,t])=>`<li class="${l===x.answer?"key":""}">${l.toUpperCase()}. ${esc(t)}${l===x.answer?" ✓":""}</li>`).join("")}</ol><span class="row" style="margin-top:6px;gap:6px"><span class="chip" title="Topik soal — dikelompokkan otomatis dari isi soal, dipakai untuk rangkuman nilai per bidang">🏷 ${esc(x.topic||"Umum")}</span>${x.time_sec?`<span class="chip">⏱ ${x.time_sec} dtk</span>`:""}${stat[x.id]?`<span class="chip ${stat[x.id].p>=80?"cat-B":stat[x.id].p>=40?"cat-C":"cat-E"}" title="Dari ${stat[x.id].n} peserta yang sudah mengerjakan sheet ini, ${stat[x.id].b} menjawab benar">✔ ${stat[x.id].b} dari ${stat[x.id].n} peserta benar (${Math.round(stat[x.id].p)}%)${stat[x.id].p>=90?" · terlalu mudah":stat[x.id].p<30?" · sulit / cek kunci":""}</span>`:""}</span></div><div><button class="btn sm" data-e="${x.id}">Ubah</button></div></div>`).join("")||'<div class="empty">Belum ada soal.</div>';
     $("qList").querySelectorAll("[data-e]").forEach(b=>b.onclick=()=>editQuestion(mod,qs.find(x=>x.id===b.dataset.e)))};
   $("qS").oninput=draw;draw();
-  try{const an=await q(SB.from("pk_attempts").select("answers").eq("module_id",BANKSEL).not("submitted_at","is",null));const cnt={};an.forEach(r=>qs.forEach(x=>{cnt[x.id]=cnt[x.id]||{b:0,n:0};cnt[x.id].n++;if(String(r.answers?.[x.id]||"").toLowerCase()===x.answer)cnt[x.id].b++}));Object.entries(cnt).forEach(([k,v])=>stat[k]={p:100*v.b/v.n,n:v.n});if(an.length){$("qInfo").textContent="Analisis soal dari "+an.length+" peserta: hijau ≥80% benar, kuning 40–79%, merah <40% (cek kunci/kesulitan).";draw()}}catch(e){}
+  try{const an=await q(SB.from("pk_attempts").select("answers").eq("module_id",BANKSEL).not("submitted_at","is",null));const cnt={};an.forEach(r=>qs.forEach(x=>{cnt[x.id]=cnt[x.id]||{b:0,n:0};cnt[x.id].n++;if(String(r.answers?.[x.id]||"").toLowerCase()===x.answer)cnt[x.id].b++}));Object.entries(cnt).forEach(([k,v])=>stat[k]={p:100*v.b/v.n,n:v.n,b:v.b});if(an.length){$("qInfo").textContent="🏷 = topik soal (otomatis). ✔ = berapa peserta yang menjawab benar dari "+an.length+" peserta yang sudah mengerjakan: hijau ≥80% (mudah), kuning 40–79%, merah <40% (sulit — cek kuncinya).";draw()}}catch(e){}
   $("qTime").onclick=async()=>{const v=prompt("Waktu tiap soal di sheet ini (detik). Kosongkan untuk menghapus pengaturan per soal:","60");if(v===null)return;const t=v.trim()?Math.min(3600,Math.max(5,+v)):null;try{await q(SB.from("pk_questions").update({time_sec:t}).eq("module_id",mod.id));await loadQuestions(mod.id,true);vBank(m);toast("Waktu soal diperbarui")}catch(e){toast("Gagal: "+e.message)}};
   $("mEdit").onclick=()=>editModule(mod);$("qAdd").onclick=()=>editQuestion(mod,null);
   $("mXls").onclick=()=>{const ws=XLSX.utils.json_to_sheet(qs.map(x=>({No:x.no,Soal:x.text,A:x.options.a||"",B:x.options.b||"",C:x.options.c||"",D:x.options.d||"",E:x.options.e||"",Kunci:x.answer.toUpperCase(),Topik:x.topic||"",Gambar:x.image?"ya":""})));const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Soal");XLSX.writeFile(wb,mod.title.replace(/[^\w]+/g,"_")+".xlsx")};
