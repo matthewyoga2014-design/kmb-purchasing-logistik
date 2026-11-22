@@ -166,7 +166,7 @@
   }
   const _commit = commit;
   commit = async function (mutate, okMsg) {
-    if (A.mode() !== 'stage' || A._flushing || WEB.empty || typeof STATE === 'undefined' || !STATE || !Array.isArray(STATE.positions)) return _commit.apply(this, arguments);
+    if (A.mode() !== 'stage' || A._flushing || (WEB.empty && !WEB.ver) || typeof STATE === 'undefined' || !STATE || !Array.isArray(STATE.positions)) return _commit.apply(this, arguments);
     if (A._action) { if (A.stage) { say('Simpan atau batalkan dulu perubahan yang belum disimpan.', true); return false; } return _commit.apply(this, arguments); }
     if (SAVING) return false;
     if (!A.base) { A.base = clone(STATE); A.baseVer = WEB.ver; }
