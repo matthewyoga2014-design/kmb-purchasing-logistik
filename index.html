@@ -1,4 +1,6 @@
-<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Monitoring</title><meta name="description" content="Satu pintu Monitoring MPP dan APD: masuk, pilih site, bagikan link Editor/Pelihat."><meta name="theme-color" content="#DC3737"><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2716%27 fill=%27%23DC3737%27/%3E%3Ctext x=%2732%27 y=%2740%27 font-family=%27Arial%27 font-weight=%27700%27 font-size=%2734%27 fill=%27white%27 text-anchor=%27middle%27%3EM%3C/text%3E%3C/svg%3E"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"><style>
+<!doctype html><html lang="id"><head><meta charset="utf-8"><script>(function(){try{var t=JSON.parse(localStorage.getItem('kta-web-auth')||'null');var u=t&&(t.user||(t.currentSession&&t.currentSession.user));var em=u&&u.email?String(u.email).toLowerCase():'';if(!em)return;var q=location.search,h=location.hash,b=false;try{if(/[?&]beranda\b/.test(q))sessionStorage.setItem('kmb-beranda','1');b=sessionStorage.getItem('kmb-beranda')==='1';}catch(e){}
+if(em==='matthewyoga2014@gmail.com'&&!b&&!h&&!/[?&](i|k|share)=/.test(q)){location.replace('kantor-ai/');return;}
+document.documentElement.classList.add('sbpre');}catch(e){}})();</script><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Monitoring</title><meta name="description" content="Satu pintu Monitoring MPP dan APD: masuk, pilih site, bagikan link Editor/Pelihat."><meta name="theme-color" content="#DC3737"><link rel="manifest" href="./manifest.webmanifest"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 64 64%27%3E%3Crect width=%2764%27 height=%2764%27 rx=%2716%27 fill=%27%23DC3737%27/%3E%3Ctext x=%2732%27 y=%2740%27 font-family=%27Arial%27 font-weight=%27700%27 font-size=%2734%27 fill=%27white%27 text-anchor=%27middle%27%3EM%3C/text%3E%3C/svg%3E"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"><style>
 :root { color-scheme: light; --bg: #F2F2F4; --card: rgba(255,255,255,.94); --tile: #F6F6FC; --ink: #29292C; --ink-2: #56565A; --muted: #88888B; --line: #EAEAEC;
   --p: #DC3737; --p-soft: #FCEBEB; --p-ink: #C52424; --good: #15803D; --crit: #E11D48; --warn: #D97706; }
 * { box-sizing: border-box; }
@@ -264,8 +266,9 @@ body.setmode .hero { display: none; }
 
 /* ===== Tema merah koral + menu samping (Beranda) ===== */
 :root { --kc: #D93B3B; --kc-ink: #A32626; --kc-soft: #FDE8E8; --k-ink: #1F1F24; --k-sub: #5A5A66; --k-bg: #ECECEF; --k-line: #E4E4E8; --k-y: #F5C518; --k-b: #4A90E2; }
-body.sbon { background: var(--k-bg) !important; }
-body.sbon .side-l, body.sbon .side-r, body.sbon .scene, body.sbon .bscene, body.sbon .helmet, body.sbon .hero { display: none !important; }
+html, body { background: var(--k-bg) !important; }
+.side-l, .side-r, .scene, .bscene, .helmet, .hero { display: none !important; }
+.sb .skl { height: 44px; border-radius: 12px; background: #F2F2F4; }
 body.sbon h1, body.sbon h2, body.sbon .h1s, .sb b.sbt { font-family: "Poppins", "Plus Jakarta Sans", system-ui, sans-serif; }
 .sb { position: fixed; left: 0; top: 0; bottom: 0; width: 268px; box-sizing: border-box; padding: 20px 0 20px 20px; display: flex; flex-direction: column; gap: 14px; overflow-y: auto; z-index: 20; }
 .sb .sbc { background: #fff; border-radius: 18px; padding: 16px 18px; }
@@ -284,10 +287,11 @@ body.sbon h1, body.sbon h2, body.sbon .h1s, .sb b.sbt { font-family: "Poppins", 
 .sb .att { background: var(--kc); color: #fff; border-radius: 18px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
 .sb .att .in { background: #fff; color: var(--k-ink); border-radius: 12px; padding: 12px; } .sb .att .in span { font-size: 12.5px; color: var(--k-sub); }
 .sb .att button { align-self: flex-start; border: 0; background: transparent; color: #fff; font: inherit; font-weight: 700; font-size: 13px; cursor: pointer; padding: 0; }
-body.sbon .top, body.sbon main { margin-left: 268px; }
+body.sbon .top, body.sbon main, html.sbpre body:not(.nosb) .top, html.sbpre body:not(.nosb) main { margin-left: 268px; }
 body.sbon #grid { display: block !important; grid-template-columns: none !important; }
 body.sbon .top { background: transparent !important; box-shadow: none !important; border: 0 !important; backdrop-filter: none !important; }
-body.sbon .top > .lg, body.sbon .top > .bn { visibility: hidden; }
+body.sbon .top > .lg, body.sbon .top > .bn, html.sbpre body:not(.nosb) .top > .lg, html.sbpre body:not(.nosb) .top > .bn { visibility: hidden; }
+html.sbpre body:not(.nosb) .top { background: transparent !important; box-shadow: none !important; border: 0 !important; backdrop-filter: none !important; }
 .hm { display: flex; flex-direction: column; gap: 18px; }
 .hm .hh h1 { margin: 0; font-size: 26px; font-weight: 800; } .hm .hh p { margin: 2px 0 0; color: var(--k-sub); }
 .hm .webs { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
@@ -321,7 +325,7 @@ body.sbon .top > .lg, body.sbon .top > .bn { visibility: hidden; }
 </style></head><body>
 
 <div class="side-l" aria-hidden="true"></div><div class="side-r" aria-hidden="true"></div><div class="scene" aria-hidden="true"></div><div class="bscene" aria-hidden="true"></div><div class="helmet" aria-hidden="true"></div>
-<aside class="sb" id="sb" hidden aria-label="Menu utama"></aside>
+<aside class="sb" id="sb" hidden aria-label="Menu utama"><div class="sbc sbl"><span class="lg2">M</span><span><b class="sbt">Monitoring</b><span>KMB · Integrated Monitoring</span></span></div><nav class="sbc" aria-hidden="true"><span class="skl"></span><span class="skl"></span><span class="skl"></span><span class="skl"></span></nav></aside><script>if(document.documentElement.classList.contains("sbpre"))document.getElementById("sb").hidden=false;</script>
 <header class="top">
   <span class="lg">M</span><div class="bn"><b>Monitoring</b></div>
   <div class="hbtns"><button type="button" class="hb sa" id="saBtn" title="Bagikan link ke semua web sekaligus" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 11 21 3l-8 18-2-8z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Bagikan</span></button><button type="button" class="hb" id="prBtn" title="Print halaman" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M7 9V3h10v6M7 17H4v-7h16v7h-3M7 14h10v7H7z" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg><span>Print</span></button><button type="button" class="hb" id="setBtn" title="Pengaturan: akses, bagikan link & izin" hidden><svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="1.8"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/></svg><span>Pengaturan</span><i class="dot" hidden></i></button></div>
@@ -603,8 +607,8 @@ function p2Card(p) {
 }
 function whoUI() {
   if (PORTAL_SHARE) { $('whoL').textContent='Akses'; $('whoE').textContent='Link tanpa login'; $('menu').innerHTML='<button type="button" data-page="home" role="menuitem">Web dibagikan</button><button type="button" data-clear-share role="menuitem">Hapus akses dari perangkat ini</button>'; return; }
-  $('whoL').textContent = S.user ? 'Masuk sebagai' : 'Belum masuk';
-  $('whoE').textContent = S.user ? S.user.email : 'Masuk';
+  $('whoL').textContent = S.user ? 'Masuk sebagai' : (S.loaded ? 'Belum masuk' : 'Memuat…');
+  $('whoE').textContent = S.user ? S.user.email : (S.loaded ? 'Masuk' : '');
   const pc = Object.values(S.pend).reduce((a, b) => a + b, 0);
   $('menu').innerHTML = S.user
     ? `<button type="button" data-page="home" role="menuitem">Beranda</button>${staffApps().length ? `<button type="button" data-page="set" role="menuitem">Akses & Bagikan${pc ? ` (${pc})` : ''}</button>` : ''}<button type="button" data-page="guide" role="menuitem">Panduan</button><button type="button" id="outBtn" role="menuitem">Keluar</button>`
@@ -622,8 +626,10 @@ const SI = { home: SV('<path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z"/>'), act: SV('<pat
 const wIcon = (w) => (I[w.icon] || '').replace(/#fff/gi, 'currentColor');
 const homeOn = { stats: false, acts: false };
 function sideUI() {
-  const sb = $('sb'), on = !!S.user && S.loaded && !PORTAL_SHARE;
-  document.body.classList.toggle('sbon', on); sb.hidden = !on; if (!on) { sb.innerHTML = ''; return; }
+  const sb = $('sb');
+  if (!S.loaded && !PORTAL_SHARE) return;
+  const on = !!S.user && S.loaded && !PORTAL_SHARE;
+  document.body.classList.toggle('sbon', on); document.body.classList.toggle('nosb', !on); sb.hidden = !on; if (!on) { sb.innerHTML = ''; return; }
   const webs = WEBS.filter((w) => w.show()), pc = Object.values(S.pend).reduce((a, b) => a + b, 0);
   const best = (apps) => apps.map(roleOf).sort((a, b) => ['owner', 'editor', 'viewer'].indexOf(a) - ['owner', 'editor', 'viewer'].indexOf(b)).find(Boolean) || '';
   const myRole = isOwner() ? 'Pemilik' : (RNAME[best(Object.keys(S.apps))] || 'Anggota');
