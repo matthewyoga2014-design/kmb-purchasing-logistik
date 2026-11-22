@@ -293,10 +293,14 @@ function pdfs_(person, p, g, mods, att, ans) {
       done.forEach(x => { const r = ans.find(y => y.a === x.id), m = mods.find(y => y.id === x.module_id) || {}; if (!r || !r.q) return;
         const q = r.q, nb = q.filter(v => v[4]).length, nk = q.filter(v => !v[3]).length, ns = q.length - nb - nk, rows = [];
         const mark = v => v[4] ? '✔ Benar' : v[3] ? '✘ Salah' : '– Kosong';
+        const BG = v => v[4] ? '' : v[3] ? ' bgcolor="#FECACA" style="background-color:#FECACA"' : ' bgcolor="#FEF3C7" style="background-color:#FEF3C7"';
+        const optT = (v, L) => { const op = v[6] || {}, t = op[String(L || '').toLowerCase()] != null ? op[String(L).toLowerCase()] : op[L]; return t == null ? '' : String(t); };
         for (let i = 0; i < q.length; i += 10) rows.push(q.slice(i, i + 10));
+        const grid = (ttl, f) => '<p style="margin:10px 0 4px"><b>' + ttl + '</b></p><table class="g">' + rows.map(rw => '<tr>' + rw.map(v => '<td' + BG(v) + '><span class="mut">' + v[0] + '</span><br><b style="font-size:11pt' + (!v[4] ? ';color:#B91C1C' : '') + '">' + f(v) + '</b></td>').join('') + '</tr>').join('') + '</table>';
         h += '<h2>Rangkuman jawaban – ' + H_(m.title || '') + '</h2><p><b>✔ Benar: ' + nb + '</b> &nbsp; · &nbsp; <b>✘ Salah: ' + ns + '</b> &nbsp; · &nbsp; <b>– Tidak dijawab: ' + nk + '</b> &nbsp; (dari ' + q.length + ' soal)</p>'
-          + '<div class="mut">Tiap kotak: nomor soal, tanda ✔ benar / ✘ salah / – kosong, lalu <b>J</b> = jawaban peserta dan <b>K</b> = kunci jawaban.</div><table class="g">'
-          + rows.map(rw => '<tr>' + rw.map(v => '<td class="' + (v[4] ? 'b' : v[3] ? 's' : 'k') + '"><b>' + v[0] + (v[4] ? ' ✔' : v[3] ? ' ✘' : ' –') + '</b><br>J: ' + (v[3] || '–') + ' · K: ' + v[2] + '</td>').join('') + '</tr>').join('') + '</table>';
+          + '<div class="mut">Kotak berwarna merah dengan tanda ✘ = jawaban salah, kuning dengan tanda – = tidak dijawab. Angka kecil di atas = nomor soal.</div>'
+          + grid('Jawaban Peserta', v => (v[3] || '–') + (v[4] ? '' : v[3] ? ' ✘' : ''))
+          + grid('Kunci Jawaban', v => v[2]);
         const wrong = q.filter(v => !v[4]);
         if (wrong.length) {
           h += '<h2>Rincian soal yang salah / tidak dijawab – ' + H_(m.title || '') + ' (' + wrong.length + ' soal)</h2>';
@@ -304,11 +308,13 @@ function pdfs_(person, p, g, mods, att, ans) {
             h += '<table style="margin-bottom:8px"><tr><th style="width:80px">No. ' + v[0] + '</th><th>' + H_(v[5] || '') + ' <span class="mut">(Topik: ' + H_(v[1]) + ')</span></th></tr>'
               + (v[7] ? '<tr><td></td><td><img src="https://drive.google.com/thumbnail?id=' + encodeURIComponent(v[7]) + '&sz=w600" style="max-width:320px;max-height:200px"></td></tr>' : '')
               + Object.keys(op).sort().map(l => { const L = l.toUpperCase(), isK = L === v[2], isJ = L === v[3];
-                  return '<tr><td class="c">' + (isK ? '<b>✔ KUNCI</b>' : isJ ? '<b>✘ DIPILIH</b>' : '') + '</td><td>' + (isK || isJ ? '<b>' : '') + L + '. ' + H_(op[l]) + (isK || isJ ? '</b>' : '') + '</td></tr>'; }).join('')
-              + '<tr><td></td><td>Jawaban peserta: <b>' + (v[3] || 'tidak dijawab') + '</b> · Kunci: <b>' + v[2] + '</b></td></tr></table>'; });
+                  const bg = isK ? ' bgcolor="#DCFCE7" style="background-color:#DCFCE7"' : isJ ? ' bgcolor="#FECACA" style="background-color:#FECACA"' : '';
+                  return '<tr><td class="c"' + bg + '>' + (isK ? '<b>✔ KUNCI</b>' : isJ ? '<b>✘ DIPILIH</b>' : '') + '</td><td' + bg + '>' + (isK || isJ ? '<b>' : '') + L + '. ' + H_(op[l]) + (isK || isJ ? '</b>' : '') + '</td></tr>'; }).join('')
+              + '<tr><td></td><td>Jawaban peserta: <b>' + (v[3] || 'tidak dijawab') + '</b> · Kunci jawaban: <b>' + v[2] + '</b></td></tr></table>'; });
         }
-        h += '<h2>Lampiran – daftar semua jawaban ' + H_(m.title || '') + '</h2><table><tr><th class="c" style="width:40px">No</th><th style="width:120px">Topik</th><th>Soal</th><th class="c" style="width:60px">Jawaban</th><th class="c" style="width:50px">Kunci</th><th style="width:70px">Hasil</th></tr>'
-          + q.map(v => '<tr><td class="c">' + v[0] + '</td><td>' + H_(v[1]) + '</td><td>' + H_(String(v[5] || '').slice(0, 110)) + (String(v[5] || '').length > 110 ? '…' : '') + (v[7] ? ' [gambar]' : '') + '</td><td class="c"><b>' + (v[3] || '–') + '</b></td><td class="c"><b>' + v[2] + '</b></td><td><b>' + mark(v) + '</b></td></tr>').join('') + '</table>';
+        const ab = (v, L) => L ? '<b>' + L + '.</b> ' + H_(optT(v, L).slice(0, 70)) + (optT(v, L).length > 70 ? '…' : '') : '<i>tidak dijawab</i>';
+        h += '<h2>Lampiran – daftar semua jawaban ' + H_(m.title || '') + '</h2><div class="mut">Baris berwarna merah = jawaban salah, kuning = tidak dijawab.</div><table><tr><th class="c" style="width:32px">No</th><th style="width:90px">Topik</th><th>Soal</th><th style="width:150px">Jawaban Peserta</th><th style="width:150px">Kunci Jawaban</th><th style="width:62px">Hasil</th></tr>'
+          + q.map(v => '<tr' + BG(v) + '><td class="c"' + BG(v) + '>' + v[0] + '</td><td' + BG(v) + '>' + H_(v[1]) + '</td><td' + BG(v) + '>' + H_(String(v[5] || '').slice(0, 110)) + (String(v[5] || '').length > 110 ? '…' : '') + (v[7] ? ' [gambar]' : '') + '</td><td' + BG(v) + (v[4] ? '' : ' class="no"') + '>' + ab(v, v[3]) + '</td><td' + BG(v) + '>' + ab(v, v[2]) + '</td><td' + BG(v) + '><b' + (v[4] ? '' : ' style="color:#B91C1C"') + '>' + mark(v) + '</b></td></tr>').join('') + '</table>';
       });
       h += '<h2>Pengawasan</h2>Pelanggaran: <b>' + viol + '</b>' + (evs.length ? ' (' + H_(evs.join(', ')) + ')' : '') + ' · Foto kamera tersimpan: <b>' + nfoto + '</b> (di folder tes ini)'
         + sign_() + '</body></html>';
