@@ -156,6 +156,16 @@ table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 #logB b.bad{color:var(--bad)}
 .printonly{display:none}
 @media print{body.printing .printonly{display:block}.pq{break-inside:avoid;page-break-inside:avoid}.pq img{max-width:60%;max-height:240px}}
+.subtabs{display:flex;gap:6px;overflow-x:auto;background:#FBFAFE;border-bottom:1px solid var(--line);padding:8px 12px;position:sticky;top:105px;z-index:18}
+.subtabs button{border:1px solid var(--line);background:#fff;padding:6px 12px;border-radius:99px;font-weight:600;font-size:13px;color:var(--mut);white-space:nowrap;cursor:pointer}
+.subtabs button.on{background:var(--p);border-color:var(--p);color:#fff}
+@media(max-width:640px){.subtabs{top:101px}}
+.dfil{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.dfil select{min-width:140px}
+.vbar{display:flex;align-items:flex-end;gap:6px;height:170px;padding:8px 4px 0;border-bottom:1px solid var(--line)}
+.vbar .c{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:26px}
+.vbar .c i{display:block;width:70%;max-width:38px;background:var(--p);border-radius:6px 6px 0 0}.vbar .c b{font-size:11px;margin-bottom:2px}
+.vlab{display:flex;gap:6px;padding:4px}.vlab span{flex:1;text-align:center;font-size:10.5px;color:var(--mut);min-width:26px}
+.tl li{margin:4px 0}
 </style>
 </head>
 <body>
@@ -183,7 +193,7 @@ const DEF={wTeknis:60,wKinerja:40,gTop:81,gMid:66,gPass:56,showScore:false,linkD
   perms:{editor:{link:true,bank:true,kinerja:true,hapus:true,pengaturan:true},viewer:{resume:true,excel:true,nik:true}}};
 const TIMER_LABEL={total:"Total per sheet",per_soal:"Sama rata per soal",custom:"Berbeda tiap soal"};
 
-let SB=null,ROLE="none",USER=null,TAB="kirim",BANKSEL=null;
+let SB=null,ROLE="none",USER=null,TAB="d_ring",BANKSEL=null;
 let S={modules:[],sessions:[],attempts:[],kinerja:[],settings:{...DEF},questions:{}};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -308,25 +318,31 @@ async function loadAll(){
 let PDRAW=null,HDRAW=null;
 async function refresh(){try{if(ROLE!=="owner"){const rr=await SB.rpc("pk_role");if(rr.data==="locked"||rr.data==="none"){gate("🔒 Akses web sedang dikunci oleh Pemilik. Silakan coba lagi nanti.",false);return}}await loadAll();
   // Hanya perbarui daftar/tabel; jangan gambar ulang form agar isian tidak hilang
-  if(TAB==="kirim"&&PDRAW)PDRAW();else if((TAB==="hasil"||TAB==="kinerja")&&HDRAW)HDRAW()}catch(e){console.error(e)}}
+  if(TAB==="kirim"&&PDRAW)PDRAW();else if((TAB==="hasil"||TAB==="kinerja"||TAB==="riwayat")&&HDRAW)HDRAW()}catch(e){console.error(e)}}
 
 /* ====================== SHELL ====================== */
+function MENU(){const G=[];const d=[["d_ring","Ringkasan"],["d_grade","Per Grade & Sheet"],["d_topik","Kelemahan per Topik"]];if(canEdit())d.push(["d_tindak","Tindak Lanjut"]);G.push(["dash","📊 Dashboard",d]);
+  const t=[];if(canEdit())t.push(["kirim","Kirim Tes"]);t.push(["hasil","Hasil Tes"],["riwayat","Riwayat Karyawan"]);G.push(["tes","📝 Tes",t]);
+  G.push(["kin","👷 Kinerja",[["kinerja","Penilaian Kinerja"]]]);
+  if(ROLE==="owner")G.push(["atur","⚙️ Pengaturan",[["bank","Bank Soal"],["pengaturan","Pengaturan"],["aktivitas","Catatan Aktivitas"]]]);return G}
+const LASTSUB={};
+function groupOf(t){return MENU().find(g=>g[2].some(x=>x[0]===t))}
+function drawSub(){const g=groupOf(TAB);const el=$("stabs");if(!el||!g)return;el.hidden=g[2].length<2;el.innerHTML=g[2].map(([k,l])=>`<button data-t="${k}" class="${k===TAB?"on":""}">${l}</button>`).join("");[...$("tabs").children].forEach(x=>x.classList.toggle("on",x.dataset.g===g[0]))}
 function renderShell(){
-  const tabs=[];
-  if(canEdit())tabs.push(["kirim","Kirim Tes"]);
-  tabs.push(["hasil","Hasil Tes"],["kinerja","Penilaian Kinerja"]);
-  if(ROLE==="owner")tabs.push(["bank","Bank Soal"],["pengaturan","Pengaturan"]);
-  if(!tabs.find(t=>t[0]===TAB))TAB=tabs[0][0];
+  const G=MENU();if(!groupOf(TAB))TAB="d_ring";
   $("app").innerHTML=`<header class="top"><div class="logo">PT</div><div><h1>Psikotest & Uji Kompetensi Mekanik</h1><small>KMB · Plant Tambang</small></div><div class="sp"></div>
    <span class="badge">${ROLE==="owner"?"PEMILIK":ROLE==="editor"?"EDITOR":"VIEWER"}${LINKINFO?.label?" · "+esc(LINKINFO.label):""}</span>${ROLE==="owner"?`<button class="btn sm ghost" id="lockBtn">${lockOn()?"🔒 Terkunci":"🔓 Kunci web"}</button>`:""}<button class="btn sm ghost" id="out">Keluar</button></header>
    ${ROLE==="owner"&&lockOn()?`<div class="notice warn" style="border-radius:0;text-align:center">🔒 Web dikunci untuk: ${lockText()}. Klik tombol 🔒 di kanan atas untuk membuka.</div>`:""}
-   <nav class="tabs" id="tabs">${tabs.map(([k,l])=>`<button data-t="${k}" class="${k===TAB?"on":""}">${l}</button>`).join("")}</nav><main id="main"></main>`;
+   <nav class="tabs" id="tabs">${G.map(([g,l,sub])=>`<button data-g="${g}">${l}</button>`).join("")}</nav><nav class="subtabs" id="stabs"></nav><main id="main"></main>`;
   $("out").onclick=async()=>{if(LINKINFO){if(!confirm("Keluar dari akses link ini? Anda perlu membuka link dari Pemilik lagi untuk masuk."))return;try{localStorage.removeItem("pk-link")}catch(e){}}else await SB.auth.signOut();location.href=location.pathname};
   if($("lockBtn"))$("lockBtn").onclick=lockDialog;
-  $("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;TAB=b.dataset.t;[...$("tabs").children].forEach(x=>x.classList.toggle("on",x===b));renderTab()};
+  $("tabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;const g=MENU().find(x=>x[0]===b.dataset.g);if(!g)return;const cur=groupOf(TAB);if(cur)LASTSUB[cur[0]]=TAB;TAB=LASTSUB[g[0]]&&g[2].some(x=>x[0]===LASTSUB[g[0]])?LASTSUB[g[0]]:g[2][0][0];renderTab()};
+  $("stabs").onclick=e=>{const b=e.target.closest("button");if(!b)return;TAB=b.dataset.t;renderTab()};
   renderTab();
 }
-function renderTab(){const m=$("main");if(!m)return;PDRAW=HDRAW=null;({kirim:vKirim,hasil:vHasil,kinerja:vKinerja,bank:vBank,pengaturan:vPengaturan}[TAB]||vHasil)(m)}
+function renderTab(){const m=$("main");if(!m)return;PDRAW=HDRAW=null;drawSub();window.scrollTo(0,0);
+  ({kirim:vKirim,hasil:m=>{HVIEW="tes";vHasil(m)},riwayat:m=>{HVIEW="kar";vRiwayat(m)},kinerja:vKinerja,bank:vBank,pengaturan:vPengaturan,aktivitas:vAktivitas,
+    d_ring:m=>vDash(m,"ring"),d_grade:m=>vDash(m,"grade"),d_topik:m=>vDash(m,"topik"),d_tindak:m=>vDash(m,"tindak")}[TAB]||vHasil)(m)}
 
 function lockOn(){const l=S.settings.lock||{};return !!(l.viewer||l.editor||l.peserta)}
 function lockText(){const l=S.settings.lock||{};return [l.viewer&&"Viewer",l.editor&&"Editor",l.peserta&&"link tes peserta"].filter(Boolean).join(", ")}
@@ -419,7 +435,7 @@ window.resetDevice=async id=>{try{await q(SB.from("pk_attempts").update({device_
 /* ====================== HASIL ====================== */
 function resultRows(){return S.sessions.map(s=>({s,c:calc(s)}))}
 let HVIEW="tes";
-function hvToggle(){return `<div class="seg noprint" style="margin:8px 0 12px"><button type="button" data-hv="tes" class="${HVIEW==="tes"?"on":""}">Per tes</button><button type="button" data-hv="kar" class="${HVIEW==="kar"?"on":""}">Per karyawan (riwayat)</button></div>`}
+function hvToggle(){return "";return `<div class="seg noprint" style="margin:8px 0 12px"><button type="button" data-hv="tes" class="${HVIEW==="tes"?"on":""}">Per tes</button><button type="button" data-hv="kar" class="${HVIEW==="kar"?"on":""}">Per karyawan (riwayat)</button></div>`}
 function wireHv(m){m.querySelectorAll("[data-hv]").forEach(b=>b.onclick=()=>{HVIEW=b.dataset.hv;vHasil(m)})}
 function people(){const G={},byName={};const add=(key,kind,x)=>{(G[key]=G[key]||{tes:[],kin:[],nama:x.nama,nik:x.nik||""})[kind].push(x);if(x.nik&&!G[key].nik)G[key].nik=x.nik};
   const all=[...S.sessions.map(x=>["tes",x]),...S.kinerja.map(x=>["kin",x])];
@@ -542,6 +558,64 @@ function signBox(){const c=[["Karyawan","Karyawan"],["Dibuat oleh","Atasan Langs
   return `<table class="signbox"><tr>${c.map(x=>`<th>${x[0]}</th>`).join("")}</tr><tr>${c.map(x=>`<td><div class="sb-space"></div><div class="sb-name">(<span class="sb-dots"></span>)</div><div class="sb-role">${x[1]}</div><div class="sb-tgl">Tgl:</div></td>`).join("")}</tr></table>`}
 /* ====================== RESUME PESERTA ====================== */
 async function loadPhotos(sid){try{return await q(SB.from("pk_photos").select("id,kind,taken_at,thumb,url").eq("session_id",sid).order("taken_at"))}catch(e){return []}}
+/* ====================== DASHBOARD ====================== */
+const DF={per:"12",grade:"",site:""};
+function dashData(){const now=Date.now(),per=DF.per;const from=per==="all"?0:per==="year"?new Date(new Date().getFullYear(),0,1).getTime():now-(+per)*30.44*864e5;
+  const okS=s=>new Date(s.created_at).getTime()>=from&&(!DF.grade||s.grade_target===DF.grade)&&(!DF.site||(s.jobsite||"")===DF.site);
+  const okK=k=>new Date(k.created_at).getTime()>=from&&(!DF.grade||k.grade===DF.grade)&&(!DF.site||(k.jobsite||"")===DF.site);
+  const rows=S.sessions.filter(okS).map(s=>({s,c:calc(s)}));return {rows,done:rows.filter(r=>r.c.akhir!=null),kin:S.kinerja.filter(okK),from}}
+function dashFilter(){const grades=[...new Set(S.sessions.map(s=>s.grade_target).concat(S.kinerja.map(k=>k.grade)).filter(Boolean))].sort((a,b)=>+a.replace(/\D/g,"").slice(0,2)-+b.replace(/\D/g,"").slice(0,2));
+  const sites=[...new Set(S.sessions.map(s=>s.jobsite).concat(S.kinerja.map(k=>k.jobsite)).filter(Boolean))].sort();
+  return `<div class="dfil noprint"><select id="dfP">${[["1","1 bulan terakhir"],["3","3 bulan terakhir"],["6","6 bulan terakhir"],["12","12 bulan terakhir"],["year","Tahun ini"],["all","Semua waktu"]].map(([v,l])=>`<option value="${v}" ${DF.per===v?"selected":""}>${l}</option>`).join("")}</select>
+   <select id="dfG"><option value="">Semua grade</option>${grades.map(g=>`<option ${DF.grade===g?"selected":""}>${esc(g)}</option>`).join("")}</select>
+   ${sites.length?`<select id="dfS"><option value="">Semua jobsite</option>${sites.map(g=>`<option ${DF.site===g?"selected":""}>${esc(g)}</option>`).join("")}</select>`:""}</div>`}
+const pct=(a,b)=>b?Math.round(100*a/b):0;const barCls=v=>v>=75?"g":v>=56?"y":"r";
+function hb(label,v,txt,cls){return `<div class="hbar"><span title="${esc(label)}">${esc(label)}</span><div class="bar ${cls||barCls(v)}"><i style="width:${Math.max(0,Math.min(100,v||0))}%"></i></div><b class="right">${txt!=null?txt:fmt(v)}</b></div>`}
+async function vDash(m,part){const D=dashData();const L=D.done.filter(r=>r.c.grade.ok);
+  const head=t=>`<div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2>${t}</h2><p class="sub">${esc({ring:"Gambaran umum hasil tes dan penilaian kinerja.",grade:"Kelulusan per grade dan tingkat kesulitan tiap sheet soal.",topik:"Bidang yang paling lemah — bahan training dan pengecekan kunci jawaban.",tindak:"Hal yang perlu ditindaklanjuti Editor / Pemilik."}[part])}</p></div></div>`;
+  let h="";
+  if(part==="ring"){const bulanIni=D.rows.filter(r=>new Date(r.s.created_at).getMonth()===new Date().getMonth()&&new Date(r.s.created_at).getFullYear()===new Date().getFullYear()).length;
+    const months=[];const n=DF.per==="all"||DF.per==="year"||+DF.per>=12?12:Math.max(+DF.per,3);for(let i=n-1;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);months.push([d.getFullYear(),d.getMonth()])}
+    const mon=months.map(([y,mo])=>{const r=D.done.filter(x=>{const t=new Date(x.c.done.map(d=>d.a.submitted_at).sort().pop()||x.s.created_at);return t.getFullYear()===y&&t.getMonth()===mo});return {l:new Date(y,mo,1).toLocaleDateString("id-ID",{month:"short",year:"2-digit"}),n:r.length,avg:avg(r.map(x=>x.c.akhir))}});
+    const mx=Math.max(1,...mon.map(x=>x.n));const byP={};D.done.forEach(r=>byP[r.c.cat.h]=(byP[r.c.cat.h]||0)+1);const mp=Math.max(1,...Object.values(byP));
+    h=`<div class="grid g4" style="margin-bottom:14px"><div class="kpi"><span>Peserta tes</span><b>${D.rows.length}</b></div><div class="kpi"><span>Selesai tes</span><b>${D.done.length}</b></div>
+      <div class="kpi"><span>Lulus</span><b>${pct(L.length,D.done.length)}%<small style="font-size:13px;color:var(--mut)"> (${L.length}/${D.done.length})</small></b></div><div class="kpi"><span>Rata-rata nilai</span><b>${fmt(avg(D.done.map(r=>r.c.akhir)))}</b></div>
+      <div class="kpi"><span>Tes bulan ini</span><b>${bulanIni}</b></div><div class="kpi"><span>Penilaian kinerja</span><b>${D.kin.length}</b></div><div class="kpi"><span>Belum dikerjakan</span><b>${D.rows.filter(r=>r.c.status==="Belum mulai"||r.c.status==="Sedang").length}</b></div><div class="kpi"><span>Kedaluwarsa</span><b>${D.rows.filter(r=>r.c.status==="Kedaluwarsa").length}</b></div></div>
+     <div class="grid g2"><div class="card"><h3>Tes selesai per bulan</h3><div class="vbar">${mon.map(x=>`<div class="c" title="${x.l}: ${x.n} tes · rata-rata ${fmt(x.avg)}"><b>${x.n||""}</b><i style="height:${x.n?Math.max(4,100*x.n/mx):0}%"></i></div>`).join("")}</div><div class="vlab">${mon.map(x=>`<span>${x.l}</span>`).join("")}</div>
+       <div class="small muted" style="margin-top:6px">Rata-rata nilai per bulan: ${mon.filter(x=>x.n).map(x=>`${x.l} <b>${fmt(x.avg)}</b>`).join(" · ")||"–"}</div></div>
+      <div class="card"><h3>Jumlah per predikat</h3>${scaleRows().map(r=>hb(r.h+" · "+(setg().cat.find(c=>c.k===r.k)||{}).label,100*(byP[r.h]||0)/mp,String(byP[r.h]||0),r.k==="A"?"g":r.k==="B"?"p":r.k==="C"?"y":"r")).join("")}</div></div>`}
+  if(part==="grade"){const G={};D.done.forEach(r=>{const g=r.s.grade_target||r.s.level||"Lainnya";(G[g]=G[g]||[]).push(r)});
+    const gk=Object.keys(G).sort((a,b)=>+a.replace(/\D/g,"").slice(0,2)-+b.replace(/\D/g,"").slice(0,2));
+    const M={};D.done.forEach(r=>r.c.done.forEach(x=>{(M[x.m.id]=M[x.m.id]||{m:x.m,v:[]}).v.push(+x.a.score)}));const ml=Object.values(M).map(o=>({...o,avg:avg(o.v)})).sort((a,b)=>a.avg-b.avg);
+    h=`<div class="grid g2"><div class="card"><h3>Kelulusan per grade</h3>${gk.length?`<div class="sheet-wrap"><table class="sheet"><thead><tr><th>Grade</th><th class="num">Selesai</th><th class="num">Lulus</th><th class="num">Tidak</th><th style="min-width:140px">% lulus</th><th class="num">Rata-rata</th></tr></thead><tbody>${gk.map(g=>{const a=G[g],l=a.filter(r=>r.c.grade.ok).length;return `<tr><td><b>${esc(g)}</b></td><td class="num">${a.length}</td><td class="num">${l}</td><td class="num">${a.length-l}</td><td><div class="bar ${barCls(pct(l,a.length))}"><i style="width:${pct(l,a.length)}%"></i></div><span class="small">${pct(l,a.length)}%</span></td><td class="num"><b>${fmt(avg(a.map(r=>r.c.akhir)))}</b></td></tr>`}).join("")}</tbody></table></div>`:'<p class="muted">Belum ada tes selesai pada filter ini.</p>'}</div>
+      <div class="card"><h3>Rata-rata nilai per sheet soal</h3><p class="small muted" style="margin-top:-4px">Diurutkan dari yang paling sulit (rata-rata terendah).</p>${ml.map(o=>hb((o.m.grade?o.m.grade+" · ":"")+o.m.title+` (${o.v.length}×)`,o.avg)).join("")||'<p class="muted">Belum ada data.</p>'}</div></div>`}
+  if(part==="topik"){const T={};D.done.forEach(r=>r.c.done.forEach(x=>Object.entries(x.a.by_topic||{}).forEach(([t,v])=>{T[t]=T[t]||[0,0];T[t][0]+=+v.benar;T[t][1]+=+v.total})));
+    const tl=Object.entries(T).map(([t,v])=>[t,v[1]?100*v[0]/v[1]:0,v]).sort((a,b)=>a[1]-b[1]);
+    h=`<div class="grid g2"><div class="card"><h3>% benar per topik (semua peserta)</h3>${tl.map(([t,v,o])=>hb(t,v,Math.round(v)+"%")).join("")||'<p class="muted">Belum ada data.</p>'}<p class="small muted">Merah &lt; 56% · kuning 56–74% · hijau ≥ 75%.</p></div>
+      <div class="card"><h3>10 soal paling sering salah</h3><div id="dWrong" class="small muted">${canEdit()?"Menghitung…":"Hanya Pemilik / Editor yang bisa melihat rincian soal."}</div></div></div>`}
+  if(part==="tindak"&&canEdit()){const soon=Date.now()+3*864e5;
+    const open=D.rows.filter(r=>(r.c.status==="Belum mulai"||r.c.status==="Sedang")).sort((a,b)=>new Date(a.s.expires_at||8e15)-new Date(b.s.expires_at||8e15));
+    const fail=D.done.filter(r=>!r.c.grade.ok&&!r.s.keputusan);
+    const noKin=D.done.filter(r=>!S.kinerja.some(k=>k.session_id===r.s.id||samePerson(k,r.s)));
+    const kinNew=[...D.kin].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at)).slice(0,10);
+    const li=(r,extra)=>`<tr data-r="${r.s.id}" style="cursor:pointer"><td><b>${esc(r.s.nama)}</b></td><td>${esc(r.s.grade_target||"")}</td><td>${esc(r.s.jenis||"")}</td>${extra}</tr>`;
+    h=`<div class="grid g2"><div class="card"><h3>Link tes belum dikerjakan <span class="chip">${open.length}</span></h3>${open.length?`<div class="sheet-wrap"><table class="sheet"><thead><tr><th>Nama</th><th>Grade</th><th>Jenis</th><th>Status</th><th>Berlaku s/d</th><th></th></tr></thead><tbody>${open.map(r=>li(r,`<td>${r.c.status}</td><td style="${r.s.expires_at&&new Date(r.s.expires_at)<soon?"color:var(--bad);font-weight:700":""}">${r.s.expires_at?fdt(r.s.expires_at):"–"}</td><td><button class="btn sm" data-cp="${r.s.id}" onclick="event.stopPropagation()">Salin link</button></td>`)).join("")}</tbody></table></div><p class="small muted">Merah = kedaluwarsa dalam 3 hari.</p>`:'<p class="muted">Tidak ada. 👍</p>'}</div>
+      <div class="card"><h3>Tidak lulus, belum ada keputusan <span class="chip">${fail.length}</span></h3>${fail.length?`<div class="sheet-wrap"><table class="sheet"><thead><tr><th>Nama</th><th>Grade</th><th>Jenis</th><th class="num">Nilai</th></tr></thead><tbody>${fail.map(r=>li(r,`<td class="num"><b>${fmt(r.c.akhir)}</b></td>`)).join("")}</tbody></table></div>`:'<p class="muted">Tidak ada.</p>'}</div>
+      <div class="card"><h3>Sudah tes, belum ada penilaian kinerja <span class="chip">${noKin.length}</span></h3>${noKin.length?`<div class="sheet-wrap"><table class="sheet"><thead><tr><th>Nama</th><th>Grade</th><th>Jenis</th><th></th></tr></thead><tbody>${noKin.map(r=>li(r,`<td>${can("kinerja")?`<button class="btn sm" data-kn="${r.s.id}" onclick="event.stopPropagation()">Buat penilaian</button>`:""}</td>`)).join("")}</tbody></table></div>`:'<p class="muted">Tidak ada.</p>'}</div>
+      <div class="card"><h3>Keputusan kinerja terbaru</h3>${kinNew.length?`<div class="sheet-wrap"><table class="sheet"><thead><tr><th>Tanggal</th><th>Nama</th><th class="num">Skor</th><th>Keputusan</th></tr></thead><tbody>${kinNew.map(k=>`<tr data-k="${k.id}" style="cursor:pointer"><td>${fdate(k.created_at)}</td><td><b>${esc(k.nama)}</b></td><td class="num">${fmt(kinCalc(k.data).skor)}</td><td>${esc(kepLabel(k))}</td></tr>`).join("")}</tbody></table></div>`:'<p class="muted">Belum ada penilaian kinerja.</p>'}</div></div>`}
+  m.innerHTML=`<div class="card">${head({ring:"Dashboard — Ringkasan",grade:"Dashboard — Per Grade & Sheet",topik:"Dashboard — Kelemahan per Topik",tindak:"Dashboard — Tindak Lanjut"}[part])}${dashFilter()}</div>${h}`;
+  const re=()=>vDash(m,part);$("dfP").onchange=e=>{DF.per=e.target.value;re()};$("dfG").onchange=e=>{DF.grade=e.target.value;re()};if($("dfS"))$("dfS").onchange=e=>{DF.site=e.target.value;re()};
+  m.querySelectorAll("[data-r]").forEach(t=>t.onclick=()=>showResume(t.dataset.r));m.querySelectorAll("[data-k]").forEach(t=>t.onclick=()=>viewKinerja(t.dataset.k));
+  m.querySelectorAll("[data-cp]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();const s=S.sessions.find(x=>x.id===b.dataset.cp);if(s)copyText(linkFor(s))});
+  m.querySelectorAll("[data-kn]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();formKinerja(null,b.dataset.kn)});
+  HDRAW=null;
+  if(part==="topik"&&canEdit()&&$("dWrong")){const at=D.done.flatMap(r=>r.c.done.map(x=>x.a));if(!at.length){$("dWrong").textContent="Belum ada data.";return}
+    try{const A=[];for(let i=0;i<at.length;i+=40)A.push(...await q(SB.from("pk_attempts").select("id,module_id,answers").in("id",at.slice(i,i+40).map(a=>a.id))));
+      const mids=[...new Set(A.map(a=>a.module_id))];const Q=[];for(const id of mids)Q.push(...await q(SB.from("pk_questions").select("id,module_id,no,topic,text,answer").eq("module_id",id)));
+      const st={};A.forEach(a=>Q.filter(x=>x.module_id===a.module_id).forEach(x=>{const o=st[x.id]=st[x.id]||{x,n:0,w:0};o.n++;if(String((a.answers||{})[x.id]||"").toLowerCase()!==x.answer)o.w++}));
+      const top=Object.values(st).filter(o=>o.w>0).sort((a,b)=>b.w/b.n-a.w/a.n||b.n-a.n).slice(0,10);
+      if(!$("dWrong"))return;$("dWrong").className="";$("dWrong").innerHTML=top.length?`<div class="sheet-wrap"><table class="sheet"><thead><tr><th>Sheet</th><th class="num">No</th><th>Topik</th><th>Soal</th><th class="num">Salah</th></tr></thead><tbody>${top.map(o=>{const mm=S.modules.find(y=>y.id===o.x.module_id)||{};return `<tr><td>${esc(mm.title||"")}</td><td class="num">${o.x.no}</td><td>${esc(o.x.topic||"Umum")}</td><td class="wrap" style="min-width:220px">${esc(String(o.x.text).slice(0,120))}${String(o.x.text).length>120?"…":""}</td><td class="num"><b style="color:var(--bad)">${o.w}/${o.n}</b></td></tr>`}).join("")}</tbody></table></div><p class="small muted">Kalau hampir semua peserta salah di soal yang sama, cek juga kunci jawabannya di Bank Soal.</p>`:'<p class="muted">Belum ada soal yang salah.</p>'}
+    catch(e){if($("dWrong"))$("dWrong").textContent="Gagal memuat: "+e.message}}}
 /* ====================== RIWAYAT / TRACK RECORD KARYAWAN ====================== */
 const pNorm=v=>String(v||"").trim().toLowerCase().replace(/\s+/g," ");
 function samePerson(a,b){const na=pNorm(a.nik),nb=pNorm(b.nik);if(na&&nb)return na===nb;return pNorm(a.nama)===pNorm(b.nama)&&!!pNorm(a.nama)}
@@ -1164,6 +1238,9 @@ async function drawLog(force){const b=$("logB");if(!b)return;
     b.innerHTML=rows.map(l=>`<tr><td style="white-space:nowrap">${fdt(l.at)}</td><td>${esc(l.actor||"")}</td><td><b class="${/^Hapus|Cabut/.test(l.action)?"bad":""}">${esc(l.action)}</b></td><td>${esc(l.target||"")}</td><td class="wrap small" style="min-width:220px">${logDetail(l.action,l.detail)}</td></tr>`).join("")||'<tr><td colspan="5" class="empty">Belum ada aktivitas tercatat.</td></tr>';
     $("logI").textContent=`${rows.length} dari ${LOGS.length} aktivitas terakhir`};
   $("logQ").oninput=draw;$("logA").onchange=draw;$("logRef").onclick=()=>drawLog(true);draw()}
+function vAktivitas(m){if(ROLE!=="owner")return;m.innerHTML=`<div class="card" ><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2>Catatan aktivitas</h2><p class="sub">Siapa melakukan apa dan kapan: buat/hapus link tes, ubah kunci & soal, hapus hasil, ubah pengaturan, kunci web, link akses. Tercatat otomatis dan tidak bisa diubah. Hanya Pemilik yang bisa melihat.</p></div><button class="btn sm" id="logRef">Muat ulang</button></div>
+     <div class="row" style="margin-bottom:8px"><input id="logQ" placeholder="Cari nama / sheet / pelaku…" style="flex:1;min-width:160px"><select id="logA"><option value="">Semua aktivitas</option><option value="Hapus">Penghapusan</option><option value="kunci jawaban">Ubah kunci jawaban</option><option value="soal">Soal & sheet</option><option value="link">Link tes & link akses</option><option value="kinerja">Penilaian kinerja</option><option value="pengaturan|kunci web|folder">Pengaturan & kunci web</option></select></div>
+     <div class="sheet-wrap"><table class="sheet"><thead><tr><th>Waktu</th><th>Pelaku</th><th>Aktivitas</th><th>Untuk</th><th>Rincian</th></tr></thead><tbody id="logB"><tr><td colspan="5" class="muted">Memuat…</td></tr></tbody></table></div><p class="small muted" id="logI"></p></div>`;LOGS=[];drawLog(true)}
 async function vPengaturan(m){
   const g=setg();
   m.innerHTML=`<div class="grid g2">
@@ -1188,10 +1265,7 @@ async function vPengaturan(m){
     try{await save(n);syncDrive()}catch(err){toast("Gagal: "+err.message)}};
   $("sReset").onclick=async()=>{if(!confirm("Kembalikan penilaian ke bawaan?"))return;try{await save({...DEF,gasUrl:g.gasUrl});vPengaturan(m)}catch(err){toast("Gagal: "+err.message)}};
   drawAccess();drawLinks();
-  if(ROLE==="owner"){m.insertAdjacentHTML("beforeend",`<div class="card" style="margin-top:14px"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2>Catatan aktivitas</h2><p class="sub">Siapa melakukan apa dan kapan: buat/hapus link tes, ubah kunci & soal, hapus hasil, ubah pengaturan, kunci web, link akses. Tercatat otomatis dan tidak bisa diubah. Hanya Pemilik yang bisa melihat.</p></div><button class="btn sm" id="logRef">Muat ulang</button></div>
-     <div class="row" style="margin-bottom:8px"><input id="logQ" placeholder="Cari nama / sheet / pelaku…" style="flex:1;min-width:160px"><select id="logA"><option value="">Semua aktivitas</option><option value="Hapus">Penghapusan</option><option value="kunci jawaban">Ubah kunci jawaban</option><option value="soal">Soal & sheet</option><option value="link">Link tes & link akses</option><option value="kinerja">Penilaian kinerja</option><option value="pengaturan|kunci web|folder">Pengaturan & kunci web</option></select></div>
-     <div class="sheet-wrap"><table class="sheet"><thead><tr><th>Waktu</th><th>Pelaku</th><th>Aktivitas</th><th>Untuk</th><th>Rincian</th></tr></thead><tbody id="logB"><tr><td colspan="5" class="muted">Memuat…</td></tr></tbody></table></div><p class="small muted" id="logI"></p></div>`);
-    drawLog()}
+
 }
 function linkUrl(t){return location.origin+location.pathname+"?k="+t}
 function linkMsg(l){const url=linkUrl(l.token);return `Halo${l.label?" "+l.label:""}, berikut link akses ${l.role==="editor"?"EDITOR":"VIEWER"} web Psikotest & Uji Kompetensi Mekanik PT Karunia Mandiri Berkarya:\n${url}\n\nCukup buka link ini, tidak perlu login. Mohon link tidak dibagikan ke orang lain.${l.role==="editor"?"\n\nSebagai Editor, Anda bisa mengirim link tes ke peserta, mengatur waktu tes, melihat hasil, dan mengisi penilaian kinerja.":"\n\nSebagai Viewer, Anda bisa melihat hasil tes dan penilaian kinerja."}`}
