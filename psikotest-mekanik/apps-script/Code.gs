@@ -1,7 +1,9 @@
 /**
  * Psikotest Mekanik KMB — salinan otomatis ke Google Drive Anda.
  * 1) Hasil tes  -> Google Sheet "Psikotest Mekanik KMB - Hasil" (diperbarui otomatis)
- * 2) Foto kamera peserta -> folder Drive "Psikotest Mekanik KMB/Foto Peserta/<Nama>"
+ * 2) Satu folder per karyawan -> "Psikotest Mekanik KMB/Karyawan/<Nama> - <NIK>" berisi:
+ *      - "Rekap <Nama>" (Google Sheet): semua tes + penilaian kinerja karyawan itu (track record)
+ *      - "Tes <tanggal> <jenis> - <id>": foto kamera saat tes
  *
  * SETUP (sekali saja):
  *  a. Buka script.google.com > Proyek baru > tempel seluruh file ini.
@@ -45,7 +47,7 @@ function ss_() {
 
 function setup() {
   if (!props_().getProperty('SYNC_SECRET')) throw new Error('Isi dulu Script Property SYNC_SECRET (dari web: Pengaturan > Google Drive).');
-  const ss = ss_(); sub_(root_(), 'Foto Peserta');
+  const ss = ss_(); karyawan_();
   ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'syncAll').forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('syncAll').timeBased().everyMinutes(10).create();
   syncAll();
@@ -65,13 +67,23 @@ function doPost(e) {
   } catch (err) { return json_({ ok: false, error: String(err.message || err) }); }
 }
 
+const TZ = 'Asia/Jakarta';
+const safe_ = v => String(v || '').replace(/[\\/:*?"<>|]/g, ' ').replace(/\s+/g, ' ').trim();
+const pnorm_ = v => String(v || '').trim().toLowerCase().replace(/\s+/g, ' ');
+function personName_(nama, nik) { return safe_(nama || 'Peserta') + ' - ' + (safe_(nik) || 'tanpa NIK'); }
+function testName_(created, jenis, grade, sid) { return 'Tes ' + Utilities.formatDate(new Date(created), TZ, 'yyyy-MM-dd') + ' ' + safe_(jenis || '') + (grade ? ' ' + safe_(grade) : '') + ' - ' + sid; }
+function karyawan_() { return sub_(root_(), 'Karyawan'); }
+/* folder tes satu peserta (dibuat sekali; dikunci agar tidak dobel saat foto masuk bersamaan) */
+function testFolder_(nama, nik, created, jenis, grade, sid) {
+  const lock = LockService.getScriptLock(), ok = lock.tryLock(60000);
+  try { return sub_(sub_(karyawan_(), personName_(nama, nik)), testName_(created, jenis, grade, sid)); } finally { if (ok) lock.releaseLock(); }
+}
 function savePhoto_(b) {
   const who = rpc_('pk_photo_ok', { p_token: b.token });           // menolak token salah/kedaluwarsa
-  const safe = String(who.nama || 'Peserta').replace(/[\\/:*?"<>|]/g, ' ').trim();
-  const folder = sub_(sub_(root_(), 'Foto Peserta'), safe + ' - ' + who.sid);
+  const folder = testFolder_(who.nama, who.nik, who.created_at || new Date(), who.jenis, who.grade, who.sid);
   const data = String(b.b64 || '').replace(/^data:image\/\w+;base64,/, '');
   if (!data || data.length > 400000) throw new Error('foto tidak valid');
-  const stamp = Utilities.formatDate(new Date(), 'Asia/Jakarta', 'yyyyMMdd_HHmmss');
+  const stamp = Utilities.formatDate(new Date(), TZ, 'yyyyMMdd_HHmmss');
   const file = folder.createFile(Utilities.newBlob(Utilities.base64Decode(data), 'image/jpeg', (b.kind || 'foto') + '_' + stamp + '.jpg'));
   try { rpc_('pk_log_event', { p_token: b.token, p_module: b.module, p_type: 'foto', p_detail: (b.kind || 'foto') + '|' + file.getUrl() }); } catch (e) {}
   return { ok: true, url: file.getUrl() };
@@ -152,9 +164,83 @@ function syncAll() {
         .concat([(dd.X || []).filter(x => x && x.t).map(x => x.t + ' (' + (x.v || '-') + ')').join('; '), r1(r.pK), r1(r.pT), r1(r.pI), r1(r.pH), r1(r.pX), r1(r.skor), c ? c.h : '', c ? c.label : '', kepLabel(k), dd.kelebihan || '', dd.kekurangan || '', dd.catatan || '']); });
     write_(ss, 'Penilaian Kinerja', ['No', 'Tanggal', 'Nama', 'NIK', 'Jabatan', 'Grade', 'Jobsite', 'Status', 'Periode', 'Penilai'].concat(KB_K.map((t, j) => 'K' + (j + 1) + ' ' + t)).concat(KB_T.map((t, j) => 'T' + (j + 1) + ' ' + t))
       .concat(KB_I.map(x => x[1])).concat(KB_H.map(x => x[1])).concat(['Tugas Tambahan', 'Kepribadian (30%)', 'Target Kinerja (35%)', 'Indisipliner (15%)', 'Kehadiran (15%)', 'Tugas Tambahan (5%)', 'Skor Kinerja', 'Predikat', 'Kategori', 'Keputusan', 'Kelebihan', 'Perlu Ditingkatkan', 'Catatan']), kin);
-    const keep = ['Hasil Tes', 'Rincian', 'Penilaian Kinerja'];
+    const people = people_(d, g, mods, att);
+    write_(ss, 'Riwayat Karyawan', ['Nama', 'NIK', 'Grade Terakhir', 'Jumlah Tes', 'Nilai Tes Pertama', 'Tanggal Tes Pertama', 'Nilai Tes Terakhir', 'Tanggal Tes Terakhir', 'Perubahan', 'Hasil Terakhir', 'Skor Kinerja Terakhir', 'Keputusan Kinerja Terakhir', 'Folder Karyawan'],
+      people.map(p => [p.nama, p.nik, p.grade, p.T.length, p.T.length ? r1(p.T[0].nilai) : '', p.T.length ? p.T[0].t : '', p.T.length > 1 ? r1(p.T[p.T.length - 1].nilai) : '', p.T.length > 1 ? p.T[p.T.length - 1].t : '',
+        p.T.length > 1 ? r1(p.T[p.T.length - 1].nilai - p.T[0].nilai) : '', p.lastHasil, p.lastK ? r1(p.lastK.nilai) : '', p.lastK ? p.lastK.kep : '', p.url || '']));
+    const keep = ['Hasil Tes', 'Rincian', 'Penilaian Kinerja', 'Riwayat Karyawan'];
     ss.getSheets().forEach(sh => { if (keep.indexOf(sh.getName()) < 0 && ss.getSheets().length > 1) ss.deleteSheet(sh); });
   } finally { lock.releaseLock(); }
+}
+
+/* ---------- satu folder per karyawan: rekap tes + penilaian kinerja, foto per tes ---------- */
+function people_(d, g, mods, att) {
+  const r1 = v => v == null ? '' : Math.round(v * 10) / 10;
+  const G = {}, byName = {};
+  const all = (d.sessions || []).map(x => ['tes', x]).concat((d.kinerja || []).map(x => ['kin', x]));
+  const add = (key, kind, x) => { const p = G[key] = G[key] || { nama: x.nama, nik: '', tes: [], kin: [] }; p[kind].push(x); if (x.nik && !p.nik) p.nik = x.nik; };
+  all.filter(a => pnorm_(a[1].nik)).forEach(a => { const k = 'n:' + pnorm_(a[1].nik); add(k, a[0], a[1]); byName[pnorm_(a[1].nama)] = byName[pnorm_(a[1].nama)] || k; });
+  all.filter(a => !pnorm_(a[1].nik)).forEach(a => add(byName[pnorm_(a[1].nama)] || 'm:' + pnorm_(a[1].nama), a[0], a[1]));
+  const kar = karyawan_(), keepPerson = {}, keepTest = {};
+  const people = Object.keys(G).map(key => {
+    const p = G[key], ev = [];
+    p.tes.forEach(s => { const a = att.filter(x => x.session_id === s.id), done = (s.module_ids || []).map(id => a.find(x => x.module_id === id)).filter(x => x && x.submitted_at);
+      const nilai = done.length ? avg(done.map(x => +x.score)) : null, c = category(g, nilai);
+      const t = done.length ? new Date(done.map(x => x.submitted_at).sort().pop()) : new Date(s.created_at);
+      const hasil = nilai == null ? 'Belum selesai' : s.grade_target ? (nilai >= g.gPass ? 'Lulus ' : 'Tidak lulus ') + s.grade_target : grade(g, s.level, nilai);
+      ev.push({ kind: 'tes', t, s, nilai, c, hasil, per: (s.module_ids || []).map(id => { const m = mods.find(y => y.id === id) || {}, x = a.find(y => y.module_id === id); return [m.title || '', m.grade || '', x && x.submitted_at ? x.correct + '/' + x.total : '', x && x.submitted_at ? r1(+x.score) : '']; }) }); });
+    p.kin.forEach(k => { const r = kinCalc(k.data || {}), c = category(g, r.skor); ev.push({ kind: 'kin', t: new Date(k.created_at), k, r, nilai: r.skor, c, kep: kepLabel(k) }); });
+    ev.sort((a, b) => a.t - b.t);
+    const T = ev.filter(e => e.kind === 'tes' && e.nilai != null), K = ev.filter(e => e.kind === 'kin'), lastS = ev.filter(e => e.kind === 'tes').pop();
+    const o = { nama: p.nama, nik: p.nik, ev, T, lastK: K[K.length - 1] || null, lastHasil: lastS ? lastS.hasil : '',
+      grade: lastS ? (lastS.s.grade_target || lastS.s.level || '') : (K.length ? K[K.length - 1].k.grade || '' : '') };
+    /* folder karyawan + rekap */
+    const fname = personName_(p.nama, p.nik), folder = sub_(kar, fname); keepPerson[fname] = 1; o.url = folder.getUrl();
+    p.tes.forEach(s => { keepTest[left8_(s.id)] = { person: folder, name: testName_(s.created_at, s.jenis, s.grade_target || s.level, left8_(s.id)) }; });
+    rekap_(folder, o, r1);
+    return o; });
+  tidyFolders_(kar, keepPerson, keepTest);
+  return people.sort((a, b) => a.nama.localeCompare(b.nama));
+}
+function left8_(id) { return String(id).slice(0, 8); }
+/* Rapikan Drive: setiap folder foto tes (termasuk folder lama "Foto Peserta/<Nama> - <id>" dan folder dobel)
+   digabung ke "Karyawan/<Nama> - <NIK>/Tes ..."; folder yang datanya sudah dihapus di web dibuang ke Sampah. */
+function tidyFolders_(kar, persons, tests) {
+  const found = {};   // sid -> [folder]
+  const scan = parent => { const it = parent.getFolders(); while (it.hasNext()) { const f = it.next(), m = f.getName().match(/ - ([0-9a-f]{8})$/); if (m) (found[m[1]] = found[m[1]] || []).push(f); } };
+  const pit = kar.getFolders(), pf = []; while (pit.hasNext()) { const f = pit.next(); pf.push(f); scan(f); }
+  const old = root_().getFoldersByName('Foto Peserta'), oldF = old.hasNext() ? old.next() : null; if (oldF) scan(oldF);
+  Object.keys(found).forEach(sid => {
+    const t = tests[sid];
+    if (!t) { found[sid].forEach(f => f.setTrashed(true)); return; }
+    const target = sub_(t.person, t.name);
+    found[sid].forEach(f => { if (f.getId() === target.getId()) return;
+      const fi = f.getFiles(); while (fi.hasNext()) fi.next().moveTo(target);
+      f.setTrashed(true); });
+  });
+  pf.forEach(f => { if (!persons[f.getName()]) { const sub = f.getFolders(); let keep = false; while (sub.hasNext()) if (!sub.next().isTrashed()) keep = true; if (!keep) f.setTrashed(true); } });
+  if (oldF) { const sub = oldF.getFolders(); let any = false; while (sub.hasNext()) if (!sub.next().isTrashed()) any = true; if (!any && !oldF.getFiles().hasNext()) oldF.setTrashed(true); }
+}
+/* Google Sheet "Rekap <Nama>" di folder karyawan — hanya ditulis ulang bila isinya berubah */
+function rekap_(folder, p, r1) {
+  const fmtD = t => Utilities.formatDate(t, TZ, 'dd MMM yyyy');
+  const rows = p.ev.map(e => e.kind === 'tes'
+    ? [fmtD(e.t), 'Tes kompetensi', e.s.jenis || '', e.s.grade_target || e.s.level || '', r1(e.nilai), e.c ? e.c.h : '', e.c ? e.c.label : '', e.hasil, e.s.keputusan || '', '']
+    : [fmtD(e.t), 'Penilaian kinerja', e.k.periode || '', e.k.grade || '', r1(e.nilai), e.c ? e.c.h : '', e.c ? e.c.label : '', '', e.kep, [e.k.data && e.k.data.kelebihan, e.k.data && e.k.data.kekurangan].filter(x => x).join(' | ')]);
+  const per = []; p.ev.filter(e => e.kind === 'tes').forEach(e => e.per.forEach(x => per.push([fmtD(e.t), e.s.jenis || ''].concat(x))));
+  const kin = p.ev.filter(e => e.kind === 'kin').map(e => [fmtD(e.t), e.k.periode || '', e.k.penilai || '', r1(e.r.pK), r1(e.r.pT), r1(e.r.pI), r1(e.r.pH), r1(e.r.pX), r1(e.r.skor), e.c ? e.c.h : '', e.kep]);
+  const T = p.T, ring = [['Nama', p.nama], ['NIK', p.nik || '–'], ['Grade terakhir', p.grade || '–'], ['Jumlah tes', T.length], ['Tes pertama', T.length ? r1(T[0].nilai) + ' (' + fmtD(T[0].t) + ')' : '–'],
+    ['Tes terakhir', T.length > 1 ? r1(T[T.length - 1].nilai) + ' (' + fmtD(T[T.length - 1].t) + ')' : '–'], ['Perubahan', T.length > 1 ? r1(T[T.length - 1].nilai - T[0].nilai) : '–'], ['Hasil terakhir', p.lastHasil || '–'], ['Keputusan kinerja terakhir', p.lastK ? p.lastK.kep : '–']];
+  const sig = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, JSON.stringify([ring, rows, per, kin])));
+  const name = 'Rekap ' + safe_(p.nama), it = folder.getFilesByName(name);
+  let ss; if (it.hasNext()) { const f = it.next(); if (f.getDescription() === sig) return; ss = SpreadsheetApp.openById(f.getId()); }
+  else { ss = SpreadsheetApp.create(name); DriveApp.getFileById(ss.getId()).moveTo(folder); }
+  write_(ss, 'Ringkasan', ['Data', 'Isi'], ring);
+  write_(ss, 'Riwayat', ['Tanggal', 'Kegiatan', 'Jenis / Periode', 'Grade', 'Nilai', 'Predikat', 'Kategori', 'Hasil', 'Keputusan', 'Catatan'], rows);
+  write_(ss, 'Nilai per Sheet Tes', ['Tanggal Tes', 'Jenis', 'Sheet Soal', 'Grade Sheet', 'Benar', 'Nilai'], per);
+  write_(ss, 'Penilaian Kinerja', ['Tanggal', 'Periode', 'Penilai', 'Kepribadian (30%)', 'Target Kinerja (35%)', 'Indisipliner (15%)', 'Kehadiran (15%)', 'Tugas Tambahan (5%)', 'Skor', 'Predikat', 'Keputusan'], kin);
+  ss.getSheets().forEach(sh => { if (['Ringkasan', 'Riwayat', 'Nilai per Sheet Tes', 'Penilaian Kinerja'].indexOf(sh.getName()) < 0 && ss.getSheets().length > 1) ss.deleteSheet(sh); });
+  DriveApp.getFileById(ss.getId()).setDescription(sig);
 }
 
 function write_(ss, name, head, rows) {
