@@ -652,7 +652,7 @@ body.pp .noprint { display: none !important; }
 body.locked > *:not(#lockScr):not(#toast):not(.modal):not(#modal) { visibility: hidden; }
 @media print { body.locked * { display: none !important; } }
 .shl { display: flex; gap: 8px; flex-wrap: wrap; } .shl input { flex: 1 1 260px; min-width: 0; font: inherit; font-size: 13px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card-2, #F9F9F9); color: var(--ink); }
-</style><style>.backbtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;flex-shrink:0}@media (max-width:560px){.backbtn span{display:none}.backbtn{padding-left:10px;padding-right:10px}}@media print{.backbtn{display:none!important}}</style><script src="../remembered-access.js?v=20261123k"></script><style id="vacn-red">table.mt td.vacn,table.t td.vacn,.vacn{color:var(--crit,#DC2626)!important;font-weight:800}</style><style id="org-warna">/* struktur organisasi: warna seperti semula (ungu) */ .orgcard, .org { --g1a: #7C3AED; --g1b: #A78BFA; --primary: #6D28D9; --primary-ink: #5B21B6; --primary-soft: #EFE9FE; } .onode.sec { box-shadow: 0 4px 12px rgba(109,40,217,.25) !important; }</style></head><body>
+</style><style>.backbtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;flex-shrink:0}@media (max-width:560px){.backbtn span{display:none}.backbtn{padding-left:10px;padding-right:10px}}@media print{.backbtn{display:none!important}}</style><script src="../remembered-access.js?v=20261123k"></script><style id="vacn-red">table.mt td.vacn,table.t td.vacn,.vacn{color:var(--crit,#DC2626)!important;font-weight:800}</style><style id="org-warna">/* struktur organisasi: warna seperti semula (ungu) */ .orgcard, .org { --g1a: #7C3AED; --g1b: #A78BFA; --primary: #6D28D9; --primary-ink: #5B21B6; --primary-soft: #EFE9FE; } .onode.sec { box-shadow: 0 4px 12px rgba(109,40,217,.25) !important; }</style><style id="pipe-warna">:root{--pipe-a:#2563EB}.chart svg text.val.pv{fill:#1D4ED8}</style></head><body>
 <script type="application/json" id="state">{"positions": [], "aktif": [], "keluar": [], "units": [], "meta": {}}</script>
 <script>/* Excel (SheetJS) dimuat belakangan saat browser senggang / saat dibutuhkan, agar web cepat terbuka */
 (function(){var U='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',P=null;
@@ -999,9 +999,9 @@ function donutChart(actual, vacant) {
   const tot = Math.max(1, actual + vacant), r = 80, cx = 110, cy = 110, sw = 30, C = 2 * Math.PI * r, gap = 6;
   const la = C * actual / tot, lv = C * vacant / tot;
   const seg = (len, off, col, t) => `<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${col}" stroke-width="${sw}" stroke-dasharray="${Math.max(0, len - gap)} ${C}" stroke-dashoffset="${-off}" transform="rotate(-90 ${cx} ${cy})"><title>${t}</title></circle>`;
-  return `<div class="donut"><svg viewBox="0 0 220 220" role="img" aria-label="Actual ${actual}, vacant ${vacant}">${seg(la, 0, 'var(--c1)', `Actual ${actual}`)}${vacant ? seg(lv, la, 'var(--c3)', `Vacant ${vacant}`) : ''}</svg>
+  return `<div class="donut"><svg viewBox="0 0 220 220" role="img" aria-label="Actual ${actual}, vacant ${vacant}">${seg(la, 0, 'var(--pipe-a)', `Actual ${actual}`)}${vacant ? seg(lv, la, 'var(--c3)', `Vacant ${vacant}`) : ''}</svg>
   <div class="c"><b class="num">${Math.round(actual / tot * 100)}%</b><span>${actual} dari ${tot} terisi</span></div></div>
-  <div class="legend"><span><i style="background:var(--c1)"></i>Actual ${actual}</span><span><i style="background:var(--c3)"></i>Vacant ${vacant}</span></div>`;
+  <div class="legend"><span><i style="background:var(--pipe-a)"></i>Actual ${actual}</span><span><i style="background:var(--c3)"></i>Vacant ${vacant}</span></div>`;
 }
 function hbars(entries, colorFn) {
   const mx = Math.max(1, ...entries.map((e) => e[1]));
@@ -2060,14 +2060,14 @@ function pipeChart(act, off) {
   const step = top <= 6 ? 1 : top <= 12 ? 2 : 5;
   let g = '';
   for (let v = 0; v <= top; v += step) g += `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="var(--grid)"/><text x="${L - 10}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
-  g += `<defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--primary-2)" stop-opacity=".30"/><stop offset="1" stop-color="var(--primary-2)" stop-opacity=".03"/></linearGradient></defs>`;
+  g += `<defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--pipe-a)" stop-opacity=".30"/><stop offset="1" stop-color="var(--pipe-a)" stop-opacity=".03"/></linearGradient></defs>`;
   g += `<path d="${da} L${x(act.length - 1)} ${y(0)} L${x(0)} ${y(0)} Z" fill="url(#ag)"/>`;
-  g += `<path d="${dn}" fill="none" stroke="var(--c3)" stroke-width="2" stroke-dasharray="5 4"/><path d="${da}" fill="none" stroke="var(--primary)" stroke-width="2.5"/>`;
+  g += `<path d="${dn}" fill="none" stroke="var(--c3)" stroke-width="2" stroke-dasharray="5 4"/><path d="${da}" fill="none" stroke="var(--pipe-a)" stroke-width="2.5"/>`;
   pn.forEach(([px, py], i) => { g += `<circle cx="${px}" cy="${py}" r="4" fill="var(--card)" stroke="var(--c3)" stroke-width="2"><title>${STAGES[i]}: ${off[i]} tidak aktif</title></circle>`; if (off[i]) g += `<text x="${px + 9}" y="${py + 4}" style="fill:var(--crit);font-weight:800;font-size:11px">${off[i]}</text>`; });
-  pa.forEach(([px, py], i) => { g += `<circle cx="${px}" cy="${py}" r="4.5" fill="var(--card)" stroke="var(--primary)" stroke-width="2.5"><title>${STAGES[i]}: ${act[i]} aktif</title></circle><text class="val" x="${px}" y="${py - 11}" text-anchor="middle">${act[i]}</text><text x="${px}" y="${H - 8}" text-anchor="middle">${STAGE_SHORT[i]}</text>`; });
+  pa.forEach(([px, py], i) => { g += `<circle cx="${px}" cy="${py}" r="4.5" fill="var(--card)" stroke="var(--pipe-a)" stroke-width="2.5"><title>${STAGES[i]}: ${act[i]} aktif</title></circle><text class="val pv" x="${px}" y="${py - 11}" text-anchor="middle">${act[i]}</text><text x="${px}" y="${H - 8}" text-anchor="middle">${STAGE_SHORT[i]}</text>`; });
   const ta = act.reduce((a, b) => a + b, 0), tn = off.reduce((a, b) => a + b, 0);
   return `<div class="chart"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Pelamar aktif dan tidak aktif per tahap">${g}</svg></div>
-    <div class="legend"><span><i style="background:var(--primary)"></i>Aktif / Hold <b>${ta}</b></span><span><i style="background:var(--c3)"></i>Tidak aktif <b>${tn}</b></span><span class="small">Total ${ta + tn} pelamar PTK open</span></div>`;
+    <div class="legend"><span><i style="background:var(--pipe-a)"></i>Aktif / Hold <b>${ta}</b></span><span><i style="background:var(--c3)"></i>Tidak aktif <b>${tn}</b></span><span class="small">Total ${ta + tn} pelamar PTK open</span></div>`;
 }
 function pageDashboard(D) {
   const vac = Object.entries(D.vacJab).map(([k, v]) => [k, v.length]).sort((a, b) => b[1] - a[1]);
@@ -3700,8 +3700,8 @@ moveTo = function (S, uid, target) { _moveTo22(S, uid, target); const q = posByU
 const _pipeChart23 = pipeChart;
 pipeChart = function (act, off) {
   return _pipeChart23(act, off) + `<div class="pipeinfo">
-    <div><div class="pt"><i style="background:var(--primary)"></i>Aktif / Hold</div>
-      <p>Pelamar yang <b>masih berjalan</b> di PTK yang Open / Continue: sedang diproses ke tahap berikutnya, atau <b>Hold</b> (ditahan sementara, belum diputuskan lanjut atau tidak). Garis berwarna menunjukkan di tahap mana mereka sekarang.</p></div>
+    <div><div class="pt"><i style="background:var(--pipe-a)"></i>Aktif / Hold</div>
+      <p>Pelamar yang <b>masih berjalan</b> di PTK yang Open / Continue: sedang diproses ke tahap berikutnya, atau <b>Hold</b> (ditahan sementara, belum diputuskan lanjut atau tidak). Garis biru menunjukkan di tahap mana mereka sekarang.</p></div>
     <div><div class="pt"><i style="background:var(--c3)"></i>Tidak aktif</div>
       <p>Pelamar yang <b>sudah berhenti</b> dan tidak dilanjutkan: tidak lolos tes / interview user, tidak ada respon, mundur / kabur, atau menolak offering. Garis merah menunjukkan di tahap mana mereka berhenti.</p></div>
     <div class="ps"><b>Urutan tahap:</b> Sourcing → Psikotes → Interview User → Offering → MCU → FU MCU → On Site → Induksi. Pelamar yang sudah <b>diterima</b> tidak dihitung di grafik ini. Status pelamar diambil otomatis dari kolom <b>Keterangan</b> di MPP.</div></div>`;
@@ -4751,7 +4751,7 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
   }, true);
   try { after(); } catch (e) {}
 })();
-</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261123k"></script><script src="../unit-population-detail.js?v=20261123k"></script><script src="../mp-private.js?v=20261123k"></script><script src="../activity-log.js?v=20261123k" data-kind="manpower"></script><script src="../otp-login.js?v=20261123k"></script><script src="../form-data-karyawan.js?v=20261123k"></script><script src="../candidate-resume.js?v=20261123k"></script><script src="../manpower-dash.js?v=20261123k"></script><script id="portal-name-sync">
+</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261123k"></script><script src="../unit-population-detail.js?v=20261123k"></script><script src="../mp-private.js?v=20261123k"></script><script src="../activity-log.js?v=20261123k" data-kind="manpower"></script><script src="../otp-login.js?v=20261123k"></script><script src="../form-data-karyawan.js?v=20261123k"></script><script src="../candidate-resume.js?v=20261123k"></script><script src="../manpower-dash.js?v=20261123p"></script><script id="portal-name-sync">
 // Nama portal mengikuti "Edit nama portal" di Monitoring MPP Achievement (tabel portal_display_settings).
 (function () {
   var KEY = 'portal-name:' + 'mbj';
