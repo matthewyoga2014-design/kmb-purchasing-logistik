@@ -154,6 +154,8 @@ table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 @media(max-width:640px){.mrow{margin-left:0;flex-wrap:wrap}.mrow .mg{min-width:auto}}
 .hist tr.cur td{background:#F1ECFE}
 #logB b.bad{color:var(--bad)}
+.printonly{display:none}
+@media print{body.printing .printonly{display:block}.pq{break-inside:avoid;page-break-inside:avoid}.pq img{max-width:60%;max-height:240px}}
 </style>
 </head>
 <body>
@@ -506,12 +508,15 @@ function exportXlsx(){if(!window.XLSX)return toast("Pustaka Excel belum termuat"
 async function delSession(id){const s=S.sessions.find(x=>x.id===id);if(!s)return;
   if(!confirm("Hapus hasil tes "+s.nama+"? Jawaban, nilai, foto, dan baris di Google Sheet ikut terhapus. Foto di Google Drive dipindah ke Sampah."))return;
   try{await q(SB.from("pk_sessions").delete().eq("id",id));S.sessions=S.sessions.filter(x=>x.id!==id);S.attempts=S.attempts.filter(a=>a.session_id!==id);closeModal();renderTab();syncDrive();toast("Hasil tes dihapus")}catch(e){toast("Gagal: "+e.message)}}
-async function drawSummary(c,sid){const el=$("sumGrid");let html="",nb=0,ns=0,nk=0;
-  try{for(const x of c.done){const [r]=await q(SB.from("pk_attempts").select("answers").eq("id",x.a.id));const ans=(r&&r.answers)||{};const qs=await loadQuestions(x.m.id);
+const SUMD={};
+async function drawSummary(c,sid){const el=$("sumGrid");let html="",nb=0,ns=0,nk=0;SUMD[sid]=[];const wl=[];
+  try{for(const x of c.done){const [r]=await q(SB.from("pk_attempts").select("answers").eq("id",x.a.id));const ans=(r&&r.answers)||{};const qs=await loadQuestions(x.m.id);SUMD[sid].push({m:x.m,att:x.a,qs,ans});
+    qs.forEach(qq=>{const a=String(ans[qq.id]||"").toLowerCase();if(a!==qq.answer)wl.push({m:x.m,att:x.a.id,qq,a})});
     const wrong={};const cells=qs.map(qq=>{const a=String(ans[qq.id]||"").toLowerCase();const st=!a?"k":a===qq.answer?"b":"s";if(st==="b")nb++;else{if(st==="s")ns++;else nk++;(wrong[qq.topic||"Umum"]=wrong[qq.topic||"Umum"]||[]).push(qq.no)}
       return `<button class="ag ag-${st}" data-q="${qq.no}" data-att="${x.a.id}" title="Soal ${qq.no}: ${st==="b"?"benar":st==="s"?"salah – dijawab "+a.toUpperCase()+", kunci "+qq.answer.toUpperCase():"tidak dijawab"}">${qq.no}</button>`}).join("");
-    html+=`${c.done.length>1?`<b class="small">${esc(x.m.title)}</b>`:""}<div class="agrid">${cells}</div>${Object.keys(wrong).length?`<div class="small" style="margin-top:8px"><b>Soal salah / kosong per topik:</b><ul style="margin:4px 0 0;padding-left:18px">${Object.entries(wrong).map(([t,l])=>`<li>${esc(t)}: no. ${l.join(", ")}</li>`).join("")}</ul></div>`:""}`}
-    el.className="";el.innerHTML=html;$("sumCnt").innerHTML=`<span class="chip st-Selesai">Benar ${nb}</span><span class="chip st-Kedaluwarsa">Salah ${ns}</span>${nk?`<span class="chip">Kosong ${nk}</span>`:""}`;
+    html+=`<b class="small">Sheet: ${esc(x.m.title)}${x.m.grade?" ("+esc(x.m.grade)+")":""}</b><div class="agrid">${cells}</div>${Object.keys(wrong).length?`<div class="small" style="margin-top:8px"><b>Soal salah / kosong per topik:</b><ul style="margin:4px 0 0;padding-left:18px">${Object.entries(wrong).map(([t,l])=>`<li>${esc(t)}: no. ${l.join(", ")}</li>`).join("")}</ul></div>`:""}`}
+    if(wl.length)html+=`<details class="wrongd noprint" style="margin-top:10px"><summary style="cursor:pointer;font-weight:700;color:var(--p)">Lihat daftar soal yang salah / kosong (${wl.length})</summary><div class="sheet-wrap" style="margin-top:8px"><table class="sheet"><thead><tr><th>Sheet</th><th class="num">No</th><th>Topik</th><th>Soal</th><th>Jawaban</th><th>Kunci</th></tr></thead><tbody>${wl.map(w=>`<tr data-wa="${w.att}" data-wq="${w.qq.no}" style="cursor:pointer"><td>${esc(w.m.title)}</td><td class="num">${w.qq.no}</td><td>${esc(w.qq.topic||"Umum")}</td><td class="wrap" style="min-width:260px">${esc(String(w.qq.text||"").slice(0,140))}${String(w.qq.text||"").length>140?"…":""}${w.qq.image?" 🖼":""}</td><td>${w.a?`<b style="color:var(--bad)">${w.a.toUpperCase()}</b>`:'<span class="muted">kosong</span>'}</td><td><b style="color:var(--ok)">${String(w.qq.answer).toUpperCase()}</b></td></tr>`).join("")}</tbody></table></div><div class="small muted">Klik baris untuk melihat soal lengkap beserta gambarnya.</div></details>`;
+    el.className="";el.innerHTML=html;el.querySelectorAll("tr[data-wa]").forEach(t=>t.onclick=()=>showAnswers(t.dataset.wa,sid,+t.dataset.wq));$("sumCnt").innerHTML=`<span class="chip st-Selesai">Benar ${nb}</span><span class="chip st-Kedaluwarsa">Salah ${ns}</span>${nk?`<span class="chip">Kosong ${nk}</span>`:""}`;
     el.querySelectorAll(".ag").forEach(b=>b.onclick=()=>showAnswers(b.dataset.att,sid,+b.dataset.q))}catch(e){el.textContent="Gagal memuat: "+e.message}}
 async function showAnswers(attId,sid,focusNo){
   const att=S.attempts.find(a=>a.id===attId);const s=S.sessions.find(x=>x.id===sid);if(!att)return;
@@ -560,6 +565,18 @@ function historyCard(p,curId){const ev=personHistory(p);const nT=ev.filter(e=>e.
    <div class="sheet-wrap" style="margin-top:8px"><table class="sheet"><thead><tr><th>Tanggal</th><th>Kegiatan</th><th>Grade</th><th class="num">Nilai</th><th>Predikat</th><th>Hasil / keputusan</th><th class="num">Perubahan</th></tr></thead><tbody>${rows}</tbody></table></div>
    <div class="small muted noprint" style="margin-top:4px">Dicocokkan dari NIK (atau nama bila NIK kosong). Klik baris untuk membuka.</div></div>`}
 function wireHistory(root){root.querySelectorAll("[data-hs]").forEach(r=>r.onclick=()=>showResume(r.dataset.hs));root.querySelectorAll("[data-hk]").forEach(r=>r.onclick=()=>viewKinerja(r.dataset.hk))}
+/* Cetak resume: pilih tanpa rincian soal, hanya soal salah, atau semua soal */
+function printResume(s,c){const box=$("mbox");let pc=$("prChoice");if(pc){pc.remove();return}
+  const canDet=canEdit()&&c.done.length;
+  box.querySelector(".head").insertAdjacentHTML("afterend",`<div id="prChoice" class="notice noprint" style="margin:0 0 12px"><b>Cetak / simpan PDF</b> — pilih isi yang ikut dicetak:<div class="row" style="margin-top:8px;gap:8px">
+    <button class="btn sm pri" data-pr="none">Ringkas (tanpa rincian soal)</button>${canDet?`<button class="btn sm" data-pr="salah">+ Soal yang salah / kosong</button><button class="btn sm" data-pr="all">+ Semua soal & jawaban</button>`:""}<button class="btn sm" data-pr="x">Batal</button></div></div>`);
+  box.querySelectorAll("[data-pr]").forEach(b=>b.onclick=async()=>{const md=b.dataset.pr;$("prChoice").remove();if(md==="x")return;
+    const el=$("rinci");el.innerHTML="";
+    if(md!=="none"){toast("Menyiapkan rincian soal…");let d=SUMD[s.id];if(!d||!d.length){d=[];for(const x of c.done){const [r]=await q(SB.from("pk_attempts").select("answers").eq("id",x.a.id));d.push({m:x.m,att:x.a,qs:await loadQuestions(x.m.id),ans:(r&&r.answers)||{}})}}
+      el.innerHTML=`<h2 style="break-before:page;page-break-before:always">Lampiran — ${md==="all"?"Rincian semua soal & jawaban":"Soal yang salah / tidak dijawab"}</h2><p class="small muted">${esc(s.nama)} · hijau = kunci jawaban, merah coret = jawaban peserta yang salah.</p>`+
+        d.map(({m,qs,ans})=>{const L=qs.map(x=>{const a=String(ans[x.id]||"").toLowerCase();return {x,a,ok:a===x.answer}}).filter(r=>md==="all"||!r.ok);if(!L.length)return"";
+          return `<h3>Sheet: ${esc(m.title)} <span class="small muted">(${L.length} soal)</span></h3>`+L.map(({x,a,ok})=>`<div class="qitem pq" style="border-color:${ok?"#BBF7D0":"#FECACA"}"><div class="n">${x.no}</div><div><div>${esc(x.text)}</div>${x.image?`<img src="${x.image}" alt="">`:""}<ol>${Object.entries(x.options).map(([l,t])=>`<li style="${l===x.answer?"color:#15803D;font-weight:700":l===a?"color:#B91C1C;font-weight:700;text-decoration:line-through":""}">${l.toUpperCase()}. ${esc(t)}${l===x.answer?" ✓ kunci":""}${l===a&&!ok?" ✗ jawaban peserta":""}</li>`).join("")}</ol>${!a?'<b style="color:#B91C1C">Tidak dijawab</b> · ':""}<span class="small muted">Topik: ${esc(x.topic||"Umum")}</span></div><div><b style="color:${ok?"#15803D":"#B91C1C"}">${ok?"Benar":"Salah"}</b></div></div>`).join("")}).join("")}
+    document.body.classList.add("printing");setTimeout(()=>{window.print();setTimeout(()=>{document.body.classList.remove("printing");el.innerHTML=""},500)},300)})}
 function showResume(id){
   const s=S.sessions.find(x=>x.id===id);if(!s)return;const c=calc(s);const g=setg();
   const tops=Object.entries(c.topics).map(([t,v])=>[t,v.total?100*v.benar/v.total:0,v]).sort((a,b)=>b[1]-a[1]);
@@ -587,12 +604,13 @@ function showResume(id){
   </div>
   <div class="card noprint"><h3>Penilaian kinerja</h3>${(()=>{const kk=S.kinerja.find(x=>x.session_id===s.id||(s.nik&&x.nik===s.nik));return kk?`Sudah dinilai: skor <b>${fmt(kinCalc(kk.data).skor)}</b> · ${esc(kepLabel(kk))} <button class="btn sm" data-kv="${kk.id}">Lihat</button>`:`<span class="muted">Belum ada penilaian kinerja untuk peserta ini.</span> ${can("kinerja")?`<button class="btn sm" id="rKinNew">Buat penilaian kinerja</button>`:""}`})()}</div>
   ${proctorCard(s,c)}
-  ${signBox()}`);
+  ${signBox()}
+  <div id="rinci" class="printonly"></div>`);
   {const links=c.mods.filter(x=>x.a).flatMap(x=>(x.a.events||[]).filter(e=>e.type==="foto").map(e=>{const [k,u]=String(e.d).split("|");return {k,u,t:e.t}}));loadPhotos(id).then(l=>drawGallery(l,links))}
   if($("rDel"))$("rDel").onclick=()=>delSession(id);wireHistory($("mbox"));
   if($("sumGrid"))drawSummary(c,id);
   $("mbox").querySelectorAll("[data-ans]").forEach(b=>b.onclick=()=>showAnswers(b.dataset.ans,id));
-  $("rPrint").onclick=()=>{document.body.classList.add("printing");setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove("printing"),500)},50)};
+  $("rPrint").onclick=()=>printResume(s,c);
   const rk=$("rKinNew");if(rk)rk.onclick=()=>formKinerja(null,id);$("mbox").querySelectorAll("[data-kv]").forEach(b=>b.onclick=()=>viewKinerja(b.dataset.kv));
   const ks=$("rKepS");if(ks)ks.onclick=async()=>{try{const v=$("rKep").value.trim()||null;await q(SB.from("pk_sessions").update({keputusan:v,updated_at:new Date().toISOString()}).eq("id",id));s.keputusan=v;showResume(id);renderTab();toast("Keputusan disimpan");syncDrive()}catch(e){toast("Gagal: "+e.message)}};
 }
