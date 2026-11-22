@@ -59,7 +59,7 @@ begin
     else
       if NEW.answer is distinct from OLD.answer then perform pk_log_add('Ubah kunci jawaban', mt||' no. '||NEW.no, jsonb_build_object('dari',upper(OLD.answer),'ke',upper(NEW.answer),'soal',left(NEW.text,160))); end if;
       if NEW.text is distinct from OLD.text or NEW.options is distinct from OLD.options then perform pk_log_add('Ubah isi soal', mt||' no. '||NEW.no, jsonb_build_object('soal_lama',left(OLD.text,160),'soal_baru',left(NEW.text,160))); end if;
-      if NEW.image is distinct from OLD.image then perform pk_log_add('Ubah gambar soal', mt||' no. '||NEW.no, null); end if;
+      if NEW.image is distinct from OLD.image and not (NEW.image is null and NEW.image_id is not null) then perform pk_log_add('Ubah gambar soal', mt||' no. '||NEW.no, null); end if;
     end if;
   elsif TG_TABLE_NAME='pk_attempts' then
     if exists(select 1 from pk_sessions where id=OLD.session_id) then
@@ -78,11 +78,12 @@ begin
     elsif TG_OP='DELETE' then perform pk_log_add('Hapus link akses '||OLD.role, OLD.label, null);
     elsif NEW.revoked and not coalesce(OLD.revoked,false) then perform pk_log_add('Cabut link akses '||NEW.role, NEW.label, null);
     elsif not NEW.revoked and coalesce(OLD.revoked,false) then perform pk_log_add('Aktifkan lagi link akses '||NEW.role, NEW.label, null);
-    elsif NEW.label is distinct from OLD.label then perform pk_log_add('Ubah nama link akses', NEW.label, jsonb_build_object('dari',OLD.label)); end if;
+    elsif NEW.label is distinct from OLD.label then perform pk_log_add('Ubah nama link akses', NEW.label, jsonb_build_object('dari',OLD.label));
+    elsif NEW.email is distinct from OLD.email then perform pk_log_add('Ubah email link akses', NEW.label, jsonb_build_object('dari',OLD.email,'ke',NEW.email)); end if;
   elsif TG_TABLE_NAME='pk_kinerja' then
     if TG_OP='INSERT' then perform pk_log_add('Buat penilaian kinerja', NEW.nama, jsonb_build_object('skor',NEW.skor));
     elsif TG_OP='DELETE' then perform pk_log_add('Hapus penilaian kinerja', OLD.nama, jsonb_build_object('skor',OLD.skor));
-    else perform pk_log_add('Ubah penilaian kinerja', NEW.nama, jsonb_build_object('skor_lama',OLD.skor,'skor_baru',NEW.skor)); end if;
+    elsif (to_jsonb(NEW)-'drive'-'updated_at') is distinct from (to_jsonb(OLD)-'drive'-'updated_at') then perform pk_log_add('Ubah penilaian kinerja', NEW.nama, jsonb_build_object('skor_lama',OLD.skor,'skor_baru',NEW.skor)); end if;
   end if;
   return null;
 exception when others then

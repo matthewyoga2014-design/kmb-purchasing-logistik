@@ -130,6 +130,7 @@ function kepLabel(k) { const m = { tetap: 'Pengangkatan karyawan tetap', perpanj
 function syncAll() {
   const lock = LockService.getScriptLock(); if (!lock.tryLock(20000)) return;
   try {
+    try { moveImages_(150000); } catch (e) { Logger.log('Gambar soal: ' + e); }
     const d = rpc_('pk_export', { p_secret: props_().getProperty('SYNC_SECRET') });
     const g = Object.assign({}, DEF, d.settings || {});
     const mods = d.modules || [], att = d.attempts || [];
@@ -166,6 +167,7 @@ function syncAll() {
       .concat(KB_I.map(x => x[1])).concat(KB_H.map(x => x[1])).concat(['Tugas Tambahan', 'Kepribadian (30%)', 'Target Kinerja (35%)', 'Indisipliner (15%)', 'Kehadiran (15%)', 'Tugas Tambahan (5%)', 'Skor Kinerja', 'Predikat', 'Kategori', 'Keputusan', 'Kelebihan', 'Perlu Ditingkatkan', 'Catatan']), kin);
     let ans = []; try { ans = rpc_('pk_export_answers', { p_secret: props_().getProperty('SYNC_SECRET') }) || []; } catch (e) {}
     const people = people_(d, g, mods, att, ans);
+    try { driveReport_(d); } catch (e) { Logger.log('Laporan Drive: ' + e); }
     write_(ss, 'Riwayat Karyawan', ['Nama', 'NIK', 'Grade Terakhir', 'Jumlah Tes', 'Nilai Tes Pertama', 'Tanggal Tes Pertama', 'Nilai Tes Terakhir', 'Tanggal Tes Terakhir', 'Perubahan', 'Hasil Terakhir', 'Skor Kinerja Terakhir', 'Keputusan Kinerja Terakhir', 'Folder Karyawan'],
       people.map(p => [p.nama, p.nik, p.grade, p.T.length, p.T.length ? r1(p.T[0].nilai) : '', p.T.length ? p.T[0].t : '', p.T.length > 1 ? r1(p.T[p.T.length - 1].nilai) : '', p.T.length > 1 ? p.T[p.T.length - 1].t : '',
         p.T.length > 1 ? r1(p.T[p.T.length - 1].nilai - p.T[0].nilai) : '', p.lastHasil, p.lastK ? r1(p.lastK.nilai) : '', p.lastK ? p.lastK.kep : '', p.url || '']));
@@ -175,7 +177,9 @@ function syncAll() {
 }
 
 /* ---------- satu folder per karyawan: rekap tes + penilaian kinerja, foto per tes ---------- */
+const DRV = { sessions: [], kinerja: [], files: [], person: {} };
 function people_(d, g, mods, att, ans) {
+  DRV.sessions = []; DRV.kinerja = []; DRV.files = []; DRV.person = {};
   const r1 = v => v == null ? '' : Math.round(v * 10) / 10;
   const G = {}, byName = {};
   const all = (d.sessions || []).map(x => ['tes', x]).concat((d.kinerja || []).map(x => ['kin', x]));
@@ -199,6 +203,7 @@ function people_(d, g, mods, att, ans) {
     const fname = personName_(p.nama, p.nik), folder = sub_(kar, fname); keepPerson[fname] = 1; o.url = folder.getUrl();
     p.tes.forEach(s => { keepTest[left8_(s.id)] = { person: folder, name: testName_(s.created_at, s.jenis, s.grade_target || s.level, left8_(s.id)) }; });
     rekap_(folder, o, r1);
+    p.tes.forEach(s2 => DRV.person[s2.id] = folder.getId());
     try { pdfs_(folder, o, g, mods, att, ans || []); } catch (e) { Logger.log('PDF ' + o.nama + ': ' + e); }
     return o; });
   tidyFolders_(kar, keepPerson, keepTest);
@@ -257,9 +262,9 @@ function sign_() { const c = [['Karyawan', 'Karyawan'], ['Dibuat oleh', 'Atasan 
     + c.map(x => '<td class="c">(.............................)<br><b>' + x[1] + '</b></td>').join('') + '</tr><tr>' + c.map(() => '<td>Tgl:</td>').join('') + '</tr></table>'; }
 function savePdf_(folder, name, html) {
   const sig = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, html));
-  const it = folder.getFilesByName(name); if (it.hasNext()) { const f = it.next(); if (f.getDescription() === sig) return; f.setTrashed(true); }
+  const it = folder.getFilesByName(name); if (it.hasNext()) { const f = it.next(); if (f.getDescription() === sig) return f; f.setTrashed(true); }
   const pdf = Utilities.newBlob(html, 'text/html', name + '.html').getAs('application/pdf').setName(name);
-  folder.createFile(pdf).setDescription(sig);
+  const f = folder.createFile(pdf); f.setDescription(sig); return f;
 }
 function pdfs_(person, p, g, mods, att, ans) {
   const fmtD = t => Utilities.formatDate(new Date(t), TZ, 'dd MMM yyyy HH:mm'), r1 = v => v == null ? '–' : (Math.round(v * 10) / 10).toString().replace('.', ',');
@@ -292,7 +297,8 @@ function pdfs_(person, p, g, mods, att, ans) {
       h += '<h2>Pengawasan</h2>Pelanggaran: <b>' + viol + '</b>' + (evs.length ? ' (' + H_(evs.join(', ')) + ')' : '') + ' · Foto kamera tersimpan: <b>' + nfoto + '</b> (di folder tes ini)'
         + sign_() + '</body></html>';
       const tf = sub_(person, testName_(s.created_at, s.jenis, s.grade_target || s.level, sid));
-      savePdf_(tf, 'Hasil Tes ' + safe_(s.nama) + ' ' + Utilities.formatDate(new Date(s.created_at), TZ, 'yyyy-MM-dd') + '.pdf', h);
+      const pf = savePdf_(tf, 'Hasil Tes ' + safe_(s.nama) + ' ' + Utilities.formatDate(new Date(s.created_at), TZ, 'yyyy-MM-dd') + '.pdf', h);
+      DRV.sessions.push({ id: s.id, drive: { pdf: pf.getId(), folder: tf.getId(), person: person.getId() } }); DRV.files.push(pf);
     } else {
       const k = e.k, dd = k.data || {}, r = e.r, kid = left8_(k.id); keepK[kid] = 1;
       const row = (lbl, v) => '<tr><td>' + H_(lbl) + '</td><td class="c">' + (v === '' || v == null ? '–' : H_(v)) + '</td></tr>';
@@ -310,10 +316,60 @@ function pdfs_(person, p, g, mods, att, ans) {
         + ((dd.X || []).filter(x => x && x.t).length ? '<h2>E. Tugas Tambahan</h2><table>' + dd.X.filter(x => x && x.t).map(x => row(x.t, x.v)).join('') + '</table>' : '')
         + '<h2>Catatan atasan</h2><table><tr><th style="width:33%">Kelebihan</th><th style="width:33%">Perlu ditingkatkan</th><th>Catatan</th></tr><tr><td>' + H_(dd.kelebihan || '–') + '</td><td>' + H_(dd.kekurangan || '–') + '</td><td>' + H_(dd.catatan || '–') + '</td></tr></table>'
         + sign_() + '</body></html>';
-      savePdf_(person, 'Penilaian Kinerja ' + safe_(k.nama) + ' ' + Utilities.formatDate(new Date(k.created_at), TZ, 'yyyy-MM-dd') + ' - ' + kid + '.pdf', h);
+      const kf = savePdf_(person, 'Penilaian Kinerja ' + safe_(k.nama) + ' ' + Utilities.formatDate(new Date(k.created_at), TZ, 'yyyy-MM-dd') + ' - ' + kid + '.pdf', h);
+      DRV.kinerja.push({ id: k.id, drive: { pdf: kf.getId(), person: person.getId() } }); DRV.files.push(kf);
     }
   });
   const fi = person.getFiles(); while (fi.hasNext()) { const f = fi.next(), m = f.getName().match(/^Penilaian Kinerja .* - ([0-9a-f]{8})\.pdf$/); if (m && !keepK[m[1]]) f.setTrashed(true); }
+}
+
+/* ---------- laporkan ID Drive ke web + bagikan PDF per berkas ke Editor ---------- */
+function driveReport_(d) {
+  const sec = props_().getProperty('SYNC_SECRET'), done = {};
+  DRV.sessions.forEach(x => done[x.id] = 1);
+  (d.sessions || []).forEach(s => { if (!done[s.id] && DRV.person[s.id]) DRV.sessions.push({ id: s.id, drive: { person: DRV.person[s.id] } }); });
+  rpc_('pk_drive_report', { p_secret: sec, p: { sessions: DRV.sessions, kinerja: DRV.kinerja } });
+  let refs = null; try { refs = rpc_('pk_drive_refs', { p_secret: sec }); } catch (e) {}
+  if (refs) shareFiles_(DRV.files, (refs.editors || []).map(String));
+}
+/* tiap PDF dibagikan ke email Editor sebagai Pelihat (tanpa email pemberitahuan, unduh/cetak dimatikan bila Drive API aktif);
+   email yang sudah bukan Editor dicabut. Folder tidak pernah dibagikan. */
+function shareFiles_(files, editors) {
+  const want = {}; editors.forEach(e => { if (/@/.test(e)) want[e.toLowerCase()] = 1; });
+  const me = (Session.getEffectiveUser().getEmail() || '').toLowerCase();
+  let budget = 120;
+  files.forEach(f => {
+    if (budget <= 0) return;
+    let have = {}; try { f.getViewers().forEach(u => have[(u.getEmail() || '').toLowerCase()] = 1); } catch (e) { return; }
+    Object.keys(want).forEach(e => { if (have[e] || e === me || budget <= 0) return; budget--;
+      try { if (typeof Drive !== 'undefined' && Drive.Permissions) { Drive.Permissions.create({ role: 'reader', type: 'user', emailAddress: e }, f.getId(), { sendNotificationEmail: false }); }
+            else f.addViewer(e); } catch (err) { Logger.log('Bagikan ' + f.getName() + ' ke ' + e + ': ' + err); } });
+    Object.keys(have).forEach(e => { if (!want[e] && e && e !== me) { try { f.removeViewer(e); } catch (err) {} } });
+    try { if (typeof Drive !== 'undefined' && Drive.Files && Object.keys(want).length) Drive.Files.update({ copyRequiresWriterPermission: true }, f.getId()); } catch (e) {}
+  });
+}
+/* ---------- gambar soal: pindahkan dari database ke Drive (sedikit demi sedikit, tiap sinkron) ---------- */
+function moveImages_(maxMs) {
+  const t0 = Date.now(), sec = props_().getProperty('SYNC_SECRET'), base = sub_(root_(), 'Gambar Soal'); let moved = 0;
+  while (Date.now() - t0 < maxMs) {
+    const list = rpc_('pk_drive_images', { p_secret: sec, p_limit: 15 }) || []; if (!list.length) break;
+    const rep = [];
+    list.forEach(x => { if (Date.now() - t0 > maxMs + 60000) return;
+      const m = String(x.image).match(/^data:(image\/[\w+.-]+);base64,(.+)$/); if (!m) return;
+      const ext = /png/.test(m[1]) ? 'png' : /gif/.test(m[1]) ? 'gif' : /webp/.test(m[1]) ? 'webp' : 'jpg';
+      const dir = sub_(base, safe_((x.grade ? x.grade + ' ' : '') + x.title));
+      const f = dir.createFile(Utilities.newBlob(Utilities.base64Decode(m[2]), m[1], 'Soal ' + String(x.no).padStart(3, '0') + ' - ' + String(x.id).slice(0, 8) + '.' + ext));
+      f.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      rep.push({ id: x.id, file: f.getId() }); });
+    if (!rep.length) break;
+    rpc_('pk_drive_report', { p_secret: sec, p: { questions: rep } }); moved += rep.length;
+  }
+  if (Date.now() - t0 < maxMs) {   // semua sudah pindah: buang gambar yang soalnya sudah dihapus
+    const refs = rpc_('pk_drive_refs', { p_secret: sec }); const keep = {}; (refs.images || []).forEach(id => keep[id] = 1);
+    if ((refs.images || []).length || moved === 0) { const fi = base.getFolders(); while (fi.hasNext()) { const dir = fi.next(), it = dir.getFiles(); let any = false;
+      while (it.hasNext()) { const f = it.next(); if (!keep[f.getId()]) f.setTrashed(true); else any = true; } if (!any) dir.setTrashed(true); } }
+  }
+  return moved;
 }
 
 function write_(ss, name, head, rows) {
