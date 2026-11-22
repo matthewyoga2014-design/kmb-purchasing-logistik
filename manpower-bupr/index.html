@@ -650,7 +650,7 @@ body.pp .noprint { display: none !important; }
 body.locked > *:not(#lockScr):not(#toast):not(.modal):not(#modal) { visibility: hidden; }
 @media print { body.locked * { display: none !important; } }
 .shl { display: flex; gap: 8px; flex-wrap: wrap; } .shl input { flex: 1 1 260px; min-width: 0; font: inherit; font-size: 13px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card-2, #F9F9F9); color: var(--ink); }
-</style><style>.backbtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;flex-shrink:0}@media (max-width:560px){.backbtn span{display:none}.backbtn{padding-left:10px;padding-right:10px}}@media print{.backbtn{display:none!important}}</style><script src="../remembered-access.js?v=20261123k"></script><style id="vacn-red">table.mt td.vacn,table.t td.vacn,.vacn{color:var(--crit,#DC2626)!important;font-weight:800}</style><style id="org-warna"> /* struktur organisasi: merah hanya untuk Vacant / PTK Open */ .onode.sec { background: linear-gradient(120deg, #2A2A31, #55555F) !important; box-shadow: 0 4px 12px rgba(41,41,44,.22) !important; } .org .gtitle { background: #EFEFF2 !important; color: #3F3F46 !important; } </style></head><body>
+</style><style>.backbtn{display:inline-flex;align-items:center;gap:6px;text-decoration:none;flex-shrink:0}@media (max-width:560px){.backbtn span{display:none}.backbtn{padding-left:10px;padding-right:10px}}@media print{.backbtn{display:none!important}}</style><script src="../remembered-access.js?v=20261123k"></script><style id="vacn-red">table.mt td.vacn,table.t td.vacn,.vacn{color:var(--crit,#DC2626)!important;font-weight:800}</style><style id="org-warna">/* struktur organisasi: warna seperti semula (ungu) */ .orgcard, .org { --g1a: #7C3AED; --g1b: #A78BFA; --primary: #6D28D9; --primary-ink: #5B21B6; --primary-soft: #EFE9FE; } .onode.sec { box-shadow: 0 4px 12px rgba(109,40,217,.25) !important; }</style></head><body>
 <script type="application/json" id="state">{"positions": [], "aktif": [], "keluar": [], "units": [], "meta": {}}</script>
 <script>/* Excel (SheetJS) dimuat belakangan saat browser senggang / saat dibutuhkan, agar web cepat terbuka */
 (function(){var U='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js',P=null;
@@ -2363,7 +2363,7 @@ document.addEventListener('click', (e) => {
 document.addEventListener('input', (e) => { if (e.target.id === 'pq2') { ui.pq2 = e.target.value; keepFocus('pq2'); } });
 
 // ================= v10: colorful rekap, status, due date, units =================
-const FAM_COLOR = { 'Staff & Admin': '#4F46E5', 'Tyreman': '#0D9488', 'Welder & Elektrik': '#D97706', 'Mekanik': '#475569', 'Helper Mekanik': '#DB2777' };
+const FAM_COLOR = { 'Staff & Admin': '#4F46E5', 'Tyreman': '#0D9488', 'Welder & Elektrik': '#D97706', 'Mekanik': '#7C3AED', 'Helper Mekanik': '#DB2777' };
 function tint(hex, a) { const n = parseInt(hex.slice(1), 16); const r = n >> 16, g = (n >> 8) & 255, b = n & 255; const m = (c) => Math.round(255 + (c - 255) * a); return `rgb(${m(r)},${m(g)},${m(b)})`; }
 function roleFamily(j) {
   j = (j || '').toLowerCase();
@@ -2566,7 +2566,7 @@ function tierRows(list) {
   return [...m.values()].sort((a, b) => jabRank(a[0].jabatan) - jabRank(b[0].jabatan));
 }
 function ocard(p, M) {
-  const vac = isVacant(p), c = FAM_COLOR[roleFamily(p.jabatan)] || '#64748B';
+  const vac = isVacant(p), c = FAM_COLOR[roleFamily(p.jabatan)] || '#6D28D9';
   const ks = M.kids[p.uid] || [];
   const tag = isOpen(p) ? '<span class="otag open">PTK Open</span>' : '';
   const box = `<div class="ocard ${vac ? 'vac' : ''}" style="--oc:${c};--ocb:${tint(c, .12)}" ${CAN_EDIT ? `data-epos="${DATA.positions.indexOf(p)}" role="button" tabindex="0" title="Klik untuk edit / atur atasan"` : `title="${esc(p.group || p.section || '')}"`}>
@@ -2738,7 +2738,7 @@ function orgInfo(p) {
   return '';
 }
 function ocard(p, M) {
-  const vac = isVacant(p), c = FAM_COLOR[roleFamily(p.jabatan)] || '#64748B';
+  const vac = isVacant(p), c = FAM_COLOR[roleFamily(p.jabatan)] || '#6D28D9';
   const ks = M.kids[p.uid] || [];
   const nk = DATA.positions.filter((x) => x.atasan === p.uid).length;
   const i = DATA.positions.indexOf(p);
@@ -2781,7 +2781,7 @@ function pageOrg(D) {
       <button type="button" class="btn ${ui.ofull ? 'btn-p' : 'btn-g'}" id="oFull" title="Tampilkan struktur memenuhi layar (Esc untuk keluar)">${ui.ofull ? '✕ Keluar layar penuh' : '⛶ Layar penuh'}</button>
       ${DL ? '<button type="button" class="btn btn-g" data-oexp="png">Unduh PNG</button><button type="button" class="btn btn-g" data-oexp="pdf">Unduh PDF</button>' : ''}
       ${(DL || IS_TOP) ? '<button type="button" class="btn btn-g" id="printBtn">Print</button>' : ''}</div></div>
-  ${CAN_EDIT ? `<div class="ohelp"><b>Cara cepat:</b> <span>Klik kotak = atur section / sub-section / atasan (pilihan dari data MPP)</span><span><b>Anggota</b> = centang anggota tim sekaligus</span><span><b>Seret kotak orang</b>: lepas di <u>tengah</u> kotak lain = jadi bawahannya, di <u>sisi kiri/kanan</u> = sejajar (ubah urutan)</span><span><b>Seret judul sub-section ⠿</b>: lepas di <u>tengah</u> sub-section lain = masuk di bawahnya; di <u>tepi atas/bawah</u> (tampilan menurun) atau <u>kiri/kanan</u> (mendatar) = sejajar &amp; ubah urutan; di kotak gelap section = langsung di bawah section</span><span><b>Seret kotak gelap section</b> = ubah urutan / pindah ke Di luar SO</span><span><b>Klik</b> kotak section / judul sub-section = menu <b>Atur</b>: buat sejajar, pindah ke bawah sub-section lain, urutan, tampilan sejajar ke samping / menurun</span></div>` : ''}
+  ${CAN_EDIT ? `<div class="ohelp"><b>Cara cepat:</b> <span>Klik kotak = atur section / sub-section / atasan (pilihan dari data MPP)</span><span><b>Anggota</b> = centang anggota tim sekaligus</span><span><b>Seret kotak orang</b>: lepas di <u>tengah</u> kotak lain = jadi bawahannya, di <u>sisi kiri/kanan</u> = sejajar (ubah urutan)</span><span><b>Seret judul sub-section ⠿</b>: lepas di <u>tengah</u> sub-section lain = masuk di bawahnya; di <u>tepi atas/bawah</u> (tampilan menurun) atau <u>kiri/kanan</u> (mendatar) = sejajar &amp; ubah urutan; di kotak ungu section = langsung di bawah section</span><span><b>Seret kotak ungu section</b> = ubah urutan / pindah ke Di luar SO</span><span><b>Klik</b> kotak section / judul sub-section = menu <b>Atur</b>: buat sejajar, pindah ke bawah sub-section lain, urutan, tampilan sejajar ke samping / menurun</span></div>` : ''}
   <div class="card orgcard"><div class="olegend">${fams.map((f) => `<span><i style="background:${FAM_COLOR[f] || '#DC3737'}"></i>${esc(f)}</span>`).join('')}<span><i class="v"></i>Vacant</span><span><b class="lw">⚠</b>Kontrak habis ≤ 30 hari</span><span id="oqHits" class="small"></span></div>
     <div class="orgwrap" id="orgWrap"><div class="orgsizer" id="orgSizer">${orgChart(D)}</div></div></div>
   <p class="note">Bawahan otomatis ikut pindah section / sub-section bersama atasannya. Jika kolom <b>Atasan langsung</b> dikosongkan, posisi tampil sejajar dengan jabatan yang sama di sub-section-nya.</p>`;
