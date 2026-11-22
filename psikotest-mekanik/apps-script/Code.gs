@@ -164,7 +164,8 @@ function syncAll() {
         .concat([(dd.X || []).filter(x => x && x.t).map(x => x.t + ' (' + (x.v || '-') + ')').join('; '), r1(r.pK), r1(r.pT), r1(r.pI), r1(r.pH), r1(r.pX), r1(r.skor), c ? c.h : '', c ? c.label : '', kepLabel(k), dd.kelebihan || '', dd.kekurangan || '', dd.catatan || '']); });
     write_(ss, 'Penilaian Kinerja', ['No', 'Tanggal', 'Nama', 'NIK', 'Jabatan', 'Grade', 'Jobsite', 'Status', 'Periode', 'Penilai'].concat(KB_K.map((t, j) => 'K' + (j + 1) + ' ' + t)).concat(KB_T.map((t, j) => 'T' + (j + 1) + ' ' + t))
       .concat(KB_I.map(x => x[1])).concat(KB_H.map(x => x[1])).concat(['Tugas Tambahan', 'Kepribadian (30%)', 'Target Kinerja (35%)', 'Indisipliner (15%)', 'Kehadiran (15%)', 'Tugas Tambahan (5%)', 'Skor Kinerja', 'Predikat', 'Kategori', 'Keputusan', 'Kelebihan', 'Perlu Ditingkatkan', 'Catatan']), kin);
-    const people = people_(d, g, mods, att);
+    let ans = []; try { ans = rpc_('pk_export_answers', { p_secret: props_().getProperty('SYNC_SECRET') }) || []; } catch (e) {}
+    const people = people_(d, g, mods, att, ans);
     write_(ss, 'Riwayat Karyawan', ['Nama', 'NIK', 'Grade Terakhir', 'Jumlah Tes', 'Nilai Tes Pertama', 'Tanggal Tes Pertama', 'Nilai Tes Terakhir', 'Tanggal Tes Terakhir', 'Perubahan', 'Hasil Terakhir', 'Skor Kinerja Terakhir', 'Keputusan Kinerja Terakhir', 'Folder Karyawan'],
       people.map(p => [p.nama, p.nik, p.grade, p.T.length, p.T.length ? r1(p.T[0].nilai) : '', p.T.length ? p.T[0].t : '', p.T.length > 1 ? r1(p.T[p.T.length - 1].nilai) : '', p.T.length > 1 ? p.T[p.T.length - 1].t : '',
         p.T.length > 1 ? r1(p.T[p.T.length - 1].nilai - p.T[0].nilai) : '', p.lastHasil, p.lastK ? r1(p.lastK.nilai) : '', p.lastK ? p.lastK.kep : '', p.url || '']));
@@ -174,7 +175,7 @@ function syncAll() {
 }
 
 /* ---------- satu folder per karyawan: rekap tes + penilaian kinerja, foto per tes ---------- */
-function people_(d, g, mods, att) {
+function people_(d, g, mods, att, ans) {
   const r1 = v => v == null ? '' : Math.round(v * 10) / 10;
   const G = {}, byName = {};
   const all = (d.sessions || []).map(x => ['tes', x]).concat((d.kinerja || []).map(x => ['kin', x]));
@@ -198,6 +199,7 @@ function people_(d, g, mods, att) {
     const fname = personName_(p.nama, p.nik), folder = sub_(kar, fname); keepPerson[fname] = 1; o.url = folder.getUrl();
     p.tes.forEach(s => { keepTest[left8_(s.id)] = { person: folder, name: testName_(s.created_at, s.jenis, s.grade_target || s.level, left8_(s.id)) }; });
     rekap_(folder, o, r1);
+    try { pdfs_(folder, o, g, mods, att, ans || []); } catch (e) { Logger.log('PDF ' + o.nama + ': ' + e); }
     return o; });
   tidyFolders_(kar, keepPerson, keepTest);
   return people.sort((a, b) => a.nama.localeCompare(b.nama));
@@ -241,6 +243,77 @@ function rekap_(folder, p, r1) {
   write_(ss, 'Penilaian Kinerja', ['Tanggal', 'Periode', 'Penilai', 'Kepribadian (30%)', 'Target Kinerja (35%)', 'Indisipliner (15%)', 'Kehadiran (15%)', 'Tugas Tambahan (5%)', 'Skor', 'Predikat', 'Keputusan'], kin);
   ss.getSheets().forEach(sh => { if (['Ringkasan', 'Riwayat', 'Nilai per Sheet Tes', 'Penilaian Kinerja'].indexOf(sh.getName()) < 0 && ss.getSheets().length > 1) ss.deleteSheet(sh); });
   DriveApp.getFileById(ss.getId()).setDescription(sig);
+}
+
+/* ---------- PDF hasil tes & penilaian kinerja (seperti cetak di web), disimpan di folder karyawan ---------- */
+const H_ = v => String(v == null ? '' : v).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const CSS_ = '<style>body{font-family:Arial,sans-serif;font-size:10pt;color:#111}h1{font-size:15pt;margin:0}h2{font-size:11.5pt;margin:14px 0 6px;border-bottom:1px solid #999;padding-bottom:2px}'
+  + 'table{border-collapse:collapse;width:100%}td,th{border:1px solid #888;padding:4px 6px;vertical-align:top;font-size:9.5pt}th{background:#eee;text-align:left}.n{text-align:right}.c{text-align:center}'
+  + '.kv td{border:none;padding:2px 6px}.kv td:first-child{color:#555;width:150px}.big{font-size:20pt;font-weight:bold}.ok{color:#15803D;font-weight:bold}.no{color:#B91C1C;font-weight:bold}.mut{color:#666;font-size:9pt}'
+  + '.g td{width:9%;text-align:center;font-size:8.5pt;padding:2px}.b{background:#DCFCE7}.s{background:#FEE2E2}.k{background:#F3F4F6}</style>';
+function head_(title) { return '<html><head><meta charset="utf-8">' + CSS_ + '</head><body><div class="mut">PT Karunia Mandiri Berkarya · Plant Tambang</div><h1>' + H_(title) + '</h1>'; }
+function sign_() { const c = [['Karyawan', 'Karyawan'], ['Dibuat oleh', 'Atasan Langsung'], ['Diketahui oleh', 'HRGA Dept.'], ['Disetujui oleh', 'PJO / Manager']];
+  return '<h2>Pengesahan</h2><table><tr>' + c.map(x => '<th class="c" style="width:25%">' + x[0] + '</th>').join('') + '</tr><tr>' + c.map(() => '<td style="height:70px"></td>').join('') + '</tr><tr>'
+    + c.map(x => '<td class="c">(.............................)<br><b>' + x[1] + '</b></td>').join('') + '</tr><tr>' + c.map(() => '<td>Tgl:</td>').join('') + '</tr></table>'; }
+function savePdf_(folder, name, html) {
+  const sig = Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, html));
+  const it = folder.getFilesByName(name); if (it.hasNext()) { const f = it.next(); if (f.getDescription() === sig) return; f.setTrashed(true); }
+  const pdf = Utilities.newBlob(html, 'text/html', name + '.html').getAs('application/pdf').setName(name);
+  folder.createFile(pdf).setDescription(sig);
+}
+function pdfs_(person, p, g, mods, att, ans) {
+  const fmtD = t => Utilities.formatDate(new Date(t), TZ, 'dd MMM yyyy HH:mm'), r1 = v => v == null ? '–' : (Math.round(v * 10) / 10).toString().replace('.', ',');
+  const keepK = {};
+  p.ev.forEach(e => {
+    if (e.kind === 'tes') {
+      const s = e.s, sid = left8_(s.id); if (e.nilai == null) return;
+      const a = att.filter(x => x.session_id === s.id), done = a.filter(x => x.submitted_at);
+      const tops = {}; done.forEach(x => Object.keys(x.by_topic || {}).forEach(t => { const v = x.by_topic[t]; tops[t] = tops[t] || [0, 0]; tops[t][0] += +v.benar; tops[t][1] += +v.total; }));
+      const tl = Object.keys(tops).map(t => [t, tops[t][1] ? 100 * tops[t][0] / tops[t][1] : 0, tops[t]]).sort((x, y) => y[1] - x[1]);
+      const rek = s.keputusan || (e.c ? (s.jenis === 'Akhir Kontrak' ? g.rekKontrak : g.rekNew)[e.c.k] : '');
+      const viol = a.reduce((x, y) => x + (+y.violations || 0), 0);
+      const evs = [].concat.apply([], a.map(x => (x.events || []).filter(v => ['tab', 'fullscreen', 'kamera', 'auto-kirim'].indexOf(v.type) >= 0).map(v => Utilities.formatDate(new Date(v.t), TZ, 'HH:mm:ss') + ' ' + v.type)));
+      const nfoto = [].concat.apply([], a.map(x => (x.events || []).filter(v => v.type === 'foto'))).length;
+      let h = head_('Resume Hasil Psikotest') + '<table class="kv" style="margin-top:8px"><tr><td>Nama</td><td><b>' + H_(s.nama) + '</b></td><td>Nilai akhir</td><td class="big">' + r1(e.nilai) + '</td></tr>'
+        + '<tr><td>NIK / NIP</td><td>' + H_(s.nik || '–') + '</td><td>Predikat · kategori</td><td><b>' + H_(e.c ? e.c.h + ' · ' + e.c.label : '–') + '</b></td></tr>'
+        + '<tr><td>Grade yang dituju</td><td>' + H_(s.grade_target || s.level || '–') + (s.grade_saat_ini ? ' (saat ini ' + H_(s.grade_saat_ini) + ')' : '') + '</td><td>Hasil</td><td class="' + (/^Lulus/.test(e.hasil) ? 'ok' : 'no') + '">' + H_(e.hasil) + '</td></tr>'
+        + '<tr><td>Jenis penilaian</td><td>' + H_(s.jenis) + '</td><td>Batas lulus</td><td>' + g.gPass + '</td></tr>'
+        + '<tr><td>Jobsite</td><td>' + H_(s.jobsite || '–') + '</td><td>Tanggal selesai</td><td>' + fmtD(e.t) + '</td></tr></table>'
+        + '<h2>Rekomendasi</h2><b>' + H_(rek || '–') + '</b>' + (s.keputusan ? ' <span class="mut">(keputusan diisi manual)</span>' : '')
+        + '<h2>Nilai per sheet tes</h2><table><tr><th>Sheet soal</th><th>Grade sheet</th><th class="n">Benar</th><th class="n">Nilai</th><th>Selesai</th></tr>'
+        + (s.module_ids || []).map(id => { const m = mods.find(y => y.id === id) || {}, x = a.find(y => y.module_id === id);
+            return '<tr><td>' + H_(m.title || '') + '</td><td>' + H_(m.grade || '') + '</td><td class="n">' + (x && x.submitted_at ? x.correct + '/' + x.total : '–') + '</td><td class="n"><b>' + (x && x.submitted_at ? r1(+x.score) : '–') + '</b></td><td>' + (x && x.submitted_at ? fmtD(x.submitted_at) + (x.late ? ' (waktu habis)' : '') : 'Belum') + '</td></tr>'; }).join('') + '</table>'
+        + '<h2>Penguasaan per topik</h2><table><tr><th>Topik</th><th class="n">Benar / soal</th><th class="n">%</th></tr>' + tl.map(t => '<tr><td>' + H_(t[0]) + '</td><td class="n">' + t[2][0] + ' / ' + t[2][1] + '</td><td class="n">' + Math.round(t[1]) + '%</td></tr>').join('') + '</table>'
+        + '<table style="margin-top:8px"><tr><th style="width:50%">Kekuatan (≥ 80%)</th><th>Perlu ditingkatkan (&lt; 60%)</th></tr><tr><td>' + (tl.filter(t => t[1] >= 80).map(t => H_(t[0])).join('<br>') || '–') + '</td><td>' + (tl.filter(t => t[1] < 60).map(t => H_(t[0])).join('<br>') || '–') + '</td></tr></table>';
+      done.forEach(x => { const r = ans.find(y => y.a === x.id), m = mods.find(y => y.id === x.module_id) || {}; if (!r || !r.q) return;
+        const q = r.q, rows = []; for (let i = 0; i < q.length; i += 10) rows.push(q.slice(i, i + 10));
+        h += '<h2>Rangkuman jawaban – ' + H_(m.title || '') + '</h2><div class="mut">Hijau = benar · merah = salah · abu-abu = tidak dijawab. Format: nomor, jawaban peserta / kunci.</div><table class="g">'
+          + rows.map(rw => '<tr>' + rw.map(v => '<td class="' + (v[4] ? 'b' : v[3] ? 's' : 'k') + '"><b>' + v[0] + '</b><br>' + (v[3] || '–') + ' / ' + v[2] + '</td>').join('') + '</tr>').join('') + '</table>'; });
+      h += '<h2>Pengawasan</h2>Pelanggaran: <b>' + viol + '</b>' + (evs.length ? ' (' + H_(evs.join(', ')) + ')' : '') + ' · Foto kamera tersimpan: <b>' + nfoto + '</b> (di folder tes ini)'
+        + sign_() + '</body></html>';
+      const tf = sub_(person, testName_(s.created_at, s.jenis, s.grade_target || s.level, sid));
+      savePdf_(tf, 'Hasil Tes ' + safe_(s.nama) + ' ' + Utilities.formatDate(new Date(s.created_at), TZ, 'yyyy-MM-dd') + '.pdf', h);
+    } else {
+      const k = e.k, dd = k.data || {}, r = e.r, kid = left8_(k.id); keepK[kid] = 1;
+      const row = (lbl, v) => '<tr><td>' + H_(lbl) + '</td><td class="c">' + (v === '' || v == null ? '–' : H_(v)) + '</td></tr>';
+      let h = head_('Penilaian Kinerja Karyawan – Plant') + '<table class="kv" style="margin-top:8px"><tr><td>Nama</td><td><b>' + H_(k.nama) + '</b></td><td>Jabatan</td><td>' + H_(k.jabatan || '–') + '</td></tr>'
+        + '<tr><td>NIK</td><td>' + H_(k.nik || '–') + '</td><td>Grade</td><td>' + H_(k.grade || '–') + '</td></tr><tr><td>Jobsite</td><td>' + H_(k.jobsite || '–') + '</td><td>Status karyawan</td><td>' + H_(k.status_karyawan || '–') + '</td></tr>'
+        + '<tr><td>Periode</td><td>' + H_(k.periode || '–') + '</td><td>Penilai</td><td>' + H_(k.penilai || '–') + '</td></tr></table>'
+        + '<h2>Ringkasan nilai</h2><table><tr><th>Bab</th><th class="n">Bobot</th><th class="n">Nilai</th></tr>'
+        + [['Kepribadian', 30, r.pK], ['Target Kinerja', 35, r.pT], ['Indisipliner', 15, r.pI], ['Kehadiran', 15, r.pH], ['Tugas Tambahan (opsional)', 5, r.pX]].map(x => '<tr><td>' + x[0] + '</td><td class="n">' + x[1] + '%</td><td class="n">' + r1(x[2]) + '</td></tr>').join('')
+        + '<tr><th>Skor kinerja</th><th></th><th class="n">' + r1(r.skor) + (e.c ? ' · ' + H_(e.c.h + ' ' + e.c.label) : '') + '</th></tr></table>'
+        + '<p><b>Keputusan:</b> ' + H_(e.kep || '–') + '</p>'
+        + '<h2>A. Kepribadian (nilai 1–4)</h2><table>' + KB_K.map((t, j) => row(t, (dd.K || [])[j])).join('') + '</table>'
+        + '<h2>B. Target Kinerja (nilai 1–4)</h2><table>' + KB_T.map((t, j) => row(t, (dd.T || [])[j])).join('') + '</table>'
+        + '<h2>C. Indisipliner (jumlah)</h2><table>' + KB_I.map(x => row(x[1], +(dd.I || {})[x[0]] || 0)).join('') + '</table>'
+        + '<h2>D. Kehadiran (total periode, ' + Math.max(1, +(dd.H || {}).bulan || 3) + ' bulan)</h2><table>' + KB_H.map(x => row(x[1], +(dd.H || {})[x[0]] || 0)).join('') + '</table>'
+        + ((dd.X || []).filter(x => x && x.t).length ? '<h2>E. Tugas Tambahan</h2><table>' + dd.X.filter(x => x && x.t).map(x => row(x.t, x.v)).join('') + '</table>' : '')
+        + '<h2>Catatan atasan</h2><table><tr><th style="width:33%">Kelebihan</th><th style="width:33%">Perlu ditingkatkan</th><th>Catatan</th></tr><tr><td>' + H_(dd.kelebihan || '–') + '</td><td>' + H_(dd.kekurangan || '–') + '</td><td>' + H_(dd.catatan || '–') + '</td></tr></table>'
+        + sign_() + '</body></html>';
+      savePdf_(person, 'Penilaian Kinerja ' + safe_(k.nama) + ' ' + Utilities.formatDate(new Date(k.created_at), TZ, 'yyyy-MM-dd') + ' - ' + kid + '.pdf', h);
+    }
+  });
+  const fi = person.getFiles(); while (fi.hasNext()) { const f = fi.next(), m = f.getName().match(/^Penilaian Kinerja .* - ([0-9a-f]{8})\.pdf$/); if (m && !keepK[m[1]]) f.setTrashed(true); }
 }
 
 function write_(ss, name, head, rows) {
