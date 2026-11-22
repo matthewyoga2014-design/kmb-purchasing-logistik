@@ -18,70 +18,70 @@
 
   const css = document.createElement('style');
   css.textContent = `
-.dsubs{display:grid;gap:1px;margin:0 0 4px 22px;padding-left:12px;border-left:2px solid var(--line,#E8E6F3)}
+.dsubs{display:grid;gap:1px;margin:0 0 4px 22px;padding-left:12px;border-left:2px solid var(--line,#ECECED)}
 .nav .dsubs button{padding:7px 10px;font-size:13px;font-weight:500;border-radius:9px}
 .nav .dsubs button[aria-current="page"]{font-weight:700}
 .nav button .dchev{margin-left:auto;transition:transform .15s;opacity:.7}
 .nav button[data-go="dashboard"] .ct + .dchev{margin-left:6px}
 .nav button .dchev.up{transform:rotate(180deg)}
 .rk-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;margin-bottom:16px}
-.rk-k{all:unset;box-sizing:border-box;cursor:pointer;background:var(--card,#fff);border:1px solid var(--line,#E8E6F3);border-radius:var(--r,14px);padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0;transition:border-color .15s,box-shadow .15s}
-.rk-k:hover,.rk-c:hover{border-color:#C9B8F5;box-shadow:0 4px 16px rgba(76,29,149,.08)}
-.rk-k:focus-visible,.rk-c:focus-visible{outline:2px solid var(--primary,#6D28D9);outline-offset:2px}
-.rk-k span{font-size:12px;font-weight:600;color:var(--ink-2,#4B4868)}
-.rk-k b{font-size:28px;font-weight:800;line-height:1.15;color:var(--ink,#1E1B3A);font-variant-numeric:tabular-nums}
-.rk-k small{font-size:11.5px;font-weight:600;color:var(--primary-ink,#5B21B6)}
+.rk-k{all:unset;box-sizing:border-box;cursor:pointer;background:var(--card,#fff);border:1px solid var(--line,#ECECED);border-radius:var(--r,14px);padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0;transition:border-color .15s,box-shadow .15s}
+.rk-k:hover,.rk-c:hover{border-color:#F4B9B9;box-shadow:0 4px 16px rgba(164,32,32,.08)}
+.rk-k:focus-visible,.rk-c:focus-visible{outline:2px solid var(--primary,#DC3737);outline-offset:2px}
+.rk-k span{font-size:12px;font-weight:600;color:var(--ink-2,#56565A)}
+.rk-k b{font-size:28px;font-weight:800;line-height:1.15;color:var(--ink,#29292C);font-variant-numeric:tabular-nums}
+.rk-k small{font-size:11.5px;font-weight:600;color:var(--primary-ink,#C52424)}
 .rk-k.g b{color:#15803D}.rk-k.r b{color:#DC2626}.rk-k.a b{color:#B45309}
-.rk-k.p{background:var(--primary,#6D28D9);border-color:var(--primary,#6D28D9)}.rk-k.p span,.rk-k.p b,.rk-k.p small{color:#fff}
+.rk-k.p{background:var(--primary,#DC3737);border-color:var(--primary,#DC3737)}.rk-k.p span,.rk-k.p b,.rk-k.p small{color:#fff}
 .rk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
-.rk-c{all:unset;box-sizing:border-box;cursor:pointer;background:var(--card,#fff);border:1px solid var(--line,#E8E6F3);border-radius:var(--r,14px);padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-width:0;min-height:236px;transition:border-color .15s,box-shadow .15s}
+.rk-c{all:unset;box-sizing:border-box;cursor:pointer;background:var(--card,#fff);border:1px solid var(--line,#ECECED);border-radius:var(--r,14px);padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-width:0;min-height:236px;transition:border-color .15s,box-shadow .15s}
 .rk-h{display:flex;align-items:flex-start;gap:10px}.rk-h>div{flex:1;min-width:0}
-.rk-h .eyebrow{font-size:10px}.rk-h h2{margin:1px 0 0;font-size:16px;font-weight:800;color:var(--ink,#1E1B3A)}
-.rk-h em{font-style:normal;font-size:12px;font-weight:700;color:var(--primary-ink,#5B21B6);white-space:nowrap}
+.rk-h .eyebrow{font-size:10px}.rk-h h2{margin:1px 0 0;font-size:16px;font-weight:800;color:var(--ink,#29292C)}
+.rk-h em{font-style:normal;font-size:12px;font-weight:700;color:var(--primary-ink,#C52424);white-space:nowrap}
 .rk-bars{display:grid;grid-template-columns:118px minmax(0,1fr) 28px;gap:6px 10px;align-items:center;font-size:12.5px}
-.rk-bars span{color:var(--ink-2,#4B4868);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rk-bars i{display:block;height:9px;border-radius:99px;background:var(--track,#ECEAF6);overflow:hidden}
-.rk-bars i u{display:block;height:100%;border-radius:99px;background:#7C3AED;text-decoration:none}
+.rk-bars span{color:var(--ink-2,#56565A);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk-bars i{display:block;height:9px;border-radius:99px;background:var(--track,#EFEFF1);overflow:hidden}
+.rk-bars i u{display:block;height:100%;border-radius:99px;background:#E55353;text-decoration:none}
 .rk-bars.v i u{background:#F06A6A}
 .rk-bars b{text-align:right;font-variant-numeric:tabular-nums}
 .rk-don{display:flex;align-items:center;gap:28px;flex:1}
 .rk-leg{display:grid;gap:10px;font-size:13px}.rk-leg div{display:flex;align-items:center;gap:10px}
-.rk-leg i{width:12px;height:12px;border-radius:4px;display:inline-block}.rk-leg span{color:var(--ink-2,#4B4868);min-width:74px}
+.rk-leg i{width:12px;height:12px;border-radius:4px;display:inline-block}.rk-leg span{color:var(--ink-2,#56565A);min-width:74px}
 .rk-st{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .rk-st div{border-radius:12px;padding:10px 12px;display:flex;flex-direction:column}
 .rk-st span{font-size:12px;font-weight:600}.rk-st b{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums}
 .rk-st .g{background:#DCFCE7}.rk-st .g span{color:#166534}.rk-st .g b{color:#15803D}
 .rk-st .a{background:#FEF3C7}.rk-st .a span{color:#92400E}.rk-st .a b{color:#B45309}
 .rk-st .r{background:#FEE2E2}.rk-st .r span{color:#991B1B}.rk-st .r b{color:#DC2626}
-.rk-row{display:flex;gap:10px}.rk-row div{flex:1;border:1px solid var(--line,#E8E6F3);border-radius:12px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;font-size:13px;gap:8px}
-.rk-row span{color:var(--ink-2,#4B4868)}.rk-row b{font-size:17px;font-variant-numeric:tabular-nums}
-.rk-empty{font-size:13px;color:var(--muted,#8A87A6);padding:8px 0}
+.rk-row{display:flex;gap:10px}.rk-row div{flex:1;border:1px solid var(--line,#ECECED);border-radius:12px;padding:9px 12px;display:flex;align-items:center;justify-content:space-between;font-size:13px;gap:8px}
+.rk-row span{color:var(--ink-2,#56565A)}.rk-row b{font-size:17px;font-variant-numeric:tabular-nums}
+.rk-empty{font-size:13px;color:var(--muted,#959598);padding:8px 0}
 .dsub-bar{display:flex;gap:8px;flex-wrap:wrap;margin:-4px 0 16px}
-.dsub-bar button{all:unset;cursor:pointer;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:99px;border:1px solid var(--line,#E8E6F3);background:var(--card,#fff);color:var(--ink-2,#4B4868)}
-.dsub-bar button[aria-current="page"]{background:var(--primary-soft,#EFE9FE);border-color:#DDD0FA;color:var(--primary-ink,#5B21B6)}
-.dsub-bar button:focus-visible{outline:2px solid var(--primary,#6D28D9);outline-offset:2px}
+.dsub-bar button{all:unset;cursor:pointer;font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:99px;border:1px solid var(--line,#ECECED);background:var(--card,#fff);color:var(--ink-2,#56565A)}
+.dsub-bar button[aria-current="page"]{background:var(--primary-soft,#FCEBEB);border-color:#F8D2D2;color:var(--primary-ink,#C52424)}
+.dsub-bar button:focus-visible{outline:2px solid var(--primary,#DC3737);outline-offset:2px}
 @media (max-width:1100px){.rk-kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.rk-grid{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:560px){.rk-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.rk-bars{grid-template-columns:96px minmax(0,1fr) 24px}.rk-don{gap:16px}.rk-don svg{width:118px;height:118px}}
-.rk-c.rk-split{cursor:default}.rk-c.rk-split:hover{border-color:var(--line,#E8E6F3);box-shadow:none}
+.rk-c.rk-split{cursor:default}.rk-c.rk-split:hover{border-color:var(--line,#ECECED);box-shadow:none}
 .rk-sub{all:unset;box-sizing:border-box;cursor:pointer;display:grid;gap:8px;border-radius:12px;padding:4px;margin:-4px}
-.rk-sub:hover{background:var(--card-2,#F7F6FD)}.rk-sub:focus-visible{outline:2px solid var(--primary,#6D28D9);outline-offset:2px}
-.rk-sub small{font-size:11.5px;font-weight:700;color:var(--primary-ink,#5B21B6)}
+.rk-sub:hover{background:var(--card-2,#F9F9FA)}.rk-sub:focus-visible{outline:2px solid var(--primary,#DC3737);outline-offset:2px}
+.rk-sub small{font-size:11.5px;font-weight:700;color:var(--primary-ink,#C52424)}
 .up-card .ch{margin-bottom:10px}
-.up-tw{overflow-x:auto;border:1px solid var(--line,#E8E6F3);border-radius:12px}
+.up-tw{overflow-x:auto;border:1px solid var(--line,#ECECED);border-radius:12px}
 .up-t{width:100%;border-collapse:collapse;font-size:12.5px}
-.up-t th{background:var(--card-2,#F7F6FD);color:var(--ink-2,#4B4868);font-size:11.5px;font-weight:700;text-align:left;padding:8px 12px;white-space:nowrap;border-bottom:1px solid var(--line,#E8E6F3)}
-.up-t td{padding:8px 12px;border-bottom:1px solid var(--line,#E8E6F3);vertical-align:middle}
-.up-t tr:last-child td{border-bottom:0}.up-t tfoot td{background:var(--card-2,#F7F6FD);font-weight:800}
+.up-t th{background:var(--card-2,#F9F9FA);color:var(--ink-2,#56565A);font-size:11.5px;font-weight:700;text-align:left;padding:8px 12px;white-space:nowrap;border-bottom:1px solid var(--line,#ECECED)}
+.up-t td{padding:8px 12px;border-bottom:1px solid var(--line,#ECECED);vertical-align:middle}
+.up-t tr:last-child td{border-bottom:0}.up-t tfoot td{background:var(--card-2,#F9F9FA);font-weight:800}
 .up-t td.u{font-weight:700;white-space:nowrap}
 .up-n{display:flex;align-items:center;gap:8px;min-width:120px}.up-n b{min-width:22px;text-align:right;font-variant-numeric:tabular-nums}
-.up-n i{flex:1;height:7px;border-radius:99px;background:var(--track,#ECEAF6);overflow:hidden;display:block}.up-n i u{display:block;height:100%;background:#7C3AED;border-radius:99px}
-.uc{display:inline-flex;align-items:center;gap:5px;margin:2px 8px 2px 0;white-space:nowrap;color:var(--ink,#1E1B3A)}
-.uc i{width:8px;height:8px;border-radius:50%;background:#B9B6CC;display:inline-block}.uc b{font-variant-numeric:tabular-nums}
-.uc.g i{background:#16A34A}.uc.a i{background:#F59E0B}.uc.r i{background:#DC2626}.uc.n{color:var(--muted,#8A87A6)}
+.up-n i{flex:1;height:7px;border-radius:99px;background:var(--track,#EFEFF1);overflow:hidden;display:block}.up-n i u{display:block;height:100%;background:#E55353;border-radius:99px}
+.uc{display:inline-flex;align-items:center;gap:5px;margin:2px 8px 2px 0;white-space:nowrap;color:var(--ink,#29292C)}
+.uc i{width:8px;height:8px;border-radius:50%;background:#C0C0C2;display:inline-block}.uc b{font-variant-numeric:tabular-nums}
+.uc.g i{background:#16A34A}.uc.a i{background:#F59E0B}.uc.r i{background:#DC2626}.uc.n{color:var(--muted,#959598)}
 .ucfg{position:relative}.ucfg summary{list-style:none;cursor:pointer}.ucfg summary::-webkit-details-marker{display:none}
-.ucfg .ucfg-p{position:absolute;right:0;top:calc(100% + 6px);z-index:20;background:#fff;border:1px solid var(--line,#E8E6F3);border-radius:12px;box-shadow:0 12px 32px rgba(30,27,58,.14);padding:12px 14px;min-width:230px;display:grid;gap:8px}
-.ucfg label{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}.ucfg .ucfg-p p{margin:0;font-size:11.5px;color:var(--muted,#8A87A6)}
-.rkm{position:relative;display:inline-block}.rkm summary{list-style:none;cursor:pointer}.rkm summary::-webkit-details-marker{display:none}.rkm-p{position:absolute;right:0;top:calc(100% + 6px);z-index:30;background:#fff;border:1px solid var(--line,#E8E6F3);border-radius:12px;box-shadow:0 12px 32px rgba(30,27,58,.14);padding:6px;min-width:200px;display:grid;gap:2px}.rkm-p button{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--ink,#1E1B3A)}.rkm-p button:hover,.rkm-p button:focus-visible{background:var(--primary-soft,#EFE9FE);color:var(--primary-ink,#5B21B6)}
+.ucfg .ucfg-p{position:absolute;right:0;top:calc(100% + 6px);z-index:20;background:#fff;border:1px solid var(--line,#ECECED);border-radius:12px;box-shadow:0 12px 32px rgba(41,41,44,.14);padding:12px 14px;min-width:230px;display:grid;gap:8px}
+.ucfg label{display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer}.ucfg .ucfg-p p{margin:0;font-size:11.5px;color:var(--muted,#959598)}
+.rkm{position:relative;display:inline-block}.rkm summary{list-style:none;cursor:pointer}.rkm summary::-webkit-details-marker{display:none}.rkm-p{position:absolute;right:0;top:calc(100% + 6px);z-index:30;background:#fff;border:1px solid var(--line,#ECECED);border-radius:12px;box-shadow:0 12px 32px rgba(41,41,44,.14);padding:6px;min-width:200px;display:grid;gap:2px}.rkm-p button{all:unset;cursor:pointer;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;font-size:13.5px;font-weight:600;color:var(--ink,#29292C)}.rkm-p button:hover,.rkm-p button:focus-visible{background:var(--primary-soft,#FCEBEB);color:var(--primary-ink,#C52424)}
 @media print{#rkBtn,.dsub-bar,.ucfg,.up-card [data-go]{display:none!important}.up-tw{overflow:visible}}`;
   document.head.appendChild(css);
 
@@ -158,7 +158,7 @@
     const bars = st.map(([l, n]) => `<span>${l}</span><i><u style="width:${Math.round((n || 0) / mx * 100)}%"></u></i><b>${n || 0}</b>`).join('');
     // pemenuhan
     const pct = D.planning ? Math.round(D.actual / D.planning * 100) : 0, C = 2 * Math.PI * 54;
-    const donut = `<svg width="140" height="140" viewBox="0 0 140 140" role="img" aria-label="Pemenuhan MPP ${pct} persen"><circle cx="70" cy="70" r="54" fill="none" stroke="#FEE2E2" stroke-width="18"/><circle cx="70" cy="70" r="54" fill="none" stroke="#7C3AED" stroke-width="18" stroke-dasharray="${(C * pct / 100).toFixed(1)} ${C.toFixed(1)}" stroke-linecap="${pct > 0 && pct < 100 ? 'round' : 'butt'}" transform="rotate(-90 70 70)"/><text x="70" y="72" text-anchor="middle" font-size="26" font-weight="800" fill="#1E1B3A" font-family="inherit">${pct}%</text><text x="70" y="92" text-anchor="middle" font-size="11" fill="#6E6A8C" font-family="inherit">terisi</text></svg>`;
+    const donut = `<svg width="140" height="140" viewBox="0 0 140 140" role="img" aria-label="Pemenuhan MPP ${pct} persen"><circle cx="70" cy="70" r="54" fill="none" stroke="#FEE2E2" stroke-width="18"/><circle cx="70" cy="70" r="54" fill="none" stroke="#E55353" stroke-width="18" stroke-dasharray="${(C * pct / 100).toFixed(1)} ${C.toFixed(1)}" stroke-linecap="${pct > 0 && pct < 100 ? 'round' : 'butt'}" transform="rotate(-90 70 70)"/><text x="70" y="72" text-anchor="middle" font-size="26" font-weight="800" fill="#29292C" font-family="inherit">${pct}%</text><text x="70" y="92" text-anchor="middle" font-size="11" fill="#79797D" font-family="inherit">terisi</text></svg>`;
     // vacant terbanyak
     const vac = Object.entries(D.vacJab || {}).map(([j, ps]) => [j, ps.length, ps.reduce((a, p) => a + candidates(p).filter(isAct).length, 0)]).sort((a, b) => b[1] - a[1]);
     const vmx = Math.max(1, ...vac.map((v) => v[1]));
@@ -179,7 +179,7 @@
     <button type="button" class="rk-c" data-dsub="progress"><div class="rk-h"><div><div class="eyebrow">Recruitment Pipeline</div><h2>Progress Rekrutmen</h2></div><em>Lihat detail →</em></div>
       <div class="rk-bars">${bars}</div></button>
     <button type="button" class="rk-c" data-dsub="progress"><div class="rk-h"><div><div class="eyebrow">Composition</div><h2>Pemenuhan MPP</h2></div><em>Lihat detail →</em></div>
-      <div class="rk-don">${donut}<div class="rk-leg"><div><i style="background:#7C3AED"></i><span>Actual</span><b>${D.actual}</b></div><div><i style="background:#FCA5A5"></i><span>Vacant</span><b>${D.vacant}</b></div><div><i style="background:#E8E6F3"></i><span>Planning</span><b>${D.planning}</b></div></div></div></button>
+      <div class="rk-don">${donut}<div class="rk-leg"><div><i style="background:#E55353"></i><span>Actual</span><b>${D.actual}</b></div><div><i style="background:#FCA5A5"></i><span>Vacant</span><b>${D.vacant}</b></div><div><i style="background:#ECECED"></i><span>Planning</span><b>${D.planning}</b></div></div></div></button>
     <button type="button" class="rk-c" data-dsub="vacant"><div class="rk-h"><div><div class="eyebrow">Vacancy</div><h2>Vacant terbanyak</h2></div><em>Vacant per Jabatan →</em></div>${vbars}</button>
     <div class="rk-c rk-split"><div class="rk-h"><div><div class="eyebrow">Status PTK &amp; Unit</div><h2>Due Date PTK &amp; Populasi Unit</h2></div></div>
       <button type="button" class="rk-sub" data-dsub="vacant"><div class="rk-st"><div class="g"><span>On Track</span><b>${track}</b></div><div class="a"><span>Hampir jatuh tempo</span><b>${soon}</b></div><div class="r"><span>Jatuh tempo</span><b>${late}</b></div></div><small>Status PTK di Vacant per Jabatan →</small></button>
@@ -352,7 +352,7 @@
       td.c{text-align:center}td.nm{font-size:10pt;line-height:1.35;padding-top:3px;padding-bottom:3px}.op{color:#C00000;font-weight:700}.ok{color:#15803D;font-weight:700}.ca{font-weight:700;color:#000}.cx{text-decoration:line-through;color:#555}.hl{color:#B45309;font-weight:800}.kp+.kp{margin-top:4px;padding-top:4px;border-top:1px dotted #999}.kl{font-size:9pt}td.kt{font-size:9.5pt;line-height:1.35;padding-top:3px;padding-bottom:3px}td.r{text-align:right;padding-right:8px}
       tfoot td{background:#D9D9D9;border-left:0;border-right:0}tfoot td:first-child{border-left:1px dotted #555}tfoot td:last-child{border-right:1px dotted #555}
     </style></head><body><h1>Rekap Manpower Planning ${E(rkName())}</h1><p class="s">Per ${rkDate()} · <span class="op">Merah</span> = posisi open · <span class="hl">HOLD</span> = rekrutmen ditunda · <span class="ok">Terisi</span> = karyawan yang sudah ada · <span class="ok">Terpenuhi</span> = tidak ada posisi open · Pelamar: Nama - Tahap - Keterangan (aktif <b>tebal</b>, tidak aktif <span class="cx">dicoret</span>).</p>
-      ${sites.map(([n, d]) => rkTable(n, d)).join('')}${sites.split ? (() => { const g = rkGrand(sites); return `<table style="margin-top:-4px"><colgroup><col style="width:45%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:32.5%"></colgroup><tr><td style="background:#6D28D9;color:#fff;font-weight:700;border:1px solid #555">TOTAL ${E(rkName())} (${sites.map(([n]) => E(n.replace(rkName(), '').trim() || n)).join(' + ')})</td><td class="r" style="background:#6D28D9;color:#fff;font-weight:700;border:1px solid #555">${g.pl}</td><td class="r" style="background:#6D28D9;color:#fff;font-weight:700;border:1px solid #555">${g.ac}</td><td class="r" style="background:#6D28D9;color:#fff;font-weight:700;border:1px solid #555">${g.vc}</td><td style="background:#6D28D9;border:1px solid #555"></td></tr></table>`; })() : ''}</body></html>`;
+      ${sites.map(([n, d]) => rkTable(n, d)).join('')}${sites.split ? (() => { const g = rkGrand(sites); return `<table style="margin-top:-4px"><colgroup><col style="width:45%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:7.5%"><col style="width:32.5%"></colgroup><tr><td style="background:#DC3737;color:#fff;font-weight:700;border:1px solid #555">TOTAL ${E(rkName())} (${sites.map(([n]) => E(n.replace(rkName(), '').trim() || n)).join(' + ')})</td><td class="r" style="background:#DC3737;color:#fff;font-weight:700;border:1px solid #555">${g.pl}</td><td class="r" style="background:#DC3737;color:#fff;font-weight:700;border:1px solid #555">${g.ac}</td><td class="r" style="background:#DC3737;color:#fff;font-weight:700;border:1px solid #555">${g.vc}</td><td style="background:#DC3737;border:1px solid #555"></td></tr></table>`; })() : ''}</body></html>`;
     let fr = document.getElementById('rkFrame'); if (fr) fr.remove();
     fr = document.createElement('iframe'); fr.id = 'rkFrame'; fr.setAttribute('aria-hidden', 'true');
     fr.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';

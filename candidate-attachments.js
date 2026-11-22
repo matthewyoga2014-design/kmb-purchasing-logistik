@@ -29,14 +29,14 @@ function ctx(){
   }catch(e){console.error(e);return null}
 }
 const css=document.createElement("style");css.textContent=`
-.kmb-attach{margin-top:7px;padding:9px;border-radius:9px;background:#f5f3ff;border:1px solid #e5defa;font-size:11px}
+.kmb-attach{margin-top:7px;padding:9px;border-radius:9px;background:#fdf5f5;border:1px solid #eaeaee;font-size:11px}
 .kmb-attach-bar{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
-.kmb-attach-btn{border:1px solid #c7b5f0;border-radius:7px;padding:6px 9px;background:#fff;color:#6d28d9;font-size:11px;font-weight:700;cursor:pointer}
+.kmb-attach-btn{border:1px solid #f0b5b5;border-radius:7px;padding:6px 9px;background:#fff;color:#dc3737;font-size:11px;font-weight:700;cursor:pointer}
 .kmb-attach-files{margin-top:7px;display:flex;gap:6px;flex-wrap:wrap}
-.kmb-file{display:flex;align-items:center;gap:5px;background:white;padding:4px 7px;border:1px solid #ded6f7;border-radius:7px}
-.kmb-file a{color:#5b21b6;text-decoration:underline;cursor:pointer}
+.kmb-file{display:flex;align-items:center;gap:5px;background:white;padding:4px 7px;border:1px solid #e5e5e8;border-radius:7px}
+.kmb-file a{color:#c52424;text-decoration:underline;cursor:pointer}
 .kmb-file button{border:0;background:#fee2e2;border-radius:5px;color:#b91c1c;cursor:pointer}
-.kmb-attach-hint{color:#7c7292;font-size:10px}
+.kmb-attach-hint{color:#808084;font-size:10px}
 `;document.head.appendChild(css);
 function isStaff(){return ["owner","editor"].includes(window.accessMode?.())}
 async function renderAttachments(scope,stage,host){

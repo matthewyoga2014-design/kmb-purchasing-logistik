@@ -13,13 +13,13 @@ style.textContent=`
 #statusCards .mini b,#dueCards .mini b{color:inherit;font-weight:850}
 #statusCards .mini span,#dueCards .mini span{color:inherit}
 .kmb-stage-guide{grid-column:1/-1;background:#f8f9ff;border:1px solid #dce2fa;border-radius:12px;padding:14px;margin:7px 0 15px}
-.kmb-stage-guide strong{font-size:13px;color:#263456}
+.kmb-stage-guide strong{font-size:13px;color:#3B3B41}
 .kmb-stage-track{display:flex;flex-wrap:wrap;gap:5px;margin-top:11px}
-.kmb-stage-chip{border-radius:8px;background:#e8ebf1;color:#64748b;font-size:10px;padding:7px 9px;font-weight:700}
+.kmb-stage-chip{border-radius:8px;background:#ececed;color:#64748b;font-size:10px;padding:7px 9px;font-weight:700}
 .kmb-stage-chip.done{background:#ddf7e7;color:#17623f}
-.kmb-stage-chip.now{background:#e8defe;color:#6331af;box-shadow:inset 0 0 0 1px #a581e8}
-.kmb-stage-meter{height:7px;background:#e3e8f1;border-radius:99px;overflow:hidden;margin-top:12px}
-.kmb-stage-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#26ad83);transition:width .25s}
+.kmb-stage-chip.now{background:#fbe1e1;color:#bd3535;box-shadow:inset 0 0 0 1px #e88181}
+.kmb-stage-meter{height:7px;background:#e9e9eb;border-radius:99px;overflow:hidden;margin-top:12px}
+.kmb-stage-fill{height:100%;background:linear-gradient(90deg,#e55353,#26ad83);transition:width .25s}
 .kmb-days-urgent{color:#b91c1c!important;background:#fee2e2;border-radius:7px;font-weight:750;padding:3px 7px}
 .kmb-days-near{color:#92400e!important;background:#fef3c7;border-radius:7px;font-weight:750;padding:3px 7px}
 .kmb-days-good{color:#166534!important;background:#dcfce7;border-radius:7px;font-weight:750;padding:3px 7px}
