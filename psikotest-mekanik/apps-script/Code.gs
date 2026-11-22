@@ -291,9 +291,25 @@ function pdfs_(person, p, g, mods, att, ans) {
         + '<h2>Penguasaan per topik</h2><table><tr><th>Topik</th><th class="n">Benar / soal</th><th class="n">%</th></tr>' + tl.map(t => '<tr><td>' + H_(t[0]) + '</td><td class="n">' + t[2][0] + ' / ' + t[2][1] + '</td><td class="n">' + Math.round(t[1]) + '%</td></tr>').join('') + '</table>'
         + '<table style="margin-top:8px"><tr><th style="width:50%">Kekuatan (≥ 80%)</th><th>Perlu ditingkatkan (&lt; 60%)</th></tr><tr><td>' + (tl.filter(t => t[1] >= 80).map(t => H_(t[0])).join('<br>') || '–') + '</td><td>' + (tl.filter(t => t[1] < 60).map(t => H_(t[0])).join('<br>') || '–') + '</td></tr></table>';
       done.forEach(x => { const r = ans.find(y => y.a === x.id), m = mods.find(y => y.id === x.module_id) || {}; if (!r || !r.q) return;
-        const q = r.q, rows = []; for (let i = 0; i < q.length; i += 10) rows.push(q.slice(i, i + 10));
-        h += '<h2>Rangkuman jawaban – ' + H_(m.title || '') + '</h2><div class="mut">Hijau = benar · merah = salah · abu-abu = tidak dijawab. Format: nomor, jawaban peserta / kunci.</div><table class="g">'
-          + rows.map(rw => '<tr>' + rw.map(v => '<td class="' + (v[4] ? 'b' : v[3] ? 's' : 'k') + '"><b>' + v[0] + '</b><br>' + (v[3] || '–') + ' / ' + v[2] + '</td>').join('') + '</tr>').join('') + '</table>'; });
+        const q = r.q, nb = q.filter(v => v[4]).length, nk = q.filter(v => !v[3]).length, ns = q.length - nb - nk, rows = [];
+        const mark = v => v[4] ? '✔ Benar' : v[3] ? '✘ Salah' : '– Kosong';
+        for (let i = 0; i < q.length; i += 10) rows.push(q.slice(i, i + 10));
+        h += '<h2>Rangkuman jawaban – ' + H_(m.title || '') + '</h2><p><b>✔ Benar: ' + nb + '</b> &nbsp; · &nbsp; <b>✘ Salah: ' + ns + '</b> &nbsp; · &nbsp; <b>– Tidak dijawab: ' + nk + '</b> &nbsp; (dari ' + q.length + ' soal)</p>'
+          + '<div class="mut">Tiap kotak: nomor soal, tanda ✔ benar / ✘ salah / – kosong, lalu <b>J</b> = jawaban peserta dan <b>K</b> = kunci jawaban.</div><table class="g">'
+          + rows.map(rw => '<tr>' + rw.map(v => '<td class="' + (v[4] ? 'b' : v[3] ? 's' : 'k') + '"><b>' + v[0] + (v[4] ? ' ✔' : v[3] ? ' ✘' : ' –') + '</b><br>J: ' + (v[3] || '–') + ' · K: ' + v[2] + '</td>').join('') + '</tr>').join('') + '</table>';
+        const wrong = q.filter(v => !v[4]);
+        if (wrong.length) {
+          h += '<h2>Rincian soal yang salah / tidak dijawab – ' + H_(m.title || '') + ' (' + wrong.length + ' soal)</h2>';
+          wrong.forEach(v => { const op = v[6] || {};
+            h += '<table style="margin-bottom:8px"><tr><th style="width:80px">No. ' + v[0] + '</th><th>' + H_(v[5] || '') + ' <span class="mut">(Topik: ' + H_(v[1]) + ')</span></th></tr>'
+              + (v[7] ? '<tr><td></td><td><img src="https://drive.google.com/thumbnail?id=' + encodeURIComponent(v[7]) + '&sz=w600" style="max-width:320px;max-height:200px"></td></tr>' : '')
+              + Object.keys(op).sort().map(l => { const L = l.toUpperCase(), isK = L === v[2], isJ = L === v[3];
+                  return '<tr><td class="c">' + (isK ? '<b>✔ KUNCI</b>' : isJ ? '<b>✘ DIPILIH</b>' : '') + '</td><td>' + (isK || isJ ? '<b>' : '') + L + '. ' + H_(op[l]) + (isK || isJ ? '</b>' : '') + '</td></tr>'; }).join('')
+              + '<tr><td></td><td>Jawaban peserta: <b>' + (v[3] || 'tidak dijawab') + '</b> · Kunci: <b>' + v[2] + '</b></td></tr></table>'; });
+        }
+        h += '<h2>Lampiran – daftar semua jawaban ' + H_(m.title || '') + '</h2><table><tr><th class="c" style="width:40px">No</th><th style="width:120px">Topik</th><th>Soal</th><th class="c" style="width:60px">Jawaban</th><th class="c" style="width:50px">Kunci</th><th style="width:70px">Hasil</th></tr>'
+          + q.map(v => '<tr><td class="c">' + v[0] + '</td><td>' + H_(v[1]) + '</td><td>' + H_(String(v[5] || '').slice(0, 110)) + (String(v[5] || '').length > 110 ? '…' : '') + (v[7] ? ' [gambar]' : '') + '</td><td class="c"><b>' + (v[3] || '–') + '</b></td><td class="c"><b>' + v[2] + '</b></td><td><b>' + mark(v) + '</b></td></tr>').join('') + '</table>';
+      });
       h += '<h2>Pengawasan</h2>Pelanggaran: <b>' + viol + '</b>' + (evs.length ? ' (' + H_(evs.join(', ')) + ')' : '') + ' · Foto kamera tersimpan: <b>' + nfoto + '</b> (di folder tes ini)'
         + sign_() + '</body></html>';
       const tf = sub_(person, testName_(s.created_at, s.jenis, s.grade_target || s.level, sid));
