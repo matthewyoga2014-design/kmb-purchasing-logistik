@@ -237,18 +237,18 @@
   .kta-sv{display:flex;align-items:center;gap:10px;flex-shrink:0}
   .kta-st{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;border-radius:99px;padding:5px 12px;white-space:nowrap}
   .kta-st i{width:8px;height:8px;border-radius:99px;background:currentColor}
-  .kta-st.ok{color:var(--ink-2,#4B4868);background:transparent;font-weight:600}.kta-st.ok i{background:var(--good,#15803D)}
+  .kta-st.ok{color:var(--ink-2,#56565A);background:transparent;font-weight:600}.kta-st.ok i{background:var(--good,#15803D)}
   .kta-st.dirty{color:#9A3412;background:#FFF7ED;border:1px solid #FED7AA}.kta-st.dirty i{background:#EA580C}
   .kta-st.wait{color:#1E40AF;background:var(--info-soft,#DBEAFE)}
   .kta-split{display:flex;border-radius:12px;overflow:hidden;position:relative}
   .kta-split>button{border:0;font:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center}
-  .kta-main{gap:9px;padding:0 18px;height:44px;font-size:14.5px;font-weight:800;background:var(--primary,#6D28D9);color:#fff}
-  .kta-caret{width:40px;height:44px;background:#5B21B6;color:#fff;border-left:1px solid #8B5CF6 !important}
-  .kta-split.quiet .kta-main{background:#F5F3FF;color:#5B21B6}.kta-split.quiet .kta-caret{background:#EDE9FE;color:#5B21B6;border-left:1px solid #DDD6FE !important}
-  .kta-split.quiet{border:1px solid #DDD6FE}
-  .kta-menu{position:absolute;right:0;top:50px;min-width:270px;background:#fff;border:1px solid var(--line,#E8E6F3);border-radius:12px;padding:6px;box-shadow:0 12px 30px rgba(30,27,58,.14);z-index:60;display:flex;flex-direction:column}
-  .kta-menu button{all:unset;cursor:pointer;padding:10px 12px;border-radius:8px;font-size:13.5px;font-weight:600;color:var(--ink,#1E1B3A);display:flex;justify-content:space-between;gap:10px}
-  .kta-menu button:hover,.kta-menu button:focus-visible{background:#F5F3FF}
+  .kta-main{gap:9px;padding:0 18px;height:44px;font-size:14.5px;font-weight:800;background:var(--primary,#DC3737);color:#fff}
+  .kta-caret{width:40px;height:44px;background:#C52424;color:#fff;border-left:1px solid #EB7979 !important}
+  .kta-split.quiet .kta-main{background:#FDF5F5;color:#C52424}.kta-split.quiet .kta-caret{background:#FCEBEB;color:#C52424;border-left:1px solid #FADADA !important}
+  .kta-split.quiet{border:1px solid #FADADA}
+  .kta-menu{position:absolute;right:0;top:50px;min-width:270px;background:#fff;border:1px solid var(--line,#ECECED);border-radius:12px;padding:6px;box-shadow:0 12px 30px rgba(41,41,44,.14);z-index:60;display:flex;flex-direction:column}
+  .kta-menu button{all:unset;cursor:pointer;padding:10px 12px;border-radius:8px;font-size:13.5px;font-weight:600;color:var(--ink,#29292C);display:flex;justify-content:space-between;gap:10px}
+  .kta-menu button:hover,.kta-menu button:focus-visible{background:#FDF5F5}
   .kta-menu button.danger{color:#B91C1C}
   .kta-menu .ct{font-size:11px;font-weight:800;border-radius:99px;padding:1px 8px;background:#FEE2E2;color:#B91C1C}
   .kta-banner{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:12px;padding:11px 16px;color:#1E3A8A;font-size:13px;margin:0 0 16px}
@@ -259,46 +259,46 @@
   tr.kta-rev>td:first-child{box-shadow:inset 3px 0 0 #CA8A04,inset 0 1px 0 #FDE047,inset 0 -1px 0 #FDE047}
   tr.kta-chg>td{background:#FFF7ED !important;box-shadow:inset 0 1px 0 #FDBA74,inset 0 -1px 0 #FDBA74}
   tr.kta-chg>td:first-child{box-shadow:inset 3px 0 0 #EA580C,inset 0 1px 0 #FDBA74,inset 0 -1px 0 #FDBA74}
-  #ktaP{position:fixed;inset:0;z-index:90;background:rgba(30,27,58,.5);display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto}
+  #ktaP{position:fixed;inset:0;z-index:90;background:rgba(41,41,44,.5);display:flex;align-items:flex-start;justify-content:center;padding:4vh 12px;overflow:auto}
   #ktaP[hidden]{display:none}
-  #ktaP .pn{width:min(1100px,100%);background:var(--bg,#F2F1FA);border-radius:18px;box-shadow:0 30px 70px rgba(30,27,58,.3);overflow:hidden}
-  #ktaP .ph{display:flex;align-items:center;gap:12px;background:#fff;border-bottom:1px solid var(--line,#E8E6F3);padding:14px 18px}
+  #ktaP .pn{width:min(1100px,100%);background:var(--bg,#F5F5F6);border-radius:18px;box-shadow:0 30px 70px rgba(41,41,44,.3);overflow:hidden}
+  #ktaP .ph{display:flex;align-items:center;gap:12px;background:#fff;border-bottom:1px solid var(--line,#ECECED);padding:14px 18px}
   #ktaP .ph h2{margin:0;font-size:18px;flex:1}
   #ktaP .tabs{display:flex;gap:6px;flex-wrap:wrap;padding:12px 18px 0}
-  #ktaP .tabs button{border:1px solid var(--line,#E8E6F3);background:#fff;border-radius:99px;padding:7px 14px;font:inherit;font-weight:700;font-size:13px;color:var(--ink-2,#4B4868);cursor:pointer}
-  #ktaP .tabs button[aria-pressed=true]{background:#EFE9FE;border-color:#DDD0FA;color:#5B21B6}
+  #ktaP .tabs button{border:1px solid var(--line,#ECECED);background:#fff;border-radius:99px;padding:7px 14px;font:inherit;font-weight:700;font-size:13px;color:var(--ink-2,#56565A);cursor:pointer}
+  #ktaP .tabs button[aria-pressed=true]{background:#FCEBEB;border-color:#F8D2D2;color:#C52424}
   #ktaP .pb{padding:16px 18px 22px;display:flex;flex-direction:column;gap:14px}
-  #ktaP .cd{background:#fff;border:1px solid var(--line,#E8E6F3);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+  #ktaP .cd{background:#fff;border:1px solid var(--line,#ECECED);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
   #ktaP .cd.or{border:1.5px solid #FDBA74}
   #ktaP .row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   #ktaP .who{flex:1;min-width:200px;display:flex;flex-direction:column}
-  #ktaP .who small{color:var(--muted,#8A87A6);font-size:12px}
+  #ktaP .who small{color:var(--muted,#959598);font-size:12px}
   #ktaP .tag{font-size:11.5px;font-weight:800;border-radius:99px;padding:3px 10px;white-space:nowrap}
-  #ktaP .t-blue{background:#DBEAFE;color:#1E40AF}#ktaP .t-or{background:#FFEDD5;color:#9A3412}#ktaP .t-green{background:#DCFCE7;color:#166534}#ktaP .t-red{background:#FEE2E2;color:#991B1B}#ktaP .t-gray{background:#F2F1FA;color:#4B4868}
+  #ktaP .t-blue{background:#DBEAFE;color:#1E40AF}#ktaP .t-or{background:#FFEDD5;color:#9A3412}#ktaP .t-green{background:#DCFCE7;color:#166534}#ktaP .t-red{background:#FEE2E2;color:#991B1B}#ktaP .t-gray{background:#F5F5F6;color:#56565A}
   #ktaP table{width:100%;border-collapse:collapse;font-size:13px}
-  #ktaP th{background:#F7F6FD;text-align:left;font-size:12px;color:var(--ink-2,#4B4868);padding:8px 10px;border-bottom:1px solid var(--line,#E8E6F3);white-space:nowrap}
-  #ktaP td{padding:8px 10px;border-bottom:1px solid #EFEDF7;vertical-align:top}
-  #ktaP td s{color:var(--muted,#8A87A6)} #ktaP td.nw{white-space:nowrap}
-  #ktaP .wrap{overflow:auto;border:1px solid #EFEDF7;border-radius:10px;background:#fff}
+  #ktaP th{background:#F9F9FA;text-align:left;font-size:12px;color:var(--ink-2,#56565A);padding:8px 10px;border-bottom:1px solid var(--line,#ECECED);white-space:nowrap}
+  #ktaP td{padding:8px 10px;border-bottom:1px solid #F1F1F3;vertical-align:top}
+  #ktaP td s{color:var(--muted,#959598)} #ktaP td.nw{white-space:nowrap}
+  #ktaP .wrap{overflow:auto;border:1px solid #F1F1F3;border-radius:10px;background:#fff}
   #ktaP .warn{color:#B45309;font-size:11.5px;font-weight:700}
   #ktaP .days{display:flex;gap:6px;overflow:auto}
-  #ktaP .days button{flex:1 0 108px;border:1px solid var(--line,#E8E6F3);background:#fff;border-radius:12px;padding:8px;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
-  #ktaP .days button small{font-size:11.5px;color:var(--muted,#8A87A6)} #ktaP .days button b{font-size:13px}
-  #ktaP .days button[aria-pressed=true]{border:2px solid #6D28D9;background:#EFE9FE}
+  #ktaP .days button{flex:1 0 108px;border:1px solid var(--line,#ECECED);background:#fff;border-radius:12px;padding:8px;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+  #ktaP .days button small{font-size:11.5px;color:var(--muted,#959598)} #ktaP .days button b{font-size:13px}
+  #ktaP .days button[aria-pressed=true]{border:2px solid #DC3737;background:#FCEBEB}
   #ktaP .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
-  #ktaP .kpi{background:#fff;border:1px solid var(--line,#E8E6F3);border-radius:12px;padding:10px 14px;display:flex;flex-direction:column}
-  #ktaP .kpi span{font-size:12px;font-weight:600;color:var(--ink-2,#4B4868)} #ktaP .kpi b{font-size:22px}
+  #ktaP .kpi{background:#fff;border:1px solid var(--line,#ECECED);border-radius:12px;padding:10px 14px;display:flex;flex-direction:column}
+  #ktaP .kpi span{font-size:12px;font-weight:600;color:var(--ink-2,#56565A)} #ktaP .kpi b{font-size:22px}
   #ktaP .fld{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700}
-  #ktaP .fld input,#ktaP .fld select,#ktaP textarea{font:inherit;font-weight:500;border:1px solid var(--line,#E8E6F3);border-radius:10px;padding:9px 12px;background:#fff}
+  #ktaP .fld input,#ktaP .fld select,#ktaP textarea{font:inherit;font-weight:500;border:1px solid var(--line,#ECECED);border-radius:10px;padding:9px 12px;background:#fff}
   #ktaP .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
-  #ktaP .lk{display:flex;gap:8px;flex-wrap:wrap} #ktaP .lk a{border:1px solid #DDD6FE;background:#F5F3FF;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700;color:#5B21B6;text-decoration:none}
-  #ktaP .empty{color:var(--muted,#8A87A6);font-size:13px;padding:14px;text-align:center}
-  #ktaLeave{position:fixed;inset:0;z-index:95;background:rgba(30,27,58,.55);display:flex;align-items:center;justify-content:center;padding:16px}
+  #ktaP .lk{display:flex;gap:8px;flex-wrap:wrap} #ktaP .lk a{border:1px solid #FADADA;background:#FDF5F5;border-radius:10px;padding:8px 12px;font-size:13px;font-weight:700;color:#C52424;text-decoration:none}
+  #ktaP .empty{color:var(--muted,#959598);font-size:13px;padding:14px;text-align:center}
+  #ktaLeave{position:fixed;inset:0;z-index:95;background:rgba(41,41,44,.55);display:flex;align-items:center;justify-content:center;padding:16px}
   #ktaLeave[hidden]{display:none}
   #ktaLeave .bx{width:min(560px,100%);background:#fff;border-radius:20px;padding:24px;display:flex;flex-direction:column;gap:16px}
   #ktaLeave h2{margin:0;font-size:19px}
-  #ktaLeave .ls{border:1px solid var(--line,#E8E6F3);border-radius:12px;max-height:200px;overflow:auto;font-size:13px}
-  #ktaLeave .ls div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:8px 12px;border-bottom:1px solid #EFEDF7}
+  #ktaLeave .ls{border:1px solid var(--line,#ECECED);border-radius:12px;max-height:200px;overflow:auto;font-size:13px}
+  #ktaLeave .ls div{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;padding:8px 12px;border-bottom:1px solid #F1F1F3}
   #ktaLeave .b3{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   #ktaLeave .bigb{height:48px;font-size:15px;font-weight:800}
   @media (max-width:720px){.kta-st{display:none}.kta-main span{display:none}.kta-main{padding:0 14px}}
@@ -466,12 +466,12 @@
     const rows = A.ops.slice(0, 60).map((o) => `<div><span><b>${h(o.l)}</b> · ${h(opText(o))}</span><span><s>${h(opOld(o))}</s> → <b style="color:#9A3412">${h(opNew(o))}</b></span></div>`).join('') + (A.ops.length > 60 ? `<div><span>… dan ${A.ops.length - 60} perubahan lain</span><span></span></div>` : '');
     el.querySelector('.bx').innerHTML = `
       <h2 id="ktaLT">${leaving ? `Ada ${A.ops.length} perubahan yang belum disimpan` : `Ajukan ${A.ops.length} perubahan`}</h2>
-      <p style="margin:-6px 0 0;color:var(--ink-2,#4B4868);font-size:14px">${leaving ? 'Pilih dulu sebelum keluar dari halaman ini.' : 'Perubahan akan dikirim ke Pemilik/PIC untuk disetujui.'}</p>
+      <p style="margin:-6px 0 0;color:var(--ink-2,#56565A);font-size:14px">${leaving ? 'Pilih dulu sebelum keluar dari halaman ini.' : 'Perubahan akan dikirim ke Pemilik/PIC untuk disetujui.'}</p>
       <div class="ls">${rows}</div>
-      <label class="fld" style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700">Catatan untuk Pemilik (opsional)<input type="text" id="ktaNote" maxlength="300" placeholder="Contoh: sesuai OL tanggal 14 Nov" style="font:inherit;font-weight:500;border:1px solid var(--line,#E8E6F3);border-radius:10px;padding:10px 12px"></label>
+      <label class="fld" style="display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700">Catatan untuk Pemilik (opsional)<input type="text" id="ktaNote" maxlength="300" placeholder="Contoh: sesuai OL tanggal 14 Nov" style="font:inherit;font-weight:500;border:1px solid var(--line,#ECECED);border-radius:10px;padding:10px 12px"></label>
       <button type="button" class="btn btn-p bigb" id="ktaGo">${ICON_SAVE} ${leaving ? 'Ajukan simpan, lalu keluar' : 'Ajukan simpan'}</button>
       <div class="b3">${leaving ? '<button type="button" class="btn btn-g" id="ktaDrop" style="color:#B91C1C;border-color:#FECACA">Buang perubahan</button>' : '<button type="button" class="btn btn-g" id="ktaDrop" style="color:#B91C1C;border-color:#FECACA">Batalkan semua perubahan</button>'}<button type="button" class="btn btn-g" id="ktaStay">${leaving ? 'Batal, tetap di sini' : 'Nanti dulu'}</button></div>
-      <p style="margin:0;font-size:12.5px;color:var(--ink-2,#4B4868);background:#F7F6FD;border-radius:10px;padding:10px 12px">Kalau tab ditutup paksa atau sinyal putus, draf tetap tersimpan dan otomatis dikirim ke Pemilik sebagai laporan setelah ${A.info.auto_minutes} menit.</p>`;
+      <p style="margin:0;font-size:12.5px;color:var(--ink-2,#56565A);background:#F9F9FA;border-radius:10px;padding:10px 12px">Kalau tab ditutup paksa atau sinyal putus, draf tetap tersimpan dan otomatis dikirim ke Pemilik sebagai laporan setelah ${A.info.auto_minutes} menit.</p>`;
     el.hidden = false;
     setTimeout(() => { const n = document.getElementById('ktaNote'); if (n) n.focus(); }, 30);
     document.getElementById('ktaGo').onclick = async () => { const ok = await A.submit(document.getElementById('ktaNote').value); if (ok) { el.hidden = true; if (leaveTo) leaveTo(); } };
@@ -492,7 +492,7 @@
       + (!ops.length && !tk.length ? '<div><span>Urutan data diubah</span><span></span></div>' : '');
     el.querySelector('.bx').innerHTML = `
       <h2 id="ktaLT">${leaving ? `Simpan dulu? Ada ${n} perubahan yang belum disimpan` : `${n} perubahan belum disimpan`}</h2>
-      <p style="margin:-6px 0 0;color:var(--ink-2,#4B4868);font-size:14px">${leaving ? 'Kalau keluar tanpa menyimpan, perubahan ini tidak masuk ke web dan tidak terlihat oleh orang lain.' : 'Perubahan ini belum masuk server. Klik Simpan agar tersimpan dan terlihat oleh semua orang.'}</p>
+      <p style="margin:-6px 0 0;color:var(--ink-2,#56565A);font-size:14px">${leaving ? 'Kalau keluar tanpa menyimpan, perubahan ini tidak masuk ke web dan tidak terlihat oleh orang lain.' : 'Perubahan ini belum masuk server. Klik Simpan agar tersimpan dan terlihat oleh semua orang.'}</p>
       <div class="ls">${rows}</div>
       <button type="button" class="btn btn-p bigb" id="ktaGo">${ICON_SAVE} ${leaving ? 'Simpan, lalu keluar' : 'Simpan sekarang'}</button>
       <div class="b3"><button type="button" class="btn btn-g" id="ktaDrop" style="color:#B91C1C;border-color:#FECACA">${leaving ? 'Keluar tanpa menyimpan' : 'Batalkan semua perubahan'}</button><button type="button" class="btn btn-g" id="ktaStay">${leaving ? 'Batal, tetap di sini' : 'Tutup'}</button></div>`;
@@ -544,7 +544,7 @@
   }
   function opRows(ops, opt) {
     opt = opt || {};
-    return `<div class="wrap"><table><thead><tr>${opt.check ? '<th></th>' : ''}${opt.time ? '<th>Jam</th><th>Siapa</th>' : ''}<th>Data</th><th>Kolom</th><th>Lama</th><th>Baru</th>${opt.status ? '<th>Status</th>' : ''}${opt.act ? '<th></th>' : ''}</tr></thead><tbody>${ops.map((o, i) => `<tr>${opt.check ? `<td><input type="checkbox" checked data-op="${i}" aria-label="Setujui perubahan ini"></td>` : ''}${opt.time ? `<td class="nw">${h(o._t || '')}</td><td>${h(o._who || '')}</td>` : ''}<td><b>${h(o.l)}</b><br><small style="color:var(--muted,#8A87A6)">${h(COLL[o.c] ? COLL[o.c].name : o.c)}</small>${o._conf ? `<div class="warn">${h(o._conf)}</div>` : ''}</td><td>${h(opText(o))}</td><td><s>${h(opOld(o))}</s></td><td><b>${h(opNew(o))}</b></td>${opt.status ? `<td>${o._st || ''}</td>` : ''}${opt.act ? `<td class="nw">${o._act || ''}</td>` : ''}</tr>`).join('') || `<tr><td colspan="9" class="empty">Tidak ada perubahan.</td></tr>`}</tbody></table></div>`;
+    return `<div class="wrap"><table><thead><tr>${opt.check ? '<th></th>' : ''}${opt.time ? '<th>Jam</th><th>Siapa</th>' : ''}<th>Data</th><th>Kolom</th><th>Lama</th><th>Baru</th>${opt.status ? '<th>Status</th>' : ''}${opt.act ? '<th></th>' : ''}</tr></thead><tbody>${ops.map((o, i) => `<tr>${opt.check ? `<td><input type="checkbox" checked data-op="${i}" aria-label="Setujui perubahan ini"></td>` : ''}${opt.time ? `<td class="nw">${h(o._t || '')}</td><td>${h(o._who || '')}</td>` : ''}<td><b>${h(o.l)}</b><br><small style="color:var(--muted,#959598)">${h(COLL[o.c] ? COLL[o.c].name : o.c)}</small>${o._conf ? `<div class="warn">${h(o._conf)}</div>` : ''}</td><td>${h(opText(o))}</td><td><s>${h(opOld(o))}</s></td><td><b>${h(opNew(o))}</b></td>${opt.status ? `<td>${o._st || ''}</td>` : ''}${opt.act ? `<td class="nw">${o._act || ''}</td>` : ''}</tr>`).join('') || `<tr><td colspan="9" class="empty">Tidak ada perubahan.</td></tr>`}</tbody></table></div>`;
   }
   function conflictsOf(ops) {
     return ops.map((o) => {
@@ -578,11 +578,11 @@
     A.info.pending = P.reqs.length; ui();
     const off = !A.info.enabled ? `<div class="kta-banner or" style="margin:0"><span><b>Tinjauan sedang MATI.</b> Simpanan Editor tidak ditandai untuk ditinjau. Nyalakan di tab Pengaturan.</span></div>` : '';
     if (!P.reqs.length) return off + '<div class="cd"><div class="empty">Tidak ada perubahan yang perlu ditinjau.</div></div>';
-    return off + `<div class="row"><span style="flex:1;font-size:13px;color:var(--ink-2,#4B4868)">Perubahan di bawah <b>sudah tampil</b> untuk semua orang. Centang yang benar lalu klik Setujui; yang tidak dicentang akan <b>dikembalikan</b> ke nilai lama. Tanda kuning = sudah diubah lagi setelahnya.</span><button type="button" class="btn btn-p" data-accall="1" style="background:#15803D;border-color:#15803D">Setujui semua (${P.reqs.length})</button></div>` +
+    return off + `<div class="row"><span style="flex:1;font-size:13px;color:var(--ink-2,#56565A)">Perubahan di bawah <b>sudah tampil</b> untuk semua orang. Centang yang benar lalu klik Setujui; yang tidak dicentang akan <b>dikembalikan</b> ke nilai lama. Tanda kuning = sudah diubah lagi setelahnya.</span><button type="button" class="btn btn-p" data-accall="1" style="background:#15803D;border-color:#15803D">Setujui semua (${P.reqs.length})</button></div>` +
       P.reqs.map((q, qi) => `<div class="cd" data-req="${qi}">
         <div class="row"><div class="who"><b>${h(q.actor || 'Editor')}</b><small>Disimpan ${tglJam(q.at)} · ${q.ops.length} perubahan</small></div>${revTag(q)}</div>
         ${opRows(laterOf(q.ops), { check: true })}
-        <div class="row" style="justify-content:flex-end"><input type="text" placeholder="Catatan untuk editor (opsional, mis. alasan ditolak)" data-rnote="${qi}" style="flex:1;min-width:220px;font:inherit;border:1px solid var(--line,#E8E6F3);border-radius:10px;padding:8px 12px"><button type="button" class="btn btn-g" data-rej="${qi}" style="color:#B91C1C;border-color:#FECACA">Tolak semua</button><button type="button" class="btn btn-p" data-acc="${qi}" style="background:#15803D;border-color:#15803D">Setujui yang dicentang</button></div>
+        <div class="row" style="justify-content:flex-end"><input type="text" placeholder="Catatan untuk editor (opsional, mis. alasan ditolak)" data-rnote="${qi}" style="flex:1;min-width:220px;font:inherit;border:1px solid var(--line,#ECECED);border-radius:10px;padding:8px 12px"><button type="button" class="btn btn-g" data-rej="${qi}" style="color:#B91C1C;border-color:#FECACA">Tolak semua</button><button type="button" class="btn btn-p" data-acc="${qi}" style="background:#15803D;border-color:#15803D">Setujui yang dicentang</button></div>
       </div>`).join('');
   }
   async function decide(qi, approve, quiet) {
@@ -614,7 +614,7 @@
   async function viewMine() {
     await loadMine();
     if (!A.mine.length) return '<div class="cd"><div class="empty">Belum ada perubahan Anda dalam 30 hari terakhir.</div></div>';
-    return `<div class="row"><span style="flex:1;font-size:13px;color:var(--ink-2,#4B4868)">Semua yang Anda simpan langsung tampil untuk semua orang. ${A.info.enabled ? 'Pemilik/PIC meninjaunya; yang ditolak dikembalikan ke nilai lama.' : ''}</span></div>` +
+    return `<div class="row"><span style="flex:1;font-size:13px;color:var(--ink-2,#56565A)">Semua yang Anda simpan langsung tampil untuk semua orang. ${A.info.enabled ? 'Pemilik/PIC meninjaunya; yang ditolak dikembalikan ke nilai lama.' : ''}</span></div>` +
       A.mine.map((q) => `<div class="cd"><div class="row"><div class="who"><b>Disimpan ${tglJam(q.at)}</b><small>${q.ops.length} perubahan${q.reviewed_at ? ` · ditinjau ${tglJam(q.reviewed_at)} oleh ${h(q.reviewed_by || '')}${q.review_note ? ' · “' + h(q.review_note) + '”' : ''}` : ''}</small></div>${revTag(q)}</div>${opRows(q.ops)}${q.reviewed_ops && q.reviewed_ops.length && q.review_status === 'partial' ? `<div class="warn">Ditolak dan dikembalikan: ${q.reviewed_ops.map((o) => h(o.l + ' · ' + opText(o))).join(', ')}</div>` : ''}</div>`).join('');
   }
 
@@ -709,22 +709,22 @@
     const opt = (v, cur, l) => `<option value="${v}" ${String(cur) === String(v) ? 'selected' : ''}>${l}</option>`;
     return `<div class="grid2">
       <div class="cd"><b style="font-size:15px">Simpan & persetujuan</b>
-        <p style="margin:0;font-size:13px;color:var(--ink-2,#4B4868)">Semua perubahan tersimpan langsung dan tercatat di <b>Riwayat harian</b>; setiap perubahan bisa <b>Dikembalikan</b> ke nilai semula.</p>
+        <p style="margin:0;font-size:13px;color:var(--ink-2,#56565A)">Semua perubahan tersimpan langsung dan tercatat di <b>Riwayat harian</b>; setiap perubahan bisa <b>Dikembalikan</b> ke nilai semula.</p>
         <label class="row" style="font-size:14px;font-weight:700"><input type="checkbox" id="ktaEn" ${S.enabled ? 'checked' : ''}> (Opsional) Tandai simpanan Editor untuk ditinjau Pemilik/PIC</label>
-        <p style="margin:0;font-size:12.5px;color:var(--ink-2,#4B4868)">${S.enabled ? '<b style="color:#15803D">NYALA.</b> Simpanan Editor langsung tampil untuk semua orang, ditandai kuning “belum ditinjau” sampai Anda/PIC setujui. Kalau ditolak, data otomatis kembali ke nilai lama.' : '<b style="color:#B45309">MATI.</b> Simpanan Editor tidak ditandai untuk ditinjau (riwayat tetap tercatat dan bisa dikembalikan).'} Berlaku juga untuk link Editor tanpa login dan Editor yang baru ditambahkan.</p>
+        <p style="margin:0;font-size:12.5px;color:var(--ink-2,#56565A)">${S.enabled ? '<b style="color:#15803D">NYALA.</b> Simpanan Editor langsung tampil untuk semua orang, ditandai kuning “belum ditinjau” sampai Anda/PIC setujui. Kalau ditolak, data otomatis kembali ke nilai lama.' : '<b style="color:#B45309">MATI.</b> Simpanan Editor tidak ditandai untuk ditinjau (riwayat tetap tercatat dan bisa dikembalikan).'} Berlaku juga untuk link Editor tanpa login dan Editor yang baru ditambahkan.</p>
         <label class="fld">Nomor WhatsApp Pemilik (untuk notifikasi tahap berikutnya)<input type="tel" id="ktaWa" value="${h(S.owner_wa || '')}" placeholder="08xxxxxxxxxx"></label>
         <div class="row" style="justify-content:flex-end"><button type="button" class="btn btn-p" id="ktaSaveSet">Simpan pengaturan</button></div>
       </div>
       <div class="cd"><b style="font-size:15px">PIC (boleh meninjau perubahan)</b>
-        <p style="margin:0;font-size:12.5px;color:var(--ink-2,#4B4868)">Pilih Editor yang juga boleh meninjau. Simpanan PIC sendiri tidak perlu ditinjau. Kalau tidak ada PIC, semua masuk ke Pemilik. Tambah Editor baru lewat menu Akses seperti biasa.</p>
-        <div class="wrap"><table><thead><tr><th>Editor</th><th>PIC?</th><th>Bagian yang dipegang (catatan)</th></tr></thead><tbody>${P.editors.map((e) => { const a = apMap.get(e.email.toLowerCase()); return `<tr><td>${h(e.email)}</td><td><input type="checkbox" data-pic="${h(e.email)}" ${a ? 'checked' : ''} aria-label="Jadikan PIC"></td><td><input type="text" data-scope="${h(e.email)}" value="${h(a && a.scope || '')}" placeholder="mis. Maintenance Section" ${a ? '' : 'disabled'} style="width:100%;font:inherit;border:1px solid var(--line,#E8E6F3);border-radius:8px;padding:6px 8px"></td></tr>`; }).join('') || '<tr><td colspan="3" class="empty">Belum ada Editor.</td></tr>'}</tbody></table></div>
+        <p style="margin:0;font-size:12.5px;color:var(--ink-2,#56565A)">Pilih Editor yang juga boleh meninjau. Simpanan PIC sendiri tidak perlu ditinjau. Kalau tidak ada PIC, semua masuk ke Pemilik. Tambah Editor baru lewat menu Akses seperti biasa.</p>
+        <div class="wrap"><table><thead><tr><th>Editor</th><th>PIC?</th><th>Bagian yang dipegang (catatan)</th></tr></thead><tbody>${P.editors.map((e) => { const a = apMap.get(e.email.toLowerCase()); return `<tr><td>${h(e.email)}</td><td><input type="checkbox" data-pic="${h(e.email)}" ${a ? 'checked' : ''} aria-label="Jadikan PIC"></td><td><input type="text" data-scope="${h(e.email)}" value="${h(a && a.scope || '')}" placeholder="mis. Maintenance Section" ${a ? '' : 'disabled'} style="width:100%;font:inherit;border:1px solid var(--line,#ECECED);border-radius:8px;padding:6px 8px"></td></tr>`; }).join('') || '<tr><td colspan="3" class="empty">Belum ada Editor.</td></tr>'}</tbody></table></div>
       </div>
       <div class="cd"><b style="font-size:15px">Arsip & unduhan</b>
-        <p style="margin:0;font-size:12.5px;color:var(--ink-2,#4B4868)">Salinan lengkap data dibuat otomatis setiap malam (00:01 WIB) dan bisa dibuka/diunduh di tab Riwayat harian. Arsip file Excel ke folder Google Drive menyusul lewat kode sinkron Drive.</p>
+        <p style="margin:0;font-size:12.5px;color:var(--ink-2,#56565A)">Salinan lengkap data dibuat otomatis setiap malam (00:01 WIB) dan bisa dibuka/diunduh di tab Riwayat harian. Arsip file Excel ke folder Google Drive menyusul lewat kode sinkron Drive.</p>
         <div class="lk"><a href="#" data-kta="xlsx">Unduh semua data (Excel)</a><a href="#" data-hxls="month">Unduh riwayat 1 bulan (Excel)</a>${LINKS.drive ? `<a href="${h(LINKS.drive)}" target="_blank" rel="noopener">Buka folder arsip Drive ↗</a>` : ''}</div>
       </div>
       <div class="cd"><b style="font-size:15px">Info sistem</b>
-        <p style="margin:0;font-size:12.5px;color:var(--ink-2,#4B4868)">${ver || 'Kode web tersimpan di GitHub.'}</p>
+        <p style="margin:0;font-size:12.5px;color:var(--ink-2,#56565A)">${ver || 'Kode web tersimpan di GitHub.'}</p>
         <div class="lk">${LINKS.repo ? `<a href="https://github.com/${h(LINKS.repo)}/blob/main/${h(LINKS.path)}" target="_blank" rel="noopener">Lihat kode web (GitHub) ↗</a><a href="https://github.com/${h(LINKS.repo)}/commits/main/${h(LINKS.path)}" target="_blank" rel="noopener">Riwayat perubahan kode ↗</a>` : ''}${LINKS.supabase ? `<a href="${h(LINKS.supabase)}" target="_blank" rel="noopener">Buka database (Supabase) ↗</a>` : ''}${LINKS.script ? `<a href="${h(LINKS.script)}" target="_blank" rel="noopener">Kode sinkron Drive (Apps Script) ↗</a>` : ''}</div>
       </div></div>`;
   }

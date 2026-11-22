@@ -124,8 +124,8 @@ ${tr(lb('Nama') + cl(1) + ln(d.nama) + gp() + lb('Tanda Tangan') + cl(1) + ln(''
 <!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->
 <style>@page WordSection1{size:21cm 29.7cm;margin:1.4cm 1.6cm 1.2cm 1.6cm}div.WordSection1{page:WordSection1}${CSS}</style></head><body><div class="WordSection1">`
       : `<!doctype html><html lang="id"><head><meta charset="utf-8"><title>${esc(title)}</title><style>@page{size:A4;margin:10mm 13mm}html,body{margin:0;background:#fff}${CSS}
-.bar{font:13px/1.4 system-ui,sans-serif;background:#F5F0FF;border-bottom:1px solid #DDD0FA;padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.bar button{font:600 13px system-ui,sans-serif;border:0;border-radius:8px;padding:8px 14px;background:#6D28D9;color:#fff;cursor:pointer}
+.bar{font:13px/1.4 system-ui,sans-serif;background:#FDF2F2;border-bottom:1px solid #F8D2D2;padding:10px 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.bar button{font:600 13px system-ui,sans-serif;border:0;border-radius:8px;padding:8px 14px;background:#DC3737;color:#fff;cursor:pointer}
 .pg{max-width:190mm;margin:14px auto}@media print{.bar{display:none}.pg{margin:0;max-width:none}}</style></head><body>
 <div class="bar"><button onclick="print()">Print / Simpan PDF</button><span>Pilih printer <b>Simpan sebagai PDF</b> untuk menyimpan file PDF.</span></div><div class="pg">`;
     return head + (forWord ? widthAttrs(formHtml(d)) : formHtml(d)) + (forWord ? '</div></body></html>' : '</div><script>window.onload=function(){setTimeout(function(){print()},350)}<\/script></body></html>');
@@ -266,14 +266,14 @@ ${tr(lb('Nama') + cl(1) + ln(d.nama) + gp() + lb('Tanda Tangan') + cl(1) + ln(''
 
   /* ---------- menu pilihan format ---------- */
   const st = document.createElement('style');
-  st.textContent = `.fdk-menu{position:fixed;z-index:90;background:#fff;border:1px solid #E4E2F0;border-radius:12px;box-shadow:0 18px 40px -12px rgba(30,10,80,.35);padding:6px;min-width:230px;font-family:inherit}
-.fdk-menu .h{padding:8px 10px 6px;font-size:12px;color:#6B6985;border-bottom:1px solid #EEE;margin-bottom:4px;max-width:260px}
-.fdk-menu button{display:flex;gap:10px;align-items:center;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:8px;cursor:pointer;font:600 13.5px/1.3 inherit;color:#1C1A33}
-.fdk-menu button:hover{background:#F4F1FD}.fdk-menu i{font-style:normal;font-size:10px;font-weight:800;color:#fff;border-radius:5px;padding:3px 5px;min-width:34px;text-align:center}
-.fdk-menu small{display:block;font-weight:500;color:#6B6985;font-size:11.5px}
+  st.textContent = `.fdk-menu{position:fixed;z-index:90;background:#fff;border:1px solid #E8E8EA;border-radius:12px;box-shadow:0 18px 40px -12px rgba(78,12,12,.35);padding:6px;min-width:230px;font-family:inherit}
+.fdk-menu .h{padding:8px 10px 6px;font-size:12px;color:#757579;border-bottom:1px solid #EEE;margin-bottom:4px;max-width:260px}
+.fdk-menu button{display:flex;gap:10px;align-items:center;width:100%;text-align:left;border:0;background:none;padding:9px 10px;border-radius:8px;cursor:pointer;font:600 13.5px/1.3 inherit;color:#252528}
+.fdk-menu button:hover{background:#F6F6F8}.fdk-menu i{font-style:normal;font-size:10px;font-weight:800;color:#fff;border-radius:5px;padding:3px 5px;min-width:34px;text-align:center}
+.fdk-menu small{display:block;font-weight:500;color:#757579;font-size:11.5px}
 .fdk-btn{display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
-.fdk-mini{display:inline-flex;align-items:center;gap:5px;border:1px solid #DDD0FA;background:#F5F0FF;color:#6D28D9;border-radius:8px;padding:4px 9px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
-.fdk-mini:hover{background:#6D28D9;color:#fff}
+.fdk-mini{display:inline-flex;align-items:center;gap:5px;border:1px solid #F8D2D2;background:#FDF2F2;color:#DC3737;border-radius:8px;padding:4px 9px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.fdk-mini:hover{background:#DC3737;color:#fff}
 @media print{.fdk-btn,.fdk-mini,.fdk-menu,.fdk-col{display:none!important}}`;
   document.head.appendChild(st);
   let menu = null;

@@ -8,23 +8,23 @@
 
   const CSS = `
 .kotp-bg{border:0;padding:0;background:transparent;max-width:calc(100vw - 32px);width:380px;font-family:inherit;color:inherit}
-.kotp-bg::backdrop{background:rgba(15,10,30,.55)}
-.kotp{background:#fff;color:#1f1633;border-radius:16px;width:100%;box-sizing:border-box;padding:24px 22px 20px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
+.kotp-bg::backdrop{background:rgba(30,10,10,.55)}
+.kotp{background:#fff;color:#232326;border-radius:16px;width:100%;box-sizing:border-box;padding:24px 22px 20px;box-shadow:0 20px 60px rgba(0,0,0,.25)}
 .kotp h3{margin:0 0 6px;font-size:20px}
-.kotp p{margin:0 0 14px;font-size:14px;line-height:1.5;color:#5b5470}
-.kotp p b{color:#1f1633;word-break:break-all}
-.kotp input{width:100%;box-sizing:border-box;font:600 26px/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.35em;text-align:center;padding:12px 8px;border:2px solid #d9d3ea;border-radius:12px;outline:none;color:#1f1633;background:#fff}
-.kotp input:focus{border-color:#6D28D9}
-.kotp .kotp-msg{min-height:20px;margin:8px 0 4px;font-size:13px;color:#5b5470}
+.kotp p{margin:0 0 14px;font-size:14px;line-height:1.5;color:#606064}
+.kotp p b{color:#232326;word-break:break-all}
+.kotp input{width:100%;box-sizing:border-box;font:600 26px/1.2 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.35em;text-align:center;padding:12px 8px;border:2px solid #dddde0;border-radius:12px;outline:none;color:#232326;background:#fff}
+.kotp input:focus{border-color:#DC3737}
+.kotp .kotp-msg{min-height:20px;margin:8px 0 4px;font-size:13px;color:#606064}
 .kotp .kotp-msg.err{color:#c0262d}
 .kotp .kotp-msg.ok{color:#15803d}
 .kotp .kotp-row{display:flex;gap:8px;margin-top:8px}
-.kotp button{font:inherit;font-size:15px;border-radius:10px;padding:11px 14px;cursor:pointer;border:1px solid #d9d3ea;background:#fff;color:#1f1633}
-.kotp button.kotp-p{flex:1;background:#6D28D9;border-color:#6D28D9;color:#fff;font-weight:600}
+.kotp button{font:inherit;font-size:15px;border-radius:10px;padding:11px 14px;cursor:pointer;border:1px solid #dddde0;background:#fff;color:#232326}
+.kotp button.kotp-p{flex:1;background:#DC3737;border-color:#DC3737;color:#fff;font-weight:600}
 .kotp button:disabled{opacity:.55;cursor:default}
 .kotp .kotp-links{display:flex;justify-content:space-between;margin-top:12px;font-size:13px}
-.kotp .kotp-links button{border:0;padding:4px 0;background:none;color:#6D28D9;font-size:13px}
-@media (prefers-color-scheme:dark){.kotp{background:#1d1830;color:#f1edfa}.kotp p{color:#b8b0cc}.kotp p b{color:#f1edfa}.kotp input{background:#130f22;color:#f1edfa;border-color:#3a3352}.kotp button{background:#1d1830;color:#f1edfa;border-color:#3a3352}.kotp button.kotp-p{background:#7c3aed;border-color:#7c3aed}.kotp .kotp-links button{color:#c4b5fd}.kotp .kotp-msg{color:#b8b0cc}}`;
+.kotp .kotp-links button{border:0;padding:4px 0;background:none;color:#DC3737;font-size:13px}
+@media (prefers-color-scheme:dark){.kotp{background:#232325;color:#f3f3f4}.kotp p{color:#bcbcc0}.kotp p b{color:#f3f3f4}.kotp input{background:#17171a;color:#f3f3f4;border-color:#414144}.kotp button{background:#232325;color:#f3f3f4;border-color:#414144}.kotp button.kotp-p{background:#e55353;border-color:#e55353}.kotp .kotp-links button{color:#f5bdbd}.kotp .kotp-msg{color:#bcbcc0}}`;
 
   function el(html) { const d = document.createElement('div'); d.innerHTML = html.trim(); return d.firstChild; }
   function esc(s) { return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
@@ -99,7 +99,7 @@
     input.dataset.kotpPw = '1';
     if (!document.getElementById('kotp-pw-css')) {
       const s = document.createElement('style'); s.id = 'kotp-pw-css';
-      s.textContent = '.kotp-pwt{display:block;background:none;border:0;padding:6px 0;margin:2px 0 4px;color:#6D28D9;font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:left}.kotp-pwt:hover{text-decoration:underline}@media (prefers-color-scheme:dark){.kotp-pwt{color:#c4b5fd}}';
+      s.textContent = '.kotp-pwt{display:block;background:none;border:0;padding:6px 0;margin:2px 0 4px;color:#DC3737;font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:left}.kotp-pwt:hover{text-decoration:underline}@media (prefers-color-scheme:dark){.kotp-pwt{color:#f5bdbd}}';
       document.head.appendChild(s);
     }
     const submit = opts && opts.submit;

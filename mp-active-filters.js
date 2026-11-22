@@ -2,10 +2,10 @@
 (function(){
 "use strict";
 const css=document.createElement("style");css.textContent=`
-.mp-smart-filters{display:flex;align-items:end;flex-wrap:wrap;gap:9px;padding:12px;background:#f8f9ff;border:1px solid #e2e7f1;border-radius:12px;margin:12px 0}
-.mp-smart-filters label{font-size:11px;color:#53627d;display:flex;flex-direction:column;gap:4px}
-.mp-smart-filters select{border:1px solid #d6dbe8;border-radius:8px;padding:8px;min-width:135px;max-width:210px;background:#fff;color:#25344f;font-size:12px}
-.mp-smart-filters button{border:1px solid #d6dbe8;background:white;border-radius:8px;padding:8px 12px;cursor:pointer;color:#5b21b6;font-weight:650}
+.mp-smart-filters{display:flex;align-items:end;flex-wrap:wrap;gap:9px;padding:12px;background:#f8f9ff;border:1px solid #e9e9ea;border-radius:12px;margin:12px 0}
+.mp-smart-filters label{font-size:11px;color:#65666b;display:flex;flex-direction:column;gap:4px}
+.mp-smart-filters select{border:1px solid #dedee0;border-radius:8px;padding:8px;min-width:135px;max-width:210px;background:#fff;color:#37383d;font-size:12px}
+.mp-smart-filters button{border:1px solid #dedee0;background:white;border-radius:8px;padding:8px 12px;cursor:pointer;color:#c52424;font-weight:650}
 .mp-due-red{background:#fee2e2!important;color:#991b1b!important;font-weight:800!important;border-radius:7px}
 .mp-due-yellow{background:#fef3c7!important;color:#92400e!important;font-weight:800!important;border-radius:7px}
 `;document.head.append(css);

@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Kantor Monitoring</title>
-<meta name="theme-color" content="#6D28D9">
+<meta name="theme-color" content="#DC3737">
 <style>
-:root{color-scheme:light;--solid:#ffffff;--bg:#EEF0F8;--card:rgba(255,255,255,.96);--ink:#1E1B3A;--ink-2:#4B4868;--muted:#7D7A99;--line:#E6E4F2;--p:#6D28D9;--p-soft:#EFE9FE;--good:#15803D;--good-soft:#DCFCE7;--warn:#B45309;--warn-soft:#FEF3C7;--crit:#E11D48;--crit-soft:#FFE4E6;--idle:#64748B;--idle-soft:#F1F5F9}
-@media (prefers-color-scheme:dark){:root{color-scheme:dark;--solid:#1d1830;--bg:#120F1F;--card:rgba(29,24,48,.96);--ink:#F1EDFA;--ink-2:#CFC8E3;--muted:#9E97B8;--line:#2E2847;--p:#A78BFA;--p-soft:#2A2145;--good:#4ADE80;--good-soft:#14301F;--warn:#FBBF24;--warn-soft:#33270B;--crit:#FB7185;--crit-soft:#3A1520;--idle:#94A3B8;--idle-soft:#1E2433}}
+:root{color-scheme:light;--solid:#ffffff;--bg:#F2F2F4;--card:rgba(255,255,255,.96);--ink:#29292C;--ink-2:#56565A;--muted:#88888B;--line:#EAEAEC;--p:#DC3737;--p-soft:#FCEBEB;--good:#15803D;--good-soft:#DCFCE7;--warn:#B45309;--warn-soft:#FEF3C7;--crit:#E11D48;--crit-soft:#FFE4E6;--idle:#64748B;--idle-soft:#F1F5F9}
+@media (prefers-color-scheme:dark){:root{color-scheme:dark;--solid:#232325;--bg:#161618;--card:rgba(35,35,37,.96);--ink:#F3F3F4;--ink-2:#D4D4D7;--muted:#A6A6A9;--line:#363639;--p:#EF9696;--p-soft:#313135;--good:#4ADE80;--good-soft:#14301F;--warn:#FBBF24;--warn-soft:#33270B;--crit:#FB7185;--crit-soft:#3A1520;--idle:#94A3B8;--idle-soft:#27272A}}
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;overflow:hidden}
 #app{position:fixed;inset:0;display:grid;grid-template-rows:auto minmax(0,1fr);grid-template-columns:minmax(0,1fr) 360px}
@@ -24,7 +24,7 @@ header .sp{flex:1}
 #stage canvas{display:block;width:100%;height:100%;touch-action:none}
 #labels{position:absolute;inset:0;pointer-events:none}
 .tag{position:absolute;transform:translate(-50%,-100%);pointer-events:auto;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px}
-.tag .bub{max-width:170px;padding:5px 9px;border-radius:10px;font-size:12px;font-weight:600;line-height:1.3;text-align:center;box-shadow:0 4px 14px rgba(20,10,50,.15);border:1px solid rgba(0,0,0,.05)}
+.tag .bub{max-width:170px;padding:5px 9px;border-radius:10px;font-size:12px;font-weight:600;line-height:1.3;text-align:center;box-shadow:0 4px 14px rgba(50,10,10,.15);border:1px solid rgba(0,0,0,.05)}
 .tag .nm{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--card);color:var(--ink);border:1px solid var(--line);white-space:nowrap}
 .tag.sel .nm{background:var(--p);color:#fff;border-color:var(--p)}
 .tag .nm i{display:none;width:7px;height:7px;border-radius:50%;margin-right:5px;vertical-align:1px}
@@ -50,7 +50,7 @@ aside .team button span:nth-child(2){flex:1}
 .gate .card{max-width:380px;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px;text-align:center}
 .gate h2{margin:0 0 6px}.gate p{color:var(--ink-2);margin:0 0 14px}
 .demo{position:absolute;left:12px;bottom:12px;z-index:2}
-.card3d{position:absolute;transform:translate(-50%,-50%);background:rgba(255,255,255,.97);color:#1e1b3a;border-radius:12px;padding:6px 10px 7px;box-shadow:0 10px 28px rgba(0,0,0,.4);font-size:11px;line-height:1.3;width:192px;pointer-events:auto;cursor:pointer;z-index:1}
+.card3d{position:absolute;transform:translate(-50%,-50%);background:rgba(255,255,255,.97);color:#29292c;border-radius:12px;padding:6px 10px 7px;box-shadow:0 10px 28px rgba(0,0,0,.4);font-size:11px;line-height:1.3;width:192px;pointer-events:auto;cursor:pointer;z-index:1}
 .card3d h5{margin:0 0 3px;font-size:12.5px;display:flex;gap:7px;align-items:center;line-height:1.2}.card3d h5 span:nth-child(2){flex:1}
 .card3d .ic{width:22px;height:22px;flex:0 0 22px;border-radius:50%;display:grid;place-items:center;background:#e0f2fe;font-size:14px}
 .card3d .dot{width:8px;height:8px;border-radius:50%;background:#94a3b8}.card3d .dot.ok{background:#22c55e}.card3d .dot.warn{background:#f59e0b}.card3d .dot.crit{background:#ef4444}
@@ -91,7 +91,7 @@ aside .team button span:nth-child(2){flex:1}
 .chat-note{font-size:11px;color:var(--muted);margin-top:6px;text-align:center}
 .chat.drag .chat-body{outline:3px dashed var(--p);outline-offset:-8px}
 .now{font-size:13px;color:var(--ink-2);margin:-4px 0 8px;font-weight:600}
-.tag .bub{background:rgba(255,255,255,.95);color:#1e1b3a}.tag .bub.ok{background:#ecfdf5;color:#166534}.tag .bub.warn{background:#fffbeb;color:#92400e}.tag .bub.crit{background:#fff1f2;color:#be123c}.tag .bub.idle{background:#f8fafc;color:#334155}
+.tag .bub{background:rgba(255,255,255,.95);color:#29292c}.tag .bub.ok{background:#ecfdf5;color:#166534}.tag .bub.warn{background:#fffbeb;color:#92400e}.tag .bub.crit{background:#fff1f2;color:#be123c}.tag .bub.idle{background:#f8fafc;color:#334155}
 .sec{margin:14px 0 6px;font-size:13px;font-weight:700;color:var(--ink-2);text-transform:uppercase;letter-spacing:.05em}
 .ask textarea{width:100%;min-height:84px;resize:vertical;font:inherit;font-size:14px;padding:10px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 .ask textarea:focus{outline:2px solid var(--p);border-color:transparent}
@@ -366,11 +366,11 @@ function plate(text, x, y, z, { h = 0.55, bg = '#0f172a', fg = '#ffffff', sub = 
   const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, depthWrite: false })); sp.scale.set(h * W / H, h, 1); sp.position.set(x, y, z); sp.renderOrder = 2; scene.add(sp); return sp;
 }
 const dashTex = (title) => canvasTex(640, 300, (g, W, H) => {
-  g.fillStyle = '#0b1220'; g.fillRect(0, 0, W, H); g.fillStyle = '#1e293b'; g.fillRect(0, 0, W, 34);
+  g.fillStyle = '#0b1220'; g.fillRect(0, 0, W, H); g.fillStyle = '#2b2b2e'; g.fillRect(0, 0, W, 34);
   g.fillStyle = '#93c5fd'; g.font = '700 20px system-ui'; g.fillText(title, 14, 24);
   [['MPP', '#60a5fa'], ['APD', '#34d399'], ['UNIT', '#fbbf24']].forEach(([t, c], i) => { rr(g, 14 + i * 120, 46, 108, 60, 8); g.fillStyle = '#111c33'; g.fill(); g.fillStyle = c; g.font = '800 26px system-ui'; g.fillText(String(60 + i * 17), 26 + i * 120, 84); g.fillStyle = '#94a3b8'; g.font = '600 14px system-ui'; g.fillText(t, 26 + i * 120, 100); });
   for (let i = 0; i < 9; i++) { const h = 30 + ((i * 37) % 90); g.fillStyle = i % 2 ? '#3b82f6' : '#22d3ee'; g.fillRect(380 + i * 26, 250 - h, 16, h); }
-  g.strokeStyle = '#a78bfa'; g.lineWidth = 4; g.beginPath(); for (let i = 0; i <= 10; i++) g.lineTo(16 + i * 34, 250 - 40 - Math.sin(i * 0.8) * 30 - i * 6); g.stroke();
+  g.strokeStyle = '#ef9696'; g.lineWidth = 4; g.beginPath(); for (let i = 0; i <= 10; i++) g.lineTo(16 + i * 34, 250 - 40 - Math.sin(i * 0.8) * 30 - i * 6); g.stroke();
   g.fillStyle = '#334155'; g.fillRect(14, 260, 612, 2);
 });
 function screen(w, h, x, y, z, ry, title, parent = scene) { const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: dashTex(title) })); m.position.set(x, y, z); m.rotation.y = ry; parent.add(m); blk(w + 0.12, h + 0.12, 0.06, 0x111827, x - Math.sin(ry) * 0.04, y - h / 2 - 0.06, z - Math.cos(ry) * 0.04, parent).rotation.y = ry; return m; }
@@ -481,7 +481,7 @@ for (const [id, r] of Object.entries(ROOMS)) {
     SPOT.designer_easel = [out - side * 0.2, 0, back + 1.4, Math.PI];
     [0xf472b6, 0x60a5fa, 0xfbbf24].forEach((c, i) => blk(0.7, 0.5, 0.03, c, x - side * (1.4 - i * 0.85), 1.6, back + 0.05)); }
   if (id === 'marketing') { blk(1.8, 1.1, 0.05, 0x0f766e, x - side * 0.6, 1.0, back + 0.05);
-    const ic = canvasTex(360, 110, (g) => { [['#e1306c', 'IG'], ['#111827', 'TT'], ['#ff0000', 'YT'], ['#1877f2', 'FB']].forEach(([c, t], i) => { rr(g, 10 + i * 88, 15, 78, 78, 18); g.fillStyle = c; g.fill(); g.fillStyle = '#fff'; g.font = '800 32px system-ui'; g.textAlign = 'center'; g.fillText(t, 49 + i * 88, 66); }); });
+    const ic = canvasTex(360, 110, (g) => { [['#e1306c', 'IG'], ['#1B1B1D', 'TT'], ['#ff0000', 'YT'], ['#1877f2', 'FB']].forEach(([c, t], i) => { rr(g, 10 + i * 88, 15, 78, 78, 18); g.fillStyle = c; g.fill(); g.fillStyle = '#fff'; g.font = '800 32px system-ui'; g.textAlign = 'center'; g.fillText(t, 49 + i * 88, 66); }); });
     const p = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.5), new THREE.MeshBasicMaterial({ map: ic, transparent: true })); p.position.set(x - side * 0.6, 1.62, back + 0.09); scene.add(p);
     blk(0.9, 1.6, 0.06, 0xfb923c, out, 0, back + 0.6); SPOT.marketing_board = [out, 0, back + 1.35, Math.PI]; }
   plant(x + side * 3.3, 0, z + 2.0, 0.6);
@@ -501,7 +501,7 @@ blk(2.8, 2.3, 0.14, 0x334155, booth.x, 0.15, booth.z - 1.15); blk(0.14, 2.3, 2.4
 blk(2.8, 1.0, 0.14, 0x334155, booth.x, 0.15, booth.z + 1.15); blk(2.8, 1.3, 0.06, GLASS, booth.x, 1.15, booth.z + 1.15);
 blk(3.4, 0.22, 3.0, 0x111827, booth.x, 2.45, booth.z); desk(booth.x, 0.15, booth.z + 0.55, 1.8, 2);
 plate('POS SATPAM', booth.x, 3.05, booth.z + 1.3, { h: 0.42 });
-const pTex = canvasTex(128, 128, (g) => { g.fillStyle = 'rgba(0,0,0,0)'; g.clearRect(0, 0, 128, 128); g.strokeStyle = '#e5e7eb'; g.lineWidth = 6; g.strokeRect(8, 8, 112, 112); g.fillStyle = '#e5e7eb'; g.font = '900 86px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('P', 64, 70); });
+const pTex = canvasTex(128, 128, (g) => { g.fillStyle = 'rgba(0,0,0,0)'; g.clearRect(0, 0, 128, 128); g.strokeStyle = '#e8e8e8'; g.lineWidth = 6; g.strokeRect(8, 8, 112, 112); g.fillStyle = '#e8e8e8'; g.font = '900 86px system-ui'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('P', 64, 70); });
 for (const s of [-1, 1]) for (let i = 0; i < 2; i++) { const x = s * (6.5 + i * 3.4); for (const dx of [-1.6, 1.6]) blk(0.1, 0.02, 4.2, 0xe5e7eb, x + dx, 0, 14.6);
   const p = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 1.8), new THREE.MeshBasicMaterial({ map: pTex, transparent: true })); p.rotation.x = -Math.PI / 2; p.position.set(x, 0.03, 14.8); scene.add(p); }
 for (const s of [-1, 1]) for (let x = 3.4; x < 15; x += 3.8) lamp(s * x, 17.4, 2.4);
