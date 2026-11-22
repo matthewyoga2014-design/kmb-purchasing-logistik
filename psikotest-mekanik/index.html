@@ -147,6 +147,11 @@ table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 .shelf .pill{display:flex;width:100%;box-sizing:border-box;border-radius:10px;padding:8px 12px;gap:8px}
 .shelf .pill b{min-width:64px}.shelf .pill span{max-width:none;flex:1;text-align:left}.shelf .pill small{margin-left:auto;white-space:nowrap}
 .shelf .shelf-closed{display:block;height:6px}.shelf .shelf-items:has(.shelf-closed){border-left-color:transparent;padding:0}.shelf .shelf-items:empty{display:none}
+.mods{border:1px solid var(--line);border-radius:12px;padding:6px 10px;background:#FCFBFF}
+.mgrp{padding:4px 0}.mgrp+.mgrp{border-top:1px dashed var(--line)}.mgrp-h{font-size:12px;font-weight:700;color:var(--mut);padding:4px 0}
+.mrow{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:8px;cursor:pointer;margin-left:14px}.mrow:hover{background:#F1ECFE}.mrow.hit{background:#EDE7FE}
+.mrow .mg{min-width:64px;font-size:13px}.mrow .mt{flex:1;font-weight:600}
+@media(max-width:640px){.mrow{margin-left:0;flex-wrap:wrap}.mrow .mg{min-width:auto}}
 </style>
 </head>
 <body>
@@ -327,15 +332,15 @@ function lockDialog(){const l=S.settings.lock||{};
   $("lkAll").onclick=()=>save({viewer:true,editor:true,peserta:true});$("lkNone").onclick=()=>save({viewer:false,editor:false,peserta:false})}
 /* ====================== KIRIM TES ====================== */
 function vKirim(m){
-  const act=S.modules.filter(x=>x.active);const grades=[...new Set(act.map(x=>x.grade).filter(Boolean))].sort((a,b)=>+a.slice(1)-+b.slice(1));
+  const act=S.modules.filter(x=>x.active);const grades=Array.from({length:10},(_,i)=>"G"+(i+1));
   const pd=setg().proctorDef;
   m.innerHTML=`<div class="card" style="max-width:760px;margin:0 auto 14px"><h2>Kirim tes ke peserta</h2><p class="sub">Isi data peserta, atur waktu, lalu bagikan link-nya. Peserta tidak perlu login.</p>
    ${act.length?"":'<div class="notice warn" style="margin-bottom:10px">Belum ada soal. Pemilik perlu mengunggah file soal di menu Bank Soal.</div>'}
    <form id="fS" class="grid">
     <div class="grid g2"><label class="f">Nama peserta<input name="nama" required></label><label class="f">NIK / NIP<input name="nik"></label></div>
-    <div class="grid g2"><label class="f">Grade yang dituju<select name="grade" id="fG">${grades.map(g=>`<option>${g}</option>`).join("")}${act.some(x=>!x.grade)?'<option value="">Lainnya</option>':""}</select></label>
+    <div class="grid g2"><label class="f">Grade yang dituju<select name="grade" id="fG">${grades.map(g=>`<option>${g}</option>`).join("")}</select></label>
      <label class="f">Jenis penilaian<select name="jenis"><option>New Hire</option><option>Akhir Kontrak</option></select></label></div>
-    <div><div class="small" style="font-weight:600;color:var(--mut);margin-bottom:4px">Soal yang dikerjakan</div><div id="fMods"></div></div>
+    <div><div class="small" style="font-weight:600;color:var(--mut);margin-bottom:4px">Soal yang dikerjakan <span style="font-weight:400">— sheet sesuai grade dicentang otomatis, centang/hapus sesuai kebutuhan</span></div><div id="fMods" class="mods"></div></div>
     <div><div class="small" style="font-weight:600;color:var(--mut);margin-bottom:6px">Waktu tes</div>
      <div class="row" style="gap:6px;margin-bottom:8px"><label class="btn sm tmb"><input type="radio" name="timer_mode" value="total" checked hidden> Total waktu</label><label class="btn sm tmb"><input type="radio" name="timer_mode" value="per_soal" hidden> Per soal</label></div>
      <div class="row" id="tTot"><input type="number" name="total_min" min="1" max="600" style="width:110px"> <span>menit untuk seluruh soal · peserta bebas bolak-balik soal</span></div>
@@ -358,9 +363,13 @@ function vKirim(m){
    <div class="card"><div class="row" style="justify-content:space-between"><div><h2>Daftar link tes</h2><p class="sub">Status pengerjaan setiap peserta. Klik nama untuk melihat hasil.</p></div><input id="pSearch" placeholder="Cari nama / NIK…" style="max-width:240px"></div>
     <div class="sheet-wrap"><table class="sheet"><thead><tr><th>Dibuat</th><th>Nama</th><th>Grade</th><th>Waktu</th><th>Status</th><th>Berlaku s/d</th><th>Aksi</th></tr></thead><tbody id="pBody"></tbody></table></div></div>`;
   const f=$("fS");
-  const drawMods=()=>{const g=$("fG")?$("fG").value:"";const list=act.filter(x=>(x.grade||"")===g);
-    $("fMods").innerHTML=list.length?list.map(x=>`<label class="row" style="margin:3px 0"><input type="checkbox" name="mod" value="${x.id}" data-dur="${x.duration_min}" checked> <b>${esc(x.title)}</b> <span class="small muted">${S.qcount?.[x.id]||0} soal · bawaan ${x.duration_min} menit</span></label>`).join(""):'<span class="small muted">Tidak ada soal untuk pilihan ini.</span>';
-    const d=list.reduce((a,x)=>a+(+x.duration_min||0),0);if(d)f.total_min.value=d};
+  const sumMods=()=>{const ck=[...f.querySelectorAll("input[name=mod]:checked")];const d=ck.reduce((a,c)=>a+(+c.dataset.dur||0),0),n=ck.reduce((a,c)=>a+(+c.dataset.n||0),0);
+    if(d)f.total_min.value=d;$("fModSum").textContent=ck.length?`${ck.length} sheet dipilih · ${n} soal · ${d} menit`:"Belum ada sheet dipilih"};
+  const inG=(x,g)=>{const n=[...String(x.grade||"").matchAll(/\d+/g)].map(m=>+m[0]),v=+String(g).replace(/\D/g,"");if(!n.length||!v)return false;return v>=Math.min(...n)&&v<=Math.max(...n)};
+  const drawMods=()=>{const g=$("fG")?$("fG").value:"";const ids=new Set(act.map(x=>x.id));
+    const groups=bankGroups().map(([k,l])=>[k,l.filter(x=>ids.has(x.id))]).filter(([k,l])=>l.length);
+    $("fMods").innerHTML=groups.length?groups.map(([k,l])=>`<div class="mgrp"><div class="mgrp-h">📁 ${esc(k)}</div>${l.map(x=>`<label class="mrow${inG(x,g)?" hit":""}"><input type="checkbox" name="mod" value="${x.id}" data-dur="${x.duration_min}" data-n="${S.qcount?.[x.id]||0}" ${inG(x,g)?"checked":""}><b class="mg">${esc(x.grade||"–")}</b><span class="mt">${esc(x.title)}</span><span class="small muted">${S.qcount?.[x.id]||0} soal · ${x.duration_min} mnt</span></label>`).join("")}</div>`).join("")+`<div class="small" id="fModSum" style="margin-top:6px;font-weight:600;color:var(--p)"></div>`:'<span class="small muted">Belum ada sheet soal aktif.</span>';
+    f.querySelectorAll("input[name=mod]").forEach(c=>c.onchange=()=>{c.closest(".mrow").classList.toggle("hit",c.checked);sumMods()});sumMods()};
   const tm=()=>{const v=f.querySelector("input[name=timer_mode]:checked").value;$("tTot").hidden=v!=="total";$("tPer").hidden=v==="total";f.querySelectorAll(".tmb").forEach(l=>l.classList.toggle("pri",l.querySelector("input").checked))};
   if($("fG"))$("fG").onchange=drawMods;drawMods();f.querySelectorAll("input[name=timer_mode]").forEach(r=>r.onchange=tm);tm();
   f.onsubmit=async e=>{e.preventDefault();const fd=new FormData(f);const mods=fd.getAll("mod");
