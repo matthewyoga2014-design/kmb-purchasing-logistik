@@ -410,14 +410,58 @@ window.resetDevice=async id=>{try{await q(SB.from("pk_attempts").update({device_
 
 /* ====================== HASIL ====================== */
 function resultRows(){return S.sessions.map(s=>({s,c:calc(s)}))}
-function vHasil(m){
+let HVIEW="tes";
+function hvToggle(){return `<div class="seg noprint" style="margin:8px 0 12px"><button type="button" data-hv="tes" class="${HVIEW==="tes"?"on":""}">Per tes</button><button type="button" data-hv="kar" class="${HVIEW==="kar"?"on":""}">Per karyawan (riwayat)</button></div>`}
+function wireHv(m){m.querySelectorAll("[data-hv]").forEach(b=>b.onclick=()=>{HVIEW=b.dataset.hv;vHasil(m)})}
+function people(){const G={},byName={};const add=(key,kind,x)=>{(G[key]=G[key]||{tes:[],kin:[],nama:x.nama,nik:x.nik||""})[kind].push(x);if(x.nik&&!G[key].nik)G[key].nik=x.nik};
+  const all=[...S.sessions.map(x=>["tes",x]),...S.kinerja.map(x=>["kin",x])];
+  all.filter(([k,x])=>pNorm(x.nik)).forEach(([k,x])=>{const key="n:"+pNorm(x.nik);add(key,k,x);byName[pNorm(x.nama)]=byName[pNorm(x.nama)]||key});
+  all.filter(([k,x])=>!pNorm(x.nik)).forEach(([k,x])=>add(byName[pNorm(x.nama)]||"m:"+pNorm(x.nama),k,x));
+  return Object.values(G).map(g=>{const ev=personHistory(g.tes[0]||g.kin[0]);const T=ev.filter(e=>e.kind==="tes"&&e.nilai!=null),K=ev.filter(e=>e.kind==="kin");
+    const first=T[0]||null,last=T[T.length-1]||null,delta=T.length>1?last.nilai-first.nilai:null;const lastS=ev.filter(e=>e.kind==="tes").pop();
+    return {nama:g.nama,nik:g.nik,ev,T,K,first,last,delta,lastS,lastK:K[K.length-1]||null,grade:lastS?(lastS.s.grade_target||lastS.s.level||""):(K.length?K[K.length-1].k.grade||"":""),
+      tren:T.length<2?"satu":delta>=1?"naik":delta<=-1?"turun":"tetap",tgl:ev.length?ev[ev.length-1].t:null}})}
+function spark(T){if(T.length<2)return"";const w=90,h=26,xs=i=>3+i*(w-6)/(T.length-1),ys=v=>h-3-(v/100)*(h-6);const up=T[T.length-1].nilai>=T[0].nilai;
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" aria-hidden="true"><polyline fill="none" stroke="${up?"#16A34A":"#DC2626"}" stroke-width="2" points="${T.map((e,i)=>xs(i)+","+ys(e.nilai)).join(" ")}"/>${T.map((e,i)=>`<circle cx="${xs(i)}" cy="${ys(e.nilai)}" r="2.2" fill="${up?"#16A34A":"#DC2626"}"/>`).join("")}</svg>`}
+function vRiwayat(m){const P=people();const grades=[...new Set(P.map(p=>p.grade).filter(Boolean))].sort((a,b)=>+a.replace(/\D/g,"").slice(0,2)-+b.replace(/\D/g,"").slice(0,2));
+  const multi=P.filter(p=>p.T.length>1);
+  m.innerHTML=`<div class="grid g4" style="margin-bottom:14px">
+   <div class="kpi"><span>Karyawan</span><b>${P.length}</b></div><div class="kpi"><span>Sudah tes ≥ 2 kali</span><b>${multi.length}</b></div>
+   <div class="kpi"><span>Nilai naik</span><b style="color:#16A34A">${P.filter(p=>p.tren==="naik").length}</b></div><div class="kpi"><span>Nilai turun</span><b style="color:var(--bad)">${P.filter(p=>p.tren==="turun").length}</b></div></div>
+  <div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2>Riwayat karyawan</h2><p class="sub">Semua karyawan beserta perkembangan nilainya dari tes pertama ke tes terakhir. Klik baris untuk melihat riwayat lengkap.</p>${hvToggle()}</div>
+   <div class="row"><button class="btn pri" id="rwXls">Unduh Excel</button></div></div>
+   <div class="row" style="margin-bottom:10px"><input id="rwQ" placeholder="Cari nama / NIK" style="flex:1;min-width:160px">
+    <select id="rwG"><option value="">Semua grade</option>${grades.map(g=>`<option>${esc(g)}</option>`).join("")}</select>
+    <select id="rwT"><option value="">Semua perkembangan</option><option value="naik">Nilai naik</option><option value="turun">Nilai turun</option><option value="tetap">Tetap</option><option value="satu">Baru 1 kali tes</option></select>
+    <select id="rwK"><option value="">Kinerja: semua</option><option value="ada">Sudah ada penilaian kinerja</option><option value="belum">Belum ada penilaian kinerja</option></select>
+    <select id="rwS"><option value="tgl">Urut: aktivitas terbaru</option><option value="nama">Urut: nama A–Z</option><option value="naik">Urut: kenaikan terbesar</option><option value="turun">Urut: penurunan terbesar</option><option value="nilai">Urut: nilai terakhir tertinggi</option><option value="jml">Urut: paling sering tes</option></select></div>
+   <div class="sheet-wrap"><table class="sheet" id="rwT2"></table></div><p class="small muted" id="rwI"></p></div>`;
+  wireHv(m);
+  const filt=()=>{const k=$("rwQ").value.toLowerCase(),g=$("rwG").value,t=$("rwT").value,kk=$("rwK").value,so=$("rwS").value;
+    const r=P.filter(p=>(p.nama+" "+(showNik()?p.nik:"")).toLowerCase().includes(k)&&(!g||p.grade===g)&&(!t||p.tren===t)&&(!kk||(kk==="ada"?p.K.length:!p.K.length)));
+    const v=x=>x==null?-1e9:x;r.sort(so==="nama"?(a,b)=>a.nama.localeCompare(b.nama):so==="naik"?(a,b)=>v(b.delta)-v(a.delta):so==="turun"?(a,b)=>(a.delta==null?1e9:a.delta)-(b.delta==null?1e9:b.delta):so==="nilai"?(a,b)=>v(b.last?.nilai)-v(a.last?.nilai):so==="jml"?(a,b)=>b.T.length-a.T.length:(a,b)=>new Date(b.tgl||0)-new Date(a.tgl||0));return r};
+  const draw=()=>{const r=filt();
+    $("rwT2").innerHTML=`<thead><tr><th>Nama</th>${showNik()?"<th>NIK</th>":""}<th>Grade terakhir</th><th class="num">Jumlah tes</th><th>Tes pertama</th><th>Tes terakhir</th><th class="num">Perubahan</th><th>Tren</th><th>Hasil terakhir</th><th>Kinerja terakhir</th></tr></thead><tbody>${r.map((p,i)=>`<tr data-i="${i}" style="cursor:pointer"><td><b>${esc(p.nama)}</b></td>${showNik()?`<td>${esc(p.nik)}</td>`:""}<td>${esc(p.grade||"–")}</td><td class="num">${p.ev.filter(e=>e.kind==="tes").length}</td>
+      <td>${p.first?`<b>${fmt(p.first.nilai)}</b> <span class="small muted">${fdate(p.first.t)}</span>`:"–"}</td><td>${p.last&&p.T.length>1?`<b>${fmt(p.last.nilai)}</b> <span class="small muted">${fdate(p.last.t)}</span>`:"–"}</td>
+      <td class="num">${p.delta==null?"–":`<b style="color:${p.delta>=0?"#16A34A":"var(--bad)"}">${p.delta>=0?"▲":"▼"} ${fmt(Math.abs(p.delta))}</b>`}</td><td>${spark(p.T)}</td>
+      <td>${p.lastS&&p.lastS.c.teknis!=null?`<span class="chip ${p.lastS.c.grade.ok?"st-Selesai":"st-Kedaluwarsa"}">${esc(p.lastS.c.grade.grade)}</span>`:p.lastS?`<span class="chip st-${p.lastS.c.status.split(" ")[0]}">${p.lastS.c.status}</span>`:"–"}</td>
+      <td class="small">${p.lastK?`${p.lastK.nilai!=null?"<b>"+fmt(p.lastK.nilai)+"</b> · ":""}${esc(kepLabel(p.lastK.k))}`:'<span class="muted">Belum ada</span>'}</td></tr>`).join("")||`<tr><td colspan="10" class="empty">Tidak ada karyawan untuk filter ini.</td></tr>`}</tbody>`;
+    $("rwI").textContent=`${r.length} dari ${P.length} karyawan · dicocokkan dari NIK (atau nama bila NIK kosong)`;
+    $("rwT2").querySelectorAll("tr[data-i]").forEach(tr=>tr.onclick=()=>{const p=r[+tr.dataset.i];if(p.lastS)showResume(p.lastS.s.id);else if(p.lastK)viewKinerja(p.lastK.k.id)})};
+  ["rwQ","rwG","rwT","rwK","rwS"].forEach(id=>$(id).oninput=draw);draw();HDRAW=()=>{if($("rwT2"))draw()};
+  $("rwXls").onclick=()=>{if(!window.XLSX)return toast("Pustaka Excel belum termuat");const r=filt();
+    const rows=r.map((p,i)=>{const o={No:i+1,Nama:p.nama};if(showNik())o.NIK=p.nik;Object.assign(o,{"Grade terakhir":p.grade,"Jumlah tes":p.ev.filter(e=>e.kind==="tes").length,"Nilai tes pertama":p.first?+fmt(p.first.nilai).replace(",","."):"","Tanggal tes pertama":p.first?fdate(p.first.t):"","Nilai tes terakhir":p.last&&p.T.length>1?+fmt(p.last.nilai).replace(",","."):"","Tanggal tes terakhir":p.last&&p.T.length>1?fdate(p.last.t):"","Perubahan":p.delta==null?"":+fmt(p.delta).replace(",","."),"Hasil terakhir":p.lastS?(p.lastS.c.teknis!=null?p.lastS.c.grade.grade:p.lastS.c.status):"","Skor kinerja terakhir":p.lastK&&p.lastK.nilai!=null?+fmt(p.lastK.nilai).replace(",","."):"","Keputusan kinerja":p.lastK?kepLabel(p.lastK.k):""});return o});
+    const det=[];r.forEach(p=>p.ev.forEach(e=>{const o={Nama:p.nama};if(showNik())o.NIK=p.nik;Object.assign(o,{Tanggal:fdate(e.t),Kegiatan:e.kind==="tes"?"Tes kompetensi · "+(e.s.jenis||""):"Penilaian kinerja"+(e.k.periode?" · "+e.k.periode:""),Grade:e.kind==="tes"?(e.s.grade_target||e.s.level||""):(e.k.grade||""),Nilai:e.nilai==null?"":+fmt(e.nilai).replace(",","."),Predikat:(e.kind==="tes"?e.c.cat:e.r.cat)?.h||"","Hasil / keputusan":e.kind==="tes"?(e.c.teknis!=null?e.c.grade.grade:e.c.status):kepLabel(e.k)});det.push(o)}));
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(rows),"Riwayat Karyawan");XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(det),"Rincian Riwayat");
+    XLSX.writeFile(wb,`Riwayat_Karyawan_${new Date().toISOString().slice(0,10)}.xlsx`)}}
+function vHasil(m){if(HVIEW=="kar")return vRiwayat(m);
   const all=resultRows(),done=all.filter(r=>r.c.akhir!=null),lulus=done.filter(r=>r.c.grade.ok);
   const byH={};done.forEach(r=>byH[r.c.cat.h]=(byH[r.c.cat.h]||0)+1);
   const grades=[...new Set(S.sessions.map(s=>s.grade_target).filter(Boolean))].sort((a,b)=>+a.slice(1)-+b.slice(1));
   m.innerHTML=`<div class="grid g4" style="margin-bottom:14px">
    <div class="kpi"><span>Peserta</span><b>${all.length}</b></div><div class="kpi"><span>Selesai tes</span><b>${done.length}</b></div>
    <div class="kpi"><span>Lulus</span><b>${lulus.length}<small style="font-size:14px;color:var(--mut)"> / ${done.length}</small></b></div><div class="kpi"><span>Rata-rata nilai</span><b>${fmt(avg(done.map(r=>r.c.akhir)))}</b></div></div>
-  <div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2>Hasil tes</h2><p class="sub">Jawaban peserta masuk otomatis. Klik baris untuk resume lengkap & penilaian kinerja.</p></div>
+  <div class="card"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2>Hasil tes</h2><p class="sub">Jawaban peserta masuk otomatis. Klik baris untuk resume lengkap & penilaian kinerja.</p>${hvToggle()}</div>
    <div class="row"><button class="btn" id="hRef">Muat ulang</button>${ROLE==="owner"&&S.settings.sheetUrl?`<a class="btn" target="_blank" rel="noopener" href="${esc(S.settings.sheetUrl)}">📊 Buka Google Sheet</a>`:""}${ROLE==="owner"&&S.settings.folderUrl?`<a class="btn" target="_blank" rel="noopener" href="${esc(S.settings.folderUrl)}">📁 Buka Folder Drive</a>`:""}<button class="btn pri" id="hXls">Unduh Excel</button></div></div>
    <div class="row" style="gap:6px;margin-bottom:10px">${scaleRows().map(r=>`<span class="chip cat-${r.k}" title="Nilai ${r.min}${r.max!=null?"–"+r.max:" ke atas"}">${esc(r.h)}: ${byH[r.h]||0}</span>`).join("")}</div>
    <div class="row" style="margin-bottom:10px"><input id="hQ" placeholder="Cari nama / NIK" style="flex:1;min-width:160px">
@@ -434,7 +478,7 @@ function vHasil(m){
     $("hInfo").textContent=rows.length+" peserta · ⚠ = jumlah pelanggaran · ⏱ = waktu habis";
     $("hT").querySelectorAll("tr[data-id]").forEach(tr=>tr.onclick=()=>showResume(tr.dataset.id));
     $("hT").querySelectorAll("[data-del]").forEach(b=>b.onclick=ev=>{ev.stopPropagation();delSession(b.dataset.del)})};
-  ["hQ","hG","hR","hS"].forEach(id=>$(id).oninput=draw);draw();HDRAW=()=>{if($("hT"))draw()};
+  ["hQ","hG","hR","hS"].forEach(id=>$(id).oninput=draw);draw();HDRAW=()=>{if($("hT"))draw()};wireHv(m);
   $("hRef").onclick=async()=>{await refresh();renderTab();toast("Data diperbarui")};
   if($("hSync"))$("hSync").onclick=async()=>{toast("Menyinkronkan…");try{const r=await gasPost("sync",{});toast(r.ok?"Google Sheet diperbarui":"Gagal: "+r.error,4000)}catch(e){toast("Gagal: "+e.message,4000)}};
   $("hXls").onclick=exportXlsx;
