@@ -152,6 +152,8 @@ table.sheet{border-collapse:separate;border-spacing:0;width:100%;font-size:13px}
 .mrow{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:8px;cursor:pointer;margin-left:14px}.mrow:hover{background:#F1ECFE}.mrow.hit{background:#EDE7FE}
 .mrow .mg{min-width:64px;font-size:13px}.mrow .mt{flex:1;font-weight:600}
 @media(max-width:640px){.mrow{margin-left:0;flex-wrap:wrap}.mrow .mg{min-width:auto}}
+.hist tr.cur td{background:#F1ECFE}
+#logB b.bad{color:var(--bad)}
 </style>
 </head>
 <body>
@@ -426,7 +428,7 @@ function vHasil(m){
   const draw=()=>{const k=$("hQ").value.toLowerCase(),g=$("hG").value,r=$("hR").value,st=$("hS").value;
     const rows=resultRows().filter(({s,c})=>(s.nama+" "+(s.nik||"")).toLowerCase().includes(k)&&(!g||s.grade_target===g)&&(!r||(c.akhir!=null&&String(+!!c.grade.ok)===r))&&(!st||c.status===st));
     $("hT").innerHTML=`<thead><tr><th>No</th><th>Tanggal</th><th>Nama</th><th>NIK</th><th>Grade</th><th>Jenis</th><th class="num">Nilai</th><th>Predikat · Kategori</th><th>Hasil</th><th>Rekomendasi</th><th class="num">⚠</th><th>Status</th>${can("hapus")?"<th></th>":""}</tr></thead>
-     <tbody>${rows.map(({s,c},i)=>`<tr data-id="${s.id}"><td class="num">${i+1}</td><td>${fdate(s.created_at)}</td><td><b>${esc(s.nama)}</b></td><td>${esc(s.nik||"")}</td><td>${esc(s.grade_target||s.level||"")}</td><td>${esc(s.jenis)}</td>
+     <tbody>${rows.map(({s,c},i)=>`<tr data-id="${s.id}"><td class="num">${i+1}</td><td>${fdate(s.created_at)}</td><td><b>${esc(s.nama)}</b>${(()=>{const n=personHistory(s).length;return n>1?` <span class="chip" title="${n} catatan tes & penilaian kinerja — buka untuk melihat perkembangannya">🕘 ${n}</span>`:""})()}</td><td>${esc(s.nik||"")}</td><td>${esc(s.grade_target||s.level||"")}</td><td>${esc(s.jenis)}</td>
       <td class="num"><b>${fmt(c.akhir)}</b>${c.late?" ⏱":""}</td><td>${catChip(c.cat)}</td>
       <td>${c.teknis==null?"–":`<span class="chip ${c.grade.ok?"st-Selesai":"st-Kedaluwarsa"}">${esc(c.grade.grade)}</span>`}</td><td class="wrap" style="min-width:180px">${esc(c.rek||"–")}</td><td class="num">${c.viol||""}</td><td><span class="chip st-${c.status.split(" ")[0]}">${c.status}</span></td>${can("hapus")?`<td><button class="btn sm dan" data-del="${s.id}" title="Hapus hasil">Hapus</button></td>`:""}</tr>`).join("")||`<tr><td colspan="13" class="empty">Belum ada data.</td></tr>`}</tbody>`;
     $("hInfo").textContent=rows.length+" peserta · ⚠ = jumlah pelanggaran · ⏱ = waktu habis";
@@ -485,6 +487,35 @@ function signBox(){const c=[["Karyawan","Karyawan"],["Dibuat oleh","Atasan Langs
   return `<table class="signbox"><tr>${c.map(x=>`<th>${x[0]}</th>`).join("")}</tr><tr>${c.map(x=>`<td><div class="sb-space"></div><div class="sb-name">(<span class="sb-dots"></span>)</div><div class="sb-role">${x[1]}</div><div class="sb-tgl">Tgl:</div></td>`).join("")}</tr></table>`}
 /* ====================== RESUME PESERTA ====================== */
 async function loadPhotos(sid){try{return await q(SB.from("pk_photos").select("id,kind,taken_at,thumb,url").eq("session_id",sid).order("taken_at"))}catch(e){return []}}
+/* ====================== RIWAYAT / TRACK RECORD KARYAWAN ====================== */
+const pNorm=v=>String(v||"").trim().toLowerCase().replace(/\s+/g," ");
+function samePerson(a,b){const na=pNorm(a.nik),nb=pNorm(b.nik);if(na&&nb)return na===nb;return pNorm(a.nama)===pNorm(b.nama)&&!!pNorm(a.nama)}
+function personHistory(p){
+  const tes=S.sessions.filter(x=>samePerson(x,p)).map(x=>{const c=calc(x);const t=c.done.length?c.done.map(d=>d.a.submitted_at).sort().pop():x.created_at;return {kind:"tes",t,s:x,c,nilai:c.akhir}});
+  const kin=S.kinerja.filter(x=>samePerson(x,p)).map(k=>{const r=kinCalc(k.data);return {kind:"kin",t:k.created_at,k,r,nilai:r.skor}});
+  return [...tes,...kin].sort((a,b)=>new Date(a.t)-new Date(b.t))}
+function historyChart(ev){const pts=ev.filter(e=>e.nilai!=null);if(pts.length<2)return"";
+  const W=640,H=170,L=34,R=34,T=14,B=26,xs=i=>L+(pts.length===1?0:i*(W-L-R)/(pts.length-1)),ys=v=>T+(100-v)*(H-T-B)/100;
+  const line=k=>{const p=pts.map((e,i)=>[i,e]).filter(([i,e])=>e.kind===k);return p.length>1?`<polyline fill="none" stroke="${k==="tes"?"#6D28D9":"#0EA5E9"}" stroke-width="2.5" points="${p.map(([i,e])=>xs(i)+","+ys(e.nilai)).join(" ")}"/>`:""};
+  const pass=setg().gPass;
+  return `<svg viewBox="0 0 ${W} ${H}" style="width:100%;max-width:${W}px;height:auto;display:block;margin:6px 0 2px" role="img" aria-label="Grafik perkembangan nilai">
+   ${[0,25,50,75,100].map(v=>`<line x1="${L}" x2="${W-R}" y1="${ys(v)}" y2="${ys(v)}" stroke="#ECE8F5"/><text x="${L-6}" y="${ys(v)+4}" font-size="10" text-anchor="end" fill="#8A84A3">${v}</text>`).join("")}
+   <line x1="${L}" x2="${W-R}" y1="${ys(pass)}" y2="${ys(pass)}" stroke="#DC2626" stroke-dasharray="4 4" opacity=".6"/><text x="${W-R}" y="${ys(pass)-4}" font-size="10" text-anchor="end" fill="#DC2626">batas lulus ${pass}</text>
+   ${line("tes")}${line("kin")}
+   ${pts.map((e,i)=>`<circle cx="${xs(i)}" cy="${ys(e.nilai)}" r="${e.kind==="tes"?5:4.5}" fill="${e.kind==="tes"?"#6D28D9":"#0EA5E9"}"/><text x="${xs(i)}" y="${ys(e.nilai)-9}" font-size="11" font-weight="700" text-anchor="middle" fill="#1E1B3A">${fmt(e.nilai,0)}</text><text x="${xs(i)}" y="${H-8}" font-size="10" text-anchor="middle" fill="#8A84A3">${fdate(e.t)}</text>`).join("")}</svg>
+   <div class="small muted"><span style="color:#6D28D9">●</span> Nilai tes kompetensi &nbsp; <span style="color:#0EA5E9">●</span> Skor penilaian kinerja</div>`}
+function historyCard(p,curId){const ev=personHistory(p);const nT=ev.filter(e=>e.kind==="tes").length,nK=ev.length-nT;
+  if(ev.length<=1)return `<div class="card"><h3>Riwayat karyawan</h3><span class="muted">Ini catatan pertama untuk ${esc(p.nama)}. Tes atau penilaian kinerja berikutnya akan tampil di sini sebagai perbandingan.</span></div>`;
+  let prev=null;const rows=ev.map(e=>{let d="";if(e.kind==="tes"&&e.nilai!=null){if(prev!=null){const x=e.nilai-prev;d=`<b style="color:${x>=0?"var(--ok,#16A34A)":"var(--bad)"}">${x>=0?"▲":"▼"} ${fmt(Math.abs(x))}</b>`}prev=e.nilai}
+    if(e.kind==="tes")return `<tr class="${e.s.id===curId?"cur":""}" ${e.s.id!==curId?`data-hs="${e.s.id}" style="cursor:pointer"`:""}><td>${fdate(e.t)}</td><td>Tes kompetensi · ${esc(e.s.jenis||"")}${e.s.id===curId?" <span class='chip'>tes ini</span>":""}</td><td>${esc(e.s.grade_target||e.s.level||"–")}</td><td class="num"><b>${fmt(e.nilai)}</b></td><td>${e.c.cat?catChip(e.c.cat):"–"}</td><td>${e.c.teknis==null?"–":`<span class="chip ${e.c.grade.ok?"st-Selesai":"st-Kedaluwarsa"}">${esc(e.c.grade.grade)}</span>`}</td><td class="num">${d}</td></tr>`;
+    return `<tr data-hk="${e.k.id}" style="cursor:pointer"><td>${fdate(e.t)}</td><td>Penilaian kinerja${e.k.periode?" · "+esc(e.k.periode):""}</td><td>${esc(e.k.grade||"–")}</td><td class="num"><b>${fmt(e.nilai)}</b></td><td>${e.r.cat?catChip(e.r.cat):"–"}</td><td class="small">${esc(kepLabel(e.k))}</td><td></td></tr>`}).join("");
+  const T=ev.filter(e=>e.kind==="tes"&&e.nilai!=null);const tr=T.length>1?T[T.length-1].nilai-T[0].nilai:null;
+  return `<div class="card hist"><div class="row" style="justify-content:space-between"><h3 style="margin:0">Riwayat karyawan (track record)</h3><span class="small muted">${nT} tes · ${nK} penilaian kinerja</span></div>
+   ${tr!=null?`<p style="margin:6px 0 0">Nilai tes ${tr>=0?"naik":"turun"} <b style="color:${tr>=0?"#16A34A":"var(--bad)"}">${fmt(Math.abs(tr))} poin</b> dari tes pertama (${fmt(T[0].nilai)}, ${fdate(T[0].t)}) ke tes terakhir (${fmt(T[T.length-1].nilai)}, ${fdate(T[T.length-1].t)}).</p>`:""}
+   ${historyChart(ev)}
+   <div class="sheet-wrap" style="margin-top:8px"><table class="sheet"><thead><tr><th>Tanggal</th><th>Kegiatan</th><th>Grade</th><th class="num">Nilai</th><th>Predikat</th><th>Hasil / keputusan</th><th class="num">Perubahan</th></tr></thead><tbody>${rows}</tbody></table></div>
+   <div class="small muted noprint" style="margin-top:4px">Dicocokkan dari NIK (atau nama bila NIK kosong). Klik baris untuk membuka.</div></div>`}
+function wireHistory(root){root.querySelectorAll("[data-hs]").forEach(r=>r.onclick=()=>showResume(r.dataset.hs));root.querySelectorAll("[data-hk]").forEach(r=>r.onclick=()=>viewKinerja(r.dataset.hk))}
 function showResume(id){
   const s=S.sessions.find(x=>x.id===id);if(!s)return;const c=calc(s);const g=setg();
   const tops=Object.entries(c.topics).map(([t,v])=>[t,v.total?100*v.benar/v.total:0,v]).sort((a,b)=>b[1]-a[1]);
@@ -499,6 +530,7 @@ function showResume(id){
   </div>
   <div class="card" style="margin-top:14px"><h3>Rekomendasi</h3><div style="font-size:15px;font-weight:700;color:var(--p2)">${esc(c.rek||"–")}</div>${s.keputusan?`<div class="small muted">Keputusan diisi manual oleh Editor (otomatis: ${esc(c.rekAuto||"–")})</div>`:""}
    ${can("kinerja")?`<div class="row noprint" style="margin-top:8px"><input id="rKep" placeholder="Ubah keputusan akhir (opsional)" value="${esc(s.keputusan||"")}" style="flex:1"><button class="btn sm pri" id="rKepS">Simpan</button></div>`:""}</div>
+  ${historyCard(s,s.id)}
   <div class="grid g2">
    <div class="card"><h3>Nilai per sheet tes</h3>${c.mods.map(x=>`<div class="hbar"><span>${esc(x.m.title)}</span><div class="bar ${x.a?.submitted_at?cls(x.a.score):""}"><i style="width:${x.a?.submitted_at?x.a.score:0}%"></i></div><b class="right">${x.a?.submitted_at?fmt(x.a.score):"–"}</b></div>${x.a?.submitted_at?`<div class="small muted" style="margin:-4px 0 6px">${x.a.correct}/${x.a.total} benar · ${fdt(x.a.submitted_at)}${x.a.late?" · waktu habis":""}</div>`:""}`).join("")||'<div class="muted">Tidak ada sheet.</div>'}
     <div class="row" style="justify-content:space-between;margin-top:8px"><b>Nilai teknis (rata-rata)</b><b>${fmt(c.teknis)}</b></div>${canEdit()&&c.done.length?`<div class="noprint" style="margin-top:10px">${c.done.map(x=>`<button class="btn sm" data-ans="${x.a.id}">Lihat jawaban benar/salah${c.done.length>1?" – "+esc(x.m.title):""}</button>`).join(" ")}</div>`:""}</div>
@@ -513,7 +545,7 @@ function showResume(id){
   ${proctorCard(s,c)}
   ${signBox()}`);
   {const links=c.mods.filter(x=>x.a).flatMap(x=>(x.a.events||[]).filter(e=>e.type==="foto").map(e=>{const [k,u]=String(e.d).split("|");return {k,u,t:e.t}}));loadPhotos(id).then(l=>drawGallery(l,links))}
-  if($("rDel"))$("rDel").onclick=()=>delSession(id);
+  if($("rDel"))$("rDel").onclick=()=>delSession(id);wireHistory($("mbox"));
   if($("sumGrid"))drawSummary(c,id);
   $("mbox").querySelectorAll("[data-ans]").forEach(b=>b.onclick=()=>showAnswers(b.dataset.ans,id));
   $("rPrint").onclick=()=>{document.body.classList.add("printing");setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove("printing"),500)},50)};
@@ -687,7 +719,8 @@ function viewKinerja(id){const k=S.kinerja.find(x=>x.id===id);if(!k)return;const
     <div style="margin-top:8px;font-size:15px"><b>Keputusan:</b> <span style="color:var(--p2);font-weight:700">${esc(kepLabel(k))}</span></div></div>
    <div class="grid g2"><div class="card"><h3>Kelebihan</h3>${esc(d.kelebihan||"–")}</div><div class="card"><h3>Perlu ditingkatkan</h3>${esc(d.kekurangan||"–")}</div></div>
    ${d.catatan?`<div class="card"><h3>Catatan penilai</h3>${esc(d.catatan)}</div>`:""}
-   ${signBox()}`);
+   <div class="noprint">${historyCard(k,null)}</div>
+   ${signBox()}`);wireHistory($("mbox"));
   $("kvP").onclick=()=>{document.body.classList.add("printing");setTimeout(()=>{window.print();setTimeout(()=>document.body.classList.remove("printing"),500)},50)};
   if($("kvE"))$("kvE").onclick=()=>formKinerja(id);$("kvX").onclick=()=>kinExcel(id);
 }
@@ -750,7 +783,7 @@ async function renameSheet(id,m){const x=S.modules.find(y=>y.id===id);const el=d
 async function vBank(m){
   if(!BANKSEL||!S.modules.find(x=>x.id===BANKSEL))BANKSEL=S.modules[0]?.id||null;
   m.innerHTML=`<div class="card"><div class="row" style="justify-content:space-between"><div><h2>Bank Soal</h2><p class="sub">Impor soal dari file Excel (.xlsx) atau Word (.docx) — soal, pilihan, kunci, dan gambar terbaca otomatis.</p></div>
-   <div class="row"><button class="btn pri" id="bUp">⬆ Unggah file soal</button><input type="file" id="bImp" accept=".xlsx,.xls,.csv,.json,.docx,.doc" hidden><button class="btn sm" id="bTpl" title="Opsional, bila soal belum punya file">Template kosong</button></div></div>
+   <div class="row"><button class="btn pri" id="bUp">⬆ Unggah file soal</button><input type="file" id="bImp" accept=".xlsx,.xls,.csv,.json,.docx,.doc" hidden><button class="btn sm" id="bTpl" title="Opsional, bila soal belum punya file">Template kosong</button><button class="btn sm" id="bBak" title="Unduh semua sheet, soal, kunci, dan gambar dalam satu file">⬇ Cadangan Bank Soal</button></div></div>
    <div class="shelf" id="bDD">${bankShelf()}</div>
    <div>
    <div id="bBody" style="min-width:0">${S.modules.length?'<div class="empty">Memuat…</div>':'<div class="empty">Belum ada soal. Klik <b>⬆ Unggah file soal</b>.</div>'}</div></div></div>`;
@@ -759,6 +792,7 @@ async function vBank(m){
   shelfDnD($("bDD"),m);
   if(!window.__ddL){window.__ddL=1;document.addEventListener("click",e=>{const dd=$("bDD");if(dd&&!dd.contains(e.target))dd.classList.remove("open")})}
   if($("bRn"))$("bRn").onclick=async()=>{const x=S.modules.find(y=>y.id===BANKSEL);const v=prompt("Nama sheet baru:",x.title);if(v&&v.trim()&&v.trim()!==x.title){try{await q(SB.from("pk_modules").update({title:v.trim(),updated_at:new Date().toISOString()}).eq("id",x.id));x.title=v.trim();toast("Nama sheet diubah");vBank(m)}catch(e){toast("Gagal: "+e.message)}}};
+  $("bBak").onclick=backupBank;
   $("bTpl").onclick=()=>{const ws=XLSX.utils.aoa_to_sheet([["No","Soal","A","B","C","D","Kunci","Topik"],[1,"Alat untuk mengukur diameter luar shaft secara akurat adalah…","Ruler","Micrometer","Depth Gauge","Feeler Gauge","B","Alat Ukur & Tools"]]);ws["!cols"]=[{wch:5},{wch:60},{wch:25},{wch:25},{wch:25},{wch:25},{wch:7},{wch:24}];const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,"Soal");XLSX.writeFile(wb,"Template_Bank_Soal.xlsx")};
   $("bImp").onchange=e=>{pickClose();importExcel(e.target.files[0])};$("bUp").onclick=pickOpen;
   if(!BANKSEL)return;
@@ -902,21 +936,30 @@ function pickOpen(){let pk=$("upPick");
     document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!pk.hidden){e.stopPropagation();pickClose()}},true)}
   pk.hidden=false;setTimeout(()=>$("upPkB").focus(),30)}
 function pickClose(){const pk=$("upPick");if(pk)pk.hidden=true}
+/* Cadangan seluruh Bank Soal: satu file .json berisi semua sheet, soal, kunci, gambar. Bisa dipulihkan lewat "Unggah file soal". */
+async function backupBank(){if(!S.modules.length)return toast("Belum ada sheet soal");const b=$("bBak");b.disabled=true;
+  try{const mods=[];let i=0;for(const [lv,list] of bankGroups())for(const x of list){i++;b.textContent=`Menyiapkan ${i}/${S.modules.length}…`;
+      const qs=await q(SB.from("pk_questions").select("no,topic,text,image,options,answer,time_sec").eq("module_id",x.id).order("no"));
+      mods.push({title:x.title,grade:x.grade,level:x.level,code:x.code,description:x.description,duration_min:x.duration_min,pass_score:x.pass_score,shuffle:x.shuffle,active:x.active,sort:x.sort,questions:qs})}
+    const d=new Date(),tg=d.toISOString().slice(0,10);
+    dlBlob(new Blob([JSON.stringify({kmbPaketSoal:1,cadangan:d.toISOString(),modules:mods})],{type:"application/json"}),`Cadangan_Bank_Soal_${tg}.json`);
+    toast(`${mods.length} sheet · ${mods.reduce((a,m)=>a+m.questions.length,0)} soal dicadangkan`,4000)}
+  catch(e){toast("Gagal: "+e.message,5000)}finally{b.disabled=false;b.textContent="⬇ Cadangan Bank Soal"}}
 /* Paket soal siap pakai (.json) — hasil bedah file Excel lengkap dengan gambar */
 async function importPaket(file){
   let P;try{P=JSON.parse(await file.text())}catch(e){return toast("File paket tidak valid",4000)}
   const mods=(P&&P.modules)||[];if(!mods.length)return toast("Paket tidak berisi sheet soal",4000);
-  const ex=t=>S.modules.find(x=>x.title.trim().toLowerCase()===t.trim().toLowerCase());
+  const nk=v=>String(v||"").replace(/\s+/g,"").toLowerCase();const ex=(t,g)=>S.modules.find(x=>nk(x.title)===nk(t)&&nk(x.grade)===nk(g));
   openModal(`<div class="head"><h2>Pasang paket soal</h2><button class="btn sm" onclick="closeModal()">Batal</button></div>
    <div class="notice">${mods.length} sheet · ${mods.reduce((a,m)=>a+m.questions.length,0)} soal · ${mods.reduce((a,m)=>a+m.questions.filter(x=>x.image).length,0)} soal bergambar. Centang sheet yang mau dipasang.</div>
    <div class="sheet-wrap" style="max-height:none;margin-top:10px"><table class="sheet"><thead><tr><th></th><th>Sheet</th><th>Grade</th><th>Level</th><th>Soal</th><th>Gambar</th><th>Keterangan</th></tr></thead><tbody>
-   ${mods.map((m,i)=>`<tr><td><input type="checkbox" data-pk="${i}" ${ex(m.title)?"":"checked"}></td><td><b>${esc(m.title)}</b></td><td>${esc(m.grade||"")}</td><td>${esc(m.level||"")}</td><td>${m.questions.length}</td><td>${m.questions.filter(x=>x.image).length}</td><td class="small">${ex(m.title)?"⚠️ Sudah ada sheet bernama sama — bila dicentang, sheet lama <b>diganti</b> (nilai peserta di sheet lama ikut terhapus)":"Baru"}</td></tr>`).join("")}</tbody></table></div>
+   ${mods.map((m,i)=>`<tr><td><input type="checkbox" data-pk="${i}" ${ex(m.title,m.grade)?"":"checked"}></td><td><b>${esc(m.title)}</b></td><td>${esc(m.grade||"")}</td><td>${esc(m.level||"")}</td><td>${m.questions.length}</td><td>${m.questions.filter(x=>x.image).length}</td><td class="small">${ex(m.title,m.grade)?"⚠️ Sudah ada sheet bernama sama — bila dicentang, sheet lama <b>diganti</b> (nilai peserta di sheet lama ikut terhapus)":"Baru"}</td></tr>`).join("")}</tbody></table></div>
    <div class="row" style="margin-top:12px"><button class="btn pri" id="pkGo">Pasang sheet terpilih</button><span class="small muted" id="pkSt"></span></div>`);
   $("pkGo").onclick=async()=>{const sel=[...document.querySelectorAll("[data-pk]:checked")].map(c=>mods[+c.dataset.pk]);if(!sel.length)return toast("Belum ada yang dicentang");
-    const old=sel.filter(m=>ex(m.title));if(old.length&&!confirm(`Ganti ${old.length} sheet lama (${old.map(m=>m.title).join(", ")})? Soal & nilai peserta di sheet lama akan terhapus.`))return;
+    const old=sel.filter(m=>ex(m.title,m.grade));if(old.length&&!confirm(`Ganti ${old.length} sheet lama (${old.map(m=>m.title).join(", ")})? Soal & nilai peserta di sheet lama akan terhapus.`))return;
     const b=$("pkGo");b.disabled=true;let done=0;
-    try{for(const m of sel){const o=ex(m.title);if(o)await q(SB.from("pk_modules").delete().eq("id",o.id));
-        const mod=await q(SB.from("pk_modules").insert({title:m.title,grade:m.grade||null,level:m.level||"Junior",duration_min:m.duration_min||90,pass_score:m.pass_score||56,sort:S.modules.length+(++done)}).select().single());
+    try{for(const m of sel){const o=ex(m.title,m.grade);if(o)await q(SB.from("pk_modules").delete().eq("id",o.id));
+        const mod=await q(SB.from("pk_modules").insert({title:m.title,grade:m.grade||null,level:m.level||"Junior",code:m.code||null,description:m.description||null,shuffle:m.shuffle!==false,active:m.active!==false,duration_min:m.duration_min||90,pass_score:m.pass_score||56,sort:S.modules.length+(++done)}).select().single());
         const L=m.questions.map(x=>({no:x.no,text:x.text,options:x.options,answer:x.answer,image:x.image||null,topic:x.topic||guessTopic(x.text+" "+Object.values(x.options).join(" ")),time_sec:x.time_sec||null}));
         for(let i=0;i<L.length;i+=8){await q(SB.from("pk_questions").insert(L.slice(i,i+8).map(x=>({...x,module_id:mod.id}))));$("pkSt").textContent=`${m.title}: ${Math.min(L.length,i+8)}/${L.length}`}
         BANKSEL=mod.id}
@@ -1035,6 +1078,24 @@ async function importExcel(file){
 }
 
 /* ====================== PENGATURAN ====================== */
+/* ====================== CATATAN AKTIVITAS ====================== */
+const LOGF={grade:"Grade",level:"Level",title:"Judul",active:"Aktif",pass_score:"Nilai lulus",duration_min:"Durasi (menit)",description:"Keterangan",shuffle:"Acak soal",code:"Kode"};
+function logDetail(a,d){if(!d)return"";const v=x=>x==null||x===""?"(kosong)":typeof x==="object"?JSON.stringify(x):String(x);
+  if(a==="Ubah sheet soal")return Object.entries(d).map(([k,[o,n]])=>`${LOGF[k]||k}: ${esc(v(o))} → <b>${esc(v(n))}</b>`).join("<br>");
+  if(a==="Ubah kunci jawaban")return `Kunci ${esc(v(d.dari))} → <b>${esc(v(d.ke))}</b><br><span class="muted">${esc(d.soal||"")}</span>`;
+  if(a==="Ubah isi soal")return `<span class="muted">Lama:</span> ${esc(d.soal_lama||"")}<br><span class="muted">Baru:</span> ${esc(d.soal_baru||"")}`;
+  if(a==="Ubah kunci web"){const f=o=>{o=o||{};return ["viewer","editor","peserta"].filter(k=>o[k]).map(k=>k[0].toUpperCase()+k.slice(1)).join(", ")||"tidak dikunci"};return `${esc(f(d.dari))} → <b>${esc(f(d.ke))}</b>`}
+  if(a==="Ubah pengaturan")return "Bagian: "+esc((d.bagian||[]).join(", "));
+  if(d.dari!==undefined||d.ke!==undefined)return `${esc(v(d.dari))} → <b>${esc(v(d.ke))}</b>`;
+  return Object.entries(d).filter(([k,x])=>x!=null&&x!=="").map(([k,x])=>`${esc(k.replace(/_/g," "))}: ${esc(/^\d{4}-\d\d-\d\dT/.test(x)?fdt(x):v(x))}`).join(" · ")}
+let LOGS=[];
+async function drawLog(force){const b=$("logB");if(!b)return;
+  try{if(force||!LOGS.length)LOGS=await q(SB.from("pk_log").select("*").order("at",{ascending:false}).limit(500))}catch(e){b.innerHTML=`<tr><td colspan="5" class="muted">Catatan aktivitas belum bisa dimuat (${esc(e.message)}).</td></tr>`;return}
+  const draw=()=>{const k=$("logQ").value.toLowerCase(),f=$("logA").value;const re=f?new RegExp(f,"i"):null;
+    const rows=LOGS.filter(l=>(!re||re.test(l.action))&&(!k||[l.actor,l.action,l.target,JSON.stringify(l.detail||"")].join(" ").toLowerCase().includes(k)));
+    b.innerHTML=rows.map(l=>`<tr><td style="white-space:nowrap">${fdt(l.at)}</td><td>${esc(l.actor||"")}</td><td><b class="${/^Hapus|Cabut/.test(l.action)?"bad":""}">${esc(l.action)}</b></td><td>${esc(l.target||"")}</td><td class="wrap small" style="min-width:220px">${logDetail(l.action,l.detail)}</td></tr>`).join("")||'<tr><td colspan="5" class="empty">Belum ada aktivitas tercatat.</td></tr>';
+    $("logI").textContent=`${rows.length} dari ${LOGS.length} aktivitas terakhir`};
+  $("logQ").oninput=draw;$("logA").onchange=draw;$("logRef").onclick=()=>drawLog(true);draw()}
 async function vPengaturan(m){
   const g=setg();
   m.innerHTML=`<div class="grid g2">
@@ -1059,6 +1120,10 @@ async function vPengaturan(m){
     try{await save(n);syncDrive()}catch(err){toast("Gagal: "+err.message)}};
   $("sReset").onclick=async()=>{if(!confirm("Kembalikan penilaian ke bawaan?"))return;try{await save({...DEF,gasUrl:g.gasUrl});vPengaturan(m)}catch(err){toast("Gagal: "+err.message)}};
   drawAccess();drawLinks();
+  if(ROLE==="owner"){m.insertAdjacentHTML("beforeend",`<div class="card" style="margin-top:14px"><div class="row" style="justify-content:space-between;align-items:flex-start"><div><h2>Catatan aktivitas</h2><p class="sub">Siapa melakukan apa dan kapan: buat/hapus link tes, ubah kunci & soal, hapus hasil, ubah pengaturan, kunci web, link akses. Tercatat otomatis dan tidak bisa diubah. Hanya Pemilik yang bisa melihat.</p></div><button class="btn sm" id="logRef">Muat ulang</button></div>
+     <div class="row" style="margin-bottom:8px"><input id="logQ" placeholder="Cari nama / sheet / pelaku…" style="flex:1;min-width:160px"><select id="logA"><option value="">Semua aktivitas</option><option value="Hapus">Penghapusan</option><option value="kunci jawaban">Ubah kunci jawaban</option><option value="soal">Soal & sheet</option><option value="link">Link tes & link akses</option><option value="kinerja">Penilaian kinerja</option><option value="pengaturan|kunci web|folder">Pengaturan & kunci web</option></select></div>
+     <div class="sheet-wrap"><table class="sheet"><thead><tr><th>Waktu</th><th>Pelaku</th><th>Aktivitas</th><th>Untuk</th><th>Rincian</th></tr></thead><tbody id="logB"><tr><td colspan="5" class="muted">Memuat…</td></tr></tbody></table></div><p class="small muted" id="logI"></p></div>`);
+    drawLog()}
 }
 function linkUrl(t){return location.origin+location.pathname+"?k="+t}
 function linkMsg(l){const url=linkUrl(l.token);return `Halo${l.label?" "+l.label:""}, berikut link akses ${l.role==="editor"?"EDITOR":"VIEWER"} web Psikotest & Uji Kompetensi Mekanik PT Karunia Mandiri Berkarya:\n${url}\n\nCukup buka link ini, tidak perlu login. Mohon link tidak dibagikan ke orang lain.${l.role==="editor"?"\n\nSebagai Editor, Anda bisa mengirim link tes ke peserta, mengatur waktu tes, melihat hasil, dan mengisi penilaian kinerja.":"\n\nSebagai Viewer, Anda bisa melihat hasil tes dan penilaian kinerja."}`}
