@@ -649,8 +649,7 @@ async function loadHomeActs() {
   if (ui.page === 'home') render();
 }
 function homeHtml() {
-  if (!homeOn.stats) { homeOn.stats = true; loadStats(); }
-  if (isOwner() && !homeOn.acts) { homeOn.acts = true; loadHomeActs(); }
+
   const webs = WEBS.filter((w) => w.show());
   const best = (apps) => apps.map(roleOf).sort((a, b) => ['owner', 'editor', 'viewer'].indexOf(a) - ['owner', 'editor', 'viewer'].indexOf(b)).find(Boolean) || '';
   const cards = webs.map((w) => { const r = w.key === 'kantor' ? 'owner' : best(WAPP[w.key] ? WAPP[w.key]() : []); return `<article class="wc"><div class="top2"><span class="ic2">${wIcon(w)}</span>${r ? `<span class="rl">${RNAME[r] || r}</span>` : ''}</div><b>${esc(w.title.replace('Monitoring MPP Achievement All Jobsite', 'Monitoring Manpower'))}</b><span class="d">${esc(WDESC[w.key] ? WDESC[w.key]() : '')}</span><a class="go2" href="${w.url}">Buka</a></article>`; }).join('');
@@ -666,7 +665,7 @@ function homeHtml() {
   const an = (a) => (SUBS.find((x) => x.app === a.app) || {}).name || a.app;
   const acts = isOwner() ? `<section class="bx"><div class="bh"><b>Aktivitas terakhir</b><button type="button" data-page="act">Lihat semua</button></div>${S.hacts ? (S.hacts.length ? S.hacts.map((a) => `<div class="ar"><i></i><span class="w"><b>${esc(String(a.actor || '').split('@')[0])}</b> ${esc(a.action)}</span><small>${esc(an(a))} · ${when(a.at)}</small></div>`).join('') : '<p class="sub">Belum ada aktivitas.</p>') : '<p class="sub">Memuat…</p>'}</section>` : '';
   const row = rings || acts ? `<div class="row2${rings && acts ? '' : ' one'}">${rings}${acts}</div>` : '';
-  return `<div class="hm"><div class="hh"><h1>Beranda</h1><p>Semua web monitoring dalam satu pintu</p></div><div class="webs">${cards}</div>${kp}${row}</div>`;
+  return `<div class="hm"><div class="hh"><h1>Beranda</h1><p>Semua web monitoring dalam satu pintu</p></div><div class="webs">${cards}</div></div>`;
 }
 
 // ---------- masuk & undangan ----------
