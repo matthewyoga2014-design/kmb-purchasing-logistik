@@ -987,8 +987,9 @@
   if (typeof openFile === 'function') {
     const _openFile = openFile;
     openFile = async function (id, name) {
-      let owner = false, dl = false; try { owner = !!IS_OWNER; dl = !!DL; } catch (e) {}
-      if (!(owner || dl) || typeof WEB === 'undefined' || !WEB.sb) return _openFile.apply(this, arguments);
+      let owner = false, dl = false, ed = false; try { owner = !!IS_OWNER; dl = !!DL; } catch (e) {}
+      try { ed = !!CAN_EDIT && !!(WEB.user && WEB.user.email) && !(typeof SHARE_KEY !== 'undefined' && SHARE_KEY); } catch (e) {}   // Editor yang login juga dibuka di Drive
+      if (!(owner || dl || ed) || typeof WEB === 'undefined' || !WEB.sb) return _openFile.apply(this, arguments);
       const w = window.open('', '_blank');   // dibuka saat klik supaya tidak diblokir pop-up
       try { if (w) w.document.write('<title>Membuka…</title><p style="font:15px system-ui,sans-serif;padding:24px;color:#444">Membuka berkas di Google Drive…</p>'); } catch (e) {}
       let link = null;
@@ -999,6 +1000,7 @@
         return;
       }
       try { if (w) w.close(); } catch (e) {}
+      if (!link) try { toast('Berkas baru: sedang disalin ke Google Drive (otomatis, maks ±10 menit). Sementara ditampilkan di web.'); } catch (e) {}
       return _openFile.apply(this, arguments);
     };
   }
