@@ -4886,7 +4886,7 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
   }, true);
   try { after(); } catch (e) {}
 })();
-</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261123k"></script><script src="../unit-population-detail.js?v=20261123k"></script><script src="../mp-private.js?v=20261123k"></script><script src="../activity-log.js?v=20261123k" data-kind="manpower"></script><script src="../otp-login.js?v=20261123k"></script><script src="../form-data-karyawan.js?v=20261123k"></script><script src="../candidate-resume.js?v=20261123k"></script><script src="../manpower-dash.js?v=20261123q"></script><script id="portal-name-sync">
+</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261123k"></script><script src="../unit-population-detail.js?v=20261123k"></script><script src="../mp-private.js?v=20261123k"></script><script src="../activity-log.js?v=20261123k" data-kind="manpower"></script><script src="../otp-login.js?v=20261123k"></script><script src="../form-data-karyawan.js?v=20261123k"></script><script src="../candidate-resume.js?v=20261123k"></script><script src="../manpower-dash.js?v=20261123s"></script><script id="portal-name-sync">
 // Nama portal mengikuti "Edit nama portal" di Monitoring MPP Achievement (tabel portal_display_settings).
 (function () {
   var KEY = 'portal-name:' + 'kta';
@@ -4934,7 +4934,7 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
 <script>window.KTA_SYSTEM_LINKS = { repo: 'matthewyoga2014-design/kmb-purchasing-logistik', path: 'manpower-kta-tra/index.html', supabase: 'https://supabase.com/dashboard/project/yoviojbfyvgpllxisjvy', script: 'https://script.google.com/d/1Wvtoe-H4gmyVkA-UDI2g0A19dLa1EjKvMjLmtTl7ktsGJ-zDGymcb-Fx/edit', drive: 'https://drive.google.com/drive/folders/11RTwJfP21J8Yna8_jQg_CeqCATwi5UcG' };</script>
 <script src="../kta-ops.js?v=20261123k"></script>
 <script src="../kta-approval.js?v=20261123k"></script>
-<script src="../print-pilih.js?v=20261123r"></script>
+<script src="../print-pilih.js?v=20261123s"></script>
 <script>/* Pilihan Print: sheet ini / keseluruhan */
 (function () {
   if (!window.PrintPilih) return;
@@ -4947,7 +4947,7 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
   PrintPilih.attach({
     btn: '#printBtn',
     allowed: () => typeof guardFree !== 'function' || guardFree(),
-    current: () => lab(ui.page) + (ui.page === 'karyawan' ? (ui.kt === 'out' ? ' (MP Out)' : ' (MP Aktif)') : ''),
+    current: () => lab(ui.page) + (ui.page === 'dashboard' ? ((document.querySelector('#nav .dsubs [aria-current="page"]') || {}).textContent ? ' · ' + document.querySelector('#nav .dsubs [aria-current="page"]').textContent : '') : '') + (ui.page === 'karyawan' ? (ui.kt === 'out' ? ' (MP Out)' : ' (MP Aktif)') : ''),
     list: () => items().map((x) => x.label),
     all: () => {
       const o = { page: ui.page, kt: ui.kt };
