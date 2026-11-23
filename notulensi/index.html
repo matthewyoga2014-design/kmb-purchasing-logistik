@@ -858,7 +858,7 @@ body{background:radial-gradient(1200px 500px at 85% 0%,#EFEFF2 0%,rgba(239,239,2
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="../activity-log.js?v=20261123k"></script>
-</head>
+<style id="status-warna">/* Open = biru (belum selesai), Continue = kuning, Close = hijau, merah hanya untuk telat/jatuh tempo */.pill.st-open,.st-open,.st-todo{background:#DBEAFE;color:#1D4ED8}select.stsel.s-open{background:#DBEAFE;color:#1D4ED8;border-color:#BFDBFE}</style></head>
 <body>
 <div id="gate" class="gate"><div class="gcard"><div style="margin-bottom:14px"><a href="../" title="Kembali ke halaman utama Monitoring" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;font-weight:700;font-size:13px;color:#56565A;background:#fff;border:1px solid #EAEAEC;border-radius:10px;padding:8px 12px;flex-shrink:0">&larr; Kembali</a></div><div class="brand"><span class="logo">N</span><div><div class="eb">Integrated Monitoring</div><h1>Web Notulensi</h1></div></div><div id="gBody"><p class="gmsg">Memeriksa login…</p></div></div></div>
 <div class="app v3">
@@ -1227,8 +1227,8 @@ function nextInfo(sid){const s=sById(sid),v=latestV(sid);if(!s||!v)return null;c
   const rr=seriesRows(sid).filter(r=>clean(r.tl));if(!v.next&&rr.length&&rr.every(r=>r.st==="close"))return{k:"done",cls:"close",lb:"Semua close",sub:"Tidak perlu meeting lanjutan",n};
   if(!v.next)return{k:"none",cls:"grey",lb:"Belum dijadwalkan",sub:"Tanggal next meeting belum diisi",n};
   const d=daysTo(v.next);
-  if(d<0)return{k:"over",d,cls:"open",lb:`Lewat jatuh tempo · ${-d} hari`,sub:"Konfirmasi: ada meeting atau tidak?",date:v.next,n,lab:mL(sid,n,v.next)};
-  if(d===0)return{k:"due",d,cls:"open",lb:"Jatuh tempo hari ini",sub:`Meeting ${mL(sid,n,v.next)} dijadwalkan hari ini`,date:v.next,n,lab:mL(sid,n,v.next)};
+  if(d<0)return{k:"over",d,cls:"blocked",lb:`Lewat jatuh tempo · ${-d} hari`,sub:"Konfirmasi: ada meeting atau tidak?",date:v.next,n,lab:mL(sid,n,v.next)};
+  if(d===0)return{k:"due",d,cls:"blocked",lb:"Jatuh tempo hari ini",sub:`Meeting ${mL(sid,n,v.next)} dijadwalkan hari ini`,date:v.next,n,lab:mL(sid,n,v.next)};
   if(d<=NEAR)return{k:"near",d,cls:"continue",lb:`Hampir jatuh tempo · ${d} hari lagi`,sub:`Meeting ${mL(sid,n,v.next)}`,date:v.next,n,lab:mL(sid,n,v.next)};
   return{k:"plan",d,cls:"plan",lb:`${d} hari lagi`,sub:`Meeting ${mL(sid,n,v.next)}`,date:v.next,n,lab:mL(sid,n,v.next)};}
 const NORD={over:0,due:1,near:2,plan:3,none:4,done:5,ended:6};
@@ -1437,7 +1437,7 @@ function renderDash(){
   $("dashList").innerHTML=seriesTable(snaps.map(x=>({s:x.s,v:x.v,n:x.n})),true);
   // attention
   const att=snaps.flatMap(x=>x.rows.filter(r=>r.st!=="close"&&eDue(r)&&daysTo(eDue(r))<=7).map(r=>({r,s:x.s}))).sort((a,b)=>eDue(a.r).localeCompare(eDue(b.r))).slice(0,8);
-  $("att").innerHTML=att.length?att.map(({r,s})=>{const d=daysTo(eDue(r));return `<div class="it" data-act="openS" data-id="${s.id}" tabindex="0" role="button"><span class="t">${esc(r.tl||r.topik)}</span>${d<0?`<span class="pill st-open">Telat ${-d} hr</span>`:`<span class="pill st-continue">${d===0?"Hari ini":d+" hr lagi"}</span>`}<span class="s">${esc(r.pic||"Tanpa PIC")} · ${esc(s.title)}</span></div>`;}).join("")
+  $("att").innerHTML=att.length?att.map(({r,s})=>{const d=daysTo(eDue(r));return `<div class="it" data-act="openS" data-id="${s.id}" tabindex="0" role="button"><span class="t">${esc(r.tl||r.topik)}</span>${d<0?`<span class="pill st-blocked">Telat ${-d} hr</span>`:`<span class="pill st-continue">${d===0?"Hari ini":d+" hr lagi"}</span>`}<span class="s">${esc(r.pic||"Tanpa PIC")} · ${esc(s.title)}</span></div>`;}).join("")
     :`<div class="empty" style="padding:16px"><b>Aman</b>Tidak ada tindak lanjut yang lewat atau mendekati due date.</div>`;
 }
 const NMK=[["over","Lewat jatuh tempo","open"],["due","Hari ini","open"],["near","Hampir jatuh tempo","continue"],["plan","Terjadwal","plan"],["none","Belum dijadwalkan","grey"],["done","Semua close","close"],["ended","Ditutup tanpa meeting","close"]];
