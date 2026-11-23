@@ -439,9 +439,11 @@
     const regBorder = (k, xml) => { if (brdIdx[k] === undefined) { BORDERS.push(xml); brdIdx[k] = BORDERS.length - 1; } return brdIdx[k]; };
     const DOMS = {};
     if (org && org.dom) {
-      const bx = regBorder('box', `<border><left style="thin"><color rgb="FFB9B6CC"/></left><right style="thin"><color rgb="FFB9B6CC"/></right><top style="thin"><color rgb="FFB9B6CC"/></top><bottom style="thin"><color rgb="FFB9B6CC"/></bottom><diagonal/></border>`);
-      org.dom.boxes.forEach((b) => { const k = [b.bg, b.color, b.bold, b.size, b.strike, b.align, b.one].join('|'); if (xfIdx[k] === undefined) xfIdx[k] = xf(regFont(b.color, b.bold, b.size, b.strike), regFill(b.bg), bx, `horizontal="${b.align}" vertical="center" ${b.one ? 'shrinkToFit="1"' : 'wrapText="1"'}`); b.s = xfIdx[k]; });
-      ['solid', 'dot'].forEach((ty) => { const st = ty === 'solid' ? 'thin' : 'dotted', c = ty === 'solid' ? 'FF8A87A6' : 'FFB9B6CC';
+      // tepi kotak mengikuti warna kotak di web; garis hanya di sisi luar (atas bagian pertama, bawah bagian terakhir)
+      const bxOf = (b) => { if (b.bc === undefined && b.first === undefined) b.bc = 'C9CCD8'; if (!b.bc) return 0; const st = b.dash ? 'dashed' : 'thin', c = 'FF' + b.bc, e = (s) => `<${s} style="${st}"><color rgb="${c}"/></${s}>`;
+        return regBorder(['bx', b.bc, st, b.first !== false, b.last !== false].join('|'), `<border>${e('left')}${e('right')}${b.first !== false ? e('top') : '<top/>'}${b.last !== false ? e('bottom') : '<bottom/>'}<diagonal/></border>`); };
+      org.dom.boxes.forEach((b) => { const bxi = bxOf(b); const k = [b.bg, b.color, b.bold, b.size, b.strike, b.align, b.one, bxi].join('|'); if (xfIdx[k] === undefined) xfIdx[k] = xf(regFont(b.color, b.bold, b.size, b.strike), regFill(b.bg), bxi, `horizontal="${b.align}" vertical="center" ${b.one ? 'shrinkToFit="1"' : 'wrapText="1"'}`); b.s = xfIdx[k]; });
+      ['solid', 'dot'].forEach((ty) => { const st = ty === 'solid' ? 'thin' : 'dotted', c = ty === 'solid' ? 'FFB4B8C5' : 'FFD3D6DF';   // garis penghubung abu lembut
         const L = `<left style="${st}"><color rgb="${c}"/></left>`, T = `<top style="${st}"><color rgb="${c}"/></top>`;
         DOMS[ty] = { L: xf(0, 0, regBorder(ty + 'L', `<border>${L}<right/><top/><bottom/><diagonal/></border>`)), T: xf(0, 0, regBorder(ty + 'T', `<border><left/><right/>${T}<bottom/><diagonal/></border>`)), TL: xf(0, 0, regBorder(ty + 'TL', `<border>${L}<right/>${T}<bottom/><diagonal/></border>`)) };
       });
@@ -773,14 +775,19 @@
         const hexOf = (c) => c;
         const boxes = [], lines = [];
         const bgOf = (el) => { for (let e = el; e && e !== root; e = e.parentElement) { const cs = getComputedStyle(e), b = cs.backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return b; const gi = (cs.backgroundImage || '').match(/rgba?\([^)]*\)/); if (gi) return gi[0]; if (e.classList.contains('ocard') || e.classList.contains('onode')) break; } return 'rgb(255, 255, 255)'; };
-        const part = (el, par) => { const cs = getComputedStyle(el), r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return;
+        const part = (el, par, first = true, last = true) => { const cs = getComputedStyle(el), r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return;
           const txt = (el.innerText || '').replace(/\s*\n\s*/g, ' · ').trim(); if (!txt) return;
           const q = rel(r); if (par) { const pr = rel(par.getBoundingClientRect()); q.x0 = pr.x0 + 2; q.x1 = pr.x1 - 2; }
           const rg = document.createRange(); rg.selectNodeContents(el); const one = new Set([...rg.getClientRects()].filter((x) => x.width > 1).map((x) => Math.round(x.top / 4))).size <= 1;
           boxes.push({ ...q, text: txt, one, bg: hexOf(bgOf(el)), color: cs.color, bold: (+cs.fontWeight || 400) >= 600, size: Math.max(6.5, Math.round(parseFloat(cs.fontSize) * 0.68 * 2) / 2), strike: /line-through/.test(cs.textDecorationLine || ''), align: /left|start/.test(cs.textAlign) ? 'left' : /right|end/.test(cs.textAlign) ? 'right' : 'center' }); };
         root.querySelectorAll('.ocard, .onode').forEach((n) => {
           const kids = [...n.children].filter((c) => !c.classList.contains('oacts') && c.innerText && c.innerText.trim() && getComputedStyle(c).display !== 'none');
-          if (kids.length) kids.forEach((k) => part(k, n)); else part(n);
+          const n0 = boxes.length;
+          if (kids.length) kids.forEach((k, i) => part(k, n, i === 0, i === kids.length - 1)); else part(n);
+          // garis tepi kotak (warna & gaya sama dengan web) hanya di sisi luar kotak, bukan di antara bagian-bagiannya
+          const ncs = getComputedStyle(n), bw = parseFloat(ncs.borderTopWidth) || 0;
+          const bc = bw > 0 && ncs.borderTopStyle !== 'none' ? ncs.borderTopColor : null, dash = /dash|dot/.test(ncs.borderTopStyle);
+          boxes.slice(n0).forEach((b, i, arr) => { b.bc = bc; b.dash = dash; b.first = i === 0; b.last = i === arr.length - 1; b.cid = n0; });
         });
         // teks lain di luar kotak (judul sub-section, catatan) — ambil elemen terdalam yang punya teks langsung
         root.querySelectorAll('*').forEach((el) => {
@@ -817,7 +824,10 @@
             const bgc = p.backgroundColor; if (bgc && !/rgba\(0, 0, 0, 0\)|transparent/.test(bgc)) { if (W + bw <= 4 && H + bh > 4) lines.push({ v: true, x0: (r.x0 + r.x1) / 2, y0: r.y0, y1: r.y1, ty: 'solid' }); else if (H + bh <= 4 && W + bw > 4) lines.push({ v: false, x0: r.x0, x1: r.x1, y0: (r.y0 + r.y1) / 2, ty: 'solid' }); }
           });
         });
-        boxes.forEach((b) => { b.bg = hexF(b.bg); b.color = hexF(b.color); });
+        boxes.forEach((b) => { b.bg = hexF(b.bg); b.color = hexF(b.color); if (b.bc) { const raw = b.bc; b.bc = hexF(raw); if (!b.bc) b.bcMix = true; } });
+        // warna tepi berformat color-mix(): pakai warna kepala kotak dicampur putih (sama seperti di web)
+        const mixW = (h, a) => h ? [0, 2, 4].map((i) => Math.round(parseInt(h.substr(i, 2), 16) * a + 255 * (1 - a)).toString(16).padStart(2, '0')).join('').toUpperCase() : 'C9CCD8';
+        boxes.forEach((b) => { if (b.bcMix) { const hd = boxes.find((x) => x.cid === b.cid); b.bc = mixW(hd && hd.bg, 0.55); delete b.bcMix; } });
         return { W: Math.max(RR.width, ...boxes.map((b) => b.x1), ...lines.map((l) => l.x1 || l.x0)), H: Math.max(RR.height, ...boxes.map((b) => b.y1)), boxes, lines };
       } finally { root.style.zoom = pz; root.style.transform = pt; }
     } finally {
@@ -1090,7 +1100,26 @@ tr.ptk-hold [data-cands],tr.ptk-hold [data-delpos]{opacity:.45;cursor:not-allowe
     st.textContent = `.onode.sec>span,.gtitle>span{display:none!important}
 .olegend>span:has(.lw){display:none!important}
 .ocard .oi{display:none!important}
-@media print{.ocard .oacts,.ohelp{display:none!important}}`;
+@media print{.ocard .oacts,.ohelp{display:none!important}}
+/* tampilan lebih halus: sudut membulat, garis lembut & melengkung, bayangan tipis, gerak halus */
+.org{--ol:#C3C7D3}
+.org ul::before,.org .tiers>ul:not(:last-child)::after,.org li::before,.org li::after{border-color:var(--ol)!important}
+.org li:last-child::before{border-radius:0 16px 0 0!important}
+.org li:first-child::after{border-radius:16px 0 0 0!important}
+.ocard{border-radius:14px!important;border-width:1px!important;border-color:color-mix(in srgb,var(--oc) 55%,#fff)!important;box-shadow:0 1px 2px rgba(30,27,58,.06),0 6px 16px rgba(30,27,58,.07)!important;transition:transform .2s ease,box-shadow .2s ease,opacity .2s ease}
+.ocard .oj{background:linear-gradient(135deg,var(--oc),color-mix(in srgb,var(--oc) 78%,#fff))!important;letter-spacing:.015em}
+.ocard .on{font-weight:700!important;color:#1E1B3A}
+.ocard.vac{border-style:dashed!important;border-color:#F3A6A6!important}
+.ocard.vac .on{background:#FFF4F4!important;color:#D33A3A!important}
+.ocard[data-soe]:hover{transform:translateY(-2px);box-shadow:0 0 0 3px var(--ocb),0 10px 22px rgba(30,27,58,.12)!important}
+.onode{border-radius:14px!important;transition:transform .2s ease,box-shadow .2s ease,filter .2s ease}
+.onode.sec{box-shadow:0 6px 16px rgba(91,33,182,.18)!important}
+.onode.sec[data-rsec]:hover{transform:translateY(-1px)}
+.gframe{border-radius:18px!important;border-color:#E3E1EE!important;transition:background-color .2s ease}
+.gtitle{border-radius:999px!important}
+.orgwrap{scroll-behavior:smooth}
+.ocard.dragging{transform:scale(.97)}
+@media (prefers-reduced-motion:reduce){.ocard,.onode,.gframe{transition:none!important}.orgwrap{scroll-behavior:auto}}`;
     document.head.appendChild(st);
   }
 
