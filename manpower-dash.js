@@ -1000,6 +1000,11 @@
         return;
       }
       try { if (w) w.close(); } catch (e) {}
+      if (link && link.offloaded && !link.shared) {   // sudah pindah ke Drive, tapi Drive tidak bisa membagikan ke email ini
+        let em = ''; try { em = WEB.user.email; } catch (e) {}
+        try { toast(`Berkas ini sudah disimpan di Google Drive, tapi Google Drive tidak bisa membagikannya ke ${em || 'email ini'} (email belum terhubung ke akun Google). Masuk dengan email Gmail yang terdaftar sebagai Editor, atau minta Pemilik membukanya.`, true); } catch (e) {}
+        return;
+      }
       if (!link) try { toast('Berkas baru: sedang disalin ke Google Drive (otomatis, maks ±10 menit). Sementara ditampilkan di web.'); } catch (e) {}
       return _openFile.apply(this, arguments);
     };
