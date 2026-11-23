@@ -1,5 +1,6 @@
 /**
  * Pengganti fungsi syncFiles_ di Apps Script "Monitoring Manpower → Google Drive" (sinkron tiap 10 menit).
+ * Versi 3: + Editor yang diberi izin Download di Pengaturan web bisa mengunduh berkas di Drive.
  * Versi 2: berkas dibuka langsung dari Google Drive, dibagikan PER BERKAS ke Editor portal.
  *
  * Cara pasang (sekali saja):
@@ -22,6 +23,11 @@
  *     tanpa email pemberitahuan, dan mematikan unduh/cetak/salin untuk pelihat.
  *   - Mencabut akses berkas dari email yang sudah tidak menjadi Editor.
  *   - Folder Drive TIDAK pernah dibagikan, jadi orang lain tidak bisa melihat berkas lain.
+ *
+ * Tambahan versi 3:
+ *   - Editor yang dicentang "Download" di Pengaturan web mendapat peran PENYUNTING (writer) pada berkas itu,
+ *     sehingga tombol Unduh / Cetak di Google Drive aktif. Berbagi ulang oleh mereka dimatikan (writersCanShare = false).
+ *   - Izin Download dicabut di web -> peran dikembalikan ke PELIHAT (hanya lihat) dalam ±10 menit.
  */
 function syncFiles_(root) {
   const started = Date.now();
@@ -93,7 +99,27 @@ function syncFiles_(root) {
               });
             } catch (err) { console.warn('cabut akses gagal ' + n + ': ' + err); }
           }
-          report.push({ id: item.id, drive_id: fid, shared_to: Object.keys(have) });
+          // Editor dengan izin Download di Pengaturan -> peran writer (bisa unduh); lainnya tetap reader (hanya lihat)
+          const dlHave = {};
+          (item.dl_to || []).forEach(function (e) { dlHave[e] = true; });
+          let dlAdd = (item.dlAdd || []).filter(function (e) { return have[e]; });
+          let dlRem = item.dlRemove || [];
+          if (isNew) { Object.keys(dlHave).forEach(function (e) { delete dlHave[e]; }); dlAdd = (item.dl || []).filter(function (e) { return have[e]; }); dlRem = []; }
+          if ((dlAdd.length || dlRem.length) && shareBudget > 0 && Date.now() - started < 4 * 60 * 1000) {
+            shareBudget--;
+            try {
+              if (dlAdd.length) Drive.Files.update({ writersCanShare: false }, fid);
+              const ps2 = Drive.Permissions.list(fid, { fields: 'permissions(id,emailAddress,role)' }).permissions || [];
+              ps2.forEach(function (p) {
+                const em = String(p.emailAddress || '').toLowerCase();
+                if (p.role === 'owner') return;
+                if (dlAdd.indexOf(em) >= 0) { if (p.role !== 'writer') Drive.Permissions.update({ role: 'writer' }, fid, p.id); dlHave[em] = true; }
+                if (dlRem.indexOf(em) >= 0) { if (p.role === 'writer') Drive.Permissions.update({ role: 'reader' }, fid, p.id); delete dlHave[em]; }
+              });
+            } catch (err) { console.warn('atur izin unduh gagal ' + n + ': ' + err); }
+          }
+          Object.keys(dlHave).forEach(function (e) { if (!have[e]) delete dlHave[e]; });   // akses dicabut -> izin unduh ikut hilang
+          report.push({ id: item.id, drive_id: fid, shared_to: Object.keys(have), dl_to: Object.keys(dlHave) });
         });
       });
     });
