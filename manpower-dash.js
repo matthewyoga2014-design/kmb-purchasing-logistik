@@ -166,7 +166,7 @@
     const K = D.ket || {};
     const soon = K['HAMPIR JATUH TEMPO'] || 0, late = K['JATUH TEMPO'] || 0, track = Math.max(0, D.open.length - soon - late);
     const UL = unitList(), uTot = UL.reduce((a, u) => a + u.n, 0), uJenis = UL.length;
-    return `${header('Dashboard · Ringkasan', E(title()), 'Klik angka atau kotak mana pun untuk membuka halaman detailnya. Print tetap mencetak dashboard lengkap.')}
+    return `${header('Dashboard · Ringkasan', E(title()), 'Klik angka atau kotak mana pun untuk membuka halaman detailnya. Print bisa pilih: sheet ini saja atau keseluruhan.')}
   <div class="rk-kpis">
     ${k('', 'Planning (MPP)', D.planning, 'data-dsub="mpp"', 'Rincian MPP')}
     ${k('g', 'Actual', D.actual, 'data-go="karyawan"', 'MP Aktif')}
@@ -196,7 +196,7 @@
     const g = (els, cls) => { els = els.filter(Boolean); if (!els.length) return ''; if (cls) els.forEach((e, i) => { e.classList.remove('s4', 's5', 's6', 's7', 's8', 's12'); e.classList.add(cls[i] || 's12'); }); return `<div class="grid">${out(els)}</div>`; };
     const head = r.querySelector('.head');
     const lbl = (SUBS.find((s) => s[0] === k) || [k, k])[1];
-    if (head) { const ey = head.querySelector('.eyebrow'); if (ey) ey.textContent = 'Dashboard · ' + lbl; const h1 = head.querySelector('h1'); if (h1) h1.textContent = lbl; const p = head.querySelector('p'); if (p) p.textContent = 'Bagian dari Dashboard ' + title().replace(/^Dashboard\s*/i, '') + '. Print tetap mencetak dashboard lengkap.'; }
+    if (head) { const ey = head.querySelector('.eyebrow'); if (ey) ey.textContent = 'Dashboard · ' + lbl; const h1 = head.querySelector('h1'); if (h1) h1.textContent = lbl; const p = head.querySelector('p'); if (p) p.textContent = 'Bagian dari Dashboard ' + title().replace(/^Dashboard\s*/i, '') + '. Print bisa pilih: sheet ini saja atau keseluruhan.'; }
     const bar = `<div class="dsub-bar" role="group" aria-label="Bagian dashboard">${SUBS.map(([id, l]) => `<button type="button" data-dsub="${id}" ${id === k ? 'aria-current="page"' : ''}>${l}</button>`).join('')}</div>`;
     let body = '';
     if (k === 'progress') body = g([card(/^Progress Kandidat/i), card(/^Pemenuhan MPP/i)], ['s8', 's4']) + out([r.querySelector('#sumCard')]);
@@ -955,7 +955,7 @@
   // ---------- Print: selalu dashboard lengkap ----------
   function goFull() { if (ui.page !== 'dashboard' || FULL) return false; FULL = true; render(); return true; }
   function goBack() { if (!FULL) return; FULL = false; AUTO = false; if (ui.page === 'dashboard') render(); }
-  window.addEventListener('beforeprint', () => { if (goFull()) AUTO = true; }, true);
+  window.addEventListener('beforeprint', () => { if (window.PrintPilih && window.PrintPilih.sheet) return; if (goFull()) AUTO = true; }, true);  // "Print sheet ini" = hanya bagian yang dibuka
   window.addEventListener('afterprint', () => { if (AUTO) setTimeout(goBack, 0); });
   // bagan struktur di dashboard: diperkecil mengikuti lebar kertas yang dipilih (tidak terpotong)
   window.addEventListener('beforeprint', () => {
@@ -975,7 +975,7 @@
     printPDF = async function () {
       if (ui.page !== 'dashboard') return _p.apply(this, arguments);
       let top = false; try { top = window.top === window.self; } catch (e) {}
-      const did = goFull(); if (did && top) AUTO = true;   // jendela Print biasa: kembali setelah afterprint
+      const did = (window.PrintPilih && window.PrintPilih.sheet) ? false : goFull(); if (did && top) AUTO = true;   // jendela Print biasa: kembali setelah afterprint
       try { return await _p.apply(this, arguments); }
       finally { if (did && !top) goBack(); }
     };

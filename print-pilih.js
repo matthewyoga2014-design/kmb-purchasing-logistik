@@ -62,7 +62,7 @@
     return Promise.resolve().then(() => (doPrint ? doPrint() : window.print())).then(() => setTimeout(fin, 400), () => setTimeout(fin, 400));
   }
 
-  const PP = { busy: false };
+  const PP = { busy: false, sheet: false };
   /* Web satu halaman (#view diganti per menu): kumpulkan isi tiap menu ke #view, cetak, lalu kembalikan. */
   PP.collect = async function (c) {
     const view = typeof c.view === 'string' ? document.querySelector(c.view) : c.view;
@@ -113,6 +113,10 @@
       const v = await ask({ current: c.current ? c.current() : '', list: c.list ? c.list() : [] });
       if (v === 'sheet') {
         const nb = document.querySelector(c.btn) || b;
+        PP.sheet = true;
+        let off = null;
+        const clr = () => { PP.sheet = false; window.removeEventListener('afterprint', clr); clearTimeout(off); };
+        window.addEventListener('afterprint', clr); off = setTimeout(clr, 120000);
         PP.bypass = true; try { nb.click(); } finally { PP.bypass = false; }
       } else if (v === 'all') { try { await c.all(); } catch (er) { console.error(er); busy(false); PP.busy = false; } }
     }, true);
