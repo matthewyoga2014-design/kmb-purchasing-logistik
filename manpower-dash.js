@@ -539,12 +539,11 @@
       const cell = (c, s, v) => v === '' || v == null ? `<c r="${colL1(c)}${r}" s="${s}"/>` : typeof v === 'number' ? `<c r="${colL1(c)}${r}" s="${s}"><v>${v}</v></c>` : `<c r="${colL1(c)}${r}" s="${s}" t="s"><v>${sIdx(String(v))}</v></c>`;
       const N = 7;
       rows.push(`<row r="${r}" ht="22" customHeight="1">${cell(1, ST, 'Struktur Organisasi ' + org.name)}</row>`); r++;
-      merges.push(`A${r}:G${r}`); rows.push(`<row r="${r}" ht="18" customHeight="1">${cell(1, SN, 'Per ' + rkDate() + ' · urutan sama dengan bagan di web · ↳ = bawahan dari baris di atasnya · Vacant merah, akan diganti oranye')}</row>`); r += 2;
-      rows.push(`<row r="${r}" ht="20" customHeight="1">${['No', 'Jabatan', 'Nama', 'Atasan', 'Sub-section', 'Status', 'Keterangan PTK'].map((h, i) => cell(i + 1, DH, h)).join('')}</row>`); r++;
+      merges.push(`A${r}:E${r}`); rows.push(`<row r="${r}" ht="18" customHeight="1">${cell(1, SN, 'Per ' + rkDate() + ' · urutan sama dengan bagan di web · ↳ = bawahan dari baris di atasnya')}</row>`); r += 2;
+      rows.push(`<row r="${r}" ht="20" customHeight="1">${['No', 'Jabatan', 'Nama', 'Atasan', 'Sub-section'].map((h, i) => cell(i + 1, DH, h)).join('')}</row>`); r++;
       org.rows.forEach((x) => {
-        if (x.bar) { merges.push(`A${r}:G${r}`); rows.push(`<row r="${r}" ht="20" customHeight="1">${cell(1, OBAR[x.bar] || OBAR.sec, x.text)}${[2, 3, 4, 5, 6, 7].map((c) => cell(c, OBAR[x.bar] || OBAR.sec, '')).join('')}</row>`); r++; return; }
-        const st = { red: DRED, org: DORG, grn: DGRN }[x.tone] || DB;
-        rows.push(`<row r="${r}">${[cell(1, DBN, x.no), cell(2, x.depth ? DB : DBOLD, x.jab), cell(3, x.vac ? DRED : x.repl ? DORG : DB, x.nama), cell(4, DB, x.atasan), cell(5, DB, x.grp), cell(6, st, x.status), cell(7, DB, x.ket)].join('')}</row>`); r++;
+        if (x.bar) { merges.push(`A${r}:E${r}`); rows.push(`<row r="${r}" ht="20" customHeight="1">${cell(1, OBAR[x.bar] || OBAR.sec, x.text)}${[2, 3, 4, 5].map((c) => cell(c, OBAR[x.bar] || OBAR.sec, '')).join('')}</row>`); r++; return; }
+        rows.push(`<row r="${r}">${[cell(1, DBN, x.no), cell(2, x.depth ? DB : DBOLD, x.jab), cell(3, x.vac ? DRED : DB, x.nama), cell(4, DB, x.atasan), cell(5, DB, x.grp)].join('')}</row>`); r++;
       });
       void N;
       return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
@@ -712,17 +711,17 @@
     const roots = (L) => L.filter((p) => !p.atasan || !byUid[p.atasan] || !L.includes(byUid[p.atasan]));
     const block = (L) => {
       secs(L).forEach((s) => {
-        if (!isTopS(s.name)) out.push({ bar: 'sec', text: `${String(s.name).toUpperCase()} · ${stat(s.list)}` });
+        if (!isTopS(s.name)) out.push({ bar: 'sec', text: String(s.name).toUpperCase() });
         roots(s.list).forEach((p) => person(p, 0));
         s.list.forEach((p) => person(p, 0));   // sisa (rantai atasan lintas section)
       });
     };
     if (both) {
       const head = P.filter((p) => isTopS(p.section) && !p.atasan && p.orgTop !== false && (p.orgTop === true || (/dep(ar)?t(e)?(ment|men)?\.?\s*head|manager/i.test(p.jabatan || '') && !/supervisor|spv/i.test(p.jabatan || ''))));
-      if (head.length) { out.push({ bar: 'top', text: 'DEPT HEAD · membawahi KTA - TRA Hauling & Mining' }); head.forEach((p) => { done.add(p); out.push({ no: ++no, depth: 0, jab: p.jabatan || '', nama: isVac(p) ? 'Vacant' : String(p.nama || '').trim(), vac: isVac(p), repl: isRepl(p), atasan: '', grp: '', status: isVac(p) ? 'Vacant' : 'Terisi', tone: isVac(p) ? 'red' : 'grn', ket: '' }); }); }
+      if (head.length) { out.push({ bar: 'top', text: 'DEPT HEAD' }); head.forEach((p) => { done.add(p); out.push({ no: ++no, depth: 0, jab: p.jabatan || '', nama: isVac(p) ? 'Vacant' : String(p.nama || '').trim(), vac: isVac(p), repl: isRepl(p), atasan: '', grp: '', status: isVac(p) ? 'Vacant' : 'Terisi', tone: isVac(p) ? 'red' : 'grn', ket: '' }); }); }
       ['Hauling', 'Mining'].forEach((a) => {
         const L = P.filter((p) => arOf(p) === a && !done.has(p)); if (!L.length) return;
-        out.push({ bar: a, text: `KTA - TRA ${a.toUpperCase()} · ${stat(P.filter((p) => arOf(p) === a))}` });
+        out.push({ bar: a, text: `KTA - TRA ${a.toUpperCase()}` });
         // supervisor / PJO project tampil paling atas; bawahan langsung Dept Head dihitung sebagai pimpinan project
         const hs = new Set(head.map((h) => h.uid));
         L.forEach((p) => { if (hs.has(p.atasan)) p.__root = true; });
@@ -1083,6 +1082,17 @@ tr.ptk-hold [data-cands],tr.ptk-hold [data-delpos]{opacity:.45;cursor:not-allowe
     window.addEventListener('load', () => { try { if (typeof commit === 'function' && !commit.__hold) commit = wrapHold(commit); } catch (e) {} });
   }
   try { markHold(); } catch (e) {}
+
+  // ===== Struktur Organisasi: hanya struktur (section, sub-section, jabatan, nama). PTK, kontrak & angka ada di sheet lain =====
+  if (typeof orgInfo === 'function') orgInfo = function () { return ''; };
+  if (!document.getElementById('soCleanCss')) {
+    const st = document.createElement('style'); st.id = 'soCleanCss';
+    st.textContent = `.onode.sec>span,.gtitle>span{display:none!important}
+.olegend>span:has(.lw){display:none!important}
+.ocard .oi{display:none!important}
+@media print{.ocard .oacts,.ohelp{display:none!important}}`;
+    document.head.appendChild(st);
+  }
 
   try { if (ui.page === 'dashboard') render(); else navSubs(); } catch (e) {}
 })();
