@@ -917,6 +917,23 @@
     const hr = document.querySelector('#view .head .head-r') || document.querySelector('#view .toolbar');
     if (hr) hr.insertAdjacentHTML('beforeend', html);
   }
+  // tombol "Download Excel" (seluruh data, sama dengan Rekap) di Dashboard & Struktur Organisasi juga
+  function xlButton() {
+    if (!['dashboard', 'org'].includes(ui.page) || document.getElementById('xlAll') || document.querySelector('#view #xlsTop')) return;
+    let ok = false; try { ok = !!IS_OWNER || !!DL || (typeof window.permOf === 'function' && window.permOf('excel', 'd')); } catch (e) {}
+    if (!ok) return;
+    const html = `<button type="button" class="btn btn-g" id="xlAll" title="Download seluruh data web ke Excel (MPP, Pelamar, Bagan SO, Rekap, dll.)">${XL_IC}Download Excel</button>`;
+    const rk = document.querySelector('#view #rkBtn'); if (rk) { rk.insertAdjacentHTML('afterend', html); return; }
+    const oe = document.querySelector('#view [data-oexp="pdf"]') || document.querySelector('#view [data-oexp]');
+    if (oe) { oe.insertAdjacentHTML('afterend', html); return; }
+    const hr = document.querySelector('#view .head .head-r') || document.querySelector('#view .toolbar');
+    if (hr) hr.insertAdjacentHTML('beforeend', html);
+  }
+  document.addEventListener('click', (e) => {
+    const x = e.target.closest && e.target.closest('#xlAll'); if (!x) return;
+    e.preventDefault();
+    try { exportXLSX(); } catch (er) { console.error(er); }
+  });
   document.addEventListener('click', (e) => {
     const b = e.target.closest && e.target.closest('[data-rk]');
     const m = document.getElementById('rkBtn');
@@ -942,7 +959,7 @@
     if (open) b.removeAttribute('aria-current');
   }
   const _render = render;
-  render = function () { const r = _render.apply(this, arguments); try { navSubs(); } catch (e) {} try { rkButton(); } catch (e) {} return r; };
+  render = function () { const r = _render.apply(this, arguments); try { navSubs(); } catch (e) {} try { rkButton(); } catch (e) {} try { xlButton(); } catch (e) {} return r; };
 
   document.addEventListener('click', (e) => {
     const t = e.target.closest && e.target.closest('[data-dsub],[data-go="dashboard"],[data-dmf]');
