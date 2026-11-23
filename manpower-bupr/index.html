@@ -1104,7 +1104,7 @@ function pageDashboard(D) {
   <div class="grid">
     <div class="card s8"><div class="ch"><div><div class="eyebrow">Recruitment Pipeline</div><h2>Progress Kandidat & Rekrutmen</h2><p>Jumlah kandidat/posisi berdasarkan tahap terakhir.</p></div><span class="pill live">Live data</span></div>${areaChart(D.pipe)}</div>
     <div class="card s4"><div class="ch"><div><div class="eyebrow">Composition</div><h2>Pemenuhan MPP</h2><p>Actual dibandingkan vacant.</p></div></div>${donutChart(D.actual, D.vacant)}</div>
-    <div class="card s5"><div class="ch"><div><div class="eyebrow">Vacancy</div><h2>Vacant per Jabatan</h2><p>Kebutuhan kosong berdasarkan posisi.</p></div><span class="pill">${D.vacant} vacant • ${vacCands} kandidat</span></div>${vac.length ? hbars(vac, (i) => `var(--c${(i % 5) + 1})`) : '<div class="empty">Tidak ada vacant.</div>'}</div>
+    <div class="card s5"><div class="ch"><div><div class="eyebrow">Vacancy</div><h2>Vacant per Jabatan</h2><p>Kebutuhan kosong berdasarkan posisi.</p></div><span class="pill">${D.vacant} vacant • ${vacCands} kandidat</span></div>${vac.length ? hbars(vac, (i) => ['#2563EB', '#0D9488', '#7C3AED', '#D97706', '#DB2777', '#0891B2', '#65A30D', '#4F46E5', '#EA580C', '#475569'][i % 10]) : '<div class="empty">Tidak ada vacant.</div>'}</div>
     <div class="card s7"><div class="ch"><div><div class="eyebrow">Vacant Detail</div><h2>Resume Vacant per Jabatan</h2><p>Klik jabatan untuk melihat kandidat terkait.</p></div></div>${resumeVacant(D)}</div>
   </div>
   <div class="card" style="margin-bottom:18px"><div class="ch"><div><div class="eyebrow">Recruitment</div><h2>Summary Progress Rekrutmen</h2><p>Data PTK Open dari MPP BUPR Ampah.</p></div><span class="pill red">${D.open.length} OPEN • ${actOpen} PELAMAR</span></div>${summaryTable(D, D.open)}</div>
@@ -2090,7 +2090,7 @@ function pageDashboard(D) {
   <div class="grid">
     <div class="card s8"><div class="ch"><div><div class="eyebrow">Recruitment Pipeline</div><h2>Progress Kandidat & Rekrutmen</h2><p>Pelamar PTK open per tahap terakhir${jf ? ` · ${esc(jf)}` : ''}: aktif vs tidak aktif.</p></div><span class="pill live">Live data</span></div>${pipeChart(act, off)}</div>
     <div class="card s4"><div class="ch"><div><div class="eyebrow">Composition</div><h2>Pemenuhan MPP</h2><p>Actual dibandingkan vacant.</p></div></div>${donutChart(D.actual, D.vacant)}</div>
-    <div class="card s5 vac-card"><div class="ch"><div><div class="eyebrow">Vacancy</div><h2>Vacant per Jabatan</h2><p>Kebutuhan kosong berdasarkan posisi.</p></div><span class="pill">${D.vacant} vacant • ${vacCands} kandidat</span></div>${vac.length ? hbars(vac, (i) => `var(--c${(i % 5) + 1})`) : '<div class="empty">Tidak ada vacant.</div>'}${vacStats(D)}</div>
+    <div class="card s5 vac-card"><div class="ch"><div><div class="eyebrow">Vacancy</div><h2>Vacant per Jabatan</h2><p>Kebutuhan kosong berdasarkan posisi.</p></div><span class="pill">${D.vacant} vacant • ${vacCands} kandidat</span></div>${vac.length ? hbars(vac, (i) => ['#2563EB', '#0D9488', '#7C3AED', '#D97706', '#DB2777', '#0891B2', '#65A30D', '#4F46E5', '#EA580C', '#475569'][i % 10]) : '<div class="empty">Tidak ada vacant.</div>'}${vacStats(D)}</div>
     <div class="card s7"><div class="ch"><div><div class="eyebrow">Vacant Detail</div><h2>Resume Vacant per Jabatan</h2><p>Klik "Lihat detail" untuk memfilter Summary Progress Rekrutmen.</p></div></div>${resumeVacant(D)}</div>
   </div>
   ${rekapBlock(D)}
