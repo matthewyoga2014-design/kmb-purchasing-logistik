@@ -1029,7 +1029,8 @@ tr.ptk-hold>td:first-child{box-shadow:inset 4px 0 0 #475569}
 tr.ptk-hold [data-cands],tr.ptk-hold [data-delpos]{opacity:.45;cursor:not-allowed}
 .stt.hold{background:#E2E8F0!important;color:#1E293B!important;border:1px solid #64748B!important;font-weight:800}.stt.hold::before{content:'⏸ ';font-weight:800}
 .holdtag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#475569;color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em;vertical-align:middle}
-.ocard.ptk-hold{outline:2px dashed #475569;outline-offset:2px;background:#F1F5F9}
+.ocard.ptk-hold{outline:2px dashed #64748B;outline-offset:3px}
+.ocard .ohold{background:#E2E8F0;color:#1E293B;font-size:10px;font-weight:800;letter-spacing:.08em;padding:4px 6px}
 .holdnote{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#F1F5F9;border:1px solid #94A3B8;color:#1E293B;font-size:13px;font-weight:600}
 @media print{tr.ptk-hold>td{background:#EEF2F7!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
     document.head.appendChild(st);
@@ -1041,6 +1042,14 @@ tr.ptk-hold [data-cands],tr.ptk-hold [data-delpos]{opacity:.45;cursor:not-allowe
       const p = P[+el.dataset.epos]; const h = isHold(p);
       const box = el.closest('tr') || (el.classList.contains('ocard') ? el : el.closest('.ocard'));
       if (box) box.classList.toggle('ptk-hold', h);
+    });
+    // bagan Struktur Organisasi: kotak posisi Hold diberi tanda (ikut tampil di print & Excel)
+    document.querySelectorAll('.ocard[data-uid]').forEach((c) => {
+      const p = P.find((x) => x && x.uid === c.dataset.uid); const h = isHold(p);
+      c.classList.toggle('ptk-hold', h);
+      let tg = c.querySelector(':scope > .ohold');
+      if (h && !tg) { const on = c.querySelector(':scope > .on'); if (on) on.insertAdjacentHTML('afterend', '<div class="ohold">HOLD</div>'); }
+      if (!h && tg) tg.remove();
     });
     // pil status bertulisan "Hold" di mana pun (juga saat perubahan belum disimpan) -> kuning, barisnya ikut ditandai
     document.querySelectorAll('.stt').forEach((s) => { const h = /^hold$/i.test(s.textContent.trim()); s.classList.toggle('hold', h); const tr = s.closest('tr'); if (h && tr) tr.classList.add('ptk-hold'); });
