@@ -1010,14 +1010,14 @@
   const holdMsg = (p) => `Posisi No. ${p.no} (${p.jabatan}) sedang HOLD. Ubah Status PTK ke Open / Continue dulu untuk mengedit.`;
   if (!document.getElementById('holdCss')) {
     const st = document.createElement('style'); st.id = 'holdCss';
-    st.textContent = `tr.ptk-hold>td{background:repeating-linear-gradient(135deg,#FFFBEB 0 12px,#FEF3C7 12px 24px)!important}
-tr.ptk-hold>td:first-child{box-shadow:inset 4px 0 0 #D97706}
+    st.textContent = `tr.ptk-hold>td{background:repeating-linear-gradient(135deg,#F8FAFC 0 12px,#EEF2F7 12px 24px)!important}
+tr.ptk-hold>td:first-child{box-shadow:inset 4px 0 0 #475569}
 tr.ptk-hold [data-cands],tr.ptk-hold [data-delpos]{opacity:.45;cursor:not-allowed}
-.stt.hold{background:#FEF3C7!important;color:#92400E!important;border:1px solid #F59E0B!important;font-weight:800}
-.holdtag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#D97706;color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em;vertical-align:middle}
-.ocard.ptk-hold{outline:2px dashed #D97706;outline-offset:2px;background:#FFFBEB}
-.holdnote{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;font-size:13px;font-weight:600}
-@media print{tr.ptk-hold>td{background:#FEF3C7!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
+.stt.hold{background:#E2E8F0!important;color:#1E293B!important;border:1px solid #64748B!important;font-weight:800}.stt.hold::before{content:'⏸ ';font-weight:800}
+.holdtag{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;background:#475569;color:#fff;font-size:10px;font-weight:800;letter-spacing:.06em;vertical-align:middle}
+.ocard.ptk-hold{outline:2px dashed #475569;outline-offset:2px;background:#F1F5F9}
+.holdnote{margin:0 0 12px;padding:10px 12px;border-radius:10px;background:#F1F5F9;border:1px solid #94A3B8;color:#1E293B;font-size:13px;font-weight:600}
+@media print{tr.ptk-hold>td{background:#EEF2F7!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
     document.head.appendChild(st);
   }
   // tandai baris / kartu bagan setelah setiap render
@@ -1028,6 +1028,8 @@ tr.ptk-hold [data-cands],tr.ptk-hold [data-delpos]{opacity:.45;cursor:not-allowe
       const box = el.closest('tr') || (el.classList.contains('ocard') ? el : el.closest('.ocard'));
       if (box) box.classList.toggle('ptk-hold', h);
     });
+    // pil status bertulisan "Hold" di mana pun (juga saat perubahan belum disimpan) -> kuning, barisnya ikut ditandai
+    document.querySelectorAll('.stt').forEach((s) => { const h = /^hold$/i.test(s.textContent.trim()); s.classList.toggle('hold', h); const tr = s.closest('tr'); if (h && tr) tr.classList.add('ptk-hold'); });
     document.querySelectorAll('tr.ptk-hold .stt').forEach((s) => { if (/^hold$/i.test(s.textContent.trim())) { s.classList.add('hold'); if (!s.nextElementSibling || !s.nextElementSibling.classList.contains('holdtag')) s.insertAdjacentHTML('afterend', '<span class="holdtag" title="Data posisi dikunci">TERKUNCI</span>'); } });
   };
   if (typeof render === 'function') { const _rH = render; render = function () { const r = _rH.apply(this, arguments); try { markHold(); } catch (e) {} return r; }; }
@@ -1054,7 +1056,7 @@ tr.ptk-hold [data-cands],tr.ptk-hold [data-delpos]{opacity:.45;cursor:not-allowe
     const _cH = commit;
     const SKIP = new Set(['status', 'close', 'no', 'hist']);
     const sig = (p) => JSON.stringify(Object.keys(p).filter((k) => !SKIP.has(k)).sort().map((k) => [k, p[k]]));
-    commit = function (mutate, ...rest) {
+    const wrapHold = (_cH) => { const w = function (mutate, ...rest) {
       return _cH.call(this, (S) => {
         const held = (S.positions || []).map((p, i) => [p, i]).filter(([p]) => isHold(p)).map(([p, i]) => ({ uid: p.uid, i, old: JSON.parse(JSON.stringify(p)), s: sig(p) }));
         const r = mutate(S);
@@ -1070,7 +1072,10 @@ tr.ptk-hold [data-cands],tr.ptk-hold [data-delpos]{opacity:.45;cursor:not-allowe
         }
         return r;
       }, ...rest);
-    };
+    }; w.__hold = true; return w; };
+    commit = wrapHold(_cH);
+    // script lain (mis. mode "simpan nanti") bisa membungkus commit sesudah ini: pasang pengaman lagi di lapisan terluar
+    window.addEventListener('load', () => { try { if (typeof commit === 'function' && !commit.__hold) commit = wrapHold(commit); } catch (e) {} });
   }
   try { markHold(); } catch (e) {}
 
