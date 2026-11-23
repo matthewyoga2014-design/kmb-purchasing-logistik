@@ -3549,5 +3549,25 @@ document.addEventListener("focusout",()=>setTimeout(()=>{if(S.pending&&$("modal"
 
 
 </script>
-<!--uppick--><!--/uppick--><script src="../otp-login.js?v=20261123k"></script></body>
+<!--uppick--><!--/uppick--><script src="../otp-login.js?v=20261123k"></script><script src="../print-pilih.js?v=20261123r"></script><script>/* Pilihan Print: sheet ini / keseluruhan */
+(function () {
+  if (!window.PrintPilih) return;
+  const V = [['dash', 'Dashboard'], ['list', 'Notulensi'], ['cal', 'Kalender']];
+  const NM = { dash: 'Dashboard', list: 'Notulensi', files: 'Unit & File', cal: 'Kalender', series: 'Notulensi meeting ini', edit: 'Editor' };
+  PrintPilih.attach({
+    btn: '[data-act="print"]',
+    skip: () => !window.NOTU_SA || S.view === 'edit',
+    current: () => NM[S.view] || '',
+    list: () => V.map((v) => v[1]),
+    all: () => {
+      const o = S.view;
+      return PrintPilih.panels({
+        prepare: async () => { for (const [k] of V) { S.view = k; try { render(); } catch (e) { console.error(e); } } S.view = o; },
+        panels: () => V.map((v) => document.getElementById('v-' + v[0])),
+        restore: () => { V.concat([['files'], ['series'], ['edit']]).forEach(([k]) => { const el = document.getElementById('v-' + k); if (el) el.hidden = k !== S.view; }); try { render(); } catch (e) {} },
+      });
+    },
+  });
+})();
+</script></body>
 </html>

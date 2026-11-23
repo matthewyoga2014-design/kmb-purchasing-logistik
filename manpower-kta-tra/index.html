@@ -4934,4 +4934,34 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
 <script>window.KTA_SYSTEM_LINKS = { repo: 'matthewyoga2014-design/kmb-purchasing-logistik', path: 'manpower-kta-tra/index.html', supabase: 'https://supabase.com/dashboard/project/yoviojbfyvgpllxisjvy', script: 'https://script.google.com/d/1Wvtoe-H4gmyVkA-UDI2g0A19dLa1EjKvMjLmtTl7ktsGJ-zDGymcb-Fx/edit', drive: 'https://drive.google.com/drive/folders/11RTwJfP21J8Yna8_jQg_CeqCATwi5UcG' };</script>
 <script src="../kta-ops.js?v=20261123k"></script>
 <script src="../kta-approval.js?v=20261123k"></script>
+<script src="../print-pilih.js?v=20261123r"></script>
+<script>/* Pilihan Print: sheet ini / keseluruhan */
+(function () {
+  if (!window.PrintPilih) return;
+  const SKIP = ['setting'];
+  const lab = (id) => (PAGES.find((p) => p.id === id) || {}).label || id;
+  const ids = () => [...document.querySelectorAll('#nav [data-go]')].map((b) => b.dataset.go).filter((id, i, a) => a.indexOf(id) === i && !SKIP.includes(id));
+  const items = () => ids().flatMap((id) => id === 'karyawan'
+    ? [{ id, kt: 'aktif', label: 'MP Aktif' }, { id, kt: 'out', label: 'MP Out' }]
+    : [{ id, label: lab(id) }]);
+  PrintPilih.attach({
+    btn: '#printBtn',
+    allowed: () => typeof guardFree !== 'function' || guardFree(),
+    current: () => lab(ui.page) + (ui.page === 'karyawan' ? (ui.kt === 'out' ? ' (MP Out)' : ' (MP Aktif)') : ''),
+    list: () => items().map((x) => x.label),
+    all: () => {
+      const o = { page: ui.page, kt: ui.kt };
+      return PrintPilih.collect({
+        view: '#view',
+        pages: () => items().map((x) => ({
+          show: () => { ui.page = x.id; if (x.kt) ui.kt = x.kt; render(); if (x.id === 'dashboard') window.dispatchEvent(new Event('beforeprint')); },
+          after: async () => { if (x.id === 'dashboard') { window.dispatchEvent(new Event('afterprint')); await new Promise((r) => setTimeout(r, 30)); } },
+        })),
+        print: () => printPDF(),
+        restore: () => { ui.page = o.page; ui.kt = o.kt; render(); },
+      });
+    },
+  });
+})();
+</script>
 </body></html>

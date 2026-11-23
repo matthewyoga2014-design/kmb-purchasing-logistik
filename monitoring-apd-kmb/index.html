@@ -2454,4 +2454,25 @@ init();
   }, true);
   try { after(); } catch (e) {}
 })();
-</script><!--/permx--><script src="../activity-log.js?v=20261123k" data-kind="apd"></script><script src="../otp-login.js?v=20261123k"></script></body></html>
+</script><!--/permx--><script src="../activity-log.js?v=20261123k" data-kind="apd"></script><script src="../otp-login.js?v=20261123k"></script><script src="../print-pilih.js?v=20261123r"></script><script>/* Pilihan Print: sheet ini / keseluruhan */
+(function () {
+  if (!window.PrintPilih) return;
+  const SKIP = ['guide', 'deleted', 'setting', 'images'];
+  const lab = (id) => (PAGES.find((p) => p.id === id) || {}).label || 'Detail karyawan';
+  const ids = () => [...document.querySelectorAll('#nav [data-go]')].map((b) => b.dataset.go).filter((id, i, a) => a.indexOf(id) === i && !SKIP.includes(id));
+  PrintPilih.attach({
+    btn: '#printBtn',
+    allowed: () => PRINT_OK(),
+    current: () => lab(ui.page),
+    list: () => ids().map(lab),
+    all: () => {
+      const o = ui.page;
+      return PrintPilih.collect({
+        view: '#view',
+        pages: () => ids().map((id) => ({ show: () => { ui.page = id; render(); } })),
+        restore: () => { ui.page = o; render(); },
+      });
+    },
+  });
+})();
+</script></body></html>

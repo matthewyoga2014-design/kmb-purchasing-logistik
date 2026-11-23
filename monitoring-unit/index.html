@@ -5717,6 +5717,8 @@ async function startData(){
 boot();
 // catatan aktivitas (activity-log.js) memakai jembatan ini karena kode di atas berada di dalam fungsi tertutup
 window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,label:(c,r)=>muTrashLabel(c,r),wrap(name,f){if(name==='sheetOp')sheetOp=f(sheetOp);else if(name==='doMutate')doMutate=f(doMutate);}};
+// jembatan untuk pilihan Print (print-pilih.js)
+window.__unitPrint={get tab(){return S.tab;},allowed:()=>role==="owner"||role==="editor"||!!(GUEST_SHARE&&role==="viewer"),setTab:(t)=>setTab(t),fullOn:()=>muPrintFullOn(),fullOff:()=>muPrintFullOff(),render:()=>render()};
 })();
 </script>
 <!--uppick--><script>/* Panel upload "Sisipkan file" (sama seperti sub portal KTA - TRA) untuk SEMUA input file di halaman.
@@ -5850,5 +5852,25 @@ window.__unitLog={get STATE(){return STATE;},get sb(){return sb;},GUEST_SHARE,la
     e.preventDefault(); open(i);
   }, true);
 })();
-</script><!--/uppick--><script src="../activity-log.js?v=20261123k" data-kind="unit"></script><script src="../otp-login.js?v=20261123k"></script></body>
+</script><!--/uppick--><script src="../activity-log.js?v=20261123k" data-kind="unit"></script><script src="../otp-login.js?v=20261123k"></script><script src="../print-pilih.js?v=20261123r"></script><script>/* Pilihan Print: sheet ini / keseluruhan */
+(function () {
+  const U = window.__unitPrint;
+  if (!window.PrintPilih || !U) return;
+  const TABS = [['ringkasan', 'Dashboard'], ['pengiriman', 'Rencana kirim'], ['unit', 'Populasi Unit'], ['mobilisasi', 'Mobilisasi'], ['dokumentasi', 'Dokumentasi']];
+  PrintPilih.attach({
+    btn: '#btnPrint',
+    allowed: () => { try { return U.allowed(); } catch (e) { return false; } },
+    current: () => (TABS.find((t) => t[0] === U.tab) || ['', 'Dashboard'])[1],
+    list: () => TABS.map((t) => t[1]),
+    all: () => {
+      const o = U.tab;
+      return PrintPilih.panels({
+        prepare: () => { U.setTab('ringkasan'); try { U.fullOn(); } catch (e) {} },
+        panels: () => TABS.map((t) => document.getElementById('p-' + t[0])),
+        restore: () => { try { U.fullOff(); } catch (e) {} U.setTab(o); try { U.render(); } catch (e) {} },
+      });
+    },
+  });
+})();
+</script></body>
 </html>
