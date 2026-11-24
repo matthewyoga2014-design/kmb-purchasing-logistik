@@ -440,8 +440,14 @@
     const DOMS = {};
     if (org && org.dom) {
       // tepi kotak mengikuti warna kotak di web; garis hanya di sisi luar (atas bagian pertama, bawah bagian terakhir)
-      const bxOf = (b) => { if (b.bc === undefined && b.first === undefined) b.bc = 'C9CCD8'; if (!b.bc) return 0; const st = b.dash ? 'dashed' : 'thin', c = 'FF' + b.bc, e = (s) => `<${s} style="${st}"><color rgb="${c}"/></${s}>`;
-        return regBorder(['bx', b.bc, st, b.first !== false, b.last !== false].join('|'), `<border>${e('left')}${e('right')}${b.first !== false ? e('top') : '<top/>'}${b.last !== false ? e('bottom') : '<bottom/>'}<diagonal/></border>`); };
+      const bxOf = (b) => { if (b.bc === undefined && b.first === undefined) b.bc = 'C9CCD8'; if (!b.bc && !b.pbb) return 0; if (!b.bc) return regBorder('pb|' + b.pbb, `<border><left/><right/><top/><bottom style="medium"><color rgb="FF${b.pbb}"/></bottom><diagonal/></border>`); const st = b.dash ? 'dashed' : 'thin', c = 'FF' + b.bc, e = (s) => `<${s} style="${st}"><color rgb="${c}"/></${s}>`;
+        const bot = b.pbb ? `<bottom style="medium"><color rgb="FF${b.pbb}"/></bottom>` : b.last !== false ? e('bottom') : '<bottom/>';
+        return regBorder(['bx', b.bc, st, b.first !== false, b.last !== false, b.pbb || ''].join('|'), `<border>${e('left')}${e('right')}${b.first !== false ? e('top') : '<top/>'}${bot}<diagonal/></border>`); };
+      { const T = org.dom.theme || {}, hd = T.hd || '1E1B3A', pri = T.pri || '6D28D9', acc = T.acc || 'F5B400';
+        org.dom.hs = { title: xf(regFont(hd, true, 20, false), 0, 0, 'horizontal="center" vertical="center"'), co: xf(regFont(hd, true, 11, false), 0, 0, 'vertical="center"'),
+          badge: xf(regFont('FFFFFF', true, 10, false), regFill(pri), 0, 'horizontal="center" vertical="center"'),
+          barP: xf(regFont('FFFFFF', false, 6, false), regFill(pri), 0, ''), barA: xf(regFont('FFFFFF', false, 6, false), regFill(acc), 0, ''),
+          note: xf(regFont('8A87A6', false, 8, false), 0, 0, 'horizontal="right" vertical="center"') }; }
       org.dom.boxes.forEach((b) => { const bxi = bxOf(b); const k = [b.bg, b.color, b.bold, b.size, b.strike, b.align, b.one, bxi].join('|'); if (xfIdx[k] === undefined) xfIdx[k] = xf(regFont(b.color, b.bold, b.size, b.strike), regFill(b.bg), bxi, `horizontal="${b.align}" vertical="center" ${b.one ? 'shrinkToFit="1"' : 'wrapText="1"'}`); b.s = xfIdx[k]; });
       ['solid', 'dot'].forEach((ty) => { const st = ty === 'solid' ? 'thin' : 'dotted', c = ty === 'solid' ? 'FFB4B8C5' : 'FFD3D6DF';   // garis penghubung abu lembut
         const L = `<left style="${st}"><color rgb="${c}"/></left>`, T = `<top style="${st}"><color rgb="${c}"/></top>`;
@@ -621,7 +627,7 @@
     };
     // bagan persis seperti tampilan web: posisi kotak & garis diambil dari halaman Struktur Organisasi, 1 sel ≈ 7 px
     const domSheet = (d) => {
-      const G = 7, R0 = 4, Cc = 2, cells = {}, merges = [], hts = {}, occ = {};
+      const G = 7, R0 = 8, Cc = 2, cells = {}, merges = [], hts = {}, occ = {};
       const key = (r, c) => r * 100000 + c;
       const put = (r, c, s, v) => { (cells[r] = cells[r] || {})[c] = { s, v }; };
       const gx = (x) => Cc + Math.round(x / G), gy = (y) => R0 + Math.round(y / G);
@@ -642,9 +648,17 @@
         if (l.v) { const c = gx(l.x0); for (let r = gy(l.y0); r < Math.max(gy(l.y0) + 1, gy(l.y1)); r++) mark(r, c, l.ty, 'L'); }
         else { const r = gy(l.y0); for (let c = gx(l.x0); c < Math.max(gx(l.x0) + 1, gx(l.x1)); c++) mark(r, c, l.ty, 'T'); }
       });
-      put(1, 1, ST, 'Bagan Struktur Organisasi ' + org.name); hts[1] = 24;
-      put(2, 1, CH.note, 'Per ' + rkDate() + ' · susunan sama dengan bagan di halaman Struktur Organisasi'); hts[2] = 16;
-      const maxR = Math.max(...Object.keys(cells).map(Number)), maxC = Cc + Math.ceil(d.W / G) + 1;
+      // kepala bagan: judul STRUKTUR ORGANISASI + garis aksen, nama perusahaan, jobsite (warna ikut tema dashboard)
+      const maxC = Cc + Math.ceil(d.W / G) + 1, HS = d.hs || {}, T = d.theme || {};
+      const band = (r, c0, c1, s, v, h) => { for (let c = c0; c <= c1; c++) put(r, c, s, c === c0 ? v : ''); if (c1 > c0) merges.push(`${colL1(c0)}${r}:${colL1(c1)}${r}`); if (h) hts[r] = h; };
+      band(1, Cc, maxC, HS.title ?? ST, 'STRUKTUR ORGANISASI', 30);
+      const mid = Math.round((Cc + maxC) / 2), half = Math.min(18, Math.floor((maxC - Cc) / 4));
+      band(2, mid - half, mid + Math.round(half * 0.2), HS.barP ?? ST, '', 4); band(2, mid + Math.round(half * 0.2) + 1, mid + half, HS.barA ?? ST, '');
+      hts[3] = 8;
+      band(4, Cc, maxC, HS.co ?? ST, T.co || 'PT. KARUNIA MANDIRI BERKARYA (KMB)', 18);
+      const jt = 'Jobsite : ' + (T.job || org.name); band(5, Cc, Cc + Math.min(maxC - Cc, Math.ceil(jt.length * 1.9) + 8), HS.badge ?? ST, jt, 18);
+      band(6, Cc, maxC, HS.note ?? CH.note, 'Per ' + rkDate(), 12);
+      const maxR = Math.max(...Object.keys(cells).map(Number));
       const rowsXml = [];
       for (let r = 1; r <= maxR; r++) {
         const row = cells[r]; const ht = hts[r] || (r > 3 ? G * 0.75 : 0);
@@ -774,12 +788,13 @@
         const rel = (r) => ({ x0: r.left - RR.left, y0: r.top - RR.top, x1: r.right - RR.left, y1: r.bottom - RR.top });
         const hexOf = (c) => c;
         const boxes = [], lines = [];
-        const bgOf = (el) => { for (let e = el; e && e !== root; e = e.parentElement) { const cs = getComputedStyle(e), b = cs.backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return b; const gi = (cs.backgroundImage || '').match(/rgba?\([^)]*\)/); if (gi) return gi[0]; if (e.classList.contains('ocard') || e.classList.contains('onode')) break; } return 'rgb(255, 255, 255)'; };
+        const bgOf = (el) => { for (let e = el; e && e !== root; e = e.parentElement) { const cs = getComputedStyle(e), b = cs.backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return b; const gi = (cs.backgroundImage || '').match(/rgba?\([^)]*\)|color\([^)]*\)|oklch\([^)]*\)|oklab\([^)]*\)|#[0-9a-fA-F]{3,8}/); if (gi) return gi[0]; if (e.classList.contains('ocard') || e.classList.contains('onode')) break; } return 'rgb(255, 255, 255)'; };
         const part = (el, par, first = true, last = true) => { const cs = getComputedStyle(el), r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) return;
           const txt = (el.innerText || '').replace(/\s*\n\s*/g, ' · ').trim(); if (!txt) return;
           const q = rel(r); if (par) { const pr = rel(par.getBoundingClientRect()); q.x0 = pr.x0 + 2; q.x1 = pr.x1 - 2; }
           const rg = document.createRange(); rg.selectNodeContents(el); const one = new Set([...rg.getClientRects()].filter((x) => x.width > 1).map((x) => Math.round(x.top / 4))).size <= 1;
-          boxes.push({ ...q, text: txt, one, bg: hexOf(bgOf(el)), color: cs.color, bold: (+cs.fontWeight || 400) >= 600, size: Math.max(6.5, Math.round(parseFloat(cs.fontSize) * 0.68 * 2) / 2), strike: /line-through/.test(cs.textDecorationLine || ''), align: /left|start/.test(cs.textAlign) ? 'left' : /right|end/.test(cs.textAlign) ? 'right' : 'center' }); };
+          const bbw = parseFloat(cs.borderBottomWidth) || 0; const pbb = bbw >= 2 && cs.borderBottomStyle !== 'none' ? cs.borderBottomColor : null;
+          boxes.push({ ...q, text: txt, one, pbb, bg: hexOf(bgOf(el)), color: cs.color, bold: (+cs.fontWeight || 400) >= 600, size: Math.max(6.5, Math.round(parseFloat(cs.fontSize) * 0.68 * 2) / 2), strike: /line-through/.test(cs.textDecorationLine || ''), align: /left|start/.test(cs.textAlign) ? 'left' : /right|end/.test(cs.textAlign) ? 'right' : 'center' }); };
         root.querySelectorAll('.ocard, .onode').forEach((n) => {
           const kids = [...n.children].filter((c) => !c.classList.contains('oacts') && c.innerText && c.innerText.trim() && getComputedStyle(c).display !== 'none');
           const n0 = boxes.length;
@@ -824,11 +839,13 @@
             const bgc = p.backgroundColor; if (bgc && !/rgba\(0, 0, 0, 0\)|transparent/.test(bgc)) { if (W + bw <= 4 && H + bh > 4) lines.push({ v: true, x0: (r.x0 + r.x1) / 2, y0: r.y0, y1: r.y1, ty: 'solid' }); else if (H + bh <= 4 && W + bw > 4) lines.push({ v: false, x0: r.x0, x1: r.x1, y0: (r.y0 + r.y1) / 2, ty: 'solid' }); }
           });
         });
-        boxes.forEach((b) => { b.bg = hexF(b.bg); b.color = hexF(b.color); if (b.bc) { const raw = b.bc; b.bc = hexF(raw); if (!b.bc) b.bcMix = true; } });
+        boxes.forEach((b) => { b.bg = hexF(b.bg); b.color = hexF(b.color); if (b.bc) { const raw = b.bc; b.bc = hexF(raw); if (!b.bc) b.bcMix = true; } if (b.pbb) b.pbb = hexF(b.pbb); });
         // warna tepi berformat color-mix(): pakai warna kepala kotak dicampur putih (sama seperti di web)
         const mixW = (h, a) => h ? [0, 2, 4].map((i) => Math.round(parseInt(h.substr(i, 2), 16) * a + 255 * (1 - a)).toString(16).padStart(2, '0')).join('').toUpperCase() : 'C9CCD8';
         boxes.forEach((b) => { if (b.bcMix) { const hd = boxes.find((x) => x.cid === b.cid); b.bc = mixW(hd && hd.bg, 0.55); delete b.bcMix; } });
-        return { W: Math.max(RR.width, ...boxes.map((b) => b.x1), ...lines.map((l) => l.x1 || l.x0)), H: Math.max(RR.height, ...boxes.map((b) => b.y1)), boxes, lines };
+        const tv = (v) => { const pr = document.createElement('div'); pr.style.color = v; (document.getElementById('orgWrap') || document.body).appendChild(pr); const c = getComputedStyle(pr).color; pr.remove(); return hexF(c); };
+        const theme = { pri: tv('var(--so-pri)'), hd: tv('var(--so-hd2)'), acc: tv('var(--so-acc)'), co: window.SO_COMPANY, job: typeof window.soJobsite === 'function' ? window.soJobsite() : '' };
+        return { theme, W: Math.max(RR.width, ...boxes.map((b) => b.x1), ...lines.map((l) => l.x1 || l.x0)), H: Math.max(RR.height, ...boxes.map((b) => b.y1)), boxes, lines };
       } finally { root.style.zoom = pz; root.style.transform = pt; }
     } finally {
       document.body.classList.remove('oexport');
@@ -836,7 +853,10 @@
       render(); window.scrollTo(0, keep.y);
     }
   }
-  const hexF = (c) => { const m = String(c || '').match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s/]+([\d.]+))?/); if (!m) return null; const a = m[4] === undefined ? 1 : +m[4]; if (a < 0.05) return null; const mix = (v) => Math.round(+v * a + 255 * (1 - a)); return [mix(m[1]), mix(m[2]), mix(m[3])].map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase(); };
+  const cvx = (() => { try { const c = document.createElement('canvas'); c.width = c.height = 1; return c.getContext('2d', { willReadFrequently: true }); } catch (e) { return null; } })();
+  const anyHex = (c) => { if (!c || !cvx || /transparent|none/.test(c)) return null; try { cvx.clearRect(0, 0, 1, 1); cvx.fillStyle = '#000'; cvx.fillStyle = c; cvx.fillRect(0, 0, 1, 1); const d = cvx.getImageData(0, 0, 1, 1).data; if (d[3] < 13) return null; const a = d[3] / 255; return [0, 1, 2].map((i) => Math.round(d[i] * a + 255 * (1 - a)).toString(16).padStart(2, '0')).join('').toUpperCase(); } catch (e) { return null; } };
+  const hexF = (c) => { const h0 = hexF0(c); return h0 || anyHex(c); };
+  const hexF0 = (c) => { const m = String(c || '').match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)(?:[,\s/]+([\d.]+))?/); if (!m) return null; const a = m[4] === undefined ? 1 : +m[4]; if (a < 0.05) return null; const mix = (v) => Math.round(+v * a + 255 * (1 - a)); return [mix(m[1]), mix(m[2]), mix(m[3])].map((v) => v.toString(16).padStart(2, '0')).join('').toUpperCase(); };
   function captureOldExport(fn) {
     if (typeof XLSX === 'undefined' || !XLSX.utils) return null;
     const U = XLSX.utils, keep = { n: U.book_new, a: U.aoa_to_sheet, b: U.book_append_sheet, w: XLSX.write }, sv = typeof save === 'function' ? save : null;
@@ -1148,6 +1168,51 @@ tr.ptk-hold [data-cands],tr.ptk-hold [data-delpos]{opacity:.45;cursor:not-allowe
 @media (prefers-reduced-motion:reduce){.ocard,.onode,.gframe{transition:none!important}.orgwrap{scroll-behavior:auto}}`;
     document.head.appendChild(st);
   }
+
+  // ===== Tampilan SO bergaya bagan resmi: judul + jobsite, kepala jabatan gelap, garis aksen emas (warna ikut tema dashboard) =====
+  const SO_COMPANY = 'PT. KARUNIA MANDIRI BERKARYA (KMB)';
+  function soJobsite() {
+    let s = '';
+    try { if (typeof siteName === 'function') s = siteName(); } catch (e) {}
+    if (!s) s = String(document.title || '').replace(/^Monitoring Manpower\s*/i, '').split('·').pop().trim();
+    try { if (ui.oarea && ui.oarea !== 'semua') s += ' ' + ui.oarea; else if (typeof bothAreas === 'function' && bothAreas((DATA && DATA.positions) || [])) s += ' (Hauling & Mining)'; } catch (e) {}
+    return s || '-';
+  }
+  window.soJobsite = soJobsite; window.SO_COMPANY = SO_COMPANY;
+  if (!document.getElementById('soLookCss')) {
+    const st = document.createElement('style'); st.id = 'soLookCss';
+    st.textContent = `.sohead,.orgwrap,.dashorg{--so-acc:#F5B400;--so-hd1:color-mix(in srgb,var(--so-pri) 58%,#0B1222);--so-hd2:color-mix(in srgb,var(--so-pri) 72%,#000)}
+.sohead{display:flex;align-items:center;gap:18px;margin:4px 0 14px;flex-wrap:wrap}
+.sohead .soco{border-left:4px solid var(--so-pri);padding:2px 0 2px 12px;display:flex;flex-direction:column;gap:6px}
+.sohead .soco b{font-size:15px;font-weight:900;letter-spacing:.02em;color:var(--so-hd2);line-height:1.15;max-width:280px}
+.sohead .sobadge{align-self:flex-start;background:linear-gradient(180deg,color-mix(in srgb,var(--so-pri) 90%,#fff),color-mix(in srgb,var(--so-pri) 85%,#000));color:#fff;font-weight:800;font-size:12.5px;padding:5px 14px;border-radius:9px;box-shadow:3px 3px 0 var(--so-acc)}
+.sohead .sottl{flex:1;text-align:center;min-width:240px}
+.sohead .sottl h2{margin:0;white-space:nowrap;font-size:28px;font-weight:900;letter-spacing:.04em;color:var(--so-hd2)}
+.sohead .sottl i{display:block;width:220px;height:5px;margin:6px auto 0;border-radius:3px;background:linear-gradient(90deg,var(--so-pri) 0 55%,var(--so-acc) 55%)}
+.ocard{background:#fff!important;border:1px solid #DDE1E9!important;border-radius:12px!important;overflow:hidden;box-shadow:0 1px 3px rgba(15,23,42,.10),0 8px 18px rgba(15,23,42,.10)!important}
+.ocard .oj{background:linear-gradient(180deg,var(--so-hd1),var(--so-hd2))!important;color:#fff!important;text-transform:uppercase;font-weight:800!important;letter-spacing:.03em;border-bottom:3px solid var(--so-acc)!important}
+.ocard .on{background:linear-gradient(180deg,#fff,#EEF0F5)!important;color:#0F172A!important;font-weight:800!important}
+.ocard.vac{outline:1.5px dashed #EF8A8A;outline-offset:-1px}
+.ocard.vac .on{background:linear-gradient(180deg,#FFF7F7,#FDECEC)!important;color:#D33A3A!important}
+.onode.sec:not(.oarea){background:linear-gradient(180deg,color-mix(in srgb,var(--so-pri) 92%,#fff),color-mix(in srgb,var(--so-pri) 82%,#000))!important;color:#fff!important;text-transform:uppercase;letter-spacing:.03em;border:0!important;border-bottom:3px solid var(--so-acc)!important;border-radius:10px!important;box-shadow:0 6px 14px rgba(15,23,42,.16)!important}
+.onode.sec:not(.oarea) b{color:#fff!important;font-weight:900!important}
+.org{--ol:color-mix(in srgb,var(--so-hd2) 75%,#fff)!important}
+.org ul::before,.org .tiers>ul:not(:last-child)::after,.org li::before,.org li::after{border-width:2px!important}
+.olegend>span:not(:has(i.v)){display:none!important}
+@media print{.sohead{margin-top:0}.sohead .sobadge{box-shadow:3px 3px 0 var(--so-acc)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.ocard .oj,.ocard .on,.onode.sec,.sohead *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
+    document.head.appendChild(st);
+  }
+  // warna tema dashboard (bagan SO di halaman ini memakai ungu sendiri, jadi ambil dari body / logo)
+  const soTheme = () => { try { const bs = getComputedStyle(document.body); const pri = (bs.getPropertyValue('--primary') || '').trim() || (getComputedStyle(document.querySelector('.brand .lg') || document.body).getPropertyValue('--g1a') || '').trim(); if (pri) document.documentElement.style.setProperty('--so-pri', pri); } catch (e) {} };
+  const soHead = () => {
+    soTheme();
+    if (ui.page !== 'org') return;
+    const w = document.getElementById('orgWrap'); if (!w) return;
+    const html = `<div class="sohead" id="soHead"><div class="soco"><b>${SO_COMPANY}</b><span class="sobadge">Jobsite : ${String(soJobsite()).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</span></div><div class="sottl"><h2>STRUKTUR ORGANISASI</h2><i></i></div><div class="soco" style="visibility:hidden"><b>${SO_COMPANY}</b></div></div>`;
+    const old = document.getElementById('soHead'); if (old) old.outerHTML = html; else w.insertAdjacentHTML('beforebegin', html);
+  };
+  if (typeof render === 'function') { const _rS = render; render = function () { const r = _rS.apply(this, arguments); try { soHead(); } catch (e) {} return r; }; }
+  try { soHead(); } catch (e) {}
 
   try { if (ui.page === 'dashboard') render(); else navSubs(); } catch (e) {}
 })();
