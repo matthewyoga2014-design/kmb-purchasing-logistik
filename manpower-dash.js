@@ -1203,6 +1203,16 @@ tr.ptk-hold [data-cands],tr.ptk-hold [data-delpos]{opacity:.45;cursor:not-allowe
 .org .gframe{background:transparent!important;border:0!important;box-shadow:none!important}
 .org .gframe>ul.gul>li>.gnode>.gframe{background:transparent!important}
 .org .gframe>.small{display:none!important}
+/* garis lurus tersambung seperti bagan resmi: sub-section bertumpuk di tengah (bukan tulang samping), tanpa celah */
+.org .gframe{padding:0!important}
+.org .glist{align-items:center!important;gap:0!important;padding-top:22px!important}
+.org .glist::before{left:50%!important;top:0!important;bottom:auto!important;height:22px!important;border-left-width:2px!important}
+.org .glist::after,.org .glist>.gnode::before,.org .glist>.gnode>.gframe::before{display:none!important}
+.org .glist>.gnode{padding-left:0!important;padding-top:0!important;align-items:center!important}
+.org .glist>.gnode:not(:last-child){padding-bottom:26px}
+.org .glist>.gnode:not(:last-child)::after{content:""!important;position:absolute;left:50%!important;top:auto!important;bottom:0!important;height:26px!important;border-left:2px solid var(--ol)!important}
+.org .glist>.gnode>.gframe>.gtitle{margin:0 auto!important}
+.org .glist>.gnode>.gframe{display:flex;flex-direction:column;align-items:center}
 @media print{.sohead{margin-top:0}.sohead .sobadge{box-shadow:3px 3px 0 var(--so-acc)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.ocard .oj,.ocard .on,.onode.sec,.sohead *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
     document.head.appendChild(st);
   }

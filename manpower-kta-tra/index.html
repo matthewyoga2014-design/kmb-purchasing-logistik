@@ -3219,7 +3219,7 @@ function orgChart(D) {
     }).filter(Boolean);
     secRow = br.length ? `<ul class="tier secs">${br.join('')}</ul>` : '';
   }
-  const outBlk = outs.length ? `<div class="orgroot out"><div class="outlbl" ${CAN_EDIT ? 'data-outmv="1" title="Seret untuk memindahkan kotak ini ke kiri / kanan / bawah struktur"' : ''}>${CAN_EDIT ? '<i class="grip">⠿</i>' : ''}Di luar Struktur Organisasi (SO)</div><div class="tiers"><ul class="tier secs">${outs.map(secLi).join('')}</ul></div></div>` : '';
+  const outBlk = outs.length ? `<div class="orgroot out"><div class="outlbl" ${CAN_EDIT ? 'data-outmv="1" title="Seret untuk memindahkan kotak ini ke kiri / kanan / bawah struktur"' : ''}>${CAN_EDIT ? '<i class="grip">⠿</i>' : ''}Di luar Struktur Organisasi (SO)${(() => { try { if (!bothAreas(P)) return ''; const ar = [...new Set(outs.flatMap((s) => s.groups.flatMap((g) => g.list)).map(areaOf))]; return ar.length ? ' · KTA - TRA ' + ar.join(' & ') : ''; } catch (e) { return ''; } })()}</div><div class="tiers"><ul class="tier secs">${outs.map(secLi).join('')}</ul></div></div>` : '';
   const main = areaMode ? (secRow || G.length ? `<div class="orgroot">${G.length && ui.osec === 'semua' ? tiersHtml(G, M, secRow) : `<div class="tiers">${secRow}</div>`}</div>` : '') : ui.osec !== 'semua' ? (secRow ? `<div class="orgroot">${tiersHtml([], M, secRow)}</div>` : '') : `<div class="orgroot">${top.length ? tiersHtml(top, M, secRow) : `<div class="tiers">${secRow}</div>`}</div>`;
   return `<div class="org pos-${['left', 'bottom'].includes(DATA.orgOutPos) ? DATA.orgOutPos : 'right'}">${main}${outBlk}</div>`;
 }
@@ -4895,7 +4895,7 @@ try { const f = sessionStorage.getItem('mp5-flash'); if (f) { sessionStorage.rem
   }, true);
   try { after(); } catch (e) {}
 })();
-</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261123k"></script><script src="../unit-population-detail.js?v=20261123k"></script><script src="../mp-private.js?v=20261123k"></script><script src="../activity-log.js?v=20261123k" data-kind="manpower"></script><script src="../otp-login.js?v=20261123k"></script><script src="../form-data-karyawan.js?v=20261123k"></script><script src="../candidate-resume.js?v=20261123k"></script><script src="../manpower-dash.js?v=20261124so3"></script><script id="portal-name-sync">
+</script><!--/permx--><script src="../spreadsheet-inline.js?v=20261123k"></script><script src="../unit-population-detail.js?v=20261123k"></script><script src="../mp-private.js?v=20261123k"></script><script src="../activity-log.js?v=20261123k" data-kind="manpower"></script><script src="../otp-login.js?v=20261123k"></script><script src="../form-data-karyawan.js?v=20261123k"></script><script src="../candidate-resume.js?v=20261123k"></script><script src="../manpower-dash.js?v=20261124so4"></script><script id="portal-name-sync">
 // Nama portal mengikuti "Edit nama portal" di Monitoring MPP Achievement (tabel portal_display_settings).
 (function () {
   var KEY = 'portal-name:' + 'kta';
