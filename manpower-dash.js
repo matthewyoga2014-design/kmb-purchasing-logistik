@@ -1199,6 +1199,10 @@ tr.ptk-hold [data-cands],tr.ptk-hold [data-delpos]{opacity:.45;cursor:not-allowe
 .org{--ol:color-mix(in srgb,var(--so-hd2) 75%,#fff)!important}
 .org ul::before,.org .tiers>ul:not(:last-child)::after,.org li::before,.org li::after{border-width:2px!important}
 .olegend>span:not(:has(i.v)){display:none!important}
+/* tanpa garis tepi / kolom per section: bagan polos seperti bagan resmi */
+.org .gframe{background:transparent!important;border:0!important;box-shadow:none!important}
+.org .gframe>ul.gul>li>.gnode>.gframe{background:transparent!important}
+.org .gframe>.small{display:none!important}
 @media print{.sohead{margin-top:0}.sohead .sobadge{box-shadow:3px 3px 0 var(--so-acc)!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.ocard .oj,.ocard .on,.onode.sec,.sohead *{-webkit-print-color-adjust:exact;print-color-adjust:exact}}`;
     document.head.appendChild(st);
   }
