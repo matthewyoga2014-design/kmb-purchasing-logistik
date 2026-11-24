@@ -1203,6 +1203,12 @@ tr.ptk-hold [data-cands],tr.ptk-hold [data-delpos]{opacity:.45;cursor:not-allowe
 .org .gframe{background:transparent!important;border:0!important;box-shadow:none!important}
 .org .gframe>ul.gul>li>.gnode>.gframe{background:transparent!important}
 .org .gframe>.small{display:none!important}
+/* tombol Anggota disembunyikan di bagan (atur anggota lewat klik kotak) */
+.org .ocard .oacts{display:none!important}
+/* judul sub-section lebih besar & jelas, senada dengan kotak lain */
+.org .gtitle{background:linear-gradient(180deg,var(--so-hd1),var(--so-hd2))!important;color:#fff!important;font-size:12.5px!important;font-weight:800!important;text-transform:uppercase;letter-spacing:.03em;padding:7px 16px!important;border-radius:9px!important;border:0!important;border-bottom:3px solid var(--so-acc)!important;box-shadow:0 4px 10px rgba(15,23,42,.14)!important;max-width:300px}
+.org .gtitle b,.org .gtitle span:first-child{color:#fff!important}
+.org .gtitle .grip{color:var(--so-acc)!important}
 /* garis lurus tersambung seperti bagan resmi: sub-section bertumpuk di tengah (bukan tulang samping), tanpa celah */
 .org .gframe{padding:0!important}
 .org .glist{align-items:center!important;gap:0!important;padding-top:22px!important}
