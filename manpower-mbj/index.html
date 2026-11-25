@@ -4523,7 +4523,7 @@ if (PROJ.sites) {
     </div>
     <div class="small" style="margin:-4px 0 10px">${rows.length} data · ${PROJ.sites.map((s) => `${esc(s.name)} ${all.filter((r) => r.site.id === s.id).length}`).join(' · ')}</div>
     <div class="tw"><table class="t mpp"><thead><tr>${CAN_EDIT ? '<th>Aksi</th>' : ''}${DL ? '<th class="fdk-col">Form</th>' : ''}<th>Jobsite</th>${cols.map((c) => `<th>${c[1]}</th>`).join('')}</tr></thead><tbody>
-    ${rows.map((r, k) => `<tr>${act(r)}${DL ? `<td class="nw fdk-col">${fdkBtn(r.p, r.site.name, r.site.id)}</td>` : ''}<td class="nw"><span class="hs ${r.site.id === WEB_ID ? 'pr' : 'hist'}">${esc(r.site.name)}</span></td>${cols.map((c) => `<td class="nw">${c[2](r.p, k)}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${cols.length + 2}" class="empty">Tidak ada data.</td></tr>`}
+    ${rows.map((r, k) => `<tr>${act(r)}${DL ? `<td class="nw fdk-col">${fdkBtn(r.p, r.site.name, r.site.id)}</td>` : ''}<td class="nw"><span class="hs" style="${siteTone(r.site.id)}">${esc(r.site.name)}</span></td>${cols.map((c) => `<td class="nw">${c[2](r.p, k)}</td>`).join('')}</tr>`).join('') || `<tr><td colspan="${cols.length + 2}" class="empty">Tidak ada data.</td></tr>`}
     </tbody></table></div>
     <p class="note">MP Aktif mengikuti MPP tiap jobsite. ${CAN_EDIT ? 'Edit data di jobsite lain otomatis membuka jobsite tersebut. ' : ''}Data pribadi (NIK, KK, NPWP, nomor HP, rekening, BPJS, alamat, data keluarga) tidak disimpan di web ini.</p></div>`;
   };
@@ -4537,6 +4537,7 @@ if (PROJ.sites) {
   const _renderNav = render;
   render = function () { _renderNav.apply(this, arguments); siteNavCount(); };
 }
+function siteTone(id) { const P = ['#2563EB','#0D9488','#7C3AED','#D97706','#DB2777','#0891B2','#65A30D','#4F46E5','#EA580C','#475569']; const i = Math.max(0, PROJ.sites.findIndex((s) => s.id === id)); const c = P[i % P.length]; return `background:${c}14;color:${c};border:1px solid ${c}40;font-weight:700`; }
 if (PROJ.sites) document.addEventListener('click', (e) => {
   const b = e.target.closest('[data-csv="aktif"],[data-csv="out"]'); if (!b || (typeof guardFree === 'function' && !guardFree())) return;
   e.stopImmediatePropagation(); e.preventDefault();
