@@ -28,7 +28,7 @@
   ];
   for (let n = 1; n <= 4; n++) PF.push([`sdr${n}`, `Saudara Kandung (${n})`, '', 'sd'], [`sdr${n}Jk`, `Jenis Kelamin (${n})`, 'jk', 'sd'], [`sdr${n}Tgl`, `Tanggal Lahir (${n})`, 'date', 'sd']);
   PF.push(['emNama', 'Nama', '', 'em'], ['emHub', 'Hubungan', '', 'em'], ['emHp', 'Nomor Telepon', '', 'em'], ['emWa', 'WhatsApp', '', 'em'],
-    ['kamar', 'Blok Kamar', '', 'ms']);
+    ['kamar', 'Blok Kamar', '', 'ms'], ['ketMess', 'Keterangan', 'long', 'ms']);
   const DATE_K = new Set(PF.filter((f) => f[2] === 'date').map((f) => f[0]));
   const PHONE_K = new Set(['hp', 'wa', 'emHp', 'emWa']);
 
@@ -96,7 +96,7 @@
     ['alamatDom', /domisili/], ['alamat', /^alamat/], ['tempatKerja', /^tempat.*bekerja/],
     ['rekNama', /pemilik/], ['bank', /bank/], ['rek', /rek/],
     ['bpjsTk', /bpjs.*(tk|ketenaga|tenaga kerja)/], ['bpjsKes', /bpjs/],
-    ['status', /^status( perkawinan| pernikahan| nikah| kawin| ptkp)?$|perkawinan|^ptkp/], ['kamar', /kamar/],
+    ['status', /^status( perkawinan| pernikahan| nikah| kawin| ptkp)?$|perkawinan|^ptkp/], ['ketMess', /keterangan.*(mess|kamar)/], ['kamar', /kamar/],
   ];
   function headerMap(H, G, raw) {
     const map = [], used = new Set(); let sdr = 0, em = false;
@@ -108,7 +108,7 @@
       else if (em) {
         if (/hubungan/.test(h)) k = 'emHub'; else if (/wh?ats/.test(h)) k = 'emWa';
         else if (/telp|telf|telep|hp|nomor|no\./.test(h)) k = 'emHp'; else if (/nama/.test(h)) k = 'emNama';
-        else if (/^status( perkawinan| pernikahan| nikah| kawin| ptkp)?$|perkawinan|^ptkp/.test(h)) k = 'status'; else if (/kamar/.test(h)) k = 'kamar';
+        else if (/^status( perkawinan| pernikahan| nikah| kawin| ptkp)?$|perkawinan|^ptkp/.test(h)) k = 'status'; else if (/keterangan.*(mess|kamar)/.test(h)) k = 'ketMess'; else if (/kamar/.test(h)) k = 'kamar';
       } else if (/saudara/.test(h)) { const m = h.match(/(\d)/); sdr = m ? +m[1] : sdr + 1; k = 'sdr' + sdr; }
       else if (sdr && /kelamin/.test(h)) { const m = h.match(/(\d)/); k = `sdr${m ? +m[1] : sdr}Jk`; }
       else if (sdr && /lahir/.test(h)) { const m = h.match(/(\d)/); k = `sdr${m ? +m[1] : sdr}Tgl`; }
@@ -436,7 +436,7 @@
   // ---------- tampilan MP Aktif / MP Out ----------
   const PCOLS = [];
   PF.forEach((f) => {
-    const sub = f[3] === 'sd' ? '' : f[3] === 'em' ? 'Emergency · ' : '';
+    const sub = f[3] === 'sd' ? '' : f[3] === 'em' ? 'Emergency · ' : f[0] === 'ketMess' ? 'Mess · ' : '';
     PCOLS.push(['pv_' + f[0], sub + f[1], (p) => esc(showV(f[0], (getP(p) || {})[f[0]])), true]);
     if (f[0] === 'tglLahir') PCOLS.push(['pv_umur', 'Umur', (p) => umur((getP(p) || {}).tglLahir), true]);
   });
@@ -482,7 +482,7 @@
         'Tanggal Masuk', 'Masa Kerja', 'Jenis Kelamin', 'Agama', 'Tempat Lahir', 'Tgl Lahir', 'Umur', 'Pendidikan Terakhir', 'Alamat Domisili', 'Alamat Lengkap', 'Keterangan', 'Tempat Bekerja', 'Site',
         'No Rekening', 'Nama Bank', 'Nama Pemilik Rekening', 'Nomor BPJS Kesehatan', 'Nomor BPJS Ketenagakerjaan', 'Nama Ibu', 'Pendidikan Terakhir Ibu', 'Pekerjaan Ibu', 'Nama Ayah', 'Pendidikan Terakhir Ayah', 'Pekerjaan Ayah'];
       for (let n = 1; n <= 4; n++) head.push(`Saudara Kandung (${n})`, `Jenis Kelamin (${n})`, `Tanggal Lahir (${n})`);
-      head.push('Emergency - Nama', 'Emergency - Hubungan', 'Emergency - Nomor Telepon', 'Emergency - WhatsApp', 'Status Perkawinan', 'Blok Kamar', 'Verifikasi Data', 'Catatan Kepegawaian');
+      head.push('Emergency - Nama', 'Emergency - Hubungan', 'Emergency - Nomor Telepon', 'Emergency - WhatsApp', 'Status Perkawinan', 'Blok Kamar', 'Keterangan Mess', 'Verifikasi Data', 'Catatan Kepegawaian');
       if (PROJ.sites) head.push('Jobsite');
       if (kind === 'out') head.push('Tanggal Keluar', 'Alasan Keluar');
       const aoa = [head];
@@ -492,7 +492,7 @@
           dt(p.masuk), p.masuk ? masaKerja(p.masuk, p.keluar) : '', p.jk || '', d.agama || '', d.tmpLahir || '', dt(d.tglLahir), umur(d.tglLahir), p.pendidikan || '', d.alamatDom || '', d.alamat || '', p.kategori || '', d.tempatKerja || '', p.site || '',
           d.rek || '', d.bank || '', d.rekNama || '', d.bpjsKes || '', d.bpjsTk || '', d.ibu || '', d.ibuPend || '', d.ibuKerja || '', d.ayah || '', d.ayahPend || '', d.ayahKerja || ''];
         for (let n = 1; n <= 4; n++) row.push(d[`sdr${n}`] || '', d[`sdr${n}Jk`] || '', dt(d[`sdr${n}Tgl`]));
-        row.push(d.emNama || '', d.emHub || '', d.emHp || '', d.emWa || '', d.status || '', d.kamar || '', p.statusData || '', p.catatanHR || '');
+        row.push(d.emNama || '', d.emHub || '', d.emHp || '', d.emWa || '', d.status || '', d.kamar || '', d.ketMess || '', p.statusData || '', p.catatanHR || '');
         if (PROJ.sites) row.push(r.site ? r.site.name : '');
         if (kind === 'out') row.push(dt(p.keluar), p.alasan || '');
         aoa.push(row);
