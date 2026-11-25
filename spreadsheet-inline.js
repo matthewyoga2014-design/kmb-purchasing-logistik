@@ -58,8 +58,14 @@
     const rows=Array.from(table.tBodies[0].rows);
     const mpSource=sheet==='aktif'?DATA.aktif:sheet==='keluar'?DATA.keluar:null;
     const filtered=mpSource&&mpSource.filter(p=>!ui.kq || `${p.nama} ${p.jabatan} ${p.poh}`.toLowerCase().includes(ui.kq.toLowerCase()));
-    const cols=sheet==='mpp'?null:MP_COLS.filter(c=>ui.allCols||c[3]).filter(c=>!(sheet==='keluar'&&c[0]==='sisa')).map(c=>c[0]);
-    if(cols && sheet==='keluar')cols.push('keluar');
+    // kolom dicocokkan lewat judul header, bukan urutan: tabel bisa punya kolom tambahan di depan
+    // (Aksi, Form, Jobsite) atau di belakang (data pribadi). Tanpa ini sel Jobsite ikut jadi isian Jabatan.
+    let cols=null;
+    if(sheet!=='mpp'){
+      const byLabel=new Map(MP_COLS.map(c=>[String(c[1]).trim().toLowerCase(),c[0]]));
+      byLabel.set('tanggal keluar','keluar');
+      cols=Array.from(table.tHead?.rows[0]?.cells||[]).map(th=>byLabel.get(th.textContent.trim().toLowerCase())||null);
+    }
     let ri=0;
     rows.forEach(tr=>{
       if(tr.classList.contains('grpr')||tr.classList.contains('subr'))return;
@@ -68,7 +74,13 @@
         const n=Number(tr.cells[0]?.textContent.trim());
         if(Number.isInteger(n)&&n>0) index=DATA.positions.findIndex(p=>Number(p.no)===n);
       }else{
-        const p=filtered?.[ri++];index=p?mpSource.indexOf(p):-1;
+        const b=tr.querySelector('[data-empx],[data-emp]');
+        if(b&&b.dataset.empx){
+          // tabel gabungan semua jobsite: hanya baris jobsite yang sedang dibuka yang bisa diedit langsung
+          const [sid,,y]=b.dataset.empx.split('|');
+          index=(typeof WEB_ID==='undefined'||sid===WEB_ID)?Number(y):-1;
+        }else if(b&&b.dataset.emp){index=Number(b.dataset.emp.split(':')[1]);}
+        else{const p=filtered?.[ri++];index=p?mpSource.indexOf(p):-1;}
       }
       if(index<0)return;
       Array.from(tr.cells).forEach((td,j)=>{
