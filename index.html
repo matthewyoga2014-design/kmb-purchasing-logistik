@@ -389,12 +389,13 @@ const WEBS = [
   { key: 'notulensi', title: 'Notulensi Meeting', url: 'notulensi/', icon: 'note', tile: 't4', show: () => !!roleOf('notulensi') },
   { key: 'psikotest', title: 'Psikotest & Uji Kompetensi', url: 'psikotest-mekanik/', icon: 'test', tile: 't5', show: () => !!roleOf('psikotest') },
   { key: 'kantor', title: 'Kantor Monitoring', url: 'kantor-ai/', icon: 'ai', tile: 't5', show: () => isOwner() },
-  { key: 'rekondisi', title: 'Monitoring Rekondisi Vessel & Dolly', url: 'monitoring-rekondisi/', icon: 'truck', tile: 't3', show: () => isOwner() },
+  { key: 'rekondisi', title: 'Monitoring Rekondisi Vessel & Dolly', url: 'monitoring-rekondisi/', icon: 'truck', tile: 't3', show: () => !!roleOf('rekondisi') },
 ];
 const SUBS = [...MPP.map((s) => ({ ...s, portal: 'Monitoring MPP' })), { ...APD, portal: 'Monitoring APD' },
   { app: 'unit-monitoring', key: 'unit', name: 'Monitoring Unit', url: 'monitoring-unit/', portal: 'Monitoring Unit' },
   { app: 'notulensi', key: 'notulensi', name: 'Notulensi', url: 'notulensi/', portal: 'Notulensi' },
-  { app: 'psikotest', key: 'psikotest', name: 'Psikotest', url: 'psikotest-mekanik/', portal: 'Psikotest' }];
+  { app: 'psikotest', key: 'psikotest', name: 'Psikotest', url: 'psikotest-mekanik/', portal: 'Psikotest' },
+  { app: 'rekondisi', key: 'rekondisi', name: 'Rekondisi', url: 'monitoring-rekondisi/', portal: 'Monitoring Rekondisi' }];
 const subOf = (app) => SUBS.find((s) => s.app === app);
 const MENUS = {
   mpp: [['dashboard', 'Dashboard', 1], ['mpp', 'MPP (Manpower Planning)'], ['pelamar', 'Data Pelamar'], ['org', 'Struktur Organisasi'], ['karyawan', 'MP Aktif & MP Out'], ['unit', 'Populasi Unit'], ['excel', 'Download Excel (tombol Excel di atas)', 'x'], ['setting', 'Pengaturan (sinkron Excel, backup, akses)', 's']],
@@ -618,8 +619,8 @@ function whoUI() {
 
 
 // ---------- tema merah koral: menu samping + beranda ----------
-const WDESC = { mpp: () => MPP.filter((p) => roleOf(p.app)).map((p) => p.name).join(' · '), apd: () => 'Stok, permintaan & pembagian APD', unit: () => 'Rencana kirim & perjalanan unit', notulensi: () => 'Notulen & tindak lanjut rapat', psikotest: () => 'Tes & penilaian kompetensi mekanik', kantor: () => 'Ringkasan kerja harian Pemilik', rekondisi: () => 'KMB · Trinanda · timeframe, aktual, MOL (pribadi)' };
-const WAPP = { mpp: () => MPP.map((p) => p.app), apd: () => ['apd'], unit: () => ['unit-monitoring'], notulensi: () => ['notulensi'], psikotest: () => ['psikotest'], kantor: () => [] };
+const WDESC = { mpp: () => MPP.filter((p) => roleOf(p.app)).map((p) => p.name).join(' · '), apd: () => 'Stok, permintaan & pembagian APD', unit: () => 'Rencana kirim & perjalanan unit', notulensi: () => 'Notulen & tindak lanjut rapat', psikotest: () => 'Tes & penilaian kompetensi mekanik', kantor: () => 'Ringkasan kerja harian Pemilik', rekondisi: () => 'KMB · Trinanda · timeframe, aktual, MOL' };
+const WAPP = { mpp: () => MPP.map((p) => p.app), apd: () => ['apd'], unit: () => ['unit-monitoring'], notulensi: () => ['notulensi'], psikotest: () => ['psikotest'], rekondisi: () => ['rekondisi'], kantor: () => [] };
 const RNAME = { owner: 'Pemilik', editor: 'Editor', viewer: 'Pelihat' };
 const SV = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const SI = { home: SV('<path d="M3 11l9-7 9 7v9h-6v-6H9v6H3z"/>'), act: SV('<path d="M3 12h4l3-8 4 16 3-8h4"/>'), share: SV('<path d="M4 12v7h16v-7M12 3v13M7 8l5-5 5 5"/>'), guide: SV('<circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17h.01"/>'),
@@ -659,7 +660,7 @@ function homeHtml() {
 
   const webs = WEBS.filter((w) => w.show());
   const best = (apps) => apps.map(roleOf).sort((a, b) => ['owner', 'editor', 'viewer'].indexOf(a) - ['owner', 'editor', 'viewer'].indexOf(b)).find(Boolean) || '';
-  const cards = webs.map((w) => { const r = (w.key === 'kantor' || w.key === 'rekondisi') ? 'owner' : best(WAPP[w.key] ? WAPP[w.key]() : []); return `<article class="wc"><div class="top2"><span class="ic2">${wIcon(w)}</span>${r ? `<span class="rl">${RNAME[r] || r}</span>` : ''}</div><b>${esc(w.title.replace('Monitoring MPP Achievement All Jobsite', 'Monitoring Manpower'))}</b><span class="d">${esc(WDESC[w.key] ? WDESC[w.key]() : '')}</span><a class="go2" href="${w.url}">Buka</a></article>`; }).join('');
+  const cards = webs.map((w) => { const r = (w.key === 'kantor') ? 'owner' : best(WAPP[w.key] ? WAPP[w.key]() : []); return `<article class="wc"><div class="top2"><span class="ic2">${wIcon(w)}</span>${r ? `<span class="rl">${RNAME[r] || r}</span>` : ''}</div><b>${esc(w.title.replace('Monitoring MPP Achievement All Jobsite', 'Monitoring Manpower'))}</b><span class="d">${esc(WDESC[w.key] ? WDESC[w.key]() : '')}</span><a class="go2" href="${w.url}">Buka</a></article>`; }).join('');
   const mps = MPP.filter((p) => roleOf(p.app)), per = mps.map((p) => ({ p, x: mppOf(p) }));
   const tot = per.reduce((a, { x }) => x ? add(a, x.s) : a, { mpp: 0, act: 0, vac: 0, open: 0 }), ready = !!S.rows, ax = roleOf('apd') ? apdOf() : null;
   const v = (n, ok) => ok ? Number(n).toLocaleString('id-ID') : '<span class="sk2">—</span>';

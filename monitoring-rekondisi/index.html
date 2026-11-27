@@ -378,7 +378,7 @@ function gate(kind,msg){const g=$g("gate");g.hidden=false;const em=SESSION?.user
   const o=$g("gOut");if(o)o.onclick=()=>API.user.signOut()}
 async function start(){
   if(!window.supabase?.createClient){gate("error","Tidak bisa memuat layanan login. Periksa koneksi lalu muat ulang.");return}
-  SB=window.supabase.createClient(SUPA.url,SUPA.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+  SB=window.supabase.createClient(SUPA.url,SUPA.key,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true,storageKey:"kta-web-auth"}});
   SESSION=(await SB.auth.getSession()).data.session;
   let first=true;SB.auth.onAuthStateChange((ev,s)=>{if(first){first=false;return}if(ev==="SIGNED_IN"&&!SESSION||ev==="SIGNED_OUT")location.reload();SESSION=s});
   if(!SESSION){gate("login");return}
