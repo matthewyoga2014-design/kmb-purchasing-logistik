@@ -50,6 +50,9 @@ a{color:inherit}
 .nav .cnt{margin-left:auto;background:var(--brandbg);color:var(--brand);font-size:11.5px;font-weight:700;border-radius:20px;padding:1px 8px}
 .nav a.on .cnt{background:rgba(255,255,255,.25);color:#fff}
 .nav .add{color:var(--brand);font-weight:600}
+.nav a.sel{background:var(--brandbg);color:var(--brand);font-weight:600}
+.sec .ctx{display:inline-flex;align-items:center;gap:4px;background:var(--brandbg);color:var(--brand);border-radius:20px;padding:1px 4px 1px 8px;letter-spacing:0;text-transform:none;font-size:11.5px}
+.sec .ctx button{border:0;background:none;color:var(--brand);cursor:pointer;font-weight:800;padding:0 4px;min-height:auto}
 /* main */
 .main{padding:18px clamp(14px,2.4vw,32px) 48px;display:flex;flex-direction:column;gap:18px}
 .top{display:flex;gap:10px;align-items:center;flex-wrap:wrap;justify-content:flex-end}
@@ -124,7 +127,7 @@ table{width:100%;border-collapse:collapse;font-size:14px}
 th{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;text-align:left;padding:10px 12px;background:var(--soft);color:#3c3c46;white-space:nowrap}
 td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
 th.c,td.c{text-align:center}
-th.n,td.n{text-align:right;font-variant-numeric:tabular-nums}
+th.n,td.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 td b{font-weight:600}
 tr.click{cursor:pointer}
 tr.click:hover td{background:#fafafb}
@@ -375,7 +378,7 @@ const pct=(a,b)=>b?Math.round(a/b*100):0;
 const r1=v=>Math.round(v*10)/10;
 const gid=p=>p+'-'+Date.now().toString(36).toUpperCase().slice(-6)+Math.random().toString(36).slice(2,5).toUpperCase();
 const sum=(a,f)=>a.reduce((s,x)=>s+(+f(x)||0),0);
-const fdur=v=>(+v%1?String(r1(+v)).replace('.',','):String(+v))+' hr';
+const fdur=v=>(+v%1?String(r1(+v)).replace('.',','):String(+v))+' hari';
 const I={home:'M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10',unit:'M2 7h12v9H2zM14 10h4l3 3v3h-7M6 19a2 2 0 100-4 2 2 0 000 4zM17 19a2 2 0 100-4 2 2 0 000 4z',cal:'M4 5h16v15H4zM4 9h16M8 3v4M16 3v4',check:'M4 4h16v16H4zM8 12l3 3 5-6',cart:'M3 4h2l2 11h11l2-8H6M9 20a1 1 0 100-2 1 1 0 000 2zM18 20a1 1 0 100-2 1 1 0 000 2z',alert:'M12 3l10 18H2zM12 10v5M12 18v.5',chart:'M5 20V10M10 20V4M15 20v-8M20 20v-5',db:'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3zM4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3',gear:'M12 15a3 3 0 100-6 3 3 0 000 6zM12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9L7 7M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1',pin:'M12 21s7-6 7-12a7 7 0 10-14 0c0 6 7 12 7 12zM12 11a2 2 0 100-4 2 2 0 000 4z',dl:'M12 4v11M7 10l5 5 5-5M4 20h16',ul:'M12 20V9M7 14l5-5 5 5M4 4h16',doc:'M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7',plus:'M12 5v14M5 12h14',users:'M9 11a4 4 0 100-8 4 4 0 000 8zM2 21c0-4 3-6 7-6s7 2 7 6M17 11a3 3 0 100-6M22 21c0-3-2-5-5-5',hist:'M3 12a9 9 0 109-9 9 9 0 00-7 3.4M3 3v4h4M12 7v5l3 2',edit:'M4 20h4L19 9l-4-4L4 16zM14 6l4 4',ok:'M12 21a9 9 0 100-18 9 9 0 000 18zM8 12l3 3 5-6',clock:'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7v5l3 2',list:'M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01'};
 const ic=(n,s=18)=>`<svg class="ic" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="${I[n]}"/></svg>`;
 window.__rekonToast=(m)=>toast(m,'err');
@@ -516,13 +519,14 @@ function fUnits(jid){const q=S.f.q.toLowerCase();return assigned().filter(u=>(!j
 function stats(us){const cs=us.map(calc);const c=g=>cs.filter(x=>x.group===g).length;return{n:us.length,not:c('Belum Mulai'),op:c('On Progress'),lag:cs.filter(x=>x.status==='Tertinggal').length,late:c('Terlambat'),done:c('Selesai'),started:cs.filter(x=>x.start).length,plan:cs.filter(x=>x.start).length?sum(cs.filter(x=>x.start),x=>x.plan)/cs.filter(x=>x.start).length:0,actual:cs.filter(x=>x.start).length?sum(cs.filter(x=>x.start),x=>x.actual)/cs.filter(x=>x.start).length:0}}
 
 /* ============ shell ============ */
-const MENU=[['MONITORING',[['monitoring','Monitoring Unit','unit'],['timeframe','Timeframe','cal'],['update','Update Aktual','check'],['mol','Logistik / MOL','cart'],['masalah','Permasalahan','alert']]],['DATA',[['populasi','Populasi Unit','list'],['laporan','Laporan & Rekap','chart'],['master','Master Data','db'],['pengaturan','Pengaturan','gear']]]];
+const MENU=[['MONITORING',[['monitoring','Monitoring Unit','unit'],['timeframe','Timeframe','cal'],['update','Update Aktual','check'],['mol','Logistik / MOL','cart'],['masalah','Permasalahan','alert']]],['DATA',[['populasi','Populasi Unit','list'],['laporan','Laporan & Rekap','chart'],['master','Master Data','db']]],['PENGATURAN',[['pengaturan','Pengaturan','gear']]]];
+function setJs(id){S.js=id||null;S.rep.js=id||'all';S.tplJs=id||'';try{localStorage.setItem('rekon-js',id||'')}catch(e){}}
 function shell(){
  const js=jsites();const v=S.view==='unit'?'monitoring':S.view;
  let h=`<div class="sec">RINGKASAN</div><a href="#home" class="${v==='home'?'on':''}">${ic('home')}<span>Semua Jobsite</span></a>
- <div class="sec">JOBSITE / VENDOR</div>${js.map(j=>`<a href="#dashboard" data-a="gojs" data-id="${esc(j.id)}" class="sub ${v==='dashboard'&&S.js===j.id?'on':''}">${ic('pin')}<span>${esc(j.name)}</span><span class="cnt">${assigned().filter(u=>u.jobsiteId===j.id).length}</span></a>`).join('')}
+ <div class="sec">JOBSITE / VENDOR</div>${js.map(j=>`<a href="#dashboard" data-a="gojs" data-id="${esc(j.id)}" class="sub ${S.js===j.id?(v==='dashboard'?'on':'sel'):''}">${ic('pin')}<span>${esc(j.name)}</span><span class="cnt">${assigned().filter(u=>u.jobsiteId===j.id).length}</span></a>`).join('')}
  ${can('master')?`<button class="add" data-a="jsform">${ic('plus')}<span>Tambah Jobsite</span></button>`:''}`;
- for(const[sec,items]of MENU)h+=`<div class="sec">${sec}</div>`+items.map(([k,l,i])=>`<a href="#${k}" class="${v===k?'on':''}">${ic(i)}<span>${l}</span></a>`).join('');
+ const cj=jsOf(curJs());for(const[sec,items]of MENU)h+=`<div class="sec">${sec}${cj&&sec!=='PENGATURAN'?` · <span class="ctx">${esc(cj.name)}<button data-a="clearjs" title="Tampilkan semua jobsite" aria-label="Tampilkan semua jobsite">×</button></span>`:''}</div>`+items.map(([k,l,i])=>`<a href="#${k}" class="${v===k?'on':''}">${ic(i)}<span>${l}</span></a>`).join('');
  $('#nav').innerHTML=h;
  const nm=S.uid?nameOf(S.uid):'Tamu';
  $('#user').dataset.a=S.user?.signOut?'usermenu':'';$('#user').style.cursor=S.user?.signOut?'pointer':'';$('#user').innerHTML=`<span class="av">${esc((nm||'?').trim().charAt(0).toUpperCase()||'?')}</span><div><b>${esc(nm)}</b><i>${esc(accessLabel())}</i></div>`;
@@ -663,7 +667,7 @@ function vTimeframe(){const jid=curJs();const us=assigned().filter(u=>!jid||u.jo
  <div class="tools"><button class="btn" data-a="dltf">${ic('dl',16)} Download form timeframe</button><button class="btn" data-a="ultf" ${can('tf')?'':'disabled'}>${ic('ul',16)} Upload timeframe / job sheet</button><button class="btn pr" data-a="startform" ${can('tf')?'':'disabled'}>${ic('cal',16)} Isi tanggal mulai${noStart?` (${noStart} unit)`:''}</button></div>${jsChips()}
  ${pend.length?`<div class="panel"><div class="ph"><h3>Revisi menunggu persetujuan pengawas (${pend.length})</h3></div><div class="scroll"><table><thead><tr><th>Unit</th><th>Diajukan</th><th>Alasan</th><th>Target lama</th><th>Target baru</th><th>Aksi</th></tr></thead><tbody>${pend.map(u=>{const t=D.tf[u.id],p=t.pending;return`<tr><td><b>${esc(u.code)}</b></td><td>${esc(nameOf(p.by))}<br><small class="cm">${esc((p.at||'').slice(0,10))}</small></td><td>${esc(p.reason)}</td><td>${fd(sched(t.current,t.start).at(-1)?.end)}</td><td><b>${fd(sched(p.stages,p.start).at(-1)?.end)}</b></td><td>${can('verify')?`<button class="btn sm pr" data-a="tfapprove" data-id="${esc(u.id)}">Setujui</button> <button class="btn sm" data-a="tfreject" data-id="${esc(u.id)}">Tolak</button>`:'<span class="cm">Menunggu</span>'}</td></tr>`}).join('')}</tbody></table></div></div>`:''}
  <div class="panel"><div class="ph"><h3>Timeframe per unit</h3></div><div class="scroll"><table class="stack"><thead><tr><th>Unit</th><th>Jenis</th><th>Jobsite</th><th class="c">Tahap</th><th class="n">Lead time</th><th>Mulai</th><th>Target original</th><th>Target berlaku</th><th class="c">Rev</th><th>Status</th><th>Aksi</th></tr></thead><tbody>
- ${us.length?us.map(u=>{const c=calc(u);const dv=c.tEnd&&c.oEnd?dd(c.oEnd,c.tEnd):0;return`<tr><td><b>${esc(u.code)}</b></td><td>${typeBadge(u.type)}</td><td>${esc(jsName(u.jobsiteId))}</td><td class="c">${c.total||'-'}</td><td class="n">${c.total?fdur(sum(c.cur,s=>s.dur)):'-'}</td><td>${c.start?fd(c.start):'<span class="cm">Belum diisi</span>'}</td><td>${fd(c.oEnd)}</td><td><b>${fd(c.tEnd)}</b>${dv>0?` <small class="c-late">+${dv} hr</small>`:''}</td><td class="c">${c.rev||0}</td><td>${stBadge(c.status)}</td><td style="white-space:nowrap">${can('tf')?`<button class="btn sm" data-a="tfedit" data-id="${esc(u.id)}">${ic('edit',14)} ${c.start?'Revisi':'Atur'}</button>`:''} ${c.tf?.history?.length?`<button class="btn sm" data-a="tfhist" data-id="${esc(u.id)}" aria-label="Riwayat">${ic('hist',14)}</button>`:''}</td></tr>`}).join(''):'<tr><td colspan="11" class="empty">Belum ada unit yang ditugaskan.</td></tr>'}</tbody></table></div></div>
+ ${us.length?us.map(u=>{const c=calc(u);const dv=c.tEnd&&c.oEnd?dd(c.oEnd,c.tEnd):0;return`<tr><td><b>${esc(u.code)}</b></td><td>${typeBadge(u.type)}</td><td>${esc(jsName(u.jobsiteId))}</td><td class="c">${c.total||'-'}</td><td class="n">${c.total?fdur(sum(c.cur,s=>s.dur)):'-'}</td><td>${c.start?fd(c.start):'<span class="cm">Belum diisi</span>'}</td><td>${fd(c.oEnd)}</td><td><b>${fd(c.tEnd)}</b>${dv>0?` <small class="c-late">+${dv} hr</small>`:''}</td><td class="c">${c.rev||0}</td><td>${stBadge(c.status)}</td><td style="white-space:nowrap">${can('tf')?`<button class="btn sm" data-a="tfedit" data-id="${esc(u.id)}">${ic('edit',14)} ${c.start?'Revisi':'Atur'}</button>`:''} ${c.tf?.history?.length?`<button class="btn sm" data-a="tfhist" data-id="${esc(u.id)}" aria-label="Riwayat">${ic('hist',14)}</button>`:''}</td></tr>`}).join(''):`<tr><td colspan="11" class="empty">Belum ada unit di ${esc(jid?jsName(jid):'jobsite mana pun')}. ${can('master')?'<button class="btn sm pr" data-a="ulpop">Upload populasi unit</button> atau <a class="redlink" href="#populasi">tugaskan dari Populasi Unit</a>':''}</td></tr>`}</tbody></table></div></div>
  <div class="panel"><div class="ph"><h3>Template timeframe ${jid?esc(jsName(jid)):'(default)'}</h3><a href="#master" data-a="mtab" data-id="template" class="redlink">Kelola template →</a></div><div class="pb grid2">${['Vessel','Dolly'].map(t=>{const tp=tpl(jid,t);const st=sched(tp?.stages||[]);return`<div><h4 style="margin-bottom:8px">${t} · ${st.length} tahapan · ${fdur(sum(st,s=>s.dur))}${tp?.provisional?' <span class="badge b-lag">sementara</span>':''}</h4>${st.length?`<table><thead><tr><th>No</th><th>Tahapan</th><th class="n">Hari</th><th class="n">Bobot</th></tr></thead><tbody>${st.map((s,i)=>`<tr><td>${i+1}</td><td>${esc(s.name)}</td><td class="n">${fdur(s.dur)}</td><td class="n">${r1(s.weight)}%</td></tr>`).join('')}</tbody></table>`:'<p class="cm">Belum ada template.</p>'}</div>`}).join('')}</div></div>`}
 
 function tfEditor(unitId,opt={}){
@@ -1068,8 +1072,9 @@ const A={
  usermenu:()=>openModal('Akun',`<p>Masuk sebagai <b>${esc(S.uid||'')}</b> · ${esc(accessLabel())}</p><div class="tools"><a class="btn" href="${S.user.driveSearch}" target="_blank" rel="noopener">Buka folder di Google Drive ↗</a><a class="btn" href="../">← Pusat Monitoring</a><button class="btn pr" data-a="logout">Keluar</button></div>`),
  logout:()=>S.user.signOut(),
  seed:async(d,el)=>{if(D.jobsites.length)return;try{const j=SEED_MIN;let n=0;for(const[c,docs]of Object.entries(j))for(const[id,data]of Object.entries(docs)){await put(c,id,data);n++}log('Muat data awal','seed',n+' data');toast(n+' data awal dimuat ke Google Drive')}catch(e){toast('Gagal memuat data awal: '+(e.message||e),'err')}},
- gojs:d=>{if(!d.id)return;S.js=d.id;S.view='dashboard';closeModal();if(location.hash!=='#dashboard')location.hash='dashboard';else render();scrollTo(0,0)},
- setjs:d=>{S.js=d.id||null;render()},
+ gojs:d=>{if(!d.id)return;setJs(d.id);S.view='dashboard';closeModal();if(location.hash!=='#dashboard')location.hash='dashboard';else render();scrollTo(0,0)},
+ setjs:d=>{setJs(d.id);render()},
+ clearjs:()=>{setJs(null);if(S.view==='dashboard')location.hash='home';else render()},
  ftype:d=>{S.f.type=d.id;render()},fst:d=>{S.f.st=S.f.st===d.id?'':d.id;render()},freset:()=>{S.f={type:'',st:'',q:''};render()},
  mfst:d=>{S.mf.st=S.mf.st===d.id?'':d.id;render()},
  unit:d=>{S.unitId=d.id;S.utab='tf';S.view='unit';closeModal();render();scrollTo(0,0)},
@@ -1112,13 +1117,14 @@ document.addEventListener('submit',async e=>{const f=e.target;
 let sT;document.addEventListener('focusin',e=>{if(e.target.id==='rUser')searchUsers('')});
 document.addEventListener('input',e=>{if(e.target.id==='rUser'){clearTimeout(sT);sT=setTimeout(()=>searchUsers(e.target.value),250)}});
 async function searchUsers(q){if(!S.user?.search)return;try{const r=await S.user.search(q);S.hits=(r||[]).map(h=>({id:h.id,name:h.name||''})).filter(h=>h.name);const dl=$('#userlist');if(dl){dl.innerHTML='';S.hits.forEach(h=>{const o=document.createElement('option');o.value=h.name;dl.append(o)})}}catch(e){}}
-function route(){const h=location.hash.slice(1);S.view=VIEWS[h]&&h!=='unit'?h:'home';if(S.view==='dashboard'&&!curJs())S.view='home';$('#side').classList.remove('open');render();scrollTo(0,0)}
+function route(){const h=location.hash.slice(1);S.view=VIEWS[h]&&h!=='unit'?h:'home';if(S.view==='home')setJs(null);if(S.view==='dashboard'&&!curJs())S.view='home';$('#side').classList.remove('open');render();scrollTo(0,0)}
 addEventListener('hashchange',route);
 $('#nav').addEventListener('click',e=>{const a=e.target.closest('a');if(a&&!a.dataset.a&&a.getAttribute('href')===location.hash){e.preventDefault();route()}});
 $('#burger').onclick=()=>$('#side').classList.toggle('open');
 document.addEventListener('click',e=>{if(innerWidth<=900&&$('#side').classList.contains('open')&&!e.target.closest('#side')&&!e.target.closest('#burger'))$('#side').classList.remove('open')});
 
 /* ============ boot ============ */
+try{const j=localStorage.getItem('rekon-js');if(j&&location.hash!=='#home'&&location.hash)setJs(j)}catch(e){}
 route();
 (async()=>{
  const[db,user,assets,dl,mcp]=await Promise.all(['db','user','assets','downloads','mcp'].map(n=>window.claude?.use?window.claude.use(n).catch(()=>null):Promise.resolve(null)));
