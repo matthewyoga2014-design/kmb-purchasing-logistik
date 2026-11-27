@@ -753,7 +753,7 @@ function vDash(){
   <div class="dbody">${dk('t','layers','Total Unit',s.n,`Belum mulai ${s.not} · Selesai ${s.done}`)}${dk('o','gear','On Progress',s.op,s.lag?`${s.lag} masih dalam target`:null)}${dk('l','clock','Terlambat',s.late,s.late?lateTxt(us):null)}<span class="dvd"></span>
   <div class="ddon">${donut(s.actual,132)}</div><div class="dleg"><i style="background:var(--sOp)"></i><span>Plan (Timeframe)</span><b>:</b><b>${Math.round(s.plan)}%</b><i style="background:var(--sDone)"></i><span>Aktual (Gabungan Shift)</span><b>:</b><b>${Math.round(s.actual)}%</b><i style="background:var(--sNot)"></i><span>Deviasi</span><b>:</b><b class="${dev<-0.5?'c-late':'c-done'}">${dev>0?'+':''}${Math.round(dev)}%</b></div></div></div>
  <div class="dgrid2">
-  <div class="panel dpan"><div class="dbar">${ic('alert',18)} Rekap Permasalahan Unit<a class="r rl" href="#masalah">Lihat semua →</a></div><div class="dtiles">${dt('t','doc','Total Permasalahan',is.t,null,'#masalah')}${dt('d','ok','Closed',is.c)}${dt('w','hist','On Progress',is.p)}${dt('l','alert','Open',is.o)}</div></div>
+  <div class="panel dpan"><div class="dbar">${ic('alert',18)} Rekap Permasalahan Dalam Pengerjaan<a class="r rl" href="#masalah">Lihat semua →</a></div><div class="dtiles">${dt('t','doc','Total Permasalahan',is.t,null,'#masalah')}${dt('d','ok','Closed',is.c)}${dt('w','hist','On Progress',is.p)}${dt('l','alert','Open',is.o)}</div></div>
   <div class="panel dpan"><div class="dbar">${ic('chart',18)} Rekap Permasalahan per Kategori</div><div class="scroll"><table class="dtbl"><thead><tr><th class="c">No</th><th>Kategori Permasalahan</th><th class="c">Total</th><th class="c">Open</th><th class="c">On Progress</th><th class="c">Closed</th></tr></thead><tbody>${ct.length?ct.map((c,i)=>`<tr><td class="c">${i+1}</td><td><b>${esc(c.k)}</b></td><td class="c"><b>${c.t}</b></td><td class="c c-late">${c.o}</td><td class="c c-lag">${c.p}</td><td class="c c-done">${c.c}</td></tr>`).join(''):'<tr><td colspan="6" class="empty">Belum ada permasalahan.</td></tr>'}</tbody></table></div></div>
  </div>
  <div class="panel dpan"><div class="dbar">${ic('cal',18)} Rekap Unit Rekondisi — ${esc(name)}<span class="r dflt"><select data-f="type" aria-label="Jenis unit"><option value="">Jenis unit: Semua</option>${['Vessel','Dolly'].map(t=>`<option ${S.f.type===t?'selected':''}>${t}</option>`).join('')}</select><select data-f="st" aria-label="Status timeframe"><option value="">Status timeframe: Semua</option>${Object.keys(ST).map(t=>`<option value="${t}" ${S.f.st===t?'selected':''}>${TFS[t]?.[1]||t}</option>`).join('')}</select><span class="dq">${ic('search',16)}<input id="fQ" data-f="q" placeholder="Cari unit…" value="${esc(S.f.q)}" aria-label="Cari unit"></span>${jid&&can('master')?`<button class="btn sm" data-a="tempunit">+ Unit sementara</button>`:''}</span></div>
@@ -948,8 +948,8 @@ function checklistForm(unitId,shift,date){
  <div class="f full"><span>Foto dokumentasi</span>${upZone('lapPh',[],{title:'Foto dokumentasi',accept:'image/*',info:'Bisa pilih beberapa foto sekaligus. JPG atau PNG, maks 20 MB per foto.'})}</div>
  
 </div>
- <h4 style="margin:18px 0 8px">4. Permasalahan</h4><div id="ckIssOpen"></div><div id="ckIssNew"></div>
- <button type="button" class="btn sm" id="ckIssAdd">${ic('plus',14)} Tambah permasalahan</button>
+ <h4 style="margin:18px 0 8px">4. Permasalahan Dalam Pengerjaan</h4><div id="ckIssOpen"></div><div id="ckIssNew"></div>
+ <button type="button" class="btn sm" id="ckIssAdd">${ic('plus',14)} Tambah permasalahan dalam pengerjaan</button>
  <div class="mfoot"><button type="button" class="btn" data-a="close">Batal</button><button class="btn pr">Simpan laporan</button></div></form>`,()=>{
   const F=$('#ckF');let st=[],c0=null;
   const draw=()=>{const u=unitOf(F.unit.value);const c=calc(u);c0=c;const d=F.date.value;st=c.cur.map((s,i)=>({i,name:s.name,dur:s.dur,w:s.weight,start:s.start,end:s.end,old:c.act[i],v:c.act[i]}));
