@@ -723,6 +723,10 @@ const legend=()=>`<div class="note"><b>Jenis:</b>${typeBadge('Vessel')}${typeBad
 const TFS={'On Progress':['op','Sesuai','ok'],'Tertinggal':['lag','Masih dalam target','alert'],'Terlambat':['late','Terlambat','clock'],'Belum Mulai':['not','Belum mulai','hist'],'Selesai':['done','Selesai','ok'],'Selesai Terlambat':['donel','Selesai terlambat','ok']};
 const tfBadge=st=>{const[c,l,i]=TFS[st]||['not',st,'hist'];return`<span class="badge b-${c} tfb">${ic(i,14)} ${l}</span>`};
 function topIssue(uid){const op=issuesOf(i=>i.unitId===uid&&i.status!=='Closed');const l=op.length?op:issuesOf(i=>i.unitId===uid);if(!l.length)return'';const m={};l.forEach(i=>m[i.category||'Lainnya']=(m[i.category||'Lainnya']||0)+1);return Object.entries(m).sort((a,b)=>b[1]-a[1])[0][0]}
+const refName=r=>{if(!r)return'-';const u=unitOf(r);if(u)return u.code;const j=jsOf(r);if(j)return j.name;const m=D.mols.find(x=>x.id===r);if(m)return'MOL '+uName(m.unitId);const i=D.issues.find(x=>x.id===r);if(i)return i.no;return r};
+const fdt=t=>{try{return new Date(t).toLocaleString('id-ID',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'})}catch(e){return t||''}};
+function logPanel(){const L=[...D.logs].sort((a,b)=>(b.at||'').localeCompare(a.at||''));const show=S.logAll?L:L.slice(0,8);
+ return`<div class="panel dpan noprint"><div class="dbar">${ic('hist',18)} Log aktivitas<span class="r">${L.length} aktivitas</span></div><div class="scroll"${S.logAll?' style="max-height:520px"':''}><table class="dtbl"><thead><tr><th>Waktu</th><th>Aktivitas</th><th>Unit / data</th><th>Detail</th></tr></thead><tbody>${show.map(l=>`<tr><td style="white-space:nowrap">${esc(fdt(l.at))}</td><td><b>${esc(l.act==='Laporan harian'?'Update daily':l.act)}</b></td><td>${esc(refName(l.ref))}</td><td>${esc(l.detail||'')}</td></tr>`).join('')||'<tr><td colspan="4" class="empty">Belum ada aktivitas</td></tr>'}</tbody></table></div>${L.length>8?`<div style="padding:10px 20px 14px"><button class="btn sm" data-a="logall">${S.logAll?'Tampilkan 8 terbaru':'Lihat semua ('+L.length+')'}</button></div>`:''}</div>`}
 function vDash(){
  const jid=curJs();const js=jsites();const j=jsOf(jid);const name=j?j.name:'Semua Jobsite';
  const allA=assigned().filter(u=>!S.f.type||u.type===S.f.type);const us=fUnits(jid);const ids=new Set(us.map(u=>u.id));const s=stats(us);
@@ -757,6 +761,7 @@ function vDash(){
    <td class="c">${tfBadge(c.status)}</td><td class="c"><b>${ui.t}</b></td><td class="c c-late">${ui.o}</td><td class="c c-lag">${ui.p}</td><td class="c c-done">${ui.c}</td><td>${esc(topIssue(u.id)||'-')}</td><td class="c"><button class="dbtn" data-a="unit" data-id="${esc(u.id)}">${ic('eye',15)} Detail</button></td></tr>`}).join(''):`<tr><td colspan="12" class="empty">Tidak ada unit pada filter ini.</td></tr>`}</tbody></table></div></div>
  <div class="panel dpan"><div class="dbar">${ic('cart',18)} Status Logistik / MOL — ${esc(name)}<a class="r rl" href="#mol">Detail di Logistik →</a></div>
   <div class="dtiles mol">${dt('t','doc','Total MOL',ms.length,`${open.length} belum selesai`,'#mol')}${dt('w','hist','Menunggu Approval',appr.length)}${dt('o','search','Searching',pos('Diajukan')+pos('Searching'))}${dt('o','cart','Ordered',pos('Ordering'))}${dt('o','unit','Shipping',pos('Shipping'))}${dt('y','box','Toko Terdekat',ok.filter(m=>procOf(m)==='Toko').length,'belum selesai')}${dt('d','ok','Received / Close',done,rej?`${rej} rejected/cancel`:null)}</div></div>
+ ${jid?'':logPanel()}
  <div class="dfoot">${ic('alert',18)}<b>Keterangan:</b><span><b>Sesuai</b>: pekerjaan berjalan sesuai timeframe</span><span><b>Masih dalam target</b>: aktual di bawah plan, belum melewati target</span><span><b>Terlambat</b>: tahapan melewati target</span><span>Persentase dihitung dari total unit pada masing-masing jobsite${filt?' (sesuai filter)':''}.</span></div>`}
 function vHome(){return vDash()}
 function vDashboard(){return vDash()}
@@ -1267,7 +1272,7 @@ function vPengaturan(){const st=D.settings;const adm=can('admin');const rl=Objec
  </div>${adm?'<div class="mfoot"><button class="btn pr">Simpan</button></div>':''}</form></div></div>
  <div class="panel"><div class="ph"><h3>Akun Anda</h3></div><div class="pb"><div class="info"><div><small>Nama</small><b>${esc(S.uid?nameOf(S.uid):'-')}</b></div><div><small>Akses</small><b>${esc(accessLabel())}</b></div></div>
 </div></div></div>
- <div class="panel"><div class="ph"><h3>Log aktivitas</h3>${adm?`<button class="btn sm" data-a="backup">${ic('dl',15)} Backup data (JSON)</button>`:''}</div><div class="scroll" style="max-height:420px"><table class="stack"><thead><tr><th>Waktu</th><th>Pengguna</th><th>Aktivitas</th><th>Ref</th><th>Detail</th></tr></thead><tbody>${D.logs.map(l=>`<tr><td>${esc((l.at||'').replace('T',' ').slice(0,16))}</td><td>${esc(nameOf(l.by))}</td><td>${esc(l.act)}</td><td><small>${esc(l.ref)}</small></td><td>${esc(l.detail)}</td></tr>`).join('')||'<tr><td colspan="5" class="empty">Belum ada aktivitas</td></tr>'}</tbody></table></div></div>`}
+ <div class="panel"><div class="ph"><h3>Backup data</h3>${adm?`<button class="btn sm" data-a="backup">${ic('dl',15)} Backup data (JSON)</button>`:''}</div><div class="pb"><p class="cm" style="margin:0">Unduh salinan seluruh data. Log aktivitas ada di Beranda (Semua Jobsite).</p></div></div>`}
 
 const VIEWS={home:vHome,dashboard:vDashboard,monitoring:vMonitoring,unit:vUnit,timeframe:vTimeframe,update:vUpdate,mol:vMol,masalah:vMasalah,populasi:vPopulasi,laporan:vLaporan,master:vMaster,pengaturan:vPengaturan};
 
@@ -1368,7 +1373,7 @@ const A={
  mfst:d=>{S.mf.st=S.mf.st===d.id?'':d.id;render()},mfproc:d=>{S.mf.proc=d.id;render()},
  unit:d=>{S.unitId=d.id;S.utab='tf';S.view='unit';closeModal();render();scrollTo(0,0)},
  utab:d=>{S.utab=d.id;render()},mtab:d=>{S.mtab=d.id;if(location.hash!=='#master')location.hash='master';else render()},
- molundo:()=>{S.mpend={};render();toast('Perubahan dibatalkan')},molsave:async()=>{const P=S.mpend||{};const ids=Object.keys(P);if(!ids.length)return;const b=document.querySelector('[data-a=molsave]');if(b)b.disabled=true;
+ logall:()=>{S.logAll=!S.logAll;render()},molundo:()=>{S.mpend={};render();toast('Perubahan dibatalkan')},molsave:async()=>{const P=S.mpend||{};const ids=Object.keys(P);if(!ids.length)return;const b=document.querySelector('[data-a=molsave]');if(b)b.disabled=true;
   const ok=await guard(async()=>{for(const id of ids){const m=D.mols.find(x=>x.id===id);await upd('mols',id,P[id].o);log('Ubah MOL',id,uName(m?.unitId)+' · '+P[id].l.join(', '))}});if(ok){S.mpend={};toast(ids.length+' perubahan MOL tersimpan')}else if(b)b.disabled=false;render()},
  print:()=>{const t=document.title;document.title='Monitoring Rekondisi '+(jsOf(curJs())?.name||'Semua Jobsite')+' '+today();window.print();setTimeout(()=>document.title=t,800)},repjs:()=>{S.rep.type='js';location.hash='laporan'},
  dlforms:()=>openModal('Download form Excel',`<div class="qa"><button data-a="dltf">${ic('cal',20)}Form timeframe & tanggal mulai</button><button data-a="dlupd">${ic('check',20)}Form update aktual</button></div>`),
