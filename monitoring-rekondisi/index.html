@@ -926,6 +926,25 @@ function molForm(id,unitId){
   const ok=await guard(async()=>{await put('mols',nid,{...(m||{}),...o,photos:[...(m?.photos||[]),...ph],by:m?.by||S.uid||'',at:m?.at||new Date().toISOString(),updatedAt:new Date().toISOString()});if(o.issueId){const is=D.issues.find(i=>i.id===o.issueId);if(is&&is.molId!==nid)await upd('issues',is.id,{molId:nid})}log(m?'Edit MOL':'Tambah MOL',nid,no+' · '+molSt(o))});
   btn.disabled=false;if(ok){toast('MOL tersimpan');closeModal()}}})}
 
+/* ===== Koreksi progres sekali jalan (diminta pemilik, 28 Nov 2026). Berjalan sekali saat pemilik membuka web, lalu ditandai di settings. ===== */
+const PATCH_ID='prog-20261128';
+async function setTotal(u,target,note){const c=calc(u);const before=c.actual;const arr=stagesForTotal(c.cur,target);const now=new Date().toISOString();const date=today();const lid=gid('LAP');
+ for(const d of D.updates.filter(d=>d.unitId===u.id&&!d.void))await upd('updates',d.id,{void:true,voidAt:now,voidBy:S.uid||'',voidReason:'Koreksi progres pemilik'});
+ const st=c.cur;for(let i=0;i<arr.length;i++)if(arr[i]>0)await put('updates',gid('UPD'),{unitId:u.id,jobsiteId:u.jobsiteId,date,shift:1,stage:i,stageName:st[i].name,pct:arr[i],pctVerified:arr[i],decision:arr[i]>=100?'Lanjut Timeframe':'Tetap di Timeframe',notes:'',checklist:'',kendala:'',photos:[],lapId:lid,verified:true,verifiedBy:S.uid||'',verifiedAt:now,by:S.uid||'',at:now,src:'Koreksi progres'});
+ await put('updates',lid,{lap:true,unitId:u.id,jobsiteId:u.jobsiteId,date,shift:1,before,after:target,changes:arr.map((v,i)=>({stage:i,name:st[i].name,from:c.act[i],to:v})).filter(x=>x.to!==x.from),notes:note,manpower:0,kendala:'',photos:[],verified:true,by:S.uid||'',at:now,src:'Koreksi progres'})}
+async function runPatch(){if(S.patching||!S.loaded||!S.owner||!S.db||D.settings?.patches?.[PATCH_ID])return;S.patching=true;
+ try{await upd('settings','main',{patches:{...(D.settings.patches||{}),[PATCH_ID]:new Date().toISOString()}});const msg=[];
+  const kmb=D.jobsites.find(j=>/kmb/i.test(j.name+j.code)),trn=D.jobsites.find(j=>/trinanda/i.test(j.name+j.code));
+  if(kmb){const vs=units().filter(u=>u.jobsiteId===kmb.id&&u.type==='Vessel'&&!u.temp&&!u.archived&&D.tf[u.id]?.start==='2026-10-18').sort((a,b)=>a.code.localeCompare(b.code));
+   const T=[94,92];if(vs.length===2){for(let i=0;i<2;i++)await setTotal(vs[i],T[i],'Progres terkini KMB (diisi pemilik)');msg.push(`KMB: ${vs[0].code} 94%, ${vs[1].code} 92%`)}else msg.push('KMB: unit mulai 18 Okt tidak ditemukan 2 unit, lewati')}
+  if(trn){const ids=[];let k=1;for(let i=0;i<2;i++){let code;do{code=`${trn.code}-V${k++}`}while(D.units.some(x=>x.code===code));const id='U-TMP-'+code;
+    await put('units',id,{type:'Vessel',code,name:'Vessel '+code,manufacturer:'',model:'',sn:'',remark:'Progress di Rekondisi',note:'Unit belum teridentifikasi',temp:true,position:'',jobsiteId:'',archived:false,at:new Date().toISOString()});ids.push(id)}
+   S.sel=new Set(ids);await assignUnits(trn.id);S.sel=new Set();await new Promise(r=>setTimeout(r,300));
+   const T=[82,55];for(let i=0;i<2;i++){const u=unitOf(ids[i]);if(u&&D.tf[u.id])await setTotal(u,T[i],'Progres terkini Trinanda (unit belum teridentifikasi)')}
+   msg.push(`Trinanda: ${ids.map(x=>x.replace('U-TMP-','')).join(' 82%, ')} 55% (unit sementara)`)}
+  log('Koreksi progres',PATCH_ID,msg.join(' · '));toast('Progres diperbarui — '+msg.join(' · '))}
+ catch(e){toast('Koreksi progres gagal: '+(e.message||e),'err')}finally{S.patching=false;schedule()}}
+setInterval(runPatch,2500);
 function tempUnitForm(){const js=jsites();if(!js.length)return toast('Belum ada jobsite','err');
  openModal('Tambah unit sementara (kode belum diketahui)',`<form id="tuF"><p class="cm" style="margin-top:0">Untuk unit yang sedang dikerjakan tapi kode SAP-nya belum diketahui. Progress bisa langsung diisi; nanti tekan <b>Tetapkan unit sebenarnya</b> di detail unit dan semua data (timeframe, aktual, masalah, MOL) dipindahkan ke unit populasi yang benar.</p><div class="fg">
  <label class="f">Jobsite<select name="js">${js.map(j=>`<option value="${esc(j.id)}" ${curJs()===j.id?'selected':''}>${esc(j.name)}</option>`).join('')}</select></label>
