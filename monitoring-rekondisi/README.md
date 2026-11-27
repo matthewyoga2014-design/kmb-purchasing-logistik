@@ -18,7 +18,7 @@ Alamat: https://matthewyoga2014-design.github.io/kmb-purchasing-logistik/monitor
 2. Hapus isi `Code.gs`, tempel seluruh isi `apps-script/Code.gs` dari folder ini, lalu **Save**.
 3. Pilih fungsi `setup` → **Run** → izinkan akses Google Drive. Folder `Web Monitoring Rekondisi` dibuat di Drive.
 4. **Deploy → New deployment → Web app** — Execute as: **Me**, Who has access: **Anyone** → **Deploy**, salin **Web app URL** (`…/exec`).
-5. Buka web ini, masuk, lalu tempel URL tersebut saat diminta. (Atau ganti `@@GAS_URL@@` di `index.html` dengan URL itu agar tertanam permanen.)
+5. Buka web ini, masuk, lalu tempel URL tersebut saat diminta. (URL deployment saat ini sudah tertanam di `index.html` sebagai `GAS_DEFAULT`.)
 
 "Anyone" hanya berarti alamat Apps Script bisa dihubungi. Setiap permintaan tetap diperiksa: harus membawa login Supabase yang sah dan email yang terdaftar.
 

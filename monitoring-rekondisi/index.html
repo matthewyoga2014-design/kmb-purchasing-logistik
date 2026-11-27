@@ -250,7 +250,7 @@ table{font-size:13px}.stack thead{display:none}.stack tr{display:grid;padding-bl
    Menyediakan window.claude.use(...) yang sama dengan versi artifact, jadi kode aplikasi di bawah tidak berubah. */
 (function(){
 const SUPA={url:"https://yoviojbfyvgpllxisjvy.supabase.co",key:"sb_publishable_I26enb2Kz8iF4WFdH8vixA_8kek-kM9"};
-const GAS_DEFAULT="@@GAS_URL@@";
+const GAS_DEFAULT="https://script.google.com/macros/s/AKfycbzwpzVCf86e1bU_7CT1jB9VwLa-Y9vhlHbkcMgculpE8-XATAySbzZarv1kUc-_aqgq/exec";
 const LS="rekon-gas",CK="rekon-cache";
 const gasUrl=()=>{try{return localStorage.getItem(LS)||(GAS_DEFAULT.startsWith("@@")?"":GAS_DEFAULT)}catch(e){return GAS_DEFAULT.startsWith("@@")?"":GAS_DEFAULT}};
 const COLS=["jobsites","units","tf","updates","issues","mols","categories","roles","templates","settings","drive","logs"];
