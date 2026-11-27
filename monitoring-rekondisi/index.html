@@ -543,51 +543,80 @@ document.addEventListener('click',e=>{const b=e.target.closest?.('[data-uprm]');
 document.addEventListener('dragleave',e=>{const z=e.target.closest?.('.upz');if(z&&!z.contains(e.relatedTarget))z.classList.remove('drag')});
 document.addEventListener('drop',e=>{const z=e.target.closest?.('.upz');if(!z)return;e.preventDefault();z.classList.remove('drag');upAdd(z.dataset.upz,e.dataTransfer.files)});
 const molItems=m=>m.items?.length?m.items:(m.material?[{material:m.material,spec:m.spec||'',qty:m.qty,uom:m.uom||''}]:[]);
-const itemsTxt=(m,max)=>{const it=molItems(m);const show=max?it.slice(0,max):it;return show.map(x=>`<div>• <b>${esc(x.material)}</b> <span class="cm">${esc(x.qty??'')} ${esc(x.uom||'')}</span>${x.spec?` <small class="cm">· ${esc(x.spec)}</small>`:''}</div>`).join('')+(max&&it.length>max?`<small class="cm">+${it.length-max} material lagi</small>`:'')};
-const itemsPlain=m=>molItems(m).map(x=>`${x.material}${x.spec?' ('+x.spec+')':''} ${x.qty??''} ${x.uom||''}`.trim()).join('; ');
-const itemRow=(it={})=>`<tr><td class="n cm inum"></td><td><input data-i="material" value="${esc(it.material||'')}" placeholder="Nama material / barang"></td><td><input data-i="spec" value="${esc(it.spec||'')}" placeholder="Spesifikasi / part number"></td><td><input type="number" data-i="qty" min="0" step="any" value="${esc(it.qty??'')}" style="width:90px"></td><td><input data-i="uom" value="${esc(it.uom||'pcs')}" style="width:90px" aria-label="Satuan"></td><td><button type="button" class="btn sm" data-idel aria-label="Hapus baris">×</button></td></tr>`;
-function itemsEd(k,items,zone){return`<div class="ied" data-ied="${k}"><div class="scroll"><table class="edt"><thead><tr><th class="n">No</th><th>Material / nama barang</th><th>Spesifikasi / part number</th><th class="n">Qty</th><th>Satuan</th><th></th></tr></thead><tbody>${(items?.length?items:[{}]).map(itemRow).join('')}</tbody></table></div>
- <div class="tools" style="margin-top:8px"><button type="button" class="btn sm" data-iadd="${k}">${ic('plus',14)} Tambah material</button><label class="btn sm dark" style="cursor:pointer">${ic('ul',14)} Isi otomatis dari file MOL<input type="file" hidden accept=".pdf,.xlsx,.xls,.csv,.docx,.txt,image/*" data-iread="${k}" data-zone="${zone||''}"></label><span class="cm" style="font-size:13px">PDF, Excel, Word, CSV — daftar material terbaca otomatis, lalu bisa diperbaiki</span></div><div class="imsg" data-imsg="${k}"></div></div>`}
-function itemsGet(root){return[...root.querySelectorAll('tbody tr')].map(r=>{const g=n=>r.querySelector(`[data-i="${n}"]`).value.trim();return{material:g('material'),spec:g('spec'),qty:g('qty')===''?'':+g('qty'),uom:g('uom')}}).filter(x=>x.material)}
+const itemsTxt=(m,max)=>{const it=molItems(m);const show=max?it.slice(0,max):it;return show.map(x=>`<div>• <b>${esc(x.material)}</b> <span class="cm">${esc(x.qty??'')} ${esc(x.uom||'')}</span>${x.spec?` <small class="cm">· ${esc(x.spec)}</small>`:''}${x.note?` <small class="cm">· ${esc(x.note)}</small>`:''}</div>`).join('')+(max&&it.length>max?`<small class="cm">+${it.length-max} material lagi</small>`:'')};
+const itemsPlain=m=>molItems(m).map(x=>`${x.material}${x.spec?' ('+x.spec+')':''} ${x.qty??''} ${x.uom||''}${x.note?' – '+x.note:''}`.trim()).join('; ');
+const itemRow=(it={})=>`<tr><td class="n cm inum"></td><td><input data-i="material" value="${esc(it.material||'')}" placeholder="Nama material / barang"></td><td><input data-i="spec" value="${esc(it.spec||'')}" placeholder="Spesifikasi / part number"></td><td><input type="number" data-i="qty" min="0" step="any" value="${esc(it.qty??'')}" style="width:90px"></td><td><input data-i="uom" value="${esc(it.uom||'pcs')}" style="width:80px" aria-label="Satuan"></td><td><input data-i="note" value="${esc(it.note||'')}" placeholder="Keterangan / remark"></td><td><button type="button" class="btn sm" data-idel aria-label="Hapus baris">×</button></td></tr>`;
+function itemsEd(k,items,zone){return`<div class="ied" data-ied="${k}"><div class="scroll"><table class="edt"><thead><tr><th class="n">No</th><th>Material / nama barang</th><th>Spesifikasi / part number</th><th class="n">Qty</th><th>Satuan</th><th>Keterangan</th><th></th></tr></thead><tbody>${(items?.length?items:[{}]).map(itemRow).join('')}</tbody></table></div>
+ <div class="tools" style="margin-top:8px"><button type="button" class="btn sm" data-iadd="${k}">${ic('plus',14)} Tambah material</button><label class="btn sm dark" style="cursor:pointer">${ic('ul',14)} Isi otomatis dari file MOL<input type="file" hidden accept=".pdf,.xlsx,.xls,.csv,.docx,.txt,image/*" data-iread="${k}" data-zone="${zone||''}" data-date="${k}"></label><span class="cm" style="font-size:13px">PDF, Excel, Word, CSV, foto/scan — daftar material terbaca otomatis, lalu bisa diperbaiki</span></div><div class="imsg" data-imsg="${k}"></div></div>`}
+function itemsGet(root){return[...root.querySelectorAll('tbody tr')].map(r=>{const g=n=>r.querySelector(`[data-i="${n}"]`).value.trim();return{material:g('material'),spec:g('spec'),qty:g('qty')===''?'':+g('qty'),uom:g('uom'),note:g('note')}}).filter(x=>x.material)}
 function itemsPut(root,list){const tb=root.querySelector('tbody');[...tb.querySelectorAll('tr')].filter(r=>!r.querySelector('[data-i=material]').value.trim()).forEach(r=>r.remove());tb.insertAdjacentHTML('beforeend',list.map(itemRow).join(''))}
 const _scripts={};const loadScript=src=>_scripts[src]??=new Promise((ok,no)=>{const e=document.createElement('script');e.src=src;e.onload=ok;e.onerror=()=>no(new Error('Gagal memuat '+src));document.head.append(e)});
-/* baca daftar material dari file MOL (seperti unggah soal di web psikotest): Excel/CSV, Word (.docx), PDF, teks */
-async function readMolFile(file){const n=file.name.toLowerCase();let rows=[];
- if(/\.(xlsx|xls|csv)$/.test(n)){const wb=XLSX.read(await file.arrayBuffer());for(const sn of wb.SheetNames)rows.push(...XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:false}).map(r=>r.map(c=>String(c).trim())),[])}
+/* baca daftar material dari file MOL (seperti unggah soal di web psikotest): Excel/CSV, Word (.docx), PDF, foto/scan (OCR) */
+const RXH={mat:/(nama\s*)?(material|barang|item|description|deskripsi|uraian|spare\s*part|part\s*name|nama)/i,qty:/^(qty|q'?ty|jumlah|jml|quantity|kuantitas|vol(ume)?)/i,uom:/^(satuan|uom|unit|sat\.?|um)$/i,spec:/(spesifikasi|specification|spec|part\s*(no|number)|p\/n|pn\b|tipe|type|ukuran|merk)/i,note:/^(remark|remarks|keterangan|ket\.?|catatan|note|notes)$/i,ada:/^ada$/i,tdk:/^tidak\s*ada$/i};
+async function ocrCanvas(cv){await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js');
+ const g=cv.getContext('2d',{willReadFrequently:true});const d=g.getImageData(0,0,cv.width,cv.height),p=d.data;for(let i=0;i<p.length;i+=4){const v=(.299*p[i]+.587*p[i+1]+.114*p[i+2])>160?255:0;p[i]=p[i+1]=p[i+2]=v}g.putImageData(d,0,0);
+ const w=await Tesseract.createWorker('eng');try{await w.setParameters({tessedit_pageseg_mode:'6'});const{data}=await w.recognize(cv);return data.text.split(/\r?\n/).map(l=>[l])}finally{await w.terminate()}}
+async function ocrImage(file){const bmp=await createImageBitmap(file);const sc=Math.min(3,Math.max(1,2800/bmp.width));const cv=document.createElement('canvas');cv.width=Math.round(bmp.width*sc);cv.height=Math.round(bmp.height*sc);const g=cv.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(bmp,0,0,cv.width,cv.height);return ocrCanvas(cv)}
+/* baris berposisi (PDF): kolom dipetakan ke judul kolom, karena sel kosong (No, Part number) tidak muncul di PDF */
+function posRows(lines){const isM=c=>RXH.mat.test(c.s)&&c.s.length<40&&!RXH.spec.test(c.s),isQ=c=>RXH.qty.test(c.s);
+ const h=lines.findIndex(l=>l.cells.some(isM)&&l.cells.some(isQ));if(h<0)return lines.map(l=>l.cells.map(c=>c.s));
+ const A=lines[h].cells.map(c=>({s:c.s,x0:c.x0,x1:c.x1,c:(c.x0+c.x1)/2}));let start=h+1;const nx=lines[h+1];
+ if(nx&&nx.cells.length&&nx.cells.every(c=>!/\d/.test(c.s)&&c.s.length<20)){for(const c of nx.cells){const cc=(c.x0+c.x1)/2;const near=A.find(a=>Math.abs(a.c-cc)<14);if(near){near.s+=' '+c.s;near.x0=Math.min(near.x0,c.x0);near.x1=Math.max(near.x1,c.x1)}else A.push({s:c.s,x0:c.x0,x1:c.x1,c:cc})}A.sort((a,b)=>a.c-b.c);start=h+2}
+ const out=lines.slice(0,h).map(l=>l.cells.map(c=>c.s));out.push(A.map(a=>a.s));
+ for(const l of lines.slice(start)){const r=A.map(()=>'');for(const c of l.cells){let bi;if(/^[\d.,]+\s*[A-Za-z]{0,5}$/.test(c.s.trim())){const cc=(c.x0+c.x1)/2;let bd=1e9;A.forEach((a,i)=>{const d=Math.abs(a.c-cc);if(d<bd){bd=d;bi=i}})}else{bi=A.findIndex(a=>c.x0<a.x1+2);if(bi<0)bi=A.length-1}r[bi]=(r[bi]?r[bi]+' ':'')+c.s}out.push(r)}
+ return out}
+async function readMolFile(file){const n=file.name.toLowerCase();let rows=[],ocr=false;
+ if(/\.(xlsx|xls|csv)$/.test(n)){const wb=XLSX.read(await file.arrayBuffer());for(const sn of wb.SheetNames)rows.push(...XLSX.utils.sheet_to_json(wb.Sheets[sn],{header:1,defval:'',raw:false}).map(r=>r.map(c=>String(c).replace(/\s+/g,' ').trim())),[])}
  else if(/\.docx$/.test(n)){await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js');const zip=await JSZip.loadAsync(await file.arrayBuffer());const xml=await zip.file('word/document.xml')?.async('string');if(!xml)throw new Error('Isi dokumen Word tidak terbaca');
   const doc=new DOMParser().parseFromString(xml,'application/xml');const W='http://schemas.openxmlformats.org/wordprocessingml/2006/main';const txt=el=>[...el.getElementsByTagNameNS(W,'t')].map(t=>t.textContent).join('').trim();
   const body=doc.getElementsByTagNameNS(W,'body')[0];for(const ch of body?.children||[]){if(ch.localName==='tbl'){for(const tr of ch.getElementsByTagNameNS(W,'tr'))rows.push([...tr.children].filter(c=>c.localName==='tc').map(txt));rows.push([])}else if(ch.localName==='p'){const t=txt(ch);if(t)rows.push(t.split(/\t+|\s{3,}/))}}}
  else if(/\.pdf$/.test(n)){await loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');const pj=window.pdfjsLib;pj.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  const pdf=await pj.getDocument({data:await file.arrayBuffer()}).promise;for(let pg=1;pg<=Math.min(pdf.numPages,20);pg++){const tc=await (await pdf.getPage(pg)).getTextContent();const lines=[];
+  const pdf=await pj.getDocument({data:await file.arrayBuffer()}).promise;const np=Math.min(pdf.numPages,10);
+  for(let pg=1;pg<=np;pg++){const page=await pdf.getPage(pg);const tc=await page.getTextContent();const lines=[];
    for(const it of tc.items){if(!it.str.trim())continue;const x=it.transform[4],y=it.transform[5];let L=lines.find(l=>Math.abs(l.y-y)<3);if(!L)lines.push(L={y,its:[]});L.its.push({x,w:it.width,s:it.str})}
-   lines.sort((a,b)=>b.y-a.y);for(const L of lines){L.its.sort((a,b)=>a.x-b.x);const cells=[];let prev=null;for(const it of L.its){if(prev&&it.x-(prev.x+prev.w)<6)cells[cells.length-1]+=(it.x-(prev.x+prev.w)>1?' ':'')+it.s;else cells.push(it.s);prev=it}rows.push(cells.map(c=>c.trim()).filter(Boolean))}}
-  if(!rows.length)throw new Error('PDF ini berupa gambar/scan, teksnya tidak bisa dibaca — isi manual')}
+   lines.sort((a,b)=>b.y-a.y);const pl=lines.map(L=>{L.its.sort((a,b)=>a.x-b.x);const cells=[];let prev=null;for(const it of L.its){if(prev&&it.x-(prev.x+prev.w)<6){const c=cells[cells.length-1];c.s+=(it.x-(prev.x+prev.w)>1?' ':'')+it.s;c.x1=it.x+it.w}else cells.push({s:it.s,x0:it.x,x1:it.x+it.w});prev=it}cells.forEach(c=>c.s=c.s.trim());return{cells:cells.filter(c=>c.s)}});
+   if(pl.length)rows.push(...posRows(pl),[]);
+   else{const vp=page.getViewport({scale:Math.min(3,2800/page.getViewport({scale:1}).width)});const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;await page.render({canvasContext:cv.getContext('2d'),viewport:vp}).promise;rows.push(...await ocrCanvas(cv));ocr=true}}}
  else if(/\.txt$/.test(n))rows=(await file.text()).split(/\r?\n/).map(l=>l.split(/\t+|\s{3,}|;/).map(c=>c.trim()));
- else throw new Error('Foto/scan tidak bisa dibaca otomatis — file tetap dilampirkan, isi daftar material manual');
- return parseMolRows(rows)}
-function parseMolRows(rows){const num=v=>{const m=String(v).replace(/\s/g,'').match(/^(\d+(?:[.,]\d+)?)/);return m?+m[1].replace(',','.'):NaN};
- const RX={mat:/(nama\s*)?(material|barang|item|description|deskripsi|uraian|spare\s*part|part\s*name|nama)/i,qty:/^(qty|q'?ty|jumlah|jml|quantity|kuantitas|vol(ume)?|qty\s*req)/i,uom:/^(satuan|uom|unit|sat\.?|um)$/i,spec:/(spesifikasi|specification|spec|part\s*(no|number)|p\/n|pn|tipe|type|ukuran|merk|keterangan)/i};
- const STOP=/^(total|jumlah\s*total|grand\s*total|mengetahui|disetujui|dibuat|diminta|catatan|note)/i;const out=[];
+ else if(/^image\//.test(file.type)||/\.(jpe?g|png|webp|bmp|gif)$/.test(n)){rows=await ocrImage(file);ocr=true}
+ else throw new Error('Format file ini belum bisa dibaca otomatis — file tetap dilampirkan, isi daftar material manual');
+ const r=parseMolRows(rows);r.ocr=ocr;return r}
+const BLN={jan:1,feb:2,mar:3,apr:4,mei:5,may:5,jun:6,jul:7,agu:8,agt:8,aug:8,sep:9,okt:10,oct:10,nov:11,des:12,dec:12};
+function findDate(rows){for(const r of rows.slice(0,25)){const t=(r||[]).join(' ');if(!/tanggal|tgl|date/i.test(t))continue;let m=t.match(/(\d{1,2})\s+([A-Za-z]{3,})\.?\s+(\d{4})/);const b=m&&BLN[m[2].slice(0,3).toLowerCase()];if(b)return`${m[3]}-${String(b).padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+ m=t.match(/(\d{4})-(\d{2})-(\d{2})/);if(m)return m[0];m=t.match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})/);if(m)return`${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`}return''}
+function parseMolRows(rows){const num=v=>{const m=String(v).replace(/\s/g,'').match(/^(\d+(?:[.,]\d+)?)/);return m?+m[1].replace(',','.'):NaN};const date=findDate(rows);
+ const STOP=/^(total|jumlah\s*total|grand\s*total|mengetahui|disetujui|dibuat|diminta|catatan\s*:|note\s*:)/i;const out=[];
  for(let i=0;i<rows.length;i++){const r=rows[i];if(!r||r.length<2)continue;const fi=re=>r.findIndex(c=>re.test(c)&&c.length<40);
-  let qi=fi(RX.qty),mi=r.findIndex((c,j)=>RX.mat.test(c)&&c.length<40&&j!==qi&&!RX.spec.test(c)&&!RX.qty.test(c));if(mi<0||qi<0)continue;
-  const ui=r.findIndex((c,j)=>RX.uom.test(c)&&j!==mi&&j!==qi),si=r.findIndex((c,j)=>RX.spec.test(c)&&c.length<40&&j!==mi&&j!==qi);let blank=0;
-  for(let j=i+1;j<rows.length;j++){const x=rows[j]||[];if(!x.join('').trim()){if(++blank>=3)break;continue}blank=0;const mat=(x[mi]||'').trim();if(STOP.test(mat)||STOP.test(x[0]||''))break;
-   if(x.some(c=>RX.qty.test(c)&&c.length<20)&&x.some(c=>RX.mat.test(c)&&c.length<40))break;
-   let q=num(x[qi]);let u=ui>=0?x[ui]:'';if(isNaN(q)){const c=x.find((c,k)=>k!==mi&&/^\d+([.,]\d+)?\s*[a-zA-Z]{0,6}$/.test(c.trim()));if(c){q=num(c);u=u||(c.match(/[a-zA-Z]+/)||[''])[0]}}
-   if(!mat||/^\d+$/.test(mat))continue;if(isNaN(q)&&!(si>=0&&x[si]))continue;if(!u&&qi>=0){const m2=String(x[qi]).match(/[a-zA-Z]+/);if(m2)u=m2[0]}
-   out.push({material:mat,spec:si>=0?(x[si]||'').trim():'',qty:isNaN(q)?'':q,uom:(u||'pcs').trim()})}
-  if(out.length)return out}
- /* tanpa judul kolom: baris "nama barang ... 4 pcs" */
+  const qi=fi(RXH.qty),mi=r.findIndex((c,j)=>RXH.mat.test(c)&&c.length<40&&j!==qi&&!RXH.spec.test(c)&&!RXH.qty.test(c));if(mi<0||qi<0)continue;
+  const ui=r.findIndex((c,j)=>RXH.uom.test(c)&&j!==mi&&j!==qi),si=r.findIndex((c,j)=>RXH.spec.test(c)&&c.length<40&&j!==mi&&j!==qi),ni=r.findIndex((c,j)=>RXH.note.test(c)&&j!==mi);
+  const sub=rows[i+1]||[];let ai=sub.findIndex(c=>RXH.ada.test(c)),ti=sub.findIndex(c=>RXH.tdk.test(c));if(ai<0)ai=r.findIndex(c=>RXH.ada.test(c));if(ti<0)ti=r.findIndex(c=>RXH.tdk.test(c));
+  let blank=0;
+  for(let j=i+1;j<rows.length;j++){const x=rows[j]||[];if(!x.join('').trim()){if(++blank>=3)break;continue}blank=0;const mat=String(x[mi]||'').trim();if(STOP.test(mat)||STOP.test(String(x[0]||'')))break;
+   if(x.some(c=>RXH.qty.test(c)&&c.length<20)&&x.some(c=>RXH.mat.test(c)&&c.length<40))break;
+   let q=num(x[qi]);let u=ui>=0?x[ui]:'';if(isNaN(q)){const c=x.find((c,k)=>k!==mi&&/^\d+([.,]\d+)?\s*[a-zA-Z]{0,6}$/.test(String(c).trim()));if(c){q=num(c);u=u||(String(c).match(/[a-zA-Z]+/)||[''])[0]}}
+   if(!mat||/^\d+$/.test(mat)||RXH.ada.test(mat))continue;if(isNaN(q)&&!(si>=0&&x[si]))continue;if(!u){const m2=String(x[qi]).match(/[a-zA-Z]+/);if(m2)u=m2[0]}
+   const nt=[ni>=0?String(x[ni]||'').trim():'',(ai>=0||ti>=0)&&(x[ai]||x[ti])?`ada ${String(x[ai]||0).trim()||0}, tidak ada ${String(x[ti]||0).trim()||0}`:''].filter(Boolean).join(' · ');
+   out.push({material:mat,spec:si>=0?String(x[si]||'').trim():'',qty:isNaN(q)?'':q,uom:(u||'pcs').trim(),note:nt})}
+  if(out.length)return{items:out,date}}
+ /* tanpa judul kolom: "nama barang 4 pcs" */
  const UOM='pcs|pc|set|unit|ltr|liter|lt|lbr|lembar|kg|m|mtr|meter|btg|batang|roll|box|pail|drum|ea|buah|bh|psg|pasang|tube|can|klg|kaleng|sak|zak|gln|galon';
  const re=new RegExp(`^(?:\\d+[.)]?\\s+)?(.+?)\\s+(\\d+(?:[.,]\\d+)?)\\s*(${UOM})\\b\\.?(?:\\s+(.*))?$`,'i');
- for(const r of rows){const line=(r||[]).join(' ').replace(/\s+/g,' ').trim();const m=line.match(re);if(m&&!STOP.test(m[1]))out.push({material:m[1].replace(/^[-•*]\s*/,'').trim(),spec:(m[4]||'').trim(),qty:+m[2].replace(',','.'),uom:m[3]})}
- return out}
+ for(const r of rows){const line=(r||[]).join(' ').replace(/\s+/g,' ').trim();const m=line.match(re);if(m&&!STOP.test(m[1]))out.push({material:m[1].replace(/^[-•*]\s*/,'').trim(),spec:'',qty:+m[2].replace(',','.'),uom:m[3],note:(m[4]||'').trim()})}
+ if(out.length)return{items:out,date};
+ /* hasil foto/scan: "Cylinder Boom 2 1 1 Kanibal pakai …" → nama, qty pertama, keterangan */
+ const KEY=/^(tanggal|tgl|unit|component|komponen|nama|no|form|dibuat|disetujui|mengetahui|diminta|kondisi|qty|description|part)/i;
+ for(const r of rows){const t=(r||[]).join(' ').replace(/[|_“”"‘’`~]/g,' ').replace(/^[\s,.;:\-]+/,'').replace(/\s+/g,' ').trim();
+  const m=t.match(/^([A-Za-z][A-Za-z0-9 .\/&()\-]*?[A-Za-z0-9)&])\s+[.,:;'`]*\s*(\d+)[A-Za-z]?\b(.*)$/);if(!m||KEY.test(m[1])||m[1].replace(/[^A-Za-z]/g,'').length<3)continue;
+  const note=m[3].replace(/[\d.:,;|]+/g,' ').replace(/\s+/g,' ').trim().replace(/^(?:\S{1,3}\s+)+(?=\S{4,})/,'');out.push({material:m[1].trim(),spec:'',qty:+m[2],uom:'pcs',note:note.length>=4?note:''})}
+ return{items:out,date}}
 document.addEventListener('click',e=>{const a=e.target.closest?.('[data-iadd]');if(a){const root=document.querySelector(`[data-ied="${a.dataset.iadd}"]`);root.querySelector('tbody').insertAdjacentHTML('beforeend',itemRow());root.querySelector('tbody tr:last-child [data-i=material]').focus();return}
  const d=e.target.closest?.('[data-idel]');if(d){const tb=d.closest('tbody');if(tb.children.length>1)d.closest('tr').remove();else d.closest('tr').querySelectorAll('input').forEach(i=>i.value=i.dataset.i==='uom'?'pcs':'')}});
 document.addEventListener('change',async e=>{const t=e.target;if(!t.dataset?.iread)return;const f=t.files[0];t.value='';if(!f)return;const k=t.dataset.iread,root=document.querySelector(`[data-ied="${k}"]`),msg=root.querySelector('.imsg');
  if(t.dataset.zone)upAdd(t.dataset.zone,[f]);msg.className='imsg finfo';msg.textContent='Membaca '+f.name+'…';
- try{const list=await readMolFile(f);if(!list.length){msg.className='imsg warn';msg.innerHTML=`Daftar material di <b>${esc(f.name)}</b> tidak terbaca otomatis. File sudah dilampirkan — isi material secara manual.`;return}
-  itemsPut(root,list);msg.className='imsg ok';msg.innerHTML=`<b>${list.length} material terbaca</b> dari ${esc(f.name)}${t.dataset.zone?' (file ikut dilampirkan sebagai File MOL)':''}. Cek dan perbaiki bila ada yang keliru.`}
+  if(/^image\//.test(f.type))msg.textContent='Membaca tulisan dari gambar '+f.name+'… (bisa 10–30 detik)';
+  try{const{items:list,date,ocr}=await readMolFile(f);if(date){root.dataset.date=date;const df=root.closest('form')?.querySelector('[name=molDate]');if(df)df.value=date}
+  if(!list.length){msg.className='imsg warn';msg.innerHTML=`Daftar material di <b>${esc(f.name)}</b> tidak terbaca otomatis. File sudah dilampirkan — isi material secara manual.`;return}
+  itemsPut(root,list);const miss=list.filter(x=>!(x.qty>0)).length;msg.className='imsg '+(ocr?'warn':'ok');msg.innerHTML=`<b>${list.length} material terbaca</b> dari ${esc(f.name)}${ocr?' (dibaca dari gambar — <b>cek ulang nama & qty</b>, hasil foto/scan bisa keliru)':''}${date?` · tanggal MOL di file: <b>${fd(date)}</b>`:''}${miss?` · <b>${miss} qty belum terbaca</b>, isi manual`:''}${t.dataset.zone?' · file ikut dilampirkan':''}.`}
  catch(er){msg.className='imsg warn';msg.innerHTML=esc(er.message||String(er))+(t.dataset.zone?'. File tetap dilampirkan.':'')}},true);
 const molSt=m=>m.recvDate?'Received':m.shipDate?'Shipping':m.orderDate?'Ordering':m.searchDate?'Searching':'Diajukan';
 const inPeriod=d=>{const s=D.settings;return(!s.periodStart||!d||d>=s.periodStart)&&(!s.periodEnd||!d||d<=s.periodEnd)};
@@ -899,7 +928,7 @@ function checklistForm(unitId,shift,date){
   $('#ckMolNew').addEventListener('click',e=>{const b=e.target.closest('[data-molrm]');if(!b)return;const k=b.dataset.molrm;molRows.splice(molRows.indexOf(k),1);b.closest('.molrow').remove()});
   F.unit.onchange=()=>{F.mp.value='';draw();openMol();$('#ckMolNew').innerHTML='';molRows.length=0};F.date.onchange=draw;draw();openMol();
   F.onsubmit=async e=>{e.preventDefault();const u=unitOf(F.unit.value);const up=st.filter(x=>x.v>x.old).map(x=>({stage:x.i,pct:x.v}));const down=st.filter(x=>x.v<x.old);
-   const newMols=molRows.map(k=>{const r=F.querySelector(`.molrow[data-k="${k}"]`);return{k,items:itemsGet(r.querySelector('[data-ied]')),stage:+r.querySelector('[data-m=stage]').value}});
+   const newMols=molRows.map(k=>{const r=F.querySelector(`.molrow[data-k="${k}"]`);const ied=r.querySelector('[data-ied]');return{k,items:itemsGet(ied),stage:+r.querySelector('[data-m=stage]').value,molDate:ied.dataset.date||''}});
    if(newMols.some(x=>!x.items.length))return toast('Isi minimal 1 material pada MOL yang diajukan (manual atau dari file)','err');
    if(newMols.some(x=>x.items.some(i=>!(i.qty>0))))return toast('Lengkapi qty setiap material MOL','err');
    if(!up.length&&!down.length&&!newMols.length&&!F.notes.value.trim()&&!F.kendala.value.trim()&&!F.photos.files.length)return toast('Centang tahapan atau tulis laporan pekerjaan dulu','err');
@@ -910,7 +939,7 @@ function checklistForm(unitId,shift,date){
     if(up.length)await saveActual({u,date,shift,stages:up,notes:'',checklist:'',kendala:'',photos:[],src:'Laporan harian',verify,setStart:F.setStart.checked,mkissue:false,extra:{lapId:lid}});
     else if(F.setStart.checked&&!D.tf[u.id].start)await saveTf(u.id,D.tf[u.id].current,date,'Tanggal mulai dari laporan harian','Laporan harian');
     let issueId='';if(F.mkissue.checked&&F.kendala.value.trim()){await createIssue({unitId:u.id,jobsiteId:u.jobsiteId,date,category:'Lainnya',desc:F.kendala.value,impact:'',photos,status:'Open',pic:u.picWork||''})}
-    const molIds=[];for(const x of newMols){const mid=gid('MOL');const molFiles=await upSave(x.k,[u.code,'MOL']);await put('mols',mid,{unitId:u.id,jobsiteId:u.jobsiteId,molDate:date,shift,lapId:lid,stage:x.stage,items:x.items,material:x.items.map(i=>i.material).join(', '),molFiles,files:[],status:'Open',statusHist:[{at:now,by:S.uid||'',status:'Open'}],by:S.uid||'',at:now,updatedAt:now});molIds.push(mid);log('Tambah MOL',mid,u.code+' · '+x.items.length+' material (Update Daily)')}
+    const molIds=[];for(const x of newMols){const mid=gid('MOL');const molFiles=await upSave(x.k,[u.code,'MOL']);await put('mols',mid,{unitId:u.id,jobsiteId:u.jobsiteId,molDate:x.molDate&&x.molDate<=date?x.molDate:date,shift,lapId:lid,stage:x.stage,items:x.items,material:x.items.map(i=>i.material).join(', '),molFiles,files:[],status:'Open',statusHist:[{at:now,by:S.uid||'',status:'Open'}],by:S.uid||'',at:now,updatedAt:now});molIds.push(mid);log('Tambah MOL',mid,u.code+' · '+x.items.length+' material (Update Daily)')}
     await put('updates',lid,{molIds,lap:true,unitId:u.id,jobsiteId:u.jobsiteId,date,shift,before,after,changes,notes:F.notes.value.trim(),manpower:+F.mp.value||0,kendala:F.kendala.value.trim(),photos,verified:verify||!up.length,by:S.uid||'',at:now,src:'Laporan harian'});
     if(down.length)log('Koreksi checklist',u.id,down.map(x=>'tahap '+(x.i+1)).join(', '));log('Laporan harian',u.id,u.code+' '+date+' S'+shift)});
    btn.disabled=false;if(ok){toast(verify||!up.length?'Laporan '+u.code+' tersimpan':'Laporan tersimpan, menunggu verifikasi pengawas');closeModal()}}},true)}
