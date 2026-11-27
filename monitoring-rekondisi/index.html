@@ -932,18 +932,23 @@ async function setTotal(u,target,note){const c=calc(u);const before=c.actual;con
  for(const d of D.updates.filter(d=>d.unitId===u.id&&!d.void))await upd('updates',d.id,{void:true,voidAt:now,voidBy:S.uid||'',voidReason:'Koreksi progres pemilik'});
  const st=c.cur;for(let i=0;i<arr.length;i++)if(arr[i]>0)await put('updates',gid('UPD'),{unitId:u.id,jobsiteId:u.jobsiteId,date,shift:1,stage:i,stageName:st[i].name,pct:arr[i],pctVerified:arr[i],decision:arr[i]>=100?'Lanjut Timeframe':'Tetap di Timeframe',notes:'',checklist:'',kendala:'',photos:[],lapId:lid,verified:true,verifiedBy:S.uid||'',verifiedAt:now,by:S.uid||'',at:now,src:'Koreksi progres'});
  await put('updates',lid,{lap:true,unitId:u.id,jobsiteId:u.jobsiteId,date,shift:1,before,after:target,changes:arr.map((v,i)=>({stage:i,name:st[i].name,from:c.act[i],to:v})).filter(x=>x.to!==x.from),notes:note,manpower:0,kendala:'',photos:[],verified:true,by:S.uid||'',at:now,src:'Koreksi progres'})}
-async function runPatch(){if(S.patching||!S.loaded||!S.owner||!S.db||D.settings?.patches?.[PATCH_ID])return;S.patching=true;
+async function runPatch(){if(S.patching||!S.loaded||!S.owner||!S.db)return;if(D.settings?.patches?.[PATCH_ID])return runPatch2();S.patching=true;
  try{await upd('settings','main',{patches:{...(D.settings.patches||{}),[PATCH_ID]:new Date().toISOString()}});const msg=[];
   const kmb=D.jobsites.find(j=>/kmb/i.test(j.name+j.code)),trn=D.jobsites.find(j=>/trinanda/i.test(j.name+j.code));
   if(kmb){const vs=units().filter(u=>u.jobsiteId===kmb.id&&u.type==='Vessel'&&!u.temp&&!u.archived&&D.tf[u.id]?.start==='2026-10-18').sort((a,b)=>a.code.localeCompare(b.code));
    const T=[94,92];if(vs.length===2){for(let i=0;i<2;i++)await setTotal(vs[i],T[i],'Progres terkini KMB (diisi pemilik)');msg.push(`KMB: ${vs[0].code} 94%, ${vs[1].code} 92%`)}else msg.push('KMB: unit mulai 18 Okt tidak ditemukan 2 unit, lewati')}
-  if(trn){const ids=[];let k=1;for(let i=0;i<2;i++){let code;do{code=`${trn.code}-V${k++}`}while(D.units.some(x=>x.code===code));const id='U-TMP-'+code;
-    await put('units',id,{type:'Vessel',code,name:'Vessel '+code,manufacturer:'',model:'',sn:'',remark:'Progress di Rekondisi',note:'Unit belum teridentifikasi',temp:true,position:'',jobsiteId:'',archived:false,at:new Date().toISOString()});ids.push(id)}
-   S.sel=new Set(ids);await assignUnits(trn.id);S.sel=new Set();await new Promise(r=>setTimeout(r,300));
-   const T=[82,55];for(let i=0;i<2;i++){const u=unitOf(ids[i]);if(u&&D.tf[u.id])await setTotal(u,T[i],'Progres terkini Trinanda (unit belum teridentifikasi)')}
-   msg.push(`Trinanda: ${ids.map(x=>x.replace('U-TMP-','')).join(' 82%, ')} 55% (unit sementara)`)}
   log('Koreksi progres',PATCH_ID,msg.join(' · '));toast('Progres diperbarui — '+msg.join(' · '))}
  catch(e){toast('Koreksi progres gagal: '+(e.message||e),'err')}finally{S.patching=false;schedule()}}
+/* Trinanda: unit yang dikerjakan sudah diketahui (SDVS70019 82%, SDVS70022 55%). Bila koreksi pertama sempat membuat unit sementara, datanya dipindahkan. */
+const PATCH2_ID='prog-20261128-trn';
+async function runPatch2(){if(S.patching||D.settings?.patches?.[PATCH2_ID])return;S.patching=true;
+ try{await upd('settings','main',{patches:{...(D.settings.patches||{}),[PATCH2_ID]:new Date().toISOString()}});const trn=D.jobsites.find(j=>/trinanda/i.test(j.name+j.code));if(!trn)return;
+  const T=[['SDVS70019',82],['SDVS70022',55]];const tmp=units().filter(u=>u.temp&&!u.archived&&u.jobsiteId===trn.id&&u.type==='Vessel'&&u.code.startsWith(trn.code+'-V')).sort((a,b)=>a.code.localeCompare(b.code));const msg=[];
+  for(let i=0;i<T.length;i++){const to=D.units.find(u=>u.code===T[i][0]);if(!to){msg.push(T[i][0]+' tidak ditemukan');continue}
+   if(tmp[i]&&!D.updates.some(x=>x.unitId===to.id)){await mergeUnit(tmp[i],to);await new Promise(r=>setTimeout(r,300));invalidate();const u=unitOf(to.id);if(u&&D.tf[u.id]&&Math.abs(calc(u).actual-T[i][1])>0.5)await setTotal(u,T[i][1],'Progres terkini Trinanda');msg.push(`${tmp[i].code} → ${to.code} ${T[i][1]}%`)}
+   else{if(to.jobsiteId!==trn.id||!D.tf[to.id]){S.sel=new Set([to.id]);await assignUnits(trn.id);await new Promise(r=>setTimeout(r,300))}const u=unitOf(to.id);if(u&&D.tf[u.id]){await setTotal(u,T[i][1],'Progres terkini Trinanda');msg.push(`${to.code} ${T[i][1]}%`)}}}
+  log('Koreksi progres',PATCH2_ID,msg.join(' · '));toast('Trinanda diperbarui — '+msg.join(' · '))}
+ catch(e){toast('Koreksi Trinanda gagal: '+(e.message||e),'err')}finally{S.patching=false;schedule()}}
 setInterval(runPatch,2500);
 function tempUnitForm(){const js=jsites();if(!js.length)return toast('Belum ada jobsite','err');
  openModal('Tambah unit sementara (kode belum diketahui)',`<form id="tuF"><p class="cm" style="margin-top:0">Untuk unit yang sedang dikerjakan tapi kode SAP-nya belum diketahui. Progress bisa langsung diisi; nanti tekan <b>Tetapkan unit sebenarnya</b> di detail unit dan semua data (timeframe, aktual, masalah, MOL) dipindahkan ke unit populasi yang benar.</p><div class="fg">
@@ -960,6 +965,11 @@ function tempUnitForm(){const js=jsites();if(!js.length)return toast('Belum ada 
   for(let i=0;i<ids.length;i++){const v=pcts[i];const u=unitOf(ids[i]);if(!(v>0)||!u||!D.tf[u.id])continue;const c=calc(u);const arr=stagesForTotal(c.cur,v);
    await guard(()=>saveActual({u,date:F.date.value||today(),shift:1,stages:arr.map((x,s)=>({stage:s,pct:x})).filter(x=>x.pct>0),notes:'Progress awal (unit sementara)',checklist:'',kendala:'',photos:[],src:'Unit sementara',verify:can('verify'),setStart:false,mkissue:false}))}
   log('Unit sementara',j.id,ids.length+' unit');toast(ids.length+' unit sementara dibuat di '+j.name);closeModal()}})}
+async function mergeUnit(t,to){const now=new Date().toISOString();const tf=D.tf[t.id];if(tf)await put('tf',to.id,{...tf,unitId:to.id,history:[...(tf.history||[]),{rev:tf.rev||0,type:'Identifikasi unit',at:now,by:S.uid||'',reason:`Data dari unit sementara ${t.code} dipindahkan ke ${to.code}`,start:tf.start||''}]});
+ for(const c of['updates','issues','mols'])for(const x of D[c].filter(x=>x.unitId===t.id))await upd(c,x.id,{unitId:to.id,jobsiteId:t.jobsiteId});
+ for(const x of D.laps.filter(x=>x.unitId===t.id))await upd('updates',x.id,{unitId:to.id,jobsiteId:t.jobsiteId});
+ await upd('units',to.id,{jobsiteId:t.jobsiteId,remark:'Progress di Rekondisi',note:[to.note,'Teridentifikasi dari '+t.code].filter(Boolean).join(' · '),inDate:to.inDate||t.inDate||'',startDate:tf?.start||to.startDate||'',picWork:to.picWork||t.picWork||'',picMon:to.picMon||t.picMon||''});
+ await upd('units',t.id,{archived:true,mergedInto:to.id,jobsiteId:''});log('Identifikasi unit',t.id,t.code+' → '+to.code)}
 function identifyForm(tid){const t=unitOf(tid);if(!t)return;
  const cands=units().filter(u=>!u.temp&&u.type===t.type&&!u.doneVerified&&!/ready|done/i.test(u.remark||'')&&!D.updates.some(x=>x.unitId===u.id)).sort((a,b)=>(b.jobsiteId===t.jobsiteId)-(a.jobsiteId===t.jobsiteId)||a.code.localeCompare(b.code));
  if(!cands.length)return toast('Tidak ada unit populasi '+t.type+' yang bisa dipilih (belum punya laporan aktual)','err');
@@ -967,10 +977,7 @@ function identifyForm(tid){const t=unitOf(tid);if(!t)return;
  <label class="f">Unit sebenarnya<select name="to" required>${cands.map(u=>`<option value="${esc(u.id)}">${esc(u.code)} · ${esc(u.manufacturer||'')} · ${esc(u.sn||'')}${u.jobsiteId?' · '+esc(jsName(u.jobsiteId)):''}</option>`).join('')}</select></label>
  <div class="mfoot"><button type="button" class="btn" data-a="close">Batal</button><button class="btn pr">Pindahkan data</button></div></form>`,()=>{
  $('#idF').onsubmit=async e=>{e.preventDefault();const to=unitOf(e.target.to.value);e.target.querySelector('.pr').disabled=true;const now=new Date().toISOString();
-  const ok=await guard(async()=>{const tf=D.tf[t.id];if(tf)await put('tf',to.id,{...tf,unitId:to.id,history:[...(tf.history||[]),{rev:tf.rev||0,type:'Identifikasi unit',at:now,by:S.uid||'',reason:`Data dari unit sementara ${t.code} dipindahkan ke ${to.code}`,start:tf.start||''}]});
-   for(const c of['updates','issues','mols'])for(const x of D[c].filter(x=>x.unitId===t.id))await upd(c,x.id,{unitId:to.id,jobsiteId:t.jobsiteId});
-   await upd('units',to.id,{jobsiteId:t.jobsiteId,remark:'Progress di Rekondisi',note:[to.note,'Teridentifikasi dari '+t.code].filter(Boolean).join(' · '),inDate:to.inDate||t.inDate||'',startDate:tf?.start||to.startDate||'',picWork:to.picWork||t.picWork||'',picMon:to.picMon||t.picMon||''});
-   await upd('units',t.id,{archived:true,mergedInto:to.id,jobsiteId:''});log('Identifikasi unit',t.id,t.code+' → '+to.code)});
+  const ok=await guard(()=>mergeUnit(t,to));
   if(ok){toast(t.code+' sekarang tercatat sebagai '+to.code);S.unitId=to.id;closeModal();render()}}})}
 /* ============ POPULASI ============ */
 function vPopulasi(){const q=S.pf.q.toLowerCase();const all=units();
