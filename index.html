@@ -900,7 +900,7 @@ function pageSet() {
   const memE = new Set((A.members || []).map((m) => String(m.email || '').toLowerCase()));
   const st = (i) => i.revoked ? ['Dicabut', 'no'] : i.used_at && !memE.has(String(i.email || '').toLowerCase()) ? ['Dicabut', 'no'] : i.used_at ? ['Dipakai', 'ok'] : new Date(i.expires_at) < new Date() ? ['Kedaluwarsa', 'no'] : ['Aktif', 'hd'];
   const invC = `<div class="scard wide2"><div class="sch"><div><div class="eb2">Link</div><h2>Link Undangan</h2><p class="small">Setiap link terikat ke satu email. Cabut link yang belum dipakai jika salah kirim.</p></div></div><div class="tw2"><table class="tb2"><thead><tr><th>Email</th><th>Sebagai</th><th>Dibuat oleh</th><th>Dibuat</th><th>Status</th><th></th></tr></thead><tbody>${A.inv.map((i) => { const [l, c] = st(i); return `<tr><td><b>${esc(i.email)}</b></td><td>${ROLE_L[i.role]}</td><td>${esc(i.created_by)}</td><td class="nw">${when(i.created_at)}</td><td><span class="stt ${c}">${l}</span></td><td class="nw">${l === 'Aktif' ? `<button type="button" class="btn btn-g btn-s" data-copyinv="${esc(i.token)}">Salin</button> <button type="button" class="rm" data-revoke="${esc(i.token)}">Cabut</button>` : ''}</td></tr>`; }).join('') || '<tr><td colspan="6" class="small">Belum ada link undangan.</td></tr>'}</tbody></table></div></div>`;
-  return top + `<div class="sgrid">${reqC}${memC}${invC}${r === 'owner' && menusOf(app) ? permCard(app, A) : ''}<div class="scard wide2">${roleInfo()}</div></div>`;
+  return top + `<div class="sgrid">${reqC}${memC}${invC}${r === 'owner' && app === 'rekondisi' ? projCard(app, A) : ''}${r === 'owner' && menusOf(app) ? permCard(app, A) : ''}<div class="scard wide2">${roleInfo()}</div></div>`;
 }
 function roleInfo() {
   return `<div class="sch"><div><div class="eb2">Peran</div><h2>Pemilik, Editor & Pelihat</h2></div></div><div class="role"><b>Pemilik</b><span>Semua hak: data, stok, persetujuan, link Editor/Pelihat, dan izin menu.</span></div><div class="role"><b>Editor</b><span>Mengisi & mengubah data hanya di site yang dibagikan kepadanya dan hanya di menu yang dicentang <b>Ubah</b>. Tidak bisa membuka Pengaturan kecuali diizinkan. Membagikan link Pelihat lewat tombol <b>Bagikan</b> di halaman utama.</span></div><div class="role"><b>Pelihat</b><span>Hanya melihat menu yang diizinkan. Print & unduh mengikuti izin Pemilik.</span></div>`;
@@ -917,7 +917,7 @@ function permCard(app, A) {
   const KL = { v: 'lihat', e: 'ubah', d: 'unduh' };
   const box = (role, id, k, l, kind) => {
     const na = (kind === 'x' && k !== 'd') || (kind === 'r' && k === 'e');
-    if (na) return '<td class="c muted" title="Tidak berlaku">—</td>';
+    if (na || (app === 'rekondisi' && kind === 1 && k === 'e')) return '<td class="c muted" title="Tidak berlaku">—</td>';
     const lock = k === 'v' && kind === 1;
     return `<td class="c"><input type="checkbox" data-perm="${role}|${id}|${k}" ${permVal(A.perms, role, id, k) ? 'checked' : ''} ${lock ? 'disabled title="Selalu terlihat"' : ''} aria-label="${ROLE_L[role]} ${KL[k]} ${esc(l)}"></td>`;
   };
@@ -925,8 +925,28 @@ function permCard(app, A) {
   return `<div class="scard wide2"><div class="sch"><div><div class="eb2">Khusus Pemilik</div><h2>Izin Menu · ${esc(subOf(app).name)}</h2><p class="small"><b>Lihat</b> = menu tampil. <b>Ubah</b> = Editor boleh mengisi / mengubah data di menu itu (tanpa centang: hanya lihat). <b>Unduh</b> = boleh Print / PDF di menu itu. <b>Download Excel</b> dan <b>Pengaturan</b> dipisah: Editor bisa diberi Excel tanpa membuka Pengaturan. Pemilik selalu bisa semuanya.</p></div><button type="button" class="btn btn-p" id="permSave" data-app="${app}">Simpan Izin</button></div>
     <div class="tw2"><table class="tb2 perm"><thead><tr><th rowspan="2">Menu</th><th colspan="3" class="c">Editor</th><th colspan="2" class="c">Pelihat</th></tr><tr><th class="c">Lihat</th><th class="c">Ubah</th><th class="c">Unduh</th><th class="c">Lihat</th><th class="c">Unduh</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
 }
+// Rekondisi: akses per project (jobsite). Daftar jobsite dikirim otomatis oleh web Rekondisi saat Pemilik membukanya.
+function projCard(app, A) {
+  const P = A.perms || {}, js = P.jsList || [], SC = P.scope || {};
+  const mem = (A.members || []).filter((m) => m.role !== 'owner');
+  const extra = Object.keys(SC).filter((em) => !mem.some((m) => String(m.email).toLowerCase() === em)).map((em) => ({ email: em, role: '' }));
+  const row = (m) => { const em = String(m.email).toLowerCase(), sel = Array.isArray(SC[em]) ? new Set(SC[em]) : null;
+    return `<tr data-pj="${esc(em)}"><td><b>${esc(em)}</b><br><small class="small">${m.role ? ROLE_L[m.role] || m.role : 'belum anggota'}</small></td><td class="c"><input type="checkbox" data-pall ${sel ? '' : 'checked'} aria-label="Semua project ${esc(em)}"></td>${js.map((j) => `<td class="c"><input type="checkbox" data-pjs="${esc(j.id)}" ${!sel || sel.has(j.id) ? 'checked' : ''} ${sel ? '' : 'disabled'} aria-label="${esc(j.name)} ${esc(em)}"></td>`).join('')}</tr>`; };
+  const body = !js.length ? '<p class="small">Daftar project belum ada. Buka web Monitoring Rekondisi sekali sebagai Pemilik, lalu kembali ke sini.</p>'
+    : `<div class="tw2"><table class="tb2 perm"><thead><tr><th>Email</th><th class="c">Semua project</th>${js.map((j) => `<th class="c">${esc(j.name)}</th>`).join('')}</tr></thead><tbody>${[...mem, ...extra].map(row).join('') || `<tr><td colspan="${js.length + 2}" class="small">Belum ada Editor / Pelihat. Bagikan link dulu.</td></tr>`}</tbody></table></div>`;
+  return `<div class="scard wide2"><div class="sch"><div><div class="eb2">Khusus Pemilik</div><h2>Akses per Project · Rekondisi</h2><p class="small">Centang project (jobsite) yang boleh dilihat & diisi tiap Editor / Pelihat. <b>Semua project</b> = termasuk project baru nanti. Yang dibatasi tidak melihat data project lain dan tidak bisa mengubah Populasi Unit, Master Data, atau Pengaturan.</p></div>${js.length ? `<button type="button" class="btn btn-p" data-projsave="${app}">Simpan Akses Project</button>` : ''}</div>${body}</div>`;
+}
+async function saveProj(app) {
+  const scope = {};
+  document.querySelectorAll('[data-pj]').forEach((tr) => { if (!tr.querySelector('[data-pall]').checked) scope[tr.dataset.pj] = [...tr.querySelectorAll('[data-pjs]:checked')].map((c) => c.dataset.pjs); });
+  const perms = { ...((S.acc[app] && S.acc[app].perms) || {}), scope };
+  const { error } = await S.sb.from('kta_app_perms').upsert({ app_id: app, perms, updated_at: new Date().toISOString(), updated_by: S.user.email }, { onConflict: 'app_id' });
+  if (error) { toast('Gagal menyimpan akses project: ' + error.message, true); return; }
+  S.acc[app].perms = perms; toast('Akses project Rekondisi tersimpan. Berlaku saat web dibuka ulang.');
+}
+document.addEventListener('change', (e) => { const t = e.target; if (t && t.matches && t.matches('[data-pall]')) t.closest('tr').querySelectorAll('[data-pjs]').forEach((c) => { c.disabled = t.checked; if (t.checked) c.checked = true; }); });
 async function savePerms(app) {
-  const perms = { _v: 2, editor: {}, viewer: {} };
+  const perms = { ...((S.acc[app] && S.acc[app].perms) || {}), _v: 2, editor: {}, viewer: {} };
   document.querySelectorAll('[data-perm]').forEach((c) => { const [role, id, k] = c.dataset.perm.split('|'); (perms[role][id] = perms[role][id] || {})[k] = c.disabled ? true : c.checked; });
   const { error } = await S.sb.from('kta_app_perms').upsert({ app_id: app, perms, updated_at: new Date().toISOString(), updated_by: S.user.email }, { onConflict: 'app_id' });
   if (error) { toast('Gagal menyimpan izin: ' + error.message, true); return; }
@@ -980,6 +1000,7 @@ document.addEventListener('click', async (e) => {
     return;
   }
   const ps = c('#permSave'); if (ps && isOwner()) { savePerms(ps.dataset.app); return; }
+  const pjs = c('[data-projsave]'); if (pjs && isOwner()) { saveProj(pjs.dataset.projsave); return; }
 });
 document.addEventListener('change', async (e) => {
   const m = e.target.dataset && e.target.dataset.mrole; if (!m || !isOwner()) return;

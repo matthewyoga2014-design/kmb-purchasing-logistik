@@ -445,7 +445,8 @@ let nameT=null;function qNames(){if(nameT||!S.user)return;nameT=setTimeout(async
 const COLS=['jobsites','units','tf','updates','issues','mols','categories','roles','templates','settings','drive'];
 const RAW={},SCOPED=['jobsites','units','tf','updates','issues','mols'];
 /* akses per project: Editor / Pelihat hanya melihat & mengisi jobsite yang diizinkan Pemilik */
-function myScope(){if(!S.user||rk()==='owner')return null;const r=D.roles[String(S.uid||'').toLowerCase()];return r&&Array.isArray(r.js)?new Set(r.js):null}
+function myScope(){if(!S.user||rk()==='owner')return null;const v=((S.perms||{}).scope||{})[String(S.uid||'').toLowerCase()];return Array.isArray(v)?new Set(v):null}
+let jsSyncT=null;function syncJsList(){if(rk()!=='owner'||!S.user?.setPerms)return;clearTimeout(jsSyncT);jsSyncT=setTimeout(async()=>{const l=(RAW.jobsites||[]).filter(j=>!j.archived).sort((a,b)=>(a.order||0)-(b.order||0)).map(j=>({id:j.id,name:j.name}));if(JSON.stringify(l)===JSON.stringify((S.perms||{}).jsList||[]))return;try{const p={...(S.perms||{}),jsList:l};await S.user.setPerms(p);S.perms=p}catch(e){}},1500)}
 function fillCol(c){let arr=RAW[c]||[];const A=myScope();
  if(A&&SCOPED.includes(c)){const U=new Set((RAW.units||[]).filter(u=>A.has(u.jobsiteId)).map(u=>u.id));
   arr=c==='jobsites'?arr.filter(j=>A.has(j.id)):c==='units'?arr.filter(u=>A.has(u.jobsiteId)):arr.filter(x=>U.has(x.unitId||(c==='tf'?x.id:''))||(x.jobsiteId&&A.has(x.jobsiteId)))}
@@ -453,7 +454,7 @@ function fillCol(c){let arr=RAW[c]||[];const A=myScope();
  else if(c==='settings')D.settings=arr.find(x=>x.id==='main')||{};
  else if(c==='drive')D.drive=arr.find(x=>x.id==='folders')||{};
  else if(c==='updates'){D.updates=arr.filter(x=>!x.lap);D.laps=arr.filter(x=>x.lap)}
- else D[c]=arr}
+ else D[c]=arr;if(c==='jobsites')syncJsList()}
 function scopedLogs(l){const A=myScope();if(!A)return l;const keys=[...(D.units||[]).map(u=>u.code),...(D.jobsites||[]).map(j=>j.name)].filter(Boolean);return l.filter(x=>{const t=(x.ref||'')+' '+(x.detail||'');return keys.some(k=>t.includes(k))})}
 function subscribe(){
  const pending=new Set(COLS);const t=setTimeout(()=>{if(!S.loaded){S.slow=true;render()}},10000);
@@ -1446,9 +1447,9 @@ function vPengaturan(){const st=D.settings;const adm=can('admin');const rl=Objec
 
 function projCard(){const js=(RAW.jobsites||D.jobsites).slice().sort((a,b)=>(a.order||0)-(b.order||0));const RL={editor:'Editor',viewer:'Pelihat'};
  if(S.members===undefined){S.members=null;S.user.members().then(m=>{S.members=m.filter(x=>x.role!=='owner');render()}).catch(e=>{S.members=[];S.memErr=e.message;render()})}
- const extra=Object.values(D.roles).filter(r=>r.id&&r.id.includes('@')&&Array.isArray(r.js)&&!(S.members||[]).some(m=>m.email.toLowerCase()===r.id)).map(r=>({email:r.id,role:''}));
+ const SC=(S.perms||{}).scope||{};const extra=Object.keys(SC).filter(em=>!(S.members||[]).some(m=>m.email.toLowerCase()===em)).map(em=>({email:em,role:''}));
  const list=[...(S.members||[]),...extra];
- const row=m=>{const em=m.email.toLowerCase(),r=D.roles[em],sel=r&&Array.isArray(r.js)?new Set(r.js):null;return`<tr data-pj="${esc(em)}"><td><b>${esc(em)}</b>${m.role?`<br><small class="cm">${RL[m.role]||m.role}</small>`:'<br><small class="cm">belum menerima undangan</small>'}</td><td class="c"><input type="checkbox" data-pall ${sel?'':'checked'} aria-label="Semua project ${esc(em)}"></td>${js.map(j=>`<td class="c"><input type="checkbox" data-pjs="${esc(j.id)}" ${!sel||sel.has(j.id)?'checked':''} ${sel?'':'disabled'} aria-label="${esc(j.name)} ${esc(em)}"></td>`).join('')}</tr>`};
+ const row=m=>{const em=m.email.toLowerCase(),sel=Array.isArray(SC[em])?new Set(SC[em]):null;return`<tr data-pj="${esc(em)}"><td><b>${esc(em)}</b>${m.role?`<br><small class="cm">${RL[m.role]||m.role}</small>`:'<br><small class="cm">belum menerima undangan</small>'}</td><td class="c"><input type="checkbox" data-pall ${sel?'':'checked'} aria-label="Semua project ${esc(em)}"></td>${js.map(j=>`<td class="c"><input type="checkbox" data-pjs="${esc(j.id)}" ${!sel||sel.has(j.id)?'checked':''} ${sel?'':'disabled'} aria-label="${esc(j.name)} ${esc(em)}"></td>`).join('')}</tr>`};
  return`<div class="panel"><div class="ph"><h3>Akses per project (jobsite)</h3><button class="btn pr sm" data-a="projsave">Simpan akses project</button></div><div class="pb"><p class="cm" style="margin-top:0">Centang project yang boleh dilihat & diisi tiap Editor / Pelihat. <b>Semua project</b> = termasuk project baru yang ditambahkan nanti. Bila hanya project tertentu yang dicentang, orang itu tidak melihat unit, MOL, permasalahan, laporan, maupun log project lain, dan tidak bisa mengubah Populasi Unit, Master Data, atau Pengaturan.</p>
  ${S.members===null?'<p class="cm">Memuat anggota…</p>':`<div class="tw"><table class="perm"><thead><tr><th>Email</th><th class="c">Semua project</th>${js.map(j=>`<th class="c">${esc(j.name)}</th>`).join('')}</tr></thead><tbody>${list.map(row).join('')||`<tr><td colspan="${js.length+2}" class="cm">${S.memErr?'Daftar anggota tidak bisa dimuat ('+esc(S.memErr)+'). ':''}Belum ada Editor / Pelihat. Undang lewat Akses & Bagikan, atau tambahkan email di bawah.</td></tr>`}</tbody></table></div>`}
  <div class="inl" style="margin-top:12px;gap:8px"><input id="pjEm" type="email" placeholder="email@contoh.com" style="max-width:280px" aria-label="Email untuk diatur aksesnya"><button class="btn sm" data-a="projadd">+ Tambah email</button></div></div></div>`}
@@ -1584,11 +1585,9 @@ const A={
  reppdf:()=>{const r=buildRep();const t=REPS[S.rep.type];pdfSave(t.replace(/\W+/g,'_')+'_'+S.rep.date+'.pdf',t,(D.settings.project||'')+' · '+(S.rep.js==='all'?'Semua jobsite':jsName(S.rep.js))+' · '+(r.sub||'Per '+fd(S.rep.date)),r.cols,r.rows)},
  roledel:async d=>{if(await guard(async()=>{if(S.user?.addAccess)await S.user.addAccess(d.id,'none');await S.db.collection('roles').doc(d.id).delete()})){log('Cabut peran',d.id,'');toast('Peran dicabut')}},
  projadd:()=>{const em=($('#pjEm')?.value||'').trim().toLowerCase();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em))return toast('Isi email yang valid','err');if(!(S.members||[]).some(m=>m.email.toLowerCase()===em))(S.members=S.members||[]).push({email:em,role:''});render()},
- projsave:async()=>{if(rk()!=='owner')return;const rows=[...document.querySelectorAll('[data-pj]')];let n=0;
-  for(const tr of rows){const em=tr.dataset.pj,all=tr.querySelector('[data-pall]').checked,js=all?null:[...tr.querySelectorAll('[data-pjs]:checked')].map(c=>c.dataset.pjs);const ex=D.roles[em]||{};const was=Array.isArray(ex.js)?ex.js.slice().sort().join():null,now=js?js.slice().sort().join():null;if(was===now)continue;
-   const{id,...rest}=ex;if(await guard(()=>put('roles',em,{...rest,js,at:new Date().toISOString(),by:S.uid||''})))n++}
-  if(n){log('Ubah akses project',n+' orang','');toast('Akses project tersimpan ('+n+' orang)')}else toast('Tidak ada perubahan')},
- permsave:async()=>{if(rk()!=='owner')return;const perms={_v:2,editor:{},viewer:{}};document.querySelectorAll('[data-perm]').forEach(c=>{const[r,id,k]=c.dataset.perm.split('|');(perms[r][id]=perms[r][id]||{})[k]=c.disabled?true:c.checked});try{await S.user.setPerms(perms);S.perms=perms;log('Ubah izin menu','Editor & Pelihat','');toast('Izin menu tersimpan')}catch(e){toast('Gagal menyimpan izin: '+e.message,'err')}},
+ projsave:async()=>{if(rk()!=='owner')return;const scope={};document.querySelectorAll('[data-pj]').forEach(tr=>{if(!tr.querySelector('[data-pall]').checked)scope[tr.dataset.pj]=[...tr.querySelectorAll('[data-pjs]:checked')].map(c=>c.dataset.pjs)});
+  try{const p={...(S.perms||{}),scope};await S.user.setPerms(p);S.perms=p;log('Ubah akses project',Object.keys(scope).length+' orang dibatasi','');toast('Akses project tersimpan')}catch(e){toast('Gagal menyimpan: '+e.message,'err')}},
+ permsave:async()=>{if(rk()!=='owner')return;const perms={...(S.perms||{}),_v:2,editor:{},viewer:{}};document.querySelectorAll('[data-perm]').forEach(c=>{const[r,id,k]=c.dataset.perm.split('|');(perms[r][id]=perms[r][id]||{})[k]=c.disabled?true:c.checked});try{await S.user.setPerms(perms);S.perms=perms;log('Ubah izin menu','Editor & Pelihat','');toast('Izin menu tersimpan')}catch(e){toast('Gagal menyimpan izin: '+e.message,'err')}},
  backup:()=>save('backup_rekondisi_'+today()+'.json',JSON.stringify({exportedAt:new Date().toISOString(),...D,logs:undefined},null,1))};
 document.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t||t.disabled)return;if(e.target.closest('input,select,textarea')&&!t.matches('input'))return;const f=A[t.dataset.a];if(f){e.preventDefault();f({...t.dataset})}});
 document.addEventListener('input',e=>{const t=e.target;

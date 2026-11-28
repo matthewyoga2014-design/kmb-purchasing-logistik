@@ -26,7 +26,7 @@ var COLS = ['jobsites', 'units', 'tf', 'updates', 'issues', 'mols', 'categories'
 var MAX_BYTES = 20 * 1024 * 1024;
 
 function doGet() {
-  return out_({ ok: true, app: 'rekondisi', guestAccess: false, version: '20261128', time: new Date().toISOString() });
+  return out_({ ok: true, app: 'rekondisi', guestAccess: false, version: '20261128-project', time: new Date().toISOString() });
 }
 
 function doPost(e) {
@@ -38,11 +38,14 @@ function doPost(e) {
     if (role === 'none') return out_({ ok: false, code: 'forbidden', email: who.email, error: 'Akun ini belum didaftarkan Pemilik.' });
     var canWrite = role === 'owner' || role === 'editor';
     var op = req.op;
+    // akses per project (jobsite) yang dicentang Pemilik di Pengaturan
+    var scope = (role === 'owner' || guest) ? null : scope_(who.email, req.token);
 
     if (op === 'whoami') return out_({ ok: true, email: who.email, id: who.id, role: role });
 
     if (op === 'state') {
       var st = readState_();
+      if (scope) return out_({ ok: true, rev: st.rev, data: filterState_(st.data, scope) });
       if (req.rev && Number(req.rev) === st.rev) return out_({ ok: true, rev: st.rev, same: true });
       return out_({ ok: true, rev: st.rev, data: st.data });
     }
@@ -67,6 +70,7 @@ function doPost(e) {
         var st = readState_();
         (req.ops || []).forEach(function (o) {
           if (COLS.indexOf(o.col) < 0) throw new Error('Koleksi tidak dikenal: ' + o.col);
+          if (scope) checkScope_(st.data, scope, o);
           var c = st.data[o.col] || (st.data[o.col] = {});
           if (o.t === 'put') c[o.id] = o.data || {};
           else if (o.t === 'del') delete c[o.id];
@@ -109,6 +113,74 @@ function doPost(e) {
   } catch (err) {
     return out_({ ok: false, error: String(err && err.message || err) });
   }
+}
+
+/* ---------- akses per project ---------- */
+function scope_(email, token) {
+  if (!token) return null;
+  var cache = CacheService.getScriptCache();
+  var key = 'sc_' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token + '|' + email));
+  var hit = cache.get(key);
+  if (hit !== null) return hit ? JSON.parse(hit) : null;
+  var v = null;
+  var res = UrlFetchApp.fetch(SUPABASE_URL + '/rest/v1/kta_app_perms?app_id=eq.rekondisi&select=perms', {
+    headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + token }, muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) throw new Error('Gagal memeriksa akses project');
+  var rows = JSON.parse(res.getContentText() || '[]');
+  var sc = rows[0] && rows[0].perms && rows[0].perms.scope;
+  if (sc && Object.prototype.toString.call(sc[email]) === '[object Array]') {
+    v = {}; sc[email].forEach(function (id) { v[id] = true; });
+  }
+  cache.put(key, v ? JSON.stringify(v) : '', 120);
+  return v;
+}
+function unitOk_(data, A, uid) { var u = (data.units || {})[uid]; return !!(u && A[u.jobsiteId]); }
+function recOk_(data, A, col, id, d) {
+  d = d || {};
+  if (d.jobsiteId && A[d.jobsiteId]) return true;
+  return unitOk_(data, A, d.unitId || (col === 'tf' ? id : ''));
+}
+function filterState_(data, A) {
+  var out = {}, codes = [];
+  Object.keys(data).forEach(function (c) {
+    var src = data[c] || {};
+    if (c === 'jobsites' || c === 'units' || c === 'tf' || c === 'updates' || c === 'issues' || c === 'mols') {
+      var o = {};
+      Object.keys(src).forEach(function (id) {
+        var d = src[id] || {};
+        var ok = c === 'jobsites' ? !!A[id] : c === 'units' ? !!A[d.jobsiteId] : recOk_(data, A, c, id, d);
+        if (ok) o[id] = d;
+      });
+      out[c] = o;
+    } else if (c === 'roles') out[c] = {};
+    else out[c] = src;
+  });
+  Object.keys(out.units || {}).forEach(function (id) { if (out.units[id].code) codes.push(String(out.units[id].code)); });
+  Object.keys(out.jobsites || {}).forEach(function (id) { if (out.jobsites[id].name) codes.push(String(out.jobsites[id].name)); });
+  if (data.logs) {
+    var lg = {};
+    Object.keys(data.logs).forEach(function (id) {
+      var x = data.logs[id] || {}, t = (x.ref || '') + ' ' + (x.detail || '');
+      for (var i = 0; i < codes.length; i++) if (t.indexOf(codes[i]) >= 0) { lg[id] = x; break; }
+    });
+    out.logs = lg;
+  }
+  return out;
+}
+function checkScope_(data, A, o) {
+  var deny = function () { throw new Error('Akses Anda dibatasi ke project tertentu; perubahan ini tidak diizinkan.'); };
+  if (o.col === 'logs' || o.col === 'categories') return;
+  var cur = (data[o.col] || {})[o.id];
+  if (o.col === 'units') {
+    if (o.t !== 'put' || !cur || !A[cur.jobsiteId] || !A[(o.data || {}).jobsiteId]) deny();
+    return;
+  }
+  if (o.col === 'tf' || o.col === 'updates' || o.col === 'issues' || o.col === 'mols') {
+    if (cur && !recOk_(data, A, o.col, o.id, cur)) deny();
+    if (o.t === 'put' && !recOk_(data, A, o.col, o.id, o.data)) deny();
+    return;
+  }
+  deny();
 }
 
 /* Tautan Editor/Pelihat tanpa login. Server memeriksa Supabase SETIAP permintaan
