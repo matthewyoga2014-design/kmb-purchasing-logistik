@@ -769,7 +769,7 @@ function shareAll() {
   modal(`${mh('Bagikan link menyeluruh', 'Satu link untuk beberapa web')}<div class="nb">Centang web yang boleh dibuka. Penerima cukup membuka <b>satu link</b>. Pilih mode tanpa login agar penerima dapat membuka semua web terpilih seperti Google Sheets.${own ? '' : ' Sebagai Editor, Anda hanya bisa membagikan link <b>Pelihat</b>.'}</div><form id="saForm" class="lf" novalidate>
     ${own ? '<label><input type="checkbox" id="saGuest" checked> <b>Link tanpa login (seperti Google Sheets)</b></label><div class="invite" id="saGuestInfo"><label for="saGuestEmail">Email Editor yang sudah didaftarkan (wajib untuk link Editor)</label><input type="email" id="saGuestEmail" placeholder="email.editor@perusahaan.com" autocomplete="email"><p class="small">Email ini digunakan untuk memeriksa proyek yang telah diberikan Pemilik. Link khusus menjadi kunci akses: penerima cukup membukanya tanpa login. Jangan teruskan ke orang lain.</p></div>' : ''}<div id="saEmailBlock" ${own ? 'hidden' : ''}><label for="sa_e">Email penerima (untuk undangan login lama)</label><input id="sa_e" type="email" placeholder="nama@email.com" autocomplete="off"></div>
     <label>Bagikan sebagai</label><div class="seg2" role="group" aria-label="Peran">${own ? '<button type="button" data-sar="editor" aria-pressed="false">Editor (bisa mengubah)</button>' : ''}<button type="button" data-sar="viewer" aria-pressed="true">Pelihat (hanya melihat)</button></div>
-    <label>Web yang dibagikan</label><div class="ckl"><label class="all"><input type="checkbox" id="saAll"> <b>Semua web</b></label>${list.map((x) => `<label><input type="checkbox" data-saapp="${x.app}"> ${esc(x.portal + ' · ' + x.name)} <small>${ROLE_L[roleOf(x.app)]}</small></label>`).join('')}</div>
+    <label>Web yang dibagikan</label><div class="ckl"><label class="all"><input type="checkbox" id="saAll"> <b>Semua web</b></label>${list.map((x) => `<label><input type="checkbox" data-saapp="${x.app}"> ${esc(x.portal + ' · ' + x.name)} <small>${ROLE_L[roleOf(x.app)]}${x.app === 'rekondisi' ? ' · semua project (untuk per project pakai Bagikan link di kartu Rekondisi)' : ''}</small></label>`).join('')}</div>
     <div id="saOut"></div>${acts(own ? 'Buat Link Tanpa Login' : 'Buat Link dengan Email')}</form>`);
   let role = 'viewer';
   const updateShareMode=()=>{const g=own&&$('saGuest').checked;$('saEmailBlock').hidden=g;if($('saGuestInfo'))$('saGuestInfo').hidden=!g;$('saForm').querySelector('[type=submit]').textContent=g?'Buat Link Tanpa Login':'Buat Undangan Email (Perlu Login)';};
@@ -813,13 +813,23 @@ function shareAll() {
 }
 
 // ---------- bagikan link ----------
-function shareForm(app) {
+async function shareForm(app) {
   const r = roleOf(app), s = subOf(app); if (!['owner', 'editor'].includes(r)) return;
+  if (app === 'rekondisi' && r !== 'owner') { toast('Link Monitoring Rekondisi hanya bisa dibagikan Pemilik (karena akses per project).', true); return; }
+  if (app === 'rekondisi' && !S.acc[app]) await loadAccess(app);
   modal(`${mh('Bagikan link', esc(s.portal + ' · ' + s.name))}<div class="nb">${r === 'owner' ? 'Pilih <b>Editor</b> atau <b>Pelihat</b>, lalu buat <b>Link Tanpa Login</b>. Penerima langsung membuka web tanpa email dan password. Siapa pun yang memegang link dapat mengaksesnya selama masih berlaku.' : 'Link undangan lama hanya berlaku untuk email yang didaftarkan dan membutuhkan login.'}${r === 'editor' ? ' Sebagai Editor, Anda hanya bisa membagikan link <b>Pelihat</b>.' : ''}</div><form id="shForm" class="lf" novalidate>
     <label for="sh_e">Email penerima</label><input id="sh_e" type="email" required placeholder="nama@email.com" autocomplete="off">
     <label>Bagikan sebagai</label><div class="seg2" role="group" aria-label="Peran">${r === 'owner' ? '<button type="button" data-shr="editor" aria-pressed="false">Editor (bisa mengubah)</button>' : ''}<button type="button" data-shr="viewer" aria-pressed="true">Pelihat (hanya melihat)</button></div>
     <div id="shOut"></div>${r === 'owner' && ['kta-tra','mbj','bupr-ampah','kmb','apd','unit-monitoring','notulensi'].includes(app) ? '<button type="button" class="btn btn-p" id="shDirect">Buat Link Tanpa Login (seperti Spreadsheet)</button><button type="button" class="btn btn-g" id="shListGuest">Kelola Link Tanpa Login</button><div id="shGuestList"></div>' : ''}${acts('Buat Link dengan Email')}</form>`);
   let role = 'viewer';
+  // Rekondisi: pilih project (jobsite) yang boleh dibuka penerima link
+  if (app === 'rekondisi') {
+    const js = ((S.acc[app] && S.acc[app].perms) || {}).jsList || [];
+    const box = document.createElement('div');
+    box.innerHTML = '<label>Project yang boleh dibuka</label>' + (js.length ? '<div class="pjpick" style="display:flex;flex-wrap:wrap;gap:8px 18px;margin:4px 0 10px"><label style="display:flex;gap:6px;align-items:center;font-weight:700"><input type="checkbox" id="shAll" checked> Semua project</label>' + js.map((j) => `<label style="display:flex;gap:6px;align-items:center"><input type="checkbox" data-shpj="${esc(j.id)}" checked disabled> ${esc(j.name)}</label>`).join('') + '</div>' : '<p class="small">Daftar project belum ada — buka web Monitoring Rekondisi sekali sebagai Pemilik. Untuk sementara penerima mendapat semua project.</p>');
+    $('shForm').insertBefore(box, $('shOut'));
+    const all = $('shAll'); if (all) all.addEventListener('change', () => $('shForm').querySelectorAll('[data-shpj]').forEach((c) => { c.disabled = all.checked; if (all.checked) c.checked = true; }));
+  }
   // Jadikan link tanpa login pilihan utama. Undangan email lama disembunyikan di menu lanjutan.
   if (r === 'owner' && $('shDirect')) {
     const form=$('shForm'), label=form.querySelector('label[for="sh_e"]'), input=$('sh_e');
@@ -872,8 +882,17 @@ function shareForm(app) {
   $('shForm').onsubmit = async (e) => {
     e.preventDefault(); const em = $('sh_e').value.trim().toLowerCase();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { toast('Format email belum benar.', true); return; }
+    let pjs = null;
+    if (app === 'rekondisi' && $('shAll') && !$('shAll').checked) { pjs = [...$('shForm').querySelectorAll('[data-shpj]:checked')].map((c) => c.dataset.shpj); if (!pjs.length) { toast('Centang minimal satu project.', true); return; } }
     const { data, error } = await S.sb.rpc('kta_invite_create', { p_app: app, p_email: em, p_role: role });
     if (error) { toast('Gagal: ' + error.message, true); return; }
+    if (app === 'rekondisi' && $('shAll')) {
+      const cur = (S.acc[app] && S.acc[app].perms) || {}, scope = { ...(cur.scope || {}) };
+      if (pjs) scope[em] = pjs; else delete scope[em];
+      const perms = { ...cur, scope };
+      const up = await S.sb.from('kta_app_perms').upsert({ app_id: app, perms, updated_at: new Date().toISOString(), updated_by: S.user.email }, { onConflict: 'app_id' });
+      if (up.error) toast('Link dibuat, tetapi akses project gagal disimpan: ' + up.error.message + '. Atur ulang di Akses per Project.', true); else if (S.acc[app]) S.acc[app].perms = perms;
+    }
     const registration = role === 'editor' ? await registerInvitedEditor(app, em) : null;
     const link = BASE + '?i=' + data, subj = `Undangan ${ROLE_L[role]} ${s.portal} ${s.name}`;
     const body = `Halo,\n\nAnda diundang sebagai ${ROLE_L[role]} di ${s.portal} · ${s.name}.\nBuka link berikut lalu masuk dengan email ${em}:\n${link}\n\nLink hanya berlaku untuk email ini dan aktif 30 hari.`;
