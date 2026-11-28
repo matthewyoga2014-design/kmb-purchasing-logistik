@@ -356,7 +356,7 @@ const urlCache={};
 const canW=()=>!!WHO&&(WHO.role==="owner"||WHO.role==="editor");
 const API={
   db:{collection:c=>query(c,{})},
-  user:{isOwner:async()=>WHO?.role==="owner",role:async()=>WHO?.role||"",perms:async()=>{const r=await SB.from("kta_app_perms").select("perms").eq("app_id","rekondisi").maybeSingle();return(r.data&&r.data.perms)||{}},setPerms:async p=>{const{error}=await SB.from("kta_app_perms").upsert({app_id:"rekondisi",perms:p,updated_at:new Date().toISOString(),updated_by:WHO?.email||""},{onConflict:"app_id"});if(error)throw new Error(error.message)},hub:"../#akses:rekondisi",canEdit:async()=>canW(),can:async n=>n==="data.write"?canW():null,id:async()=>WHO?.email||null,me:async()=>({name:WHO?.email||""}),
+  user:{isOwner:async()=>WHO?.role==="owner",role:async()=>WHO?.role||"",perms:async()=>{const r=await SB.from("kta_app_perms").select("perms").eq("app_id","rekondisi").maybeSingle();return(r.data&&r.data.perms)||{}},setPerms:async p=>{const{error}=await SB.from("kta_app_perms").upsert({app_id:"rekondisi",perms:p,updated_at:new Date().toISOString(),updated_by:WHO?.email||""},{onConflict:"app_id"});if(error)throw new Error(error.message)},hub:"../#akses:rekondisi",members:async()=>{const r=await SB.rpc("kta_members",{p_app:"rekondisi"});if(r.error)throw new Error(r.error.message);return r.data||[]},canEdit:async()=>canW(),can:async n=>n==="data.write"?canW():null,id:async()=>WHO?.email||null,me:async()=>({name:WHO?.email||""}),
     profiles:async ids=>Object.fromEntries(ids.map(i=>[i,{name:i}])),search:async()=>[],
     addAccess:async(email,role)=>call("setRole",{email,role}),listAccess:async()=>(await call("roles",{})).roles,
     signOut:async()=>{try{localStorage.removeItem(CK)}catch(_){}await SB.auth.signOut();location.reload()},
@@ -435,7 +435,7 @@ function permVal(perms,r,id,k){perms=perms||{};if(k==='v'&&id==='dashboard')retu
 const rk=()=>S.owner?'owner':S.role==='editor'||S.role==='viewer'?S.role:S.editor?'editor':'viewer';
 function permOf(id,k){if(id==='home')id='dashboard';if(id==='unit')id='monitoring';if(id==='pengaturan')id='setting';const r=rk();if(r==='owner'||!S.user)return true;return permVal(S.perms,r,id,k)}
 const ACTM={update:'update',tf:'timeframe',verify:'monitoring',issue:'masalah',mol:'mol',master:'master',admin:'setting'};
-function can(a){if(!S.db||S.writable===false)return false;if(!S.user)return(PERM[a]||[]).includes(role());if(rk()==='viewer')return false;if(rk()==='owner')return true;
+function can(a){if(!S.db||S.writable===false)return false;if(!S.user)return(PERM[a]||[]).includes(role());if(rk()==='viewer')return false;if(rk()==='owner')return true;if((a==='master'||a==='admin')&&myScope())return false;
  if(a==='master'&&S.view==='populasi')return permOf('populasi','e');if(S.view==='update'&&(a==='issue'||a==='mol')&&permOf('update','e'))return true;return permOf(ACTM[a]||a,'e')}
 const accessLabel=()=>S.owner?'Pemilik':rk()==='editor'?'Editor':'Pelihat';
 function nameOf(id){if(!id)return'-';if(S.names[id]!==undefined)return S.names[id]||'Pengguna';S.nameQ.add(id);qNames();return'…'}
@@ -443,20 +443,28 @@ let nameT=null;function qNames(){if(nameT||!S.user)return;nameT=setTimeout(async
 
 /* ============ db ============ */
 const COLS=['jobsites','units','tf','updates','issues','mols','categories','roles','templates','settings','drive'];
+const RAW={},SCOPED=['jobsites','units','tf','updates','issues','mols'];
+/* akses per project: Editor / Pelihat hanya melihat & mengisi jobsite yang diizinkan Pemilik */
+function myScope(){if(!S.user||rk()==='owner')return null;const r=D.roles[String(S.uid||'').toLowerCase()];return r&&Array.isArray(r.js)?new Set(r.js):null}
+function fillCol(c){let arr=RAW[c]||[];const A=myScope();
+ if(A&&SCOPED.includes(c)){const U=new Set((RAW.units||[]).filter(u=>A.has(u.jobsiteId)).map(u=>u.id));
+  arr=c==='jobsites'?arr.filter(j=>A.has(j.id)):c==='units'?arr.filter(u=>A.has(u.jobsiteId)):arr.filter(x=>U.has(x.unitId||(c==='tf'?x.id:''))||(x.jobsiteId&&A.has(x.jobsiteId)))}
+ if(c==='tf'||c==='roles'||c==='templates')D[c]=Object.fromEntries(arr.map(x=>[x.id,x]));
+ else if(c==='settings')D.settings=arr.find(x=>x.id==='main')||{};
+ else if(c==='drive')D.drive=arr.find(x=>x.id==='folders')||{};
+ else if(c==='updates'){D.updates=arr.filter(x=>!x.lap);D.laps=arr.filter(x=>x.lap)}
+ else D[c]=arr}
+function scopedLogs(l){const A=myScope();if(!A)return l;const keys=[...(D.units||[]).map(u=>u.code),...(D.jobsites||[]).map(j=>j.name)].filter(Boolean);return l.filter(x=>{const t=(x.ref||'')+' '+(x.detail||'');return keys.some(k=>t.includes(k))})}
 function subscribe(){
  const pending=new Set(COLS);const t=setTimeout(()=>{if(!S.loaded){S.slow=true;render()}},10000);
  COLS.forEach(c=>S.db.collection(c).onSnapshot(snap=>{
-  const arr=snap.docs.map(d=>({...d.data(),id:d.id}));
-  if(c==='tf'||c==='roles'||c==='templates')D[c]=Object.fromEntries(arr.map(x=>[x.id,x]));
-  else if(c==='settings')D.settings=arr.find(x=>x.id==='main')||{};
-  else if(c==='drive')D.drive=arr.find(x=>x.id==='folders')||{};
-  else if(c==='updates'){D.updates=arr.filter(x=>!x.lap);D.laps=arr.filter(x=>x.lap)}
-  else D[c]=arr;
+  RAW[c]=snap.docs.map(d=>({...d.data(),id:d.id}));
+  fillCol(c);if(SCOPED.includes(c)||c==='roles')SCOPED.forEach(k=>RAW[k]&&fillCol(k));
   if(!snap.metadata.fromCache)pending.delete(c);
   if(!pending.size&&!S.loaded){S.loaded=true;S.slow=false;clearTimeout(t)}
   invalidate();schedule();
  },e=>{pending.delete(c);if(!pending.size){S.loaded=true;clearTimeout(t)}toast('Gagal memuat '+c+': '+(e.message||e.code),'err');schedule()}));
- S.db.collection('logs').orderBy('at','desc').limit(300).onSnapshot(s=>{D.logs=s.docs.map(d=>({...d.data(),id:d.id}));if(S.view==='pengaturan')schedule()},()=>{});
+ S.db.collection('logs').orderBy('at','desc').limit(300).onSnapshot(s=>{D.logs=scopedLogs(s.docs.map(d=>({...d.data(),id:d.id})));if(S.view==='pengaturan')schedule()},()=>{});
 }
 async function put(col,id,data){await S.db.collection(col).doc(id).set(JSON.parse(JSON.stringify(data)))}
 async function upd(col,id,data){await S.db.collection(col).doc(id).update(data)}
@@ -587,7 +595,7 @@ async function upSave(k,dirs){const out=[];for(const f of ZF[k]||[]){if(f.id){ou
   if(!S.assets?.upload){toast('Upload berkas tidak tersedia untuk akses Anda','err');continue}
   try{const r=await S.assets.upload(f.file,dirs);out.push({id:'gd:'+r.id,name:f.name,mime:r.contentType||f.file.type||''})}catch(e){toast(f.name+' gagal disimpan ke Drive: '+(e.message||e),'err')}}return out}
 const fileChips=a=>(a||[]).length?a.map(f=>`<a class="fchip sm" href="${gdUrl(f.id)}" target="_blank" rel="noopener">${ic('dl',12)} ${esc(f.name||'Berkas')}</a>`).join(' '):'<span class="cm">-</span>';
-document.addEventListener('change',e=>{const t=e.target;if(t.dataset?.upin){upAdd(t.dataset.upin,t.files);t.value=''}},true);
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset?.pall!==undefined){t.closest('tr').querySelectorAll('[data-pjs]').forEach(c=>{c.disabled=t.checked;if(t.checked)c.checked=true});return}if(t.dataset?.upin){upAdd(t.dataset.upin,t.files);t.value=''}},true);
 document.addEventListener('click',e=>{const b=e.target.closest?.('[data-uprm]');if(!b)return;e.preventDefault();const[k,i]=b.dataset.uprm.split('|');ZF[k].splice(+i,1);document.getElementById('upc_'+k).innerHTML=upChips(k)},true);
 ['dragover','dragenter'].forEach(ev=>document.addEventListener(ev,e=>{const z=e.target.closest?.('.upz');if(z){e.preventDefault();z.classList.add('drag')}}));
 document.addEventListener('dragleave',e=>{const z=e.target.closest?.('.upz');if(z&&!z.contains(e.relatedTarget))z.classList.remove('drag')});
@@ -1171,7 +1179,7 @@ function verifyGroup(key){
    if(ok){toast('Aktual terverifikasi');closeModal();if(dec==='Revisi Timeframe')setTimeout(()=>tfEditor(unitId,{reason:'Revisi berdasarkan aktual '+fd(date)+': '}),300)}}},true)}
 
 /* ============ ISSUES ============ */
-const nextIssNo=()=>{const m=Math.max(0,S.issSeq||0,...D.issues.map(i=>+((/^ISU-(\d+)$/.exec(i.no||'')||[])[1]||0)));S.issSeq=m+1;return'ISU-'+String(m+1).padStart(3,'0')};
+const nextIssNo=()=>{const m=Math.max(0,S.issSeq||0,...(RAW.issues||D.issues).map(i=>+((/^ISU-(\d+)$/.exec(i.no||'')||[])[1]||0)));S.issSeq=m+1;return'ISU-'+String(m+1).padStart(3,'0')};
 async function createIssue(o){const id=gid('ISU');await put('issues',id,{no:nextIssNo(),date:today(),category:'Lainnya',desc:'',impact:'',photos:[],action:'',pic:'',due:'',status:'Open',closeDate:'',molId:'',...o,by:S.uid||'',at:new Date().toISOString()});await ensureCat(o.category);log('Tambah permasalahan',id,(o.desc||'').slice(0,60))}
 function vMasalah(){const jid=curJs();const all=issuesOf(i=>!jid||i.jobsiteId===jid);const is=issueStats(all);const ct=catTable(all);
  const q=S.isf.q.toLowerCase();const list=all.filter(i=>(!S.isf.st||i.status===S.isf.st)&&(!S.isf.cat||i.category===S.isf.cat)&&(!q||(i.no+' '+i.desc+' '+uName(i.unitId)+' '+i.pic).toLowerCase().includes(q)));
@@ -1436,11 +1444,20 @@ function vPengaturan(){const st=D.settings;const adm=can('admin');const rl=Objec
  ${S.user?.perms?accessCards():''}
  <div class="panel"><div class="ph"><h3>Backup data</h3>${adm&&permOf('excel','d')?`<button class="btn sm" data-a="backup">${ic('dl',15)} Backup data (JSON)</button>`:''}</div><div class="pb"><p class="cm" style="margin:0">Unduh salinan seluruh data. Log aktivitas ada di Beranda (Semua Jobsite).</p></div></div>`}
 
+function projCard(){const js=(RAW.jobsites||D.jobsites).slice().sort((a,b)=>(a.order||0)-(b.order||0));const RL={editor:'Editor',viewer:'Pelihat'};
+ if(S.members===undefined){S.members=null;S.user.members().then(m=>{S.members=m.filter(x=>x.role!=='owner');render()}).catch(e=>{S.members=[];S.memErr=e.message;render()})}
+ const extra=Object.values(D.roles).filter(r=>r.id&&r.id.includes('@')&&Array.isArray(r.js)&&!(S.members||[]).some(m=>m.email.toLowerCase()===r.id)).map(r=>({email:r.id,role:''}));
+ const list=[...(S.members||[]),...extra];
+ const row=m=>{const em=m.email.toLowerCase(),r=D.roles[em],sel=r&&Array.isArray(r.js)?new Set(r.js):null;return`<tr data-pj="${esc(em)}"><td><b>${esc(em)}</b>${m.role?`<br><small class="cm">${RL[m.role]||m.role}</small>`:'<br><small class="cm">belum menerima undangan</small>'}</td><td class="c"><input type="checkbox" data-pall ${sel?'':'checked'} aria-label="Semua project ${esc(em)}"></td>${js.map(j=>`<td class="c"><input type="checkbox" data-pjs="${esc(j.id)}" ${!sel||sel.has(j.id)?'checked':''} ${sel?'':'disabled'} aria-label="${esc(j.name)} ${esc(em)}"></td>`).join('')}</tr>`};
+ return`<div class="panel"><div class="ph"><h3>Akses per project (jobsite)</h3><button class="btn pr sm" data-a="projsave">Simpan akses project</button></div><div class="pb"><p class="cm" style="margin-top:0">Centang project yang boleh dilihat & diisi tiap Editor / Pelihat. <b>Semua project</b> = termasuk project baru yang ditambahkan nanti. Bila hanya project tertentu yang dicentang, orang itu tidak melihat unit, MOL, permasalahan, laporan, maupun log project lain, dan tidak bisa mengubah Populasi Unit, Master Data, atau Pengaturan.</p>
+ ${S.members===null?'<p class="cm">Memuat anggota…</p>':`<div class="tw"><table class="perm"><thead><tr><th>Email</th><th class="c">Semua project</th>${js.map(j=>`<th class="c">${esc(j.name)}</th>`).join('')}</tr></thead><tbody>${list.map(row).join('')||`<tr><td colspan="${js.length+2}" class="cm">${S.memErr?'Daftar anggota tidak bisa dimuat ('+esc(S.memErr)+'). ':''}Belum ada Editor / Pelihat. Undang lewat Akses & Bagikan, atau tambahkan email di bawah.</td></tr>`}</tbody></table></div>`}
+ <div class="inl" style="margin-top:12px;gap:8px"><input id="pjEm" type="email" placeholder="email@contoh.com" style="max-width:280px" aria-label="Email untuk diatur aksesnya"><button class="btn sm" data-a="projadd">+ Tambah email</button></div></div></div>`}
 function accessCards(){const own=rk()==='owner';const KL={v:'lihat',e:'ubah',d:'unduh'};const RL={editor:'Editor',viewer:'Pelihat'};
  const box=(r,id,k,l,kind)=>{if((kind==='x'&&k!=='d')||((kind==='r'||kind===1)&&k==='e'))return'<td class="c cm" title="Tidak berlaku">—</td>';const lock=k==='v'&&kind===1;return`<td class="c"><input type="checkbox" data-perm="${r}|${id}|${k}" ${permVal(S.perms,r,id,k)?'checked':''} ${lock?'disabled title="Selalu terlihat"':own?'':'disabled'} aria-label="${RL[r]} ${KL[k]} ${esc(l)}"></td>`};
  const rows=PMENU.map(([id,l,kind])=>`<tr><td><b>${esc(l)}</b></td>${['v','e','d'].map(k=>box('editor',id,k,l,kind)).join('')}${['v','d'].map(k=>box('viewer',id,k,l,kind)).join('')}</tr>`).join('');
  return`<div class="grid2"><div class="panel"><div class="ph"><h3>Akses & Bagikan Link</h3></div><div class="pb"><p class="cm" style="margin-top:0">Undang Editor atau Pelihat lewat link, lihat daftar anggota, cabut akses, dan setujui permintaan akses di Pusat Monitoring. Setiap link hanya berlaku untuk email yang diundang.</p>${own?`<a class="btn pr" style="text-decoration:none" href="${S.user.hub}">Buka Akses & Bagikan →</a>`:''}</div></div>
  <div class="panel"><div class="ph"><h3>Hak & kewajiban peran</h3></div><div class="pb rolei"><div><b>Pemilik</b><span>Semua hak: semua menu, ubah data, print/unduh, Pengaturan, mengundang & mencabut akses, serta mengatur centang izin di bawah.</span></div><div><b>Editor</b><span>Mengisi & mengubah data hanya di menu yang dicentang <b>Ubah</b> (mis. Update Daily, MOL, Permasalahan). Wajib mengisi data sesuai kondisi lapangan. Tanpa centang Ubah: hanya melihat.</span></div><div><b>Pelihat</b><span>Hanya melihat menu yang dicentang <b>Lihat</b>; print/PDF hanya bila dicentang <b>Unduh</b>. Tidak bisa mengubah data.</span></div></div></div></div>
+${own?projCard():''}
  <div class="panel"><div class="ph"><h3>Izin menu Editor & Pelihat</h3>${own?'<button class="btn pr sm" data-a="permsave">Simpan izin</button>':''}</div><div class="pb"><p class="cm" style="margin-top:0"><b>Lihat</b> = menu tampil · <b>Ubah</b> = Editor boleh mengisi / mengubah data di menu itu · <b>Unduh</b> = boleh Print / PDF di menu itu. Pemilik selalu bisa semuanya. ${own?'Berlaku saat web dibuka ulang oleh Editor / Pelihat.':'Hanya Pemilik yang bisa mengubah izin.'}</p>
  <div class="tw"><table class="perm"><thead><tr><th rowspan="2">Menu</th><th colspan="3" class="c">Editor</th><th colspan="2" class="c">Pelihat</th></tr><tr><th class="c">Lihat</th><th class="c">Ubah</th><th class="c">Unduh</th><th class="c">Lihat</th><th class="c">Unduh</th></tr></thead><tbody>${rows}</tbody></table></div></div></div>`}
 const VIEWS={home:vHome,dashboard:vDashboard,monitoring:vMonitoring,unit:vUnit,timeframe:vTimeframe,update:vUpdate,mol:vMol,masalah:vMasalah,populasi:vPopulasi,laporan:vLaporan,master:vMaster,pengaturan:vPengaturan};
@@ -1566,6 +1583,11 @@ const A={
  repxls:()=>{const r=buildRep();const t=REPS[S.rep.type];xlsxSave(t.replace(/\W+/g,'_')+'_'+S.rep.date+'.xlsx',[[t.slice(0,31),[[t],[(D.settings.project||'')+' · '+(S.rep.js==='all'?'Semua jobsite':jsName(S.rep.js))+' · '+(r.sub||'Per '+fd(S.rep.date))],[],r.cols,...r.rows],r.cols.map(c=>Math.max(10,Math.min(40,c.length+4)))]])},
  reppdf:()=>{const r=buildRep();const t=REPS[S.rep.type];pdfSave(t.replace(/\W+/g,'_')+'_'+S.rep.date+'.pdf',t,(D.settings.project||'')+' · '+(S.rep.js==='all'?'Semua jobsite':jsName(S.rep.js))+' · '+(r.sub||'Per '+fd(S.rep.date)),r.cols,r.rows)},
  roledel:async d=>{if(await guard(async()=>{if(S.user?.addAccess)await S.user.addAccess(d.id,'none');await S.db.collection('roles').doc(d.id).delete()})){log('Cabut peran',d.id,'');toast('Peran dicabut')}},
+ projadd:()=>{const em=($('#pjEm')?.value||'').trim().toLowerCase();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(em))return toast('Isi email yang valid','err');if(!(S.members||[]).some(m=>m.email.toLowerCase()===em))(S.members=S.members||[]).push({email:em,role:''});render()},
+ projsave:async()=>{if(rk()!=='owner')return;const rows=[...document.querySelectorAll('[data-pj]')];let n=0;
+  for(const tr of rows){const em=tr.dataset.pj,all=tr.querySelector('[data-pall]').checked,js=all?null:[...tr.querySelectorAll('[data-pjs]:checked')].map(c=>c.dataset.pjs);const ex=D.roles[em]||{};const was=Array.isArray(ex.js)?ex.js.slice().sort().join():null,now=js?js.slice().sort().join():null;if(was===now)continue;
+   const{id,...rest}=ex;if(await guard(()=>put('roles',em,{...rest,js,at:new Date().toISOString(),by:S.uid||''})))n++}
+  if(n){log('Ubah akses project',n+' orang','');toast('Akses project tersimpan ('+n+' orang)')}else toast('Tidak ada perubahan')},
  permsave:async()=>{if(rk()!=='owner')return;const perms={_v:2,editor:{},viewer:{}};document.querySelectorAll('[data-perm]').forEach(c=>{const[r,id,k]=c.dataset.perm.split('|');(perms[r][id]=perms[r][id]||{})[k]=c.disabled?true:c.checked});try{await S.user.setPerms(perms);S.perms=perms;log('Ubah izin menu','Editor & Pelihat','');toast('Izin menu tersimpan')}catch(e){toast('Gagal menyimpan izin: '+e.message,'err')}},
  backup:()=>save('backup_rekondisi_'+today()+'.json',JSON.stringify({exportedAt:new Date().toISOString(),...D,logs:undefined},null,1))};
 document.addEventListener('click',e=>{const t=e.target.closest('[data-a]');if(!t||t.disabled)return;if(e.target.closest('input,select,textarea')&&!t.matches('input'))return;const f=A[t.dataset.a];if(f){e.preventDefault();f({...t.dataset})}});
