@@ -399,9 +399,10 @@ const SUBS = [...MPP.map((s) => ({ ...s, portal: 'Monitoring MPP' })), { ...APD,
 const subOf = (app) => SUBS.find((s) => s.app === app);
 const MENUS = {
   mpp: [['dashboard', 'Dashboard', 1], ['mpp', 'MPP (Manpower Planning)'], ['pelamar', 'Data Pelamar'], ['org', 'Struktur Organisasi'], ['karyawan', 'MP Aktif & MP Out'], ['unit', 'Populasi Unit'], ['excel', 'Download Excel (tombol Excel di atas)', 'x'], ['setting', 'Pengaturan (sinkron Excel, backup, akses)', 's']],
+  rekondisi: [['dashboard', 'Beranda & Dashboard jobsite', 1], ['monitoring', 'Monitoring Unit'], ['timeframe', 'Timeframe'], ['update', 'Update Daily'], ['mol', 'Logistik / MOL'], ['masalah', 'Permasalahan'], ['populasi', 'Populasi Unit'], ['laporan', 'Laporan & Rekap', 'r'], ['master', 'Master Data'], ['excel', 'Form Excel & backup data', 'x'], ['setting', 'Pengaturan', 's']],
   apd: [['dashboard', 'Dashboard', 1], ['requests', 'Permintaan APD'], ['people', 'Manpower Aktif & Detail APD'], ['out', 'Manpower Keluar'], ['history', 'Riwayat Transaksi'], ['guide', 'Tata Cara', 'r'], ['excel', 'Download Excel (tombol Excel di atas)', 'x'], ['setting', 'Pengaturan (backup, akses)', 's']],
 };
-const menusOf = (app) => app === 'apd' ? MENUS.apd : ['kta-tra', 'bupr-ampah', 'mbj', 'kmb'].includes(app) ? MENUS.mpp : null;
+const menusOf = (app) => app === 'rekondisi' ? MENUS.rekondisi : app === 'apd' ? MENUS.apd : ['kta-tra', 'bupr-ampah', 'mbj', 'kmb'].includes(app) ? MENUS.mpp : null;
 const ROLE_L = { owner: 'Pemilik', editor: 'Editor', viewer: 'Pelihat' };
 const S = { sb: null, user: null, apps: {}, loaded: false, pend: {}, invite: null, inviteRes: null, acc: {}, rows: null, apd: null };
 const ui = { page: 'home', app: '' };
