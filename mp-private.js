@@ -50,7 +50,7 @@
     return null;
   }
   // dipakai tombol cetak Form Data Karyawan (hanya terisi untuk Pemilik & Editor yang login)
-  window.KMBPriv = { get: (p, site) => (ok() ? getP(p, site) : null) };
+  window.KMBPriv = { get: (p, site) => (ok() ? getP(p, site) : null), ok: () => ok() };
   function siteOf(p) {
     const k = key(p && p.nama);
     if (PV.rows[WEB_ID] && PV.rows[WEB_ID][k]) return WEB_ID;
@@ -440,6 +440,7 @@
     PCOLS.push(['pv_' + f[0], sub + f[1], (p) => esc(showV(f[0], (getP(p) || {})[f[0]])), true]);
     if (f[0] === 'tglLahir') PCOLS.push(['pv_umur', 'Umur', (p) => umur((getP(p) || {}).tglLahir), true]);
   });
+  window.KMBPriv.pcols = PCOLS;
   const _page = pageKaryawan;
   pageKaryawan = function (D) {
     const full = ok() && ui.allCols;
@@ -459,7 +460,7 @@
       });
     }
     const note = ok()
-      ? `Data pribadi lengkap (NIK, KK, NPWP, HP, rekening, BPJS, alamat, keluarga, kontak darurat) tersimpan terpisah dan hanya bisa dibuka Pemilik & Editor yang login: klik <b>Semua Kolom</b> untuk melihat semuanya atau tombol <b>DATA</b> untuk mengubah per karyawan.${out ? ' Tombol <b>AKTIFKAN</b> memindahkan karyawan kembali ke MP Aktif.' : ''}`
+      ? `Data pribadi lengkap (NIK, KK, NPWP, HP, rekening, BPJS, alamat, keluarga, kontak darurat) tersimpan terpisah dan hanya bisa dibuka Pemilik & Editor yang login: tampilkan lewat <b>Atur Kolom</b> (kolom bertanda 🔒) atau tombol <b>DATA</b> untuk mengubah per karyawan.${out ? ' Tombol <b>AKTIFKAN</b> memindahkan karyawan kembali ke MP Aktif.' : ''}`
       : `Data pribadi (NIK, KK, NPWP, nomor HP, rekening, BPJS, alamat, data keluarga) hanya bisa dilihat Pemilik & Editor yang login.${out && CAN_EDIT ? ' Tombol <b>AKTIFKAN</b> memindahkan karyawan kembali ke MP Aktif.' : ''}`;
     h = h.replace(/Data pribadi \([^)]*\) tidak disimpan di web ini\.?/, note);
     if (ok()) {
