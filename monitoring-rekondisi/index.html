@@ -896,21 +896,23 @@ async function xwBuild(sheets,JSZipLib){const Z=new (JSZipLib||JSZip)();
  return Z.generateAsync({type:typeof window==='undefined'?'nodebuffer':'blob',mimeType:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'})}
 /* ===== Form lapangan Update Daily (mengacu timeframe unit) ===== */
 const FF_TITLE='FORM UPDATE DAILY REKONDISI';const FF_LV=['0','10','25','50','75','90','100'];
-const ffStat=a=>a>=100?'Close':a>0?'Open':'';const ffTarget=s=>{if(!s.start)return'-';const d=x=>x.split('-').reverse().join('/').slice(0,5);return(s.start===s.end?d(s.start):d(s.start)+' – '+d(s.end))+' · '+fdur(s.dur)};
+const ffStat=a=>a>=100?'Close':a>0?'Open':'';const ffTarget=s=>fdur(s.dur);
+const ffD=iso=>{if(!iso)return'-';const[y,m,d]=iso.split('-');return +d+' '+['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'][+m-1]+' '+y};
 const xlSerial=iso=>{if(!iso)return'';const[y,m,d]=iso.split('-').map(Number);return Math.round(Date.UTC(y,m-1,d)/864e5)+25569};
 function ffSheet(f){/* f:{code,type,model,js,start,end,actual,date,stages:[{name,dur,start,end,act}],cats} */
  const C=[],M=[],R={},DV=[];const put=(r,c,v,s)=>C.push([r,c,v,s]);const box=(r,c1,c2,v,s)=>{for(let c=c1;c<=c2;c++)put(r,c,c===c1?v:'',s);if(c2>c1)M.push(`${XW.ref(r,c1)}:${XW.ref(r,c2)}`)};
  const fdt=d=>d?d.split('-').reverse().join('/'):'-';let r=0;
  box(r,0,7,FF_TITLE,1);R[r]={h:26};r++;
  box(r,0,7,'Status: pilih Open / Close. Bila masih Open, isi sampai mana (%). Upload kembali file ini lewat web: Upload Data → Form lapangan Update Daily.',11);R[r]={h:16};r++;
- const info=(a,av,b,bv,ast,bst)=>{box(r,0,1,a,2);box(r,2,3,av,ast||13);box(r,4,5,b,2);box(r,6,7,bv,bst||13);R[r]={h:20};r++};
- info('Jobsite',f.js,'Unit',f.code);
- info('Jenis / model',`${f.type}${f.model?' · '+f.model:''}`,'Mulai → target',`${fdt(f.start)} → ${fdt(f.end)}`,3,3);
- const rowDate=r;info('Tanggal laporan',f.date?xlSerial(f.date):'','Shift','',9,7);DV.push({sqref:XW.ref(rowDate,6),list:['1','2'],strict:true,prompt:['Shift','Pilih 1 atau 2']});
- info('Nama pengisi','','Progres terakhir',f.blank?'':Math.round(f.actual)+'%',8,f.blank?7:3);
+ const info=(a,av,b,bv,ast,bst)=>{box(r,0,1,a,2);box(r,2,4,av,ast||13);box(r,5,6,b,2);box(r,7,7,bv,bst||13);R[r]={h:20};r++};
+ info('Vendor',f.js,'Unit',f.code);
+ info('Jenis / model',`${f.type}${f.model?' · '+f.model:''}`,'Progres terakhir',f.blank?'.......%':Math.round(f.actual)+'%',3,3);
+ info('Start date',ffD(f.start),'Planned completion date',ffD(f.end),3,3);
+ const rowDate=r;info('Tanggal laporan','','Shift','',9,7);DV.push({sqref:XW.ref(rowDate,7),list:['1','2'],strict:true,prompt:['Shift','Pilih 1 atau 2']});
+ box(r,0,1,'Nama pengisi',2);box(r,2,7,'',8);R[r]={h:20};r++;
  r++;box(r,0,7,'1. TAHAPAN PEKERJAAN (sesuai timeframe)',10);R[r]={h:20};r++;
  put(r,0,'No',4);put(r,1,'Tahapan',4);box(r,2,3,'Target pengerjaan',4);put(r,4,'Progres saat ini',4);put(r,5,'Status',4);put(r,6,'Sampai mana (%)',4);put(r,7,'Keterangan',4);R[r]={h:30};r++;
- const s0=r;f.stages.forEach((s,i)=>{put(r,0,i+1,6);put(r,1,s.name,5);box(r,2,3,ffTarget(s),12);put(r,4,f.blank?'':s.act>=100?'100%':Math.round(s.act)+'%',f.blank?7:6);put(r,5,f.blank?'':ffStat(s.act),7);put(r,6,'',7);put(r,7,'',8);R[r]={h:s.name.length>34?28:18};r++});
+ const s0=r;f.stages.forEach((s,i)=>{put(r,0,i+1,6);put(r,1,s.name,5);box(r,2,3,ffTarget(s),12);put(r,4,f.blank?'.......%':s.act>=100?'100%':Math.round(s.act)+'%',6);put(r,5,f.blank?'':ffStat(s.act),7);put(r,6,'',7);put(r,7,'',8);R[r]={h:s.name.length>44?28:18};r++});
  DV.push({sqref:`${XW.ref(s0,5)}:${XW.ref(r-1,5)}`,list:['Open','Close'],strict:true,prompt:['Status','Close = tahapan selesai 100%. Open = belum selesai, isi sampai mana (%)']});
  DV.push({sqref:`${XW.ref(s0,6)}:${XW.ref(r-1,6)}`,ref:`Daftar!$B$1:$B$${FF_LV.length}`,prompt:['Sampai mana','Pilih atau ketik persen (0–100)']});
  r++;box(r,0,7,'2. LAPORAN PEKERJAAN',10);R[r]={h:20};r++;
@@ -926,7 +928,7 @@ function ffSheet(f){/* f:{code,type,model,js,start,end,actual,date,stages:[{name
  DV.push({sqref:`${XW.ref(q0,1)}:${XW.ref(r-1,1)}`,ref:`Daftar!$A$1:$A$${Math.max(1,f.cats.length)}`,prompt:['Kategori','Pilih atau ketik kategori']});
  r++;box(r,0,2,'Dibuat oleh',14);box(r,5,7,'Diperiksa oleh',14);r++;R[r]={h:42};r++;
  box(r,0,2,'(______________________)',14);box(r,5,7,'(______________________)',14);r++;
- return{name:f.code.replace(/[\[\]:*?\/\\]/g,'-').slice(0,31),cols:[5,34,8,13,10,9,12,22],cells:C,merges:M,rows:R,dv:DV}}
+ return{name:f.code.replace(/[\[\]:*?\/\\]/g,'-').slice(0,31),cols:[5,38,6,8,10,10,12,22],cells:C,merges:M,rows:R,dv:DV}}
 function ffListSheet(cats){const C=[];cats.forEach((c,i)=>C.push([i,0,c,0]));FF_LV.forEach((v,i)=>C.push([i,1,+v,0]));return{name:'Daftar',hidden:true,cells:C}}
 
 /* ===== Form lapangan Update Daily: data, unduh Excel, cetak PDF, upload balik ===== */
@@ -945,8 +947,8 @@ function ffForm(){const jid=curJs();const us=assigned().filter(u=>(!jid||u.jobsi
 function ffPrint(ids,date,bl){const st=a=>{const t=bl?'':ffStat(a);return`${t==='Open'?'☑':'☐'} Open &nbsp;${t==='Close'?'☑':'☐'} Close`};const v=$('#view');const fdt=d=>d?d.split('-').reverse().join('/'):'-';
  const blank=(n,cols)=>Array.from({length:n},(_,i)=>`<tr><td class="c">${i+1}</td>${cols}</tr>`).join('');
  v.innerHTML=ids.map(id=>{const f=ffData(unitOf(id),date,bl);return`<section class="pp-sec ffp"><h2>${FF_TITLE}</h2>
-  <table class="ffi"><tr><th>Jobsite</th><td>${esc(f.js)}</td><th>Unit</th><td><b>${esc(f.code)}</b></td></tr><tr><th>Jenis / model</th><td>${esc(f.type)}${f.model?' · '+esc(f.model):''}</td><th>Mulai → target</th><td>${fdt(f.start)} → ${fdt(f.end)}</td></tr><tr><th>Tanggal laporan</th><td class="in">${date?fdt(date):''}</td><th>Shift</th><td class="in">☐ 1 &nbsp; ☐ 2</td></tr><tr><th>Nama pengisi</th><td class="in"></td><th>Progres terakhir</th><td>${bl?'':Math.round(f.actual)+'%'}</td></tr></table>
-  <h3>1. Tahapan pekerjaan (sesuai timeframe)</h3><table class="fft"><colgroup><col style="width:4%"><col style="width:34%"><col style="width:14%"><col style="width:8%"><col style="width:13%"><col style="width:10%"><col style="width:17%"></colgroup><thead><tr><th>No</th><th>Tahapan</th><th>Target pengerjaan</th><th>Progres saat ini</th><th>Status</th><th>Sampai mana (%)<br><small>bila masih Open</small></th><th>Keterangan</th></tr></thead><tbody>${f.stages.map((s,i)=>`<tr><td class="c">${i+1}</td><td>${esc(s.name)}</td><td class="c sm">${ffTarget(s)}</td><td class="c">${bl?'':Math.round(s.act)+'%'}</td><td class="c sm" style="white-space:nowrap">${st(s.act)}</td><td class="in"></td><td class="in"></td></tr>`).join('')}</tbody></table>
+  <table class="ffi"><tr><th>Vendor</th><td>${esc(f.js)}</td><th>Unit</th><td><b>${esc(f.code)}</b></td></tr><tr><th>Jenis / model</th><td>${esc(f.type)}${f.model?' · '+esc(f.model):''}</td><th>Progres terakhir</th><td>${bl?'.......%':Math.round(f.actual)+'%'}</td></tr><tr><th>Start date</th><td>${ffD(f.start)}</td><th>Planned completion date</th><td>${ffD(f.end)}</td></tr><tr><th>Tanggal laporan</th><td class="in"></td><th>Shift</th><td class="in">☐ 1 &nbsp; ☐ 2</td></tr><tr><th>Nama pengisi</th><td class="in" colspan="3"></td></tr></table>
+  <h3>1. Tahapan pekerjaan (sesuai timeframe)</h3><table class="fft"><colgroup><col style="width:4%"><col style="width:38%"><col style="width:9%"><col style="width:9%"><col style="width:14%"><col style="width:10%"><col style="width:16%"></colgroup><thead><tr><th>No</th><th>Tahapan</th><th>Target pengerjaan</th><th>Progres saat ini</th><th>Status</th><th>Sampai mana (%)<br><small>bila masih Open</small></th><th>Keterangan</th></tr></thead><tbody>${f.stages.map((s,i)=>`<tr><td class="c">${i+1}</td><td>${esc(s.name)}</td><td class="c sm">${ffTarget(s)}</td><td class="c">${bl?'.......%':Math.round(s.act)+'%'}</td><td class="c sm" style="white-space:nowrap">${st(s.act)}</td><td class="in"></td><td class="in"></td></tr>`).join('')}</tbody></table>
   <h3>2. Laporan pekerjaan</h3><table class="ffi"><tr><th style="width:24%">Pekerjaan yang dilakukan</th><td class="in" style="height:110px"></td></tr><tr><th>Manpower (orang)</th><td class="in" style="height:32px"></td></tr></table>
   <h3>3. MOL / permintaan material</h3><table class="fft"><colgroup><col style="width:4%"><col style="width:26%"><col style="width:22%"><col style="width:7%"><col style="width:9%"><col style="width:12%"><col style="width:20%"></colgroup><thead><tr><th>No</th><th>Material</th><th>Spesifikasi / part number</th><th>Qty</th><th>Satuan</th><th>Pengadaan<br><small>HO / Toko</small></th><th>Keterangan</th></tr></thead><tbody>${blank(5,'<td class="in"></td>'.repeat(6))}</tbody></table>
   <h3>4. Permasalahan dalam pengerjaan</h3><table class="fft"><colgroup><col style="width:4%"><col style="width:28%"><col></colgroup><thead><tr><th>No</th><th>Kategori</th><th>Permasalahan</th></tr></thead><tbody>${blank(4,'<td class="in"></td><td class="in"></td>')}</tbody></table>
