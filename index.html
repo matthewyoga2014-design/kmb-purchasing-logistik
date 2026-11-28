@@ -399,7 +399,7 @@ const SUBS = [...MPP.map((s) => ({ ...s, portal: 'Monitoring MPP' })), { ...APD,
 const subOf = (app) => SUBS.find((s) => s.app === app);
 const MENUS = {
   mpp: [['dashboard', 'Dashboard', 1], ['mpp', 'MPP (Manpower Planning)'], ['pelamar', 'Data Pelamar'], ['org', 'Struktur Organisasi'], ['karyawan', 'MP Aktif & MP Out'], ['unit', 'Populasi Unit'], ['excel', 'Download Excel (tombol Excel di atas)', 'x'], ['setting', 'Pengaturan (sinkron Excel, backup, akses)', 's']],
-  rekondisi: [['dashboard', 'Beranda & Dashboard jobsite', 1], ['monitoring', 'Monitoring Unit'], ['timeframe', 'Timeframe'], ['update', 'Update Daily'], ['mol', 'Logistik / MOL'], ['masalah', 'Permasalahan'], ['populasi', 'Populasi Unit'], ['laporan', 'Laporan & Rekap', 'r'], ['master', 'Master Data'], ['excel', 'Form Excel & backup data', 'x'], ['setting', 'Pengaturan', 's']],
+  rekondisi: [['dashboard', 'Beranda & Dashboard jobsite', 1], ['monitoring', 'Monitoring Unit'], ['timeframe', 'Timeframe'], ['update', 'Update Daily'], ['revisi', 'Revisi laporan Update Daily', 'e'], ['mol', 'Logistik / MOL'], ['masalah', 'Permasalahan'], ['populasi', 'Populasi Unit'], ['laporan', 'Laporan & Rekap', 'r'], ['master', 'Master Data'], ['excel', 'Form Excel & backup data', 'x'], ['setting', 'Pengaturan', 's']],
   apd: [['dashboard', 'Dashboard', 1], ['requests', 'Permintaan APD'], ['people', 'Manpower Aktif & Detail APD'], ['out', 'Manpower Keluar'], ['history', 'Riwayat Transaksi'], ['guide', 'Tata Cara', 'r'], ['excel', 'Download Excel (tombol Excel di atas)', 'x'], ['setting', 'Pengaturan (backup, akses)', 's']],
 };
 const menusOf = (app) => app === 'rekondisi' ? MENUS.rekondisi : app === 'apd' ? MENUS.apd : ['kta-tra', 'bupr-ampah', 'mbj', 'kmb'].includes(app) ? MENUS.mpp : null;
@@ -935,7 +935,7 @@ function permVal(perms, role, id, k) {
 function permCard(app, A) {
   const KL = { v: 'lihat', e: 'ubah', d: 'unduh' };
   const box = (role, id, k, l, kind) => {
-    const na = (kind === 'x' && k !== 'd') || (kind === 'r' && k === 'e');
+    const na = (kind === 'x' && k !== 'd') || (kind === 'r' && k === 'e') || (kind === 'e' && k !== 'e');
     if (na || (app === 'rekondisi' && kind === 1 && k === 'e')) return '<td class="c muted" title="Tidak berlaku">—</td>';
     const lock = k === 'v' && kind === 1;
     return `<td class="c"><input type="checkbox" data-perm="${role}|${id}|${k}" ${permVal(A.perms, role, id, k) ? 'checked' : ''} ${lock ? 'disabled title="Selalu terlihat"' : ''} aria-label="${ROLE_L[role]} ${KL[k]} ${esc(l)}"></td>`;
