@@ -1041,26 +1041,34 @@ function jsPrintForm(){const jid=curJs();const us=assigned().filter(u=>(!jid||u.
    const done=()=>{removeEventListener('afterprint',done);S.printing=false;document.title=t;render()};addEventListener('afterprint',done);setTimeout(()=>window.print(),300)}})}
 function tfEditor(unitId,opt={}){
  const u=unitOf(unitId);if(!u)return;const tf=D.tf[u.id];
- let stages=(tf?.current||tpl(u.jobsiteId,u.type)?.stages||[]).map(s=>({name:s.name,dur:s.dur}));
- const started=!!tf?.originalStart;
+ const c0=tf?calc(u):null;let stages=(tf?.current||tpl(u.jobsiteId,u.type)?.stages||[]).map((s,i)=>({name:s.name,dur:s.dur,oi:tf?i:null,act:tf?Math.round(c0.act[i]||0):null,act0:tf?Math.round(c0.act[i]||0):null}));
+ const started=!!tf?.originalStart;const showAct=!!tf&&!!(tf.start||tf.originalStart);const sig=()=>JSON.stringify([stages.map(s=>[s.name.trim(),+s.dur]),$('#tfF')?.start.value||'']);let sig0='';
  openModal((started?'Revisi':'Atur')+' timeframe – '+u.code,`<form id="tfF"><div class="fg">
   <label class="f">Tanggal mulai (start date)<input type="date" name="start" value="${esc(tf?.start||u.startDate||'')}"><span class="h">Kosongkan bila belum diketahui. Tahapan lain menyesuaikan otomatis.</span></label>
   <div class="tools" style="align-self:end"><button type="button" class="btn" id="tfTpl">${ic('db',16)} Muat ulang dari template ${esc(jsName(u.jobsiteId))}</button></div>
-  ${started||opt.reason?`<label class="f full">Alasan revisi (wajib)<textarea name="reason" required>${esc(opt.reason||'')}</textarea><span class="h">${can('verify')?'Sebagai pengawas, revisi langsung berlaku.':'Revisi menunggu persetujuan pengawas.'} Original plan tetap disimpan.</span></label>`:''}
- </div><div class="scroll" style="margin-top:12px"><table class="edt"><thead><tr><th>No</th><th style="min-width:220px">Tahapan</th><th>Durasi (hari)</th><th class="n">Bobot</th><th>Mulai</th><th>Selesai</th><th></th></tr></thead><tbody id="tfRows"></tbody></table></div>
+  ${started||opt.reason?`<label class="f full">Alasan revisi jadwal<textarea name="reason" placeholder="Wajib bila durasi / tanggal / tahapan diubah. Tidak perlu bila hanya mengoreksi aktual %.">${esc(opt.reason||'')}</textarea><span class="h">${can('verify')?'Sebagai pengawas, revisi langsung berlaku.':'Revisi menunggu persetujuan pengawas.'} Original plan tetap disimpan.</span></label>`:''}
+ </div><div class="scroll" style="margin-top:12px"><table class="edt"><thead><tr><th>No</th><th style="min-width:220px">Tahapan</th><th>Durasi (hari)</th><th class="n">Bobot</th><th>Mulai</th><th>Selesai</th>${showAct?'<th title="Progres aktual tahapan — bisa dikoreksi">Aktual (%)</th>':''}<th></th></tr></thead><tbody id="tfRows"></tbody></table></div>
  <div class="tools" style="margin-top:8px"><button type="button" class="btn sm" id="tfAdd">${ic('plus',15)} Tambah tahapan</button><span id="tfSum" class="cm"></span></div>
  <div class="mfoot"><button type="button" class="btn" data-a="close">Batal</button><button class="btn pr">Simpan</button></div></form>`,()=>{
   const F=$('#tfF'),rows=$('#tfRows');
-  const draw=()=>{const sc=sched(stages,F.start.value);rows.innerHTML=stages.map((s,i)=>`<tr><td>${i+1}</td><td><input data-i="${i}" data-k="name" value="${esc(s.name)}" required></td><td><input type="number" min="0.5" step="0.5" data-i="${i}" data-k="dur" value="${esc(s.dur)}" style="width:90px"></td><td class="n">${r1(sc[i].weight)}%</td><td>${fds(sc[i].start)}</td><td>${fds(sc[i].end)}</td><td><button type="button" class="btn sm" data-del="${i}" aria-label="Hapus">✕</button></td></tr>`).join('');$('#tfSum').textContent=`${stages.length} tahapan · lead time ${fdur(sum(stages,s=>s.dur))}${F.start.value?' · selesai '+fd(sc.at(-1)?.end):''} · bobot dihitung dari porsi hari kerja`};
-  rows.addEventListener('input',e=>{const t=e.target;if(t.dataset.k){stages[+t.dataset.i][t.dataset.k]=t.dataset.k==='name'?t.value:+t.value}});
-  rows.addEventListener('change',e=>{if(e.target.dataset.k==='dur')draw()});
+  const draw=()=>{const sc=sched(stages,F.start.value);rows.innerHTML=stages.map((s,i)=>`<tr><td>${i+1}</td><td><input data-i="${i}" data-k="name" value="${esc(s.name)}" required></td><td><input type="number" min="0.5" step="0.5" data-i="${i}" data-k="dur" value="${esc(s.dur)}" style="width:90px"></td><td class="n">${r1(sc[i].weight)}%</td><td>${fds(sc[i].start)}</td><td>${fds(sc[i].end)}</td>${showAct?`<td>${s.oi!=null?`<div class="tdin"><input type="number" min="0" max="100" step="1" data-i="${i}" data-k="act" value="${s.act}" style="width:76px" aria-label="Aktual tahap ${i+1}"><span>%</span></div>${s.act!==s.act0?`<small class="c-late">${s.act0}% → ${s.act}%</small>`:''}`:'<span class="cm">baru</span>'}</td>`:''}<td><button type="button" class="btn sm" data-del="${i}" aria-label="Hapus">✕</button></td></tr>`).join('');$('#tfSum').textContent=`${stages.length} tahapan · lead time ${fdur(sum(stages,s=>s.dur))}${F.start.value?' · selesai '+fd(sc.at(-1)?.end):''} · bobot dihitung dari porsi hari kerja`};
+  rows.addEventListener('input',e=>{const t=e.target;if(t.dataset.k){stages[+t.dataset.i][t.dataset.k]=t.dataset.k==='name'?t.value:t.dataset.k==='act'?Math.max(0,Math.min(100,Math.round(+t.value||0))):+t.value}});
+  rows.addEventListener('change',e=>{if(e.target.dataset.k==='dur'||e.target.dataset.k==='act')draw()});
   rows.addEventListener('click',e=>{const d=e.target.closest('[data-del]');if(d){stages.splice(+d.dataset.del,1);draw()}});
   F.start.onchange=draw;
   $('#tfAdd').onclick=()=>{stages.push({name:'',dur:1});draw()};
   $('#tfTpl').onclick=()=>{const tp=tpl(u.jobsiteId,u.type);if(!tp)return toast('Template belum ada','err');stages=tp.stages.map(s=>({name:s.name,dur:s.dur}));draw()};
-  draw();
+  draw();sig0=sig();
   F.onsubmit=async e=>{e.preventDefault();if(!stages.length)return toast('Belum ada tahapan','err');if(stages.some(s=>!(+s.dur>0)))return toast('Durasi harus lebih dari 0','err');
-   if(await saveTf(u.id,stages.map(s=>({name:s.name.trim(),dur:+s.dur})),F.start.value,F.reason?.value||'','Manual'))closeModal()}})}
+   const schedCh=sig()!==sig0,fix=stages.filter(s=>s.oi!=null&&s.act!==s.act0);if(!schedCh&&!fix.length)return toast('Belum ada yang diubah','err');
+   if(schedCh&&started&&!(F.reason?.value||'').trim())return toast('Isi alasan revisi jadwal (durasi / tanggal / tahapan berubah)','err');
+   const btn=F.querySelector('.pr');btn.disabled=true;
+   if(schedCh&&!await saveTf(u.id,stages.map(s=>({name:s.name.trim(),dur:+s.dur})),F.start.value,F.reason?.value||'','Manual')){btn.disabled=false;return}
+   if(fix.length){const now=new Date().toISOString();const ok=await guard(async()=>{for(const s of fix){if(s.act<s.act0)for(const d of D.updates.filter(d=>d.unitId===u.id&&d.stage===s.oi&&!d.void))await upd('updates',d.id,{void:true,voidAt:now,voidBy:S.uid||'',voidReason:'Koreksi aktual (Timeframe)'})}
+     const up=fix.filter(s=>s.act>0).map(s=>({stage:s.oi,pct:s.act}));if(up.length)await saveActual({u,date:today(),shift:1,stages:up,notes:'',checklist:'',kendala:'',photos:[],src:'Koreksi aktual (Timeframe)',verify:!!(can('verify')||S.owner),setStart:false,mkissue:false,extra:{}});
+     log('Koreksi aktual',u.code,fix.map(s=>'tahap '+(s.oi+1)+': '+s.act0+'% → '+s.act+'%').join(', '))});
+    if(!ok){btn.disabled=false;return}toast('Aktual '+fix.length+' tahapan dikoreksi')}
+   closeModal()}})}
 async function saveTf(unitId,stages,start,reason,src){
  const ex=D.tf[unitId];const now=new Date().toISOString();const u=unitOf(unitId);
  return guard(async()=>{
