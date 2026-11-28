@@ -478,7 +478,8 @@ function subscribe(){
 async function put(col,id,data){await S.db.collection(col).doc(id).set(JSON.parse(JSON.stringify(data)))}
 async function upd(col,id,data){await S.db.collection(col).doc(id).update(data)}
 function log(act,ref,detail){if(!S.db)return;S.db.collection('logs').doc(gid('LOG')).set({at:new Date().toISOString(),by:S.uid||'',act,ref:ref||'',detail:detail||''}).catch(()=>{})}
-async function guard(fn){try{await fn();return true}catch(e){const m=e?.code==='invalid_argument'?'Anda tidak memiliki izin menyimpan data ini.':e?.code==='quota_exceeded'?'Kapasitas database penuh: '+e.message:(e?.message||String(e));toast('Gagal menyimpan: '+m,'err');if(e?.code==='invalid_argument'&&S.writable==null){S.writable=false;render()}return false}}
+async function guard(fn){try{return await guard0(fn)}finally{S.busy=Math.max(0,(S.busy||1)-1);document.querySelectorAll('[data-lbl]').forEach(b=>{b.textContent=b.dataset.lbl;delete b.dataset.lbl})}}
+async function guard0(fn){S.busy=(S.busy||0)+1;try{await fn();return true}catch(e){const m=e?.code==='invalid_argument'?'Anda tidak memiliki izin menyimpan data ini.':e?.code==='quota_exceeded'?'Kapasitas database penuh: '+e.message:(e?.message||String(e));toast('Gagal menyimpan: '+m,'err');if(e?.code==='invalid_argument'&&S.writable==null){S.writable=false;render()}return false}}
 /* ---- Google Drive storage (owner's folder) with platform-asset fallback ---- */
 const GD='Google Drive';
 const driveRoot=()=>D.settings.driveFolderId||'';
@@ -493,13 +494,14 @@ function driveFolder(name){return folderLock=folderLock.then(async()=>{const key
 async function driveUpload(file,title,folderName){const f=await shrink(file);const parentId=folderName?await driveFolder(folderName):driveRoot();
  let content;if(S.fileArgs)content={$file:{data:f,name:title.replace(/[^\w.\- ]/g,'_'),type:f.type||'application/octet-stream'}};else{if(f.size>700000)throw{code:'too_large',message:'File terlalu besar untuk diunggah dari tampilan ini'};content=b64(await f.arrayBuffer())}
  return driveCreate({title,base64Content:content,contentMimeType:f.type||'application/octet-stream',parentId,disableConversionToGoogleType:true})}
-async function uploadPhotos(input,label){const ids=[];if(!input||!input.files?.length)return ids;let n=0;
- for(const f of input.files){n++;const ext=(f.name.match(/\.\w+$/)||['.jpg'])[0];const title=`${label||'Dokumentasi'}_${today()}_${n}${/^image\//.test(f.type)?'.jpg':ext}`;
-  if(S.assets?.signedUrl){try{const parts=(label||'Umum').split('_');const r=await S.assets.upload(await shrink(f),[parts[0],parts[1]||'Dokumentasi']);ids.push('gd:'+r.id)}catch(e){toast('Foto '+f.name+' gagal disimpan ke Drive: '+(e.message||e),'err')}continue}
-  if(S.mcp&&driveRoot()){try{const id=await driveUpload(f,title,(label||'Umum').split('_')[0]);if(id){ids.push('gd:'+id);continue}}catch(e){toast(mcpMsg(e),'err')}}
-  if(S.assets){try{const r=await S.assets.upload(await shrink(f));ids.push(r.id);if(S.mcp&&driveRoot())toast(f.name+' disimpan sementara di penyimpanan halaman','err')}catch(e){toast('Foto '+f.name+' gagal diunggah','err')}}
-  else if(!(S.mcp&&driveRoot()))toast('Upload foto tidak tersedia untuk akses Anda','err')}
- return ids}
+async function uploadPhotos(input,label){if(!input||!input.files?.length)return[];const files=[...input.files],out=new Array(files.length).fill(null);let done=0;const btn=document.querySelector('#mw:not([hidden]) .mfoot .pr');if(btn&&!btn.dataset.lbl)btn.dataset.lbl=btn.textContent;const prog=()=>{if(btn)btn.textContent=`Mengunggah foto ${done}/${files.length}…`};prog();
+ const one=async(f,n)=>{const ext=(f.name.match(/\.\w+$/)||['.jpg'])[0];const title=`${label||'Dokumentasi'}_${today()}_${n}${/^image\//.test(f.type)?'.jpg':ext}`;
+  if(S.assets?.signedUrl){try{const parts=(label||'Umum').split('_');const r=await S.assets.upload(await shrink(f),[parts[0],parts[1]||'Dokumentasi']);return'gd:'+r.id}catch(e){toast('Foto '+f.name+' gagal disimpan ke Drive: '+(e.message||e),'err');return null}}
+  if(S.mcp&&driveRoot()){try{const id=await driveUpload(f,title,(label||'Umum').split('_')[0]);if(id)return'gd:'+id}catch(e){toast(mcpMsg(e),'err')}}
+  if(S.assets){try{const r=await S.assets.upload(await shrink(f));if(S.mcp&&driveRoot())toast(f.name+' disimpan sementara di penyimpanan halaman','err');return r.id}catch(e){toast('Foto '+f.name+' gagal diunggah','err');return null}}
+  if(!(S.mcp&&driveRoot()))toast('Upload foto tidak tersedia untuk akses Anda','err');return null};
+ let k=0;const worker=async()=>{while(k<files.length){const i=k++;out[i]=await one(files[i],i+1);done++;prog()}};
+ await Promise.all([worker(),worker(),worker()]);if(btn)btn.textContent='Menyimpan…';return out.filter(Boolean)}
 function archiveExcel(file){if(file&&S.assets?.signedUrl){S.assets.upload(file,['Arsip Upload Excel']).then(()=>toast('Salinan '+file.name+' diarsipkan di Google Drive')).catch(e=>toast('Arsip Excel ke Drive gagal: '+(e.message||e),'err'));return}if(!S.mcp||!driveRoot()||!file)return;driveUpload(file,today()+'_'+file.name,'Arsip Upload Excel').then(()=>toast('Salinan '+file.name+' diarsipkan di Google Drive')).catch(e=>toast('Arsip Excel ke Drive gagal: '+mcpMsg(e),'err'))}
 const isGd=id=>String(id).startsWith('gd:');
 const gdId=id=>String(id).slice(3);
@@ -1578,8 +1580,10 @@ const VIEWS={home:vHome,dashboard:vDashboard,monitoring:vMonitoring,unit:vUnit,t
 /* ============ modal ============ */
 function openModal(t,h,mount,wide){$('#mt').textContent=t;$('#mbody').innerHTML=h;$('#mb').classList.toggle('wide',!!wide||h.length>3500);$('#mw').hidden=false;mount&&mount();setTimeout(()=>$('#mbody').querySelector('input:not([disabled]):not([readonly]),select,textarea')?.focus(),30)}
 function closeModal(){$('#mw').hidden=true;$('#mbody').innerHTML=''}
-$('#mw').addEventListener('click',e=>{if(e.target.id==='mw')closeModal()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#mw').hidden)closeModal()});
+const userClose=()=>{if(S.busy){toast('Tunggu sebentar, data & foto sedang disimpan…','err');return}closeModal()};
+addEventListener('beforeunload',e=>{if(S.busy){e.preventDefault();e.returnValue=''}});
+$('#mw').addEventListener('click',e=>{if(e.target.id==='mw')userClose()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#mw').hidden)userClose()});
 
 /* ============ excel / pdf ============ */
 async function save(filename,data){if(!S.dl){toast('Unduhan tidak tersedia di tampilan ini','err');return}try{await S.dl.save({filename,data})}catch(e){if(e?.code!=='declined')toast('Gagal mengunduh: '+(e?.message||e?.code),'err')}}
@@ -1657,7 +1661,7 @@ function ulPop(){pickFile((wb,fn)=>{const out=[];wb.SheetNames.forEach(n=>{const
 
 /* ============ actions ============ */
 const A={
- close:closeModal,tfunit:d=>{S.tfUnit=d.id;render();setTimeout(()=>document.querySelector('.jsg')?.closest('.panel')?.scrollIntoView({behavior:'smooth'}),50)},cklist:d=>checklistForm(d.id||S.unitId),hfjs:d=>{S.hf.js=d.id;render()},hftype:d=>{S.hf.type=d.id;render()},
+ close:()=>userClose(),tfunit:d=>{S.tfUnit=d.id;render();setTimeout(()=>document.querySelector('.jsg')?.closest('.panel')?.scrollIntoView({behavior:'smooth'}),50)},cklist:d=>checklistForm(d.id||S.unitId),hfjs:d=>{S.hf.js=d.id;render()},hftype:d=>{S.hf.type=d.id;render()},
  delsel:()=>{const ids=[...S.sel];const has=ids.filter(id=>D.updates.some(x=>x.unitId===id)||D.issues.some(x=>x.unitId===id)||D.mols.some(x=>x.unitId===id));const ok=ids.filter(id=>!has.includes(id));
   openModal('Hapus unit dari populasi',`<p>Hapus <b>${ok.length} unit</b> dari daftar populasi${has.length?` (${has.length} unit dilewati karena sudah punya laporan aktual/masalah/MOL — riwayatnya harus tetap ada)`:''}.</p><p class="cm">Unit disembunyikan (diarsipkan), bukan dihapus permanen. Bila file populasi diupload lagi, unit dengan kode yang sama muncul kembali dengan data terbaru.</p><div class="mfoot"><button class="btn" data-a="close">Batal</button><button class="btn pr" data-a="delgo" ${ok.length?'':'disabled'}>Hapus ${ok.length} unit</button></div>`)},
  delgo:async()=>{const ids=[...S.sel].filter(id=>!(D.updates.some(x=>x.unitId===id)||D.issues.some(x=>x.unitId===id)||D.mols.some(x=>x.unitId===id)));let n=0;
